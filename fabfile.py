@@ -51,7 +51,7 @@ import sys
 relative_path_to_this_module = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 absolute_path_to_this_module = os.path.abspath(relative_path_to_this_module)
 
-PYTHON_VERSION = "python{0}.{1}".format(sys.version_info)
+PYTHON_VERSION = "python{0}.{1}".format(*sys.version_info)
 PROJECT_NAME = 'heltour'
 PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
@@ -68,7 +68,7 @@ static_file_repos = OrderedDict([(repo.name, repo) for repo in []])
 all_repos = python_repos.copy()
 all_repos.update(static_file_repos)
 all_repos['baste'] = Mercurial('env/src/baste', 'ssh://hg@bitbucket.org/lakin.wecker/baste')
-all_repos['container'] = Git('.', 'git@github.com:lakinwecker/heltour.git')
+all_repos['container'] = Git('.', 'git@github.com:lakinwecker/heltour.git', 'master')
 
 #-------------------------------------------------------------------------------
 st = status = StatusCommand(all_repos)
