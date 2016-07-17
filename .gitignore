@@ -1,3 +1,5 @@
 *.pyc
 env
 heltour/live_settings.py
+.project
+.pydevproject
