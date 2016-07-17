@@ -75,7 +75,7 @@ class Team(_BaseModel):
         unique_together = (('season', 'number'), ('season', 'name'))
 
     def __unicode__(self):
-        return self.name
+        return "%s - %s" % (self.season, self.name)
 
 BOARD_NUMBER_OPTIONS = (
     (1, '1'),
@@ -100,7 +100,7 @@ class TeamMember(_BaseModel):
         unique_together = ('team', 'player')
 
     def __unicode__(self):
-        return "%s - %s" % (self.team, self.player)
+        return "%s" % self.player
 
 #-------------------------------------------------------------------------------
 class Pairing(_BaseModel):
@@ -109,9 +109,25 @@ class Pairing(_BaseModel):
     black = models.ForeignKey(Player, related_name="pairings_as_black")
     black_team = models.ForeignKey(Team, related_name="pairings_as_black")
     round = models.ForeignKey(Round)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     result = models.CharField(max_length=16, blank=True, null=True)
     game_link = models.URLField(max_length=1024, blank=True, null=True)
     date_played = models.DateField(blank=True, null=True)
+    
+    def season_name(self):
+        return "%s" % self.round.season.name
+    
+    def round_number(self):
+        return "%d" % self.round.number
+    
+    def white_team_name(self):
+        return "%s" % self.white_team.name
+    
+    def black_team_name(self):
+        return "%s" % self.black_team.name
+
+    def __unicode__(self):
+        return "%s - %s" % (self.white, self.black)
 
 

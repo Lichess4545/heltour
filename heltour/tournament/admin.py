@@ -31,7 +31,7 @@ class SeasonAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.Round)
 class RoundAdmin(VersionAdmin):
-    pass
+    list_filter = ('season',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)
@@ -41,20 +41,27 @@ class RoundChangeAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.Player)
 class PlayerAdmin(VersionAdmin):
-    pass
+    search_fields = ('lichess_username',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Team)
 class TeamAdmin(VersionAdmin):
-    pass
+    list_display = ('name', 'season')
+    search_fields = ('name',)
+    list_filter = ('season',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamMember)
 class TeamMemberAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'team')
+    search_fields = ('team__name', 'player__lichess_username')
+    list_filter = ('team',)
     pass
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Pairing)
 class PairingAdmin(VersionAdmin):
-    pass
+    list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name')
+    search_fields = ('white_team__name', 'black_team__name', 'white__lichess_username', 'black__lichess_username')
+    list_filter = ('round',)
 
