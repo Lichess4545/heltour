@@ -13,14 +13,26 @@ class _BaseModel(models.Model):
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
 
+    #---------------------------------------------------------------------------
+    def __unicode__(self):
+        return self.name
+
 #-------------------------------------------------------------------------------
 class Season(_BaseModel):
     league = models.ForeignKey(League)
-    season_name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
     start_date = models.DateField(blank=True, null=True)
+    rounds = models.PositiveIntegerField()
+
+    is_completed = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('league', 'season_name',)
+        unique_together = ('league', 'name',)
+
+
+    #---------------------------------------------------------------------------
+    def __unicode__(self):
+        return self.name
 
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
@@ -38,7 +50,6 @@ ROUND_CHANGE_OPTIONS = (
 class RoundChanges(_BaseModel):
     round = models.ForeignKey(Round)
     action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
-
 
 #-------------------------------------------------------------------------------
 class Player(_BaseModel):
