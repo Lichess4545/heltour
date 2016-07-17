@@ -34,8 +34,8 @@ class RoundAdmin(VersionAdmin):
     pass
 
 #-------------------------------------------------------------------------------
-@admin.register(models.RoundChanges)
-class RoundChangesAdmin(VersionAdmin):
+@admin.register(models.RoundChange)
+class RoundChangeAdmin(VersionAdmin):
     pass
 
 #-------------------------------------------------------------------------------

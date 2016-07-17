@@ -13,7 +13,6 @@ class _BaseModel(models.Model):
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
 
-    #---------------------------------------------------------------------------
     def __unicode__(self):
         return self.name
 
@@ -23,14 +22,13 @@ class Season(_BaseModel):
     name = models.CharField(max_length=255)
     start_date = models.DateField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
+    boards = models.PositiveIntegerField()
 
     is_completed = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('league', 'name',)
+        unique_together = ('league', 'name')
 
-
-    #---------------------------------------------------------------------------
     def __unicode__(self):
         return self.name
 
@@ -38,16 +36,20 @@ class Season(_BaseModel):
 class Round(_BaseModel):
     season = models.ForeignKey(Season)
     start_date = models.DateField()
-    round_number = models.PositiveIntegerField()
+    number = models.PositiveIntegerField()
     end_date = models.DateField()
+
+    def __unicode__(self):
+        return "%s - Round %d" % (self.season, self.number)
 
 ROUND_CHANGE_OPTIONS = (
     ('register', 'Register'),
     ('withdraw', 'Withdraw'),
     ('bye', 'Bye'),
 )
+
 #-------------------------------------------------------------------------------
-class RoundChanges(_BaseModel):
+class RoundChange(_BaseModel):
     round = models.ForeignKey(Round)
     action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
 
@@ -60,18 +62,35 @@ class Player(_BaseModel):
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
+    def __unicode__(self):
+        return "%s (%d)" % (self.lichess_username, self.rating)
+
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
     season = models.ForeignKey(Season)
+    number = models.PositiveIntegerField()
     name = models.CharField(max_length=255)
 
     class Meta:
-        unique_together = ('season', 'name')
+        unique_together = (('season', 'number'), ('season', 'name'))
+
+    def __unicode__(self):
+        return self.name
+
+BOARD_NUMBER_OPTIONS = (
+    (1, '1'),
+    (2, '2'),
+    (3, '3'),
+    (4, '4'),
+    (5, '5'),
+    (6, '6'),
+)
 
 #-------------------------------------------------------------------------------
 class TeamMember(_BaseModel):
     team = models.ForeignKey(Team)
     player = models.ForeignKey(Player)
+    board_number = models.PositiveIntegerField(blank=True, null=True, choices=BOARD_NUMBER_OPTIONS)
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
 
@@ -80,10 +99,15 @@ class TeamMember(_BaseModel):
     class Meta:
         unique_together = ('team', 'player')
 
+    def __unicode__(self):
+        return "%s - %s" % (self.team, self.player)
+
 #-------------------------------------------------------------------------------
 class Pairing(_BaseModel):
     white = models.ForeignKey(Player, related_name="pairings_as_white")
+    white_team = models.ForeignKey(Team, related_name="pairings_as_white")
     black = models.ForeignKey(Player, related_name="pairings_as_black")
+    black_team = models.ForeignKey(Team, related_name="pairings_as_black")
     round = models.ForeignKey(Round)
 
     result = models.CharField(max_length=16, blank=True, null=True)
