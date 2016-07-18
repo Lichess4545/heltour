@@ -12,7 +12,7 @@ def pairings_by_round(request, round_number):
 
 def pairings_by_season(request, season_id, round_number):
     team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season__id=season_id)
-    pairing_lists = [sorted(team_pairing.pairing_set.all(), key=lambda pairing: pairing.board_number) for team_pairing in team_pairings]
+    pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
         'round_number': round_number,
         'pairing_lists': pairing_lists

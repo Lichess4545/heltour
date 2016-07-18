@@ -1,6 +1,8 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from heltour.tournament import models
 from reversion.admin import VersionAdmin
+
+import pairinggen
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -24,7 +26,15 @@ class SeasonAdmin(VersionAdmin):
     #       all of the round records for this season, and don't let
     #       the number of rounds to change after that.
 
-
+def generate_pairings(modeladmin, request, queryset):
+    if queryset.count() > 1:
+        modeladmin.message_user(request, "Pairings can only be generated one round at a time", messages.ERROR)
+        return
+    try:
+        pairinggen.generate_pairings(queryset.first())
+        modeladmin.message_user(request, "Pairings created", messages.INFO)
+    except ValueError:
+        modeladmin.message_user(request, "Pairings already exist for the selected round", messages.ERROR)
 
 # TODO: flesh out the rest of these admin classes based on the workflows of
 #       The moderators
@@ -32,6 +42,7 @@ class SeasonAdmin(VersionAdmin):
 @admin.register(models.Round)
 class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
+    actions = [generate_pairings]
 
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)
