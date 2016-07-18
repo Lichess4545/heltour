@@ -59,6 +59,7 @@ class Player(_BaseModel):
     #       duplicate them here.
     lichess_username = models.CharField(max_length=255)
     rating = models.PositiveIntegerField(blank=True, null=True)
+    games_played = models.PositiveIntegerField(blank=True, null=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 

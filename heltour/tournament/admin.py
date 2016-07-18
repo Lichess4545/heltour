@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from heltour.tournament import models
+from heltour.tournament import models, lichessapi
 from reversion.admin import VersionAdmin
 
 import pairinggen
@@ -49,10 +49,22 @@ class RoundAdmin(VersionAdmin):
 class RoundChangeAdmin(VersionAdmin):
     pass
 
+def update_player_rating(modeladmin, request, queryset):
+    try:
+        for player in queryset.all():
+            rating, games_played = lichessapi.get_user_classical_rating_and_games_played(player.lichess_username)
+            player.rating = rating
+            player.games_played = games_played
+            player.save()
+        modeladmin.message_user(request, "Rating(s) updated", messages.INFO)
+    except:
+        modeladmin.message_user(request, "Error updating rating(s) from lichess API", messages.ERROR)
+
 #-------------------------------------------------------------------------------
 @admin.register(models.Player)
 class PlayerAdmin(VersionAdmin):
     search_fields = ('lichess_username',)
+    actions = [update_player_rating]
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Team)
