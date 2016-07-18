@@ -103,6 +103,19 @@ class TeamMember(_BaseModel):
         return "%s" % self.player
 
 #-------------------------------------------------------------------------------
+class TeamScore(_BaseModel):
+    team = models.ForeignKey(Team)
+    match_count = models.PositiveIntegerField()
+    match_points = models.PositiveIntegerField()
+    game_points = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = (('team',),)
+
+    def __unicode__(self):
+        return "%s" % (self.team)
+    
+#-------------------------------------------------------------------------------
 class Pairing(_BaseModel):
     white = models.ForeignKey(Player, related_name="pairings_as_white")
     white_team = models.ForeignKey(Team, related_name="pairings_as_white")

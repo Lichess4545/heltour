@@ -59,6 +59,14 @@ class TeamMemberAdmin(VersionAdmin):
     pass
 
 #-------------------------------------------------------------------------------
+@admin.register(models.TeamScore)
+class TeamScoreAdmin(VersionAdmin):
+    list_display = ('team', 'match_points', 'game_points')
+    search_fields = ('team__name',)
+    list_filter = ('team__season',)
+    pass
+
+#-------------------------------------------------------------------------------
 @admin.register(models.Pairing)
 class PairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name')
