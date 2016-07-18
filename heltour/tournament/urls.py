@@ -17,5 +17,7 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
-    url(r'^season/(?P<season_id>[0-9]+)/round/(?P<round_number>[0-9]+)/pairings/$', views.pairings, name='pairings'),
+    url(r'^pairings/$', views.pairings, name='pairings'),
+    url(r'^round/(?P<round_number>[0-9]+)/pairings/$', views.pairings_by_round, name='pairings_by_round'),
+    url(r'^season/(?P<season_id>[0-9]+)/round/(?P<round_number>[0-9]+)/pairings/$', views.pairings_by_season, name='pairings_by_season'),
 ]

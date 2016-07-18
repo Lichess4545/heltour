@@ -115,18 +115,21 @@ class TeamScore(_BaseModel):
     def __unicode__(self):
         return "%s" % (self.team)
     
+    def __cmp__(self, other):
+        result = self.match_points - other.match_points
+        if result != 0:
+            return result
+        result = self.game_points - other.game_points
+        return result
+    
 #-------------------------------------------------------------------------------
-class Pairing(_BaseModel):
-    white = models.ForeignKey(Player, related_name="pairings_as_white")
+class TeamPairing(_BaseModel):
     white_team = models.ForeignKey(Team, related_name="pairings_as_white")
-    black = models.ForeignKey(Player, related_name="pairings_as_black")
     black_team = models.ForeignKey(Team, related_name="pairings_as_black")
     round = models.ForeignKey(Round)
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
-    result = models.CharField(max_length=16, blank=True, null=True)
-    game_link = models.URLField(max_length=1024, blank=True, null=True)
-    date_played = models.DateField(blank=True, null=True)
+    white_points = models.PositiveIntegerField(default=0)
+    black_points = models.PositiveIntegerField(default=0)
     
     def season_name(self):
         return "%s" % self.round.season.name
@@ -139,6 +142,34 @@ class Pairing(_BaseModel):
     
     def black_team_name(self):
         return "%s" % self.black_team.name
+
+    def __unicode__(self):
+        return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
+
+#-------------------------------------------------------------------------------
+class Pairing(_BaseModel):
+    team_pairing = models.ForeignKey(TeamPairing)
+    white = models.ForeignKey(Player, related_name="pairings_as_white")
+    black = models.ForeignKey(Player, related_name="pairings_as_black")
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+
+    result = models.CharField(max_length=16, blank=True, null=True)
+    game_link = models.URLField(max_length=1024, blank=True, null=True)
+    date_played = models.DateField(blank=True, null=True)
+    
+    def season_name(self):
+        return "%s" % self.team_pairing.round.season.name
+    
+    def round_number(self):
+        return "%d" % self.team_pairing.round.number
+    
+    def white_team_name(self):
+        team = self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
+        return "%s" % team.name
+    
+    def black_team_name(self):
+        team = self.team_pairing.white_team if self.board_number % 2 == 0 else self.team_pairing.black_team
+        return "%s" % team.name
 
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)

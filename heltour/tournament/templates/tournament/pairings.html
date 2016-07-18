@@ -3,5 +3,28 @@
 {% block title %}Pairings{% endblock %}
 
 {% block content %}
-Hello! Pairings for round {{ round_number }} go here
+<h2>Pairings - Round {{ round_number }}</h2>
+
+<table class="table table-striped">
+{% for pairing_list in pairing_lists %}
+<tr>
+<th>TEAM</th>
+<th>WHITE</th>
+<th>BLACK</th>
+<th>TEAM</th>
+<th>RESULT</th>
+<th>TIME</th>
+</tr>
+{% for pairing in pairing_list %}
+<tr>
+<td>{{ pairing.white_team_name }}</td>
+<td>{{ pairing.white }}</td>
+<td>{{ pairing.black }}</td>
+<td>{{ pairing.black_team_name }}</td>
+<td><a{% if pairing.game_link %} href="{{ pairing.game_link }}"{% endif %}>{{ pairing.result }}</a></td>
+<td>{{ pairing.date_played }}</td>
+</tr>
+{% endfor %}
+{% endfor %}
+</table>
 {% endblock %}

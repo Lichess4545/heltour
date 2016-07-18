@@ -67,9 +67,16 @@ class TeamScoreAdmin(VersionAdmin):
     pass
 
 #-------------------------------------------------------------------------------
+@admin.register(models.TeamPairing)
+class TeamPairingAdmin(VersionAdmin):
+    list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
+    search_fields = ('white_team__name', 'black_team__name')
+    list_filter = ('round',)
+    
+#-------------------------------------------------------------------------------
 @admin.register(models.Pairing)
 class PairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name')
+    list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name', 'board_number')
     search_fields = ('white_team__name', 'black_team__name', 'white__lichess_username', 'black__lichess_username')
-    list_filter = ('round',)
+    list_filter = ('team_pairing__round',)
 
