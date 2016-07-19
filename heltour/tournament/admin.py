@@ -22,19 +22,19 @@ class SeasonAdmin(VersionAdmin):
     list_filter = (
         'league',
     )
-    # TODO: when rounds are set or the season is "started" create 
+    # TODO: when rounds are set or the season is 'started' create 
     #       all of the round records for this season, and don't let
     #       the number of rounds to change after that.
 
 def generate_pairings(modeladmin, request, queryset):
     if queryset.count() > 1:
-        modeladmin.message_user(request, "Pairings can only be generated one round at a time", messages.ERROR)
+        modeladmin.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
         return
     try:
         pairinggen.generate_pairings(queryset.first())
-        modeladmin.message_user(request, "Pairings created", messages.INFO)
+        modeladmin.message_user(request, 'Pairings created', messages.INFO)
     except ValueError:
-        modeladmin.message_user(request, "Pairings already exist for the selected round", messages.ERROR)
+        modeladmin.message_user(request, 'Pairings already exist for the selected round', messages.ERROR)
 
 # TODO: flesh out the rest of these admin classes based on the workflows of
 #       The moderators
@@ -49,22 +49,31 @@ class RoundAdmin(VersionAdmin):
 class RoundChangeAdmin(VersionAdmin):
     pass
 
-def update_player_rating(modeladmin, request, queryset):
+def update_selected_player_ratings(modeladmin, request, queryset):
     try:
         for player in queryset.all():
             rating, games_played = lichessapi.get_user_classical_rating_and_games_played(player.lichess_username)
             player.rating = rating
             player.games_played = games_played
             player.save()
-        modeladmin.message_user(request, "Rating(s) updated", messages.INFO)
+        modeladmin.message_user(request, 'Rating(s) updated', messages.INFO)
     except:
-        modeladmin.message_user(request, "Error updating rating(s) from lichess API", messages.ERROR)
+        modeladmin.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Player)
 class PlayerAdmin(VersionAdmin):
     search_fields = ('lichess_username',)
-    actions = [update_player_rating]
+    list_filter = ('is_active',)
+    actions = [update_selected_player_ratings]
+
+def update_board_order_by_rating(modeladmin, request, queryset):
+    for team in queryset.all():
+        members = team.teammember_set.order_by('-player__rating')
+        for i in range(len(members)):
+            members[i].board_number = i + 1
+            members[i].save()
+    modeladmin.message_user(request, 'Board order updated', messages.INFO)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Team)
@@ -72,6 +81,7 @@ class TeamAdmin(VersionAdmin):
     list_display = ('name', 'season')
     search_fields = ('name',)
     list_filter = ('season',)
+    actions = [update_board_order_by_rating]
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamMember)
