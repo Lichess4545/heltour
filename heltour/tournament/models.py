@@ -23,6 +23,7 @@ class Season(_BaseModel):
     start_date = models.DateField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField()
+    registration_open = models.BooleanField(default=False)
 
     is_completed = models.BooleanField(default=False)
 
@@ -176,4 +177,37 @@ class Pairing(_BaseModel):
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
+REGISTRATION_STATUS_OPTIONS = (
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+)
 
+PREVIOUS_SEASON_PLAYER_OPTIONS = (
+    ('new', 'New/returning'),
+    ('alternate', 'Alternate'),
+    ('alternate_to_full_time', 'Alternate to full-time'),
+    ('full_time', 'Full-time'),
+)
+
+#-------------------------------------------------------------------------------
+class Registration(_BaseModel):
+    season = models.ForeignKey(Season)
+    status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
+    
+    lichess_username = models.CharField(max_length=255)
+    slack_username = models.CharField(max_length=255)
+    email = models.CharField(max_length=255)
+    
+    classical_rating = models.PositiveIntegerField()
+    has_played_20_games = models.BooleanField()
+    already_in_slack_group = models.BooleanField()
+    previous_season_player = models.CharField(max_length=255, choices=PREVIOUS_SEASON_PLAYER_OPTIONS)
+    can_commit = models.BooleanField()
+    friends = models.CharField(max_length=1023)
+    agreed_to_rules = models.BooleanField()
+    prefers_to_be_alternate = models.BooleanField()
+    weeks_unavailable = models.CharField(max_length=255)
+    
+    def __unicode__(self):
+        return "%s" % (self.lichess_username)

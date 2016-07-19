@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
+from .forms import *
 
 def pairings(request):
     try:
@@ -31,6 +32,23 @@ def no_pairings_available(request):
     context = {
     }
     return render(request, 'tournament/no_pairings.html', context)
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            return redirect('/register_success/')
+    else:
+        form = RegistrationForm()
+    return render(request, 'tournament/register.html', {'form': form})
+
+def register_success(request):
+    context = {
+    }
+    return render(request, 'tournament/register_success.html', context)
 
 def home(request):
     return redirect('/pairings/')
