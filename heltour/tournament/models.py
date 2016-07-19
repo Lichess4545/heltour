@@ -71,6 +71,7 @@ class Team(_BaseModel):
     season = models.ForeignKey(Season)
     number = models.PositiveIntegerField()
     name = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = (('season', 'number'), ('season', 'name'))

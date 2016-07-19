@@ -7,10 +7,11 @@ def generate_pairings(round_, overwrite=False):
             existing_pairings.delete()
         else:
             raise ValueError("The specified round already has pairings.")
-    teams = Team.objects.filter(season=round_.season)
+    teams = Team.objects.filter(season=round_.season, is_active=True)
     previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number)
     
     # Run the pairing algorithm
+    # TODO: Implement a proper algorithm
     pairing_system = PlaceholderTeamPairingSystem()
     team_pairings = pairing_system.create_team_pairings(round_, teams, previous_pairings)
     
