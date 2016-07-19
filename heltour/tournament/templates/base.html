@@ -15,7 +15,36 @@
 </head>
 
 <body>
-    <div id="content">
+    <nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="/">Lichess 45+45 League</a>
+	    </div>
+	
+	    <div class="collapse navbar-collapse">
+	      <ul class="nav navbar-nav">
+	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% url 'faq' %}">FAQ</a></li>
+	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% url 'rosters' %}">Rosters</a></li>
+	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% url 'standings' %}">Standings</a></li>
+	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% url 'crosstable' %}">Crosstable</a></li>
+	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% url 'pairings' %}">Pairings</a></li>
+	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% url 'stats' %}">Stats</a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+	        {% if user.is_authenticated %}<li><a href="/admin/">Admin</a></li>{% endif %}
+	        <li><a href="https://lichess4545.slack.com/">Slack</a></li>
+	      </ul>
+	    </div><!-- /.navbar-collapse -->
+	  </div><!-- /.container-fluid -->
+	</nav>
+
+    <div class="container-fluid" id="content">
         {% block content %}{% endblock %}
     </div>
     
