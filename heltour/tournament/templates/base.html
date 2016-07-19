@@ -27,7 +27,7 @@
 	      <a class="navbar-brand" href="/">Lichess 45+45 League</a>
 	    </div>
 	
-	    <div class="collapse navbar-collapse">
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
 	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% url 'faq' %}">FAQ</a></li>
 	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% url 'rosters' %}">Rosters</a></li>
@@ -37,7 +37,7 @@
 	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% url 'stats' %}">Stats</a></li>
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
-	        {% if user.is_authenticated %}<li><a href="/admin/">Admin</a></li>{% endif %}
+	        {% if user.is_staff %}<li><a href="/admin/">Admin</a></li>{% endif %}
 	        <li><a href="https://lichess4545.slack.com/">Slack</a></li>
 	      </ul>
 	    </div><!-- /.navbar-collapse -->
@@ -49,7 +49,7 @@
     </div>
     
     {% block common_js %}
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="{% static "lib/js/bootstrap.min.js" %}"></script>
     {% endblock %}
     {% block js %}{% endblock %}
