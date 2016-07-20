@@ -183,31 +183,37 @@ REGISTRATION_STATUS_OPTIONS = (
     ('rejected', 'Rejected'),
 )
 
-PREVIOUS_SEASON_PLAYER_OPTIONS = (
-    ('new', 'New/returning'),
+PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
+    ('new', 'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
+    ('alternate', 'Yes, I was an alternate for at the end of the last season.'),
+    ('alternate_to_full_time', 'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'),
+    ('full_time', 'No, I was not an alternate for the last season. I played the season.'),
+)
+
+ALTERNATE_PREFERENCE_OPTIONS = (
     ('alternate', 'Alternate'),
-    ('alternate_to_full_time', 'Alternate to full-time'),
-    ('full_time', 'Full-time'),
+    ('full_time', 'Full Time'),
 )
 
 #-------------------------------------------------------------------------------
 class Registration(_BaseModel):
     season = models.ForeignKey(Season)
-    status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
+    status = models.CharField(blank=False, max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     
     lichess_username = models.CharField(max_length=255)
     slack_username = models.CharField(max_length=255)
     email = models.CharField(max_length=255)
     
     classical_rating = models.PositiveIntegerField()
+    peak_classical_rating = models.PositiveIntegerField()
     has_played_20_games = models.BooleanField()
     already_in_slack_group = models.BooleanField()
-    previous_season_player = models.CharField(max_length=255, choices=PREVIOUS_SEASON_PLAYER_OPTIONS)
+    previous_season_alternate = models.CharField(max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
     can_commit = models.BooleanField()
-    friends = models.CharField(max_length=1023)
+    friends = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
-    prefers_to_be_alternate = models.BooleanField()
-    weeks_unavailable = models.CharField(max_length=255)
+    alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
+    weeks_unavailable = models.CharField(blank=True, max_length=255)
     
     def __unicode__(self):
         return "%s" % (self.lichess_username)

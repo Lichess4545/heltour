@@ -19,7 +19,8 @@ from . import views
 urlpatterns = [
     url(r'^$', views.home, name='home'),
     url(r'^register/$', views.register, name='register'),
-    url(r'^register_success/$', views.register_success, name='register_success'),
+    url(r'^registration_success/$', views.registration_success, name='registration_success'),
+    url(r'^registration_closed/$', views.registration_closed, name='registration_closed'),
     url(r'^faq/$', views.faq, name='faq'),
     url(r'^rosters/$', views.rosters, name='rosters'),
     url(r'^standings/$', views.standings, name='standings'),

@@ -112,4 +112,11 @@ class PairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name', 'board_number')
     search_fields = ('white_team__name', 'black_team__name', 'white__lichess_username', 'black__lichess_username')
     list_filter = ('team_pairing__round',)
+    
+#-------------------------------------------------------------------------------
+@admin.register(models.Registration)
+class RegistrationAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'status', 'season')
+    search_fields = ('lichess_username', 'season')
+    list_filter = ('status', 'season',)
 

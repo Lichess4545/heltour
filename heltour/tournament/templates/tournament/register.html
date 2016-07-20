@@ -4,11 +4,17 @@
 {% block title %}Registration{% endblock %}
 
 {% block content %}
+
+<div class="row">
+	<div class="col-md-12">
+	    <h2>{{ season.name }} Registration (Starts {{ season.start_date }})</h2>
+	</div>
+</div>
 <div class="row">
 	<div class="col-sm-12 col-md-10 col-lg-8">
 		<form action="{% url 'register' %}" method="post">
 		    {% csrf_token %}
-		    {% bootstrap_field form.lichess_username field_class="input-large" %}
+		    {% bootstrap_form form %}
 		    {% buttons %}
 		        <button type="submit" class="btn btn-primary">Submit</button>
 		    {% endbuttons %}

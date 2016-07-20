@@ -132,3 +132,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static'
+
+BOOTSTRAP3 = {
+    'set_placeholder': False
+}
