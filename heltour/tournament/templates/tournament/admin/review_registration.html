@@ -1,25 +1,109 @@
-{% extends "admin/base_site.html" %}
-{% load i18n admin_urls static admin_modify %}
-
-{% block extrahead %}{{ block.super }}
-<script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
-{{ media }}
-{% endblock %}
-
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />{% endblock %}
-
-{% block coltype %}colM{% endblock %}
-
-{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-form{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
-&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
-&rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
-&rsaquo; {{ original|truncatewords:"18" }}
-</div>
-{% endblock %}
+{% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
+
+<div class="aligned-text">
+
+<div class="form-row">
+	<label>Registration date:</label>
+    {{ original.date_created }}
+</div>
+
+<div class="form-row">
+	<label>Registration status:</label>
+    <span class="{% if original.status == 'approved' %}text-approved{% elif original.status == 'rejected' %}text-rejected{% endif %}">{{ original.get_status_display }}</span>
+</div>
+
+<h2>{{ original.season.name }}</h2>
+
+<div class="form-row">
+	<label>Season start:</label>
+    {{ original.season.start_date }}
+</div>
+
+<h2>Registration form</h2>
+
+<div class="form-row">
+	<label>Lichess username:</label>
+    {{ original.lichess_username }}
+</div>
+
+<div class="form-row">
+	<label>Slack username:</label>
+    {{ original.slack_username }}
+</div>
+
+<div class="form-row">
+	<label>Email:</label>
+    {{ original.email }}
+</div>
+
+<div class="form-row">
+	<label>Classical rating:</label>
+    {{ original.classical_rating }}
+</div>
+
+<div class="form-row">
+	<label>Peak classical rating:</label>
+    {{ original.peak_classical_rating }}
+</div>
+
+<div class="form-row">
+	<label>Has played 20 games:</label>
+    <span class="{% if not original.has_played_20_games %}text-rejected{% endif %}">{{ original.has_played_20_games|yesno:'Yes,No' }}</span>
+</div>
+
+<div class="form-row">
+	<label>Already in slack group:</label>
+    {{ original.already_in_slack_group|yesno:'Yes,No' }}
+</div>
+
+<div class="form-row">
+	<label>Previous season alternate:</label>
+    {{ original.get_previous_season_alternate_display }}
+</div>
+
+<div class="form-row">
+	<label>Can commit to 1 long game per week:</label>
+    <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
+</div>
+
+<div class="form-row">
+	<label>Friends for pairing:</label>
+    {{ original.friends }}
+</div>
+
+<div class="form-row">
+	<label>Agreed to rules:</label>
+    <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
+</div>
+
+<div class="form-row">
+	<label>Alternate preference:</label>
+    {{ original.get_alternate_preference_display }}
+</div>
+
+<div class="form-row">
+	<label>Weeks unavailable:</label>
+    {{ original.weeks_unavailable }}
+</div>
+
+<h2>Additional info</h2>
+
+<div class="form-row">
+	TODO
+</div>
+
+<h2>Moderator notes</h2>
+
+<textarea class="notes"></textarea>
+
+</div>
+
+<div class="submit-row" style="text-align: left">
+	<input value="Approve" name="_approve" type="submit">
+	<input value="Reject" name="_approve" type="submit">
+	<input value="Save Notes" name="_approve" type="submit">
+</div>
+
 {% endblock %}

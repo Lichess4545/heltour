@@ -1,0 +1,20 @@
+.text-approved {
+  color: #0000ff;
+}
+.text-rejected {
+  color: #ff0000;
+}
+.aligned-text label {
+    display: block;
+    padding: 2px 10px 0 0;
+    float: left;
+    width: 160px;
+    word-wrap: break-word;
+    line-height: 1;
+}
+
+.notes {
+	width: 400px;
+	height: 120px;
+	margin-bottom: 20px;
+}
