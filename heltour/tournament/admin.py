@@ -119,4 +119,24 @@ class RegistrationAdmin(VersionAdmin):
     list_display = ('__unicode__', 'status', 'season')
     search_fields = ('lichess_username', 'season')
     list_filter = ('status', 'season',)
+    actions = ['approve_selected_registrations', 'reject_selected_registrations']
+    
+    def approve_selected_registrations(self, request, queryset):
+        for reg in queryset.all():
+            reg.status = 'approved'
+            reg.save()
+            try:
+                models.Player.objects.filter(lichess_username=reg.lichess_username)[0]
+            except IndexError:
+                models.Player.objects.create(lichess_username=reg.lichess_username, rating=reg.classical_rating)
+            # TODO: Finish approval workflow (invite to slack, send confirmation email, etc.)
+            # Note: Consider duplicate approvals, don't send multiple emails
+        self.message_user(request, '%d registration(s) approved.' % len(queryset), messages.INFO)
+    
+    def reject_selected_registrations(self, request, queryset):
+        for reg in queryset.all():
+            reg.status = 'rejected'
+            reg.save()
+            # TODO: Anything else to do here?
+        self.message_user(request, '%d registration(s) rejected.' % len(queryset), messages.INFO)
 

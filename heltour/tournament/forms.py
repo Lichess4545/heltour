@@ -16,7 +16,7 @@ class RegistrationForm(forms.Form):
     peak_classical_rating = forms.IntegerField(label='Your highest peak Lichess Classical Rating (####)')
     has_played_20_games = forms.TypedChoiceField(label='Have you played more than 20 games of classical chess on Lichess? (If no, this must be fulfilled ASAP).', choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
     already_in_slack_group = forms.TypedChoiceField(label='Are you on our Slack group?', choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
-    previous_season_alternate = forms.ChoiceField(label='Were you an alternate for Season 3?', choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS, widget = forms.RadioSelect)
+    previous_season_alternate = forms.ChoiceField(label='Were you an alternate for the previous season?', choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS, widget = forms.RadioSelect)
     can_commit = forms.TypedChoiceField(label='Are you able to commit to 1 Long Time Control Game (45|45, currently) of Classical Chess on Lichess.org per week?', choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
     friends = forms.CharField(required=False, label='Are there any friends you would like to be paired with? (Note: All players must register. All players must join Slack. All players should also request each other).', max_length=1023)
     agreed_to_rules = forms.TypedChoiceField(label='Do you agree to the rules of the 45|45 League? https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit', choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')

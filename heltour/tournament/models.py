@@ -184,10 +184,10 @@ REGISTRATION_STATUS_OPTIONS = (
 )
 
 PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
-    ('new', 'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
     ('alternate', 'Yes, I was an alternate for at the end of the last season.'),
     ('alternate_to_full_time', 'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'),
     ('full_time', 'No, I was not an alternate for the last season. I played the season.'),
+    ('new', 'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
 )
 
 ALTERNATE_PREFERENCE_OPTIONS = (
