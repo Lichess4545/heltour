@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from heltour.tournament import models, lichessapi
+from heltour.tournament import models, lichessapi, views
 from reversion.admin import VersionAdmin
 
 import pairinggen
@@ -120,7 +120,8 @@ class RegistrationAdmin(VersionAdmin):
     search_fields = ('lichess_username', 'season')
     list_filter = ('status', 'season',)
     actions = ['approve_selected_registrations', 'reject_selected_registrations']
-    
+    change_view = views.review_registration
+     
     def approve_selected_registrations(self, request, queryset):
         for reg in queryset.all():
             reg.status = 'approved'

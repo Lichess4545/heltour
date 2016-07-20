@@ -73,6 +73,19 @@ def registration_closed(request):
     }
     return render(request, 'tournament/registration_closed.html', context)
 
+def review_registration(modeladmin, request, object_id):
+    reg = Registration.objects.get(pk=object_id)
+    
+    context = {
+        'has_permission': True,
+        'opts': modeladmin.model._meta,
+        'site_url': '/',
+        'original': reg,
+        'title': 'Review registration'
+    }
+
+    return render(request, 'tournament/admin/review_registration.html', context)
+
 def home(request):
     return redirect('/pairings/')
 
