@@ -4,4 +4,5 @@ fabric==1.11.1
 psycopg2==2.6.1
 django-debug-toolbar==1.4
 requests==2.9.1
+django-bootstrap3==7.0.1
 -e hg+https://bitbucket.org/lakin.wecker/baste#egg=baste

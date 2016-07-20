@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'heltour.tournament',
     'reversion',
+    'bootstrap3',
 ]
 
 MIDDLEWARE_CLASSES = [
