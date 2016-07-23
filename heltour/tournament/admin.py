@@ -1,6 +1,9 @@
 from django.contrib import admin, messages
-from heltour.tournament import models, lichessapi, views
+from heltour.tournament import models, lichessapi, views, forms
 from reversion.admin import VersionAdmin
+from django.conf.urls import url
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import permission_required
 
 import pairinggen
 
@@ -116,28 +119,105 @@ class PairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.Registration)
 class RegistrationAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'status', 'season')
+    list_display = ('lichess_username', 'email', 'status', 'season')
     search_fields = ('lichess_username', 'season')
     list_filter = ('status', 'season',)
-    actions = ['approve_selected_registrations', 'reject_selected_registrations']
-    change_view = views.review_registration
-     
-    def approve_selected_registrations(self, request, queryset):
-        for reg in queryset.all():
-            reg.status = 'approved'
-            reg.save()
-            try:
-                models.Player.objects.filter(lichess_username=reg.lichess_username)[0]
-            except IndexError:
-                models.Player.objects.create(lichess_username=reg.lichess_username, rating=reg.classical_rating)
-            # TODO: Finish approval workflow (invite to slack, send confirmation email, etc.)
-            # Note: Consider duplicate approvals, don't send multiple emails
-        self.message_user(request, '%d registration(s) approved.' % len(queryset), messages.INFO)
     
-    def reject_selected_registrations(self, request, queryset):
-        for reg in queryset.all():
-            reg.status = 'rejected'
-            reg.save()
-            # TODO: Anything else to do here?
-        self.message_user(request, '%d registration(s) rejected.' % len(queryset), messages.INFO)
+    def get_urls(self):
+        urls = super(RegistrationAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/approve/$', permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)), name='approve_registration'),
+            url(r'^(?P<object_id>[0-9]+)/reject/$', permission_required('tournament.change_registration')(self.admin_site.admin_view(self.reject_registration)), name='reject_registration')
+        ]
+        return my_urls + urls
+    
+    def review_registration(self, request, object_id):
+        reg = models.Registration.objects.get(pk=object_id)
+        
+        if request.method == 'POST':
+            form = forms.ReviewRegistrationForm(request.POST, registration=reg)
+            if form.is_valid():
+                reg.moderator_notes = form.cleaned_data['moderator_notes']
+                reg.save()
+                if 'approve' in form.data and reg.status == 'pending':
+                    return redirect('admin:approve_registration', object_id=object_id)
+                elif 'reject' in form.data and reg.status == 'pending':
+                    return redirect('admin:reject_registration', object_id=object_id)
+                else:
+                    return redirect('admin:tournament_registration_changelist')
+        else:
+            form = forms.ReviewRegistrationForm(registration=reg)
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': reg,
+            'title': 'Review registration',
+            'form': form
+        }
+    
+        return render(request, 'tournament/admin/review_registration.html', context)
+    
+    def approve_registration(self, request, object_id):
+        reg = models.Registration.objects.get(pk=object_id)
+        
+        if reg.status != 'pending':
+            return redirect('admin:tournament_registration_change', object_id)
+        
+        if request.method == 'POST':
+            form = forms.ApproveRegistrationForm(request.POST, registration=reg)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    reg.status = 'approved'
+                    # TODO: Invite to slack, send confirmation email, etc. based on form input
+                    reg.save()
+                    return redirect('admin:tournament_registration_changelist')
+                else:
+                    return redirect('admin:tournament_registration_change', object_id)
+        else:
+            form = forms.ApproveRegistrationForm(registration=reg)
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': reg,
+            'title': 'Confirm approval',
+            'form': form
+        }
+    
+        return render(request, 'tournament/admin/approve_registration.html', context)
+    
+    def reject_registration(self, request, object_id):
+        reg = models.Registration.objects.get(pk=object_id)
+        
+        if reg.status != 'pending':
+            return redirect('admin:tournament_registration_change', object_id)
+        
+        if request.method == 'POST':
+            form = forms.RejectRegistrationForm(request.POST, registration=reg)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    reg.status = 'rejected'
+                    # TODO: Invite to slack, send confirmation email, etc. based on form input
+                    reg.save()
+                    return redirect('admin:tournament_registration_changelist')
+                else:
+                    return redirect('admin:tournament_registration_change', object_id)
+        else:
+            form = forms.RejectRegistrationForm(registration=reg)
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': reg,
+            'title': 'Confirm rejection',
+            'form': form
+        }
+    
+        return render(request, 'tournament/admin/reject_registration.html', context)
+        
+    change_view = review_registration
 

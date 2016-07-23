@@ -37,3 +37,19 @@ class ReviewRegistrationForm(forms.Form):
         super(ReviewRegistrationForm, self).__init__(*args, **kwargs)
         
         self.fields['moderator_notes'].initial = reg.moderator_notes
+
+class ApproveRegistrationForm(forms.Form):
+    invite_to_slack = forms.BooleanField(required=False)
+    send_confirm_email = forms.BooleanField(required=False, initial=True)
+    
+    def __init__(self, *args, **kwargs):
+        reg = kwargs.pop('registration')
+        super(ApproveRegistrationForm, self).__init__(*args, **kwargs)
+        
+        self.fields['invite_to_slack'].initial = not reg.already_in_slack_group
+
+class RejectRegistrationForm(forms.Form):
+    
+    def __init__(self, *args, **kwargs):
+        reg = kwargs.pop('registration')
+        super(RejectRegistrationForm, self).__init__(*args, **kwargs)

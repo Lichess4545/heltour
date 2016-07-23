@@ -80,32 +80,6 @@ def registration_closed(request):
     }
     return render(request, 'tournament/registration_closed.html', context)
 
-def review_registration(modeladmin, request, object_id):
-    reg = Registration.objects.get(pk=object_id)
-    
-    if request.method == 'POST':
-        form = ReviewRegistrationForm(request.POST, registration=reg)
-        if form.is_valid():
-            if 'approve' in form.data and reg.status == 'pending':
-                reg.status = 'approved'
-            elif 'reject' in form.data and reg.status == 'pending':
-                reg.status = 'rejected'
-            reg.moderator_notes = form.cleaned_data['moderator_notes']
-            reg.save()
-    else:
-        form = ReviewRegistrationForm(registration=reg)
-    
-    context = {
-        'has_permission': True,
-        'opts': modeladmin.model._meta,
-        'site_url': '/',
-        'original': reg,
-        'title': 'Review registration',
-        'form': form
-    }
-
-    return render(request, 'tournament/admin/review_registration.html', context)
-
 def home(request):
     return redirect('/pairings/')
 

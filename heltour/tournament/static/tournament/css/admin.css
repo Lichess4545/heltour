@@ -4,6 +4,13 @@
 .text-rejected {
   color: #ff0000;
 }
+.text-email {
+  font-weight: bold;
+}
+.text-username {
+  font-weight: bold;
+}
+
 .aligned-text label {
     display: block;
     padding: 2px 10px 0 0;
@@ -17,4 +24,16 @@
 	width: 400px;
 	height: 120px;
 	margin-bottom: 20px;
+}
+
+.action-checkbox {
+	padding: 10px;
+}
+.action-checkbox label {
+	color: black;
+	padding-left: 5px;
+}
+
+.actions {
+	margin-bottom: 10px;
 }
