@@ -65,7 +65,7 @@ class Player(_BaseModel):
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     
-    moderator_notes = models.CharField(blank=True, max_length=4095)
+    moderator_notes = models.TextField(blank=True, max_length=4095)
 
     class Meta:
         unique_together = (('lichess_username',),)
@@ -225,7 +225,7 @@ class Registration(_BaseModel):
     alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
     
-    moderator_notes = models.CharField(blank=True, max_length=4095)
+    moderator_notes = models.TextField(blank=True, max_length=4095)
     
     def __unicode__(self):
         return "%s" % (self.lichess_username)
@@ -235,6 +235,12 @@ class Registration(_BaseModel):
     
     def other_seasons(self):
         return SeasonPlayer.objects.filter(player__lichess_username=self.lichess_username).exclude(season=self.season)
+    
+    def player_notes(self):
+        try:
+            return Player.objects.filter(lichess_username=self.lichess_username)[0].moderator_notes
+        except IndexError:
+            return None
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):

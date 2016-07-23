@@ -104,9 +104,15 @@
 		
 		{% for season_player in original.other_seasons %}
 		<div class="form-row">
-			The player <span class="text-username">{{ original.lichess_username }}</span> participated in <span class="text-season">{{ season_player.season }}</span> with <span class='text-games-missed'>{{ season_player.games_missed }} game(s) missed</span>.
+			The player <span class="text-username">{{ original.lichess_username }}</span> participated in <span class="text-season">{{ season_player.season }}</span> with <strong>{{ season_player.games_missed }} game(s) missed</strong>.
 		</div>
 		{% endfor %}
+		
+		{% if original.player_notes %}
+		<div class="form-row">
+			<strong>Moderator notes for {{ original.lichess_username }}:</strong> {{ original.player_notes }}
+		</div>
+		{% endif %}
 		
 		<h2>Moderator notes</h2>
 		
