@@ -169,8 +169,19 @@ class RegistrationAdmin(VersionAdmin):
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
-                    reg.status = 'approved'
+                    # Add or update the player in the DB
+                    player, _ = models.Player.objects.update_or_create(
+                        lichess_username=reg.lichess_username,
+                        defaults={'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
+                    )
+                    models.SeasonPlayer.objects.update_or_create(
+                        player=player,
+                        season=reg.season,
+                        defaults={'registration': reg, 'is_active': True}
+                    )
+                    # TODO: Update model to associate players with seasons and create the association here
                     # TODO: Invite to slack, send confirmation email, etc. based on form input
+                    reg.status = 'approved'
                     reg.save()
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
@@ -222,3 +233,10 @@ class RegistrationAdmin(VersionAdmin):
         
     change_view = review_registration
 
+#-------------------------------------------------------------------------------
+@admin.register(models.SeasonPlayer)
+class SeasonPlayerAdmin(VersionAdmin):
+    list_display = ('player', 'season')
+    search_fields = ('season__name', 'player__lichess_username')
+    list_filter = ('season',)
+    pass

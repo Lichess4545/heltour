@@ -61,12 +61,18 @@ class Player(_BaseModel):
     lichess_username = models.CharField(max_length=255)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
+    email = models.CharField(max_length=255, blank=True, null=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    
+    moderator_notes = models.CharField(blank=True, max_length=4095)
+
+    class Meta:
+        unique_together = (('lichess_username',),)
 
     def __unicode__(self):
         return "%s (%d)" % (self.lichess_username, self.rating)
-
+    
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
     season = models.ForeignKey(Season)
@@ -96,8 +102,6 @@ class TeamMember(_BaseModel):
     board_number = models.PositiveIntegerField(blank=True, null=True, choices=BOARD_NUMBER_OPTIONS)
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
-
-    games_missed = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ('team', 'player')
@@ -133,6 +137,9 @@ class TeamPairing(_BaseModel):
 
     white_points = models.PositiveIntegerField(default=0)
     black_points = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('white_team', 'black_team', 'round')
     
     def season_name(self):
         return "%s" % self.round.season.name
@@ -159,6 +166,9 @@ class Pairing(_BaseModel):
     result = models.CharField(max_length=16, blank=True, null=True)
     game_link = models.URLField(max_length=1024, blank=True, null=True)
     date_played = models.DateField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('team_pairing', 'board_number')
     
     def season_name(self):
         return "%s" % self.team_pairing.round.season.name
@@ -219,3 +229,24 @@ class Registration(_BaseModel):
     
     def __unicode__(self):
         return "%s" % (self.lichess_username)
+    
+    def previous_registrations(self):
+        return Registration.objects.filter(lichess_username=self.lichess_username, date_created__lt=self.date_created)
+    
+    def other_seasons(self):
+        return SeasonPlayer.objects.filter(player__lichess_username=self.lichess_username).exclude(season=self.season)
+
+#-------------------------------------------------------------------------------
+class SeasonPlayer(_BaseModel):
+    season = models.ForeignKey(Season)
+    player = models.ForeignKey(Player)
+    registration = models.ForeignKey(Registration, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    games_missed = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ('season', 'player')
+
+    def __unicode__(self):
+        return "%s" % self.player

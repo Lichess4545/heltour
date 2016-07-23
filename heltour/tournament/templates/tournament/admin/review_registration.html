@@ -93,8 +93,20 @@
 		<h2>Additional info</h2>
 		
 		<div class="form-row">
-			TODO
+		    <a href="https://en.lichess.org/@/{{ original.lichess_username }}">Lichess profile</a> for <span class="text-username">{{ original.lichess_username }}</span>
 		</div>
+		
+		{% for prev in original.previous_registrations %}
+		<div class="form-row">
+			A <a href="{% url 'admin:tournament_registration_change' prev.id %}">previous registration</a> for <span class="text-username">{{ original.lichess_username }}</span> in <span class="text-season">{{ original.season }}</span> {% if prev.status == 'approved' %}was <span class="text-approved">approved</span>.{% elif prev.status == 'rejected' %}was <span class="text-rejected">rejected</span>.{% else %}is <span class="text-pending">pending</span>.{% endif %}
+		</div>
+		{% endfor %}
+		
+		{% for season_player in original.other_seasons %}
+		<div class="form-row">
+			The player <span class="text-username">{{ original.lichess_username }}</span> participated in <span class="text-season">{{ season_player.season }}</span> with <span class='text-games-missed'>{{ season_player.games_missed }} game(s) missed</span>.
+		</div>
+		{% endfor %}
 		
 		<h2>Moderator notes</h2>
 		
