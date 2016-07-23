@@ -246,7 +246,7 @@ class Registration(_BaseModel):
 class SeasonPlayer(_BaseModel):
     season = models.ForeignKey(Season)
     player = models.ForeignKey(Player)
-    registration = models.ForeignKey(Registration, blank=True, null=True)
+    registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     games_missed = models.IntegerField(default=0)
