@@ -19,6 +19,7 @@ from . import views
 urlpatterns = [
     url(r'^$', views.home, name='home'),
     url(r'^register/$', views.register, name='register'),
+    url(r'^season/(?P<season_id>[0-9]+)/register/$', views.register_by_season, name='register_by_season'),
     url(r'^registration_success/$', views.registration_success, name='registration_success'),
     url(r'^registration_closed/$', views.registration_closed, name='registration_closed'),
     url(r'^faq/$', views.faq, name='faq'),

@@ -38,9 +38,16 @@ def register(request):
         season = Season.objects.filter(registration_open=True).order_by('-start_date')[0]
     except IndexError:
         return registration_closed(request)
+    return redirect('register_by_season', season_id=season.id)
+
+def register_by_season(request, season_id):
+    try:
+        season = Season.objects.filter(registration_open=True, pk=season_id)[0]
+    except IndexError:
+        return registration_closed(request)
     if request.method == 'POST':
         form = RegistrationForm(request.POST, season=season)
-        if form.is_valid() and season.id == form.cleaned_data['season_id']:
+        if form.is_valid():
             Registration.objects.create(
                 season = season,
                 status = 'pending',
@@ -58,7 +65,7 @@ def register(request):
                 alternate_preference = form.cleaned_data['alternate_preference'],
                 weeks_unavailable = ','.join(form.cleaned_data['weeks_unavailable']),
             )
-            return redirect('/registration_success/')
+            return redirect('registration_success')
     else:
         form = RegistrationForm(season=season)
     return render(request, 'tournament/register.html', {'form': form, 'season': season})
@@ -76,12 +83,25 @@ def registration_closed(request):
 def review_registration(modeladmin, request, object_id):
     reg = Registration.objects.get(pk=object_id)
     
+    if request.method == 'POST':
+        form = ReviewRegistrationForm(request.POST, registration=reg)
+        if form.is_valid():
+            if 'approve' in form.data and reg.status == 'pending':
+                reg.status = 'approved'
+            elif 'reject' in form.data and reg.status == 'pending':
+                reg.status = 'rejected'
+            reg.moderator_notes = form.cleaned_data['moderator_notes']
+            reg.save()
+    else:
+        form = ReviewRegistrationForm(registration=reg)
+    
     context = {
         'has_permission': True,
         'opts': modeladmin.model._meta,
         'site_url': '/',
         'original': reg,
-        'title': 'Review registration'
+        'title': 'Review registration',
+        'form': form
     }
 
     return render(request, 'tournament/admin/review_registration.html', context)

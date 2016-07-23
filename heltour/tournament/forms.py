@@ -28,5 +28,12 @@ class RegistrationForm(forms.Form):
         
         weeks = [(i, 'Week %s' % i) for i in range(1, season.rounds + 1)]
         self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label='Are there any weeks you would be unable to play?', choices=weeks, widget=forms.CheckboxSelectMultiple)
-        self.fields['season_id'] = forms.IntegerField(widget=forms.HiddenInput)
-        self.fields['season_id'].initial = season.id
+
+class ReviewRegistrationForm(forms.Form):
+    moderator_notes = forms.CharField(required=False, max_length=4095, widget=forms.Textarea(attrs={'class':'notes'}))
+    
+    def __init__(self, *args, **kwargs):
+        reg = kwargs.pop('registration')
+        super(ReviewRegistrationForm, self).__init__(*args, **kwargs)
+        
+        self.fields['moderator_notes'].initial = reg.moderator_notes
