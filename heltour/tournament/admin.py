@@ -172,6 +172,7 @@ class RegistrationAdmin(VersionAdmin):
                     reg.status = 'approved'
                     # TODO: Invite to slack, send confirmation email, etc. based on form input
                     reg.save()
+                    self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
                 else:
                     return redirect('admin:tournament_registration_change', object_id)
@@ -200,8 +201,8 @@ class RegistrationAdmin(VersionAdmin):
             if form.is_valid():
                 if 'confirm' in form.data:
                     reg.status = 'rejected'
-                    # TODO: Invite to slack, send confirmation email, etc. based on form input
                     reg.save()
+                    self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
                 else:
                     return redirect('admin:tournament_registration_change', object_id)
