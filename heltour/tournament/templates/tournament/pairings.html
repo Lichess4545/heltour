@@ -28,7 +28,7 @@
 				<td>{{ pairing.black }}</td>
 				<td>{{ pairing.black_team_name }}</td>
 				<td>{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | default_if_none:"" }}</a>{% else %}{{ pairing.result | default_if_none:"" }}{% endif %}</td>
-				<td>{{ pairing.date_played | default_if_none:"" }}</td>
+				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>
 			</tr>
 			{% endfor %}
 			{% endfor %}
