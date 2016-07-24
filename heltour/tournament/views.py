@@ -23,7 +23,8 @@ def pairings_by_season(request, season_id, round_number):
     pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
         'round_number': round_number,
-        'pairing_lists': pairing_lists
+        'pairing_lists': pairing_lists,
+        'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/pairings.html', context)
 
