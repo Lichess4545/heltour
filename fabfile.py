@@ -4,6 +4,7 @@ import strabulous
 
 from fabric.api import (
     local,
+    sudo,
     lcd,
     env,
     hosts,
