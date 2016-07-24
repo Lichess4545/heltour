@@ -168,19 +168,6 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
             black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
             result = sheet[pairing_row][result_col]
-            if result == '1-0':
-                if k % 2 == 0:
-                    team_pairing.white_points += 2
-                else:
-                    team_pairing.black_points += 2
-            elif result == '0-1':
-                if k % 2 == 0:
-                    team_pairing.black_points += 2
-                else:
-                    team_pairing.white_points += 2
-            elif result == '1/2-1/2':
-                team_pairing.white_points += 1
-                team_pairing.black_points += 1
             date = sheet[pairing_row][date_col]
             time = sheet[pairing_row][time_col]
             date_played = None
