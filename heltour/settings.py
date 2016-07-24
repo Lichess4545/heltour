@@ -80,18 +80,12 @@ WSGI_APPLICATION = 'heltour.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+        'HOST': 'localhost',
         'NAME': 'heltour_lichess4545',
         'USER': 'heltour_lichess4545',
         'PASSWORD': 'sown shuts combiner chattels',
     }
 }
-
-# Allow live settings (which aren't in the repository) to override the development settings.
-try:
-    from . import live_settings
-    DATABASES = live_settings.DATABASES
-except ImportError:
-    pass
 
 
 # Password validation
@@ -137,5 +131,12 @@ BOOTSTRAP3 = {
     'set_placeholder': False
 }
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/ben/gspread-creds.json'
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/media/mausoleum/Work/Development/heltour/gspread.conf'
  
+# Allow live settings (which aren't in the repository) to override the development settings.
+import os
+import json
+if os.path.exists("/etc/heltour/production.json"):
+    overrides = json.loads(open("/etc/heltour/production.json", "r").read())
+    DATABASES = overrides.DATABASES
+    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH
