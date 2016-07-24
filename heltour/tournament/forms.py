@@ -12,10 +12,6 @@ YES_NO_OPTIONS = (
     (False, 'No',),
 )
 
-
-def radio_yes_no(label, help_text=None):
-    return forms.ChoiceField(label=label, help_text=help_text, choices=YES_NO_OPTIONS, widget=forms.RadioSelect)
-
 class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
@@ -60,6 +56,10 @@ class RegistrationForm(forms.ModelForm):
 
         weeks = [(i, 'Week %s' % i) for i in range(1, self.season.rounds + 1)]
         self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label='Are there any weeks you would be unable to play?', choices=weeks, widget=forms.CheckboxSelectMultiple)
+        self.fields['has_played_20_games'].required = True
+        self.fields['already_in_slack_group'].required = True
+        self.fields['can_commit'].required = True
+        self.fields['agreed_to_rules'].required = True
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
