@@ -148,5 +148,5 @@ import os
 import json
 if os.path.exists("/etc/heltour/production.json"):
     overrides = json.loads(open("/etc/heltour/production.json", "r").read())
-    DATABASES = overrides.DATABASES
-    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH
+    DATABASES = overrides.get("DATABASES", DATABASES)
+    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
