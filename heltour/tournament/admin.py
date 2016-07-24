@@ -30,7 +30,7 @@ class LeagueAdmin(VersionAdmin):
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
             if form.is_valid():
-                spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'])
+                spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
                 self.message_user(request, "Season imported.")
                 return redirect('admin:tournament_league_changelist')
         else:

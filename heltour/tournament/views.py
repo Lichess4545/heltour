@@ -4,18 +4,17 @@ from .forms import *
 
 def pairings(request):
     try:
-        season = Season.objects.order_by('-start_date')[0]
-        round_ = Round.objects.filter(season=season).order_by('-number')[0]
+        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
     except IndexError:
         return no_pairings_available(request)
-    return pairings_by_season(request, season.id, round_.number)
+    return pairings_by_season(request, most_recent_round.season.id, most_recent_round.number)
 
 def pairings_by_round(request, round_number):
     try:
-        season = Season.objects.order_by('-start_date')[0]
+        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
     except IndexError:
         return no_pairings_available(request)
-    return pairings_by_season(request, season.id, round_number)
+    return pairings_by_season(request, most_recent_round.season.id, round_number)
 
 def pairings_by_season(request, season_id, round_number):
     team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season__id=season_id)
