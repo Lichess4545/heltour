@@ -208,6 +208,11 @@ ALTERNATE_PREFERENCE_OPTIONS = (
     ('full_time', 'Full Time'),
 )
 
+YES_NO_OPTIONS = (
+    (True, 'Yes',),
+    (False, 'No',),
+)
+
 #-------------------------------------------------------------------------------
 class Registration(_BaseModel):
     season = models.ForeignKey(Season)
@@ -217,16 +222,16 @@ class Registration(_BaseModel):
     
     lichess_username = models.CharField(max_length=255)
     slack_username = models.CharField(max_length=255)
-    email = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255)
     
     classical_rating = models.PositiveIntegerField()
     peak_classical_rating = models.PositiveIntegerField()
-    has_played_20_games = models.BooleanField()
-    already_in_slack_group = models.BooleanField()
+    has_played_20_games = models.BooleanField(choices=YES_NO_OPTIONS)
+    already_in_slack_group = models.BooleanField(choices=YES_NO_OPTIONS)
     previous_season_alternate = models.CharField(max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
-    can_commit = models.BooleanField()
+    can_commit = models.BooleanField(choices=YES_NO_OPTIONS)
     friends = models.CharField(blank=True, max_length=1023)
-    agreed_to_rules = models.BooleanField()
+    agreed_to_rules = models.BooleanField(choices=YES_NO_OPTIONS)
     alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
     

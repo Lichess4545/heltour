@@ -48,23 +48,7 @@ def register_by_season(request, season_id):
     if request.method == 'POST':
         form = RegistrationForm(request.POST, season=season)
         if form.is_valid():
-            Registration.objects.create(
-                season = season,
-                status = 'pending',
-                lichess_username = form.cleaned_data['lichess_username'],
-                slack_username = form.cleaned_data['slack_username'],
-                email = form.cleaned_data['email'],
-                classical_rating = form.cleaned_data['classical_rating'],
-                peak_classical_rating = form.cleaned_data['peak_classical_rating'],
-                has_played_20_games = form.cleaned_data['has_played_20_games'],
-                already_in_slack_group = form.cleaned_data['already_in_slack_group'],
-                previous_season_alternate = form.cleaned_data['previous_season_alternate'],
-                can_commit = form.cleaned_data['can_commit'],
-                friends = form.cleaned_data['friends'],
-                agreed_to_rules = form.cleaned_data['agreed_to_rules'],
-                alternate_preference = form.cleaned_data['alternate_preference'],
-                weeks_unavailable = ','.join(form.cleaned_data['weeks_unavailable']),
-            )
+            registration = form.save()
             return redirect('registration_success')
     else:
         form = RegistrationForm(season=season)
