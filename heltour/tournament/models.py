@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.db import models, transaction
+from django.db import models
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -58,6 +58,7 @@ class RoundChange(_BaseModel):
 class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and 
     #       duplicate them here.
+    # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
     lichess_username = models.CharField(max_length=255)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
@@ -66,10 +67,7 @@ class Player(_BaseModel):
     is_active = models.BooleanField(default=True)
     
     moderator_notes = models.TextField(blank=True, max_length=4095)
-
-    class Meta:
-        unique_together = (('lichess_username',),)
-
+   
     def __unicode__(self):
         if self.rating is None:
             return self.lichess_username
@@ -144,6 +142,24 @@ class TeamPairing(_BaseModel):
     class Meta:
         unique_together = ('white_team', 'black_team', 'round')
     
+    def refresh_points(self):
+        self.white_points = 0
+        self.black_points = 0
+        for p in self.pairing_set.all():
+            if p.result == '1-0':
+                if p.board_number % 2 == 1:
+                    self.white_points += 2
+                else:
+                    self.black_points += 2
+            elif p.result == '0-1':
+                if p.board_number % 2 == 1:
+                    self.black_points += 2
+                else:
+                    self.white_points += 2
+            elif p.result == '1/2-1/2':
+                self.white_points += 1
+                self.black_points += 1
+    
     def season_name(self):
         return "%s" % self.round.season.name
     
@@ -172,6 +188,17 @@ class Pairing(_BaseModel):
 
     class Meta:
         unique_together = ('team_pairing', 'board_number')
+    
+    def __init__(self, *args, **kwargs):
+        super(Pairing, self).__init__(*args, **kwargs)
+        self.initial_result = self.result
+        
+    def save(self, *args, **kwargs):
+        result_changed = self.pk is None or self.result != self.initial_result
+        super(Pairing, self).save(*args, **kwargs)
+        if result_changed:
+            self.team_pairing.refresh_points()
+            self.team_pairing.save()
     
     def season_name(self):
         return "%s" % self.team_pairing.round.season.name
@@ -236,14 +263,14 @@ class Registration(_BaseModel):
         return "%s" % (self.lichess_username)
     
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username=self.lichess_username, date_created__lt=self.date_created)
+        return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)
     
     def other_seasons(self):
-        return SeasonPlayer.objects.filter(player__lichess_username=self.lichess_username).exclude(season=self.season)
+        return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
     
     def player_notes(self):
         try:
-            return Player.objects.filter(lichess_username=self.lichess_username)[0].moderator_notes
+            return Player.objects.filter(lichess_username__iexact=self.lichess_username)[0].moderator_notes
         except IndexError:
             return None
 
