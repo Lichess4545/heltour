@@ -7,11 +7,45 @@ from django.contrib.auth.decorators import permission_required
 from datetime import datetime
 
 import pairinggen
+import spreadsheet
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
 class LeagueAdmin(VersionAdmin):
-    pass
+    actions = ['import_season']
+    
+    def get_urls(self):
+        urls = super(LeagueAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/import_season/$', permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)), name='import_season'),
+        ]
+        return my_urls + urls
+    
+    def import_season(self, request, queryset):
+        return redirect('admin:import_season', object_id=queryset[0].pk)
+    
+    def import_season_view(self, request, object_id):
+        league = models.League.objects.get(pk=object_id)
+        
+        if request.method == 'POST':
+            form = forms.ImportSeasonForm(request.POST)
+            if form.is_valid():
+                spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'])
+                self.message_user(request, "Season imported.")
+                return redirect('admin:tournament_league_changelist')
+        else:
+            form = forms.ImportSeasonForm()
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': league,
+            'title': 'Import season',
+            'form': form
+        }
+    
+        return render(request, 'tournament/admin/import_season.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Season)

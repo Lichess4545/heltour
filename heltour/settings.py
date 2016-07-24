@@ -136,3 +136,6 @@ STATIC_ROOT = 'static'
 BOOTSTRAP3 = {
     'set_placeholder': False
 }
+
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/ben/gspread-creds.json'
+ 

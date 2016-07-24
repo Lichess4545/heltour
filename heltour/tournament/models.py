@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.db import models
+from django.db import models, transaction
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -36,9 +36,9 @@ class Season(_BaseModel):
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
     season = models.ForeignKey(Season)
-    start_date = models.DateField()
     number = models.PositiveIntegerField()
-    end_date = models.DateField()
+    start_date = models.DateTimeField(blank=True, null=True)
+    end_date = models.DateTimeField(blank=True, null=True)
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -71,7 +71,10 @@ class Player(_BaseModel):
         unique_together = (('lichess_username',),)
 
     def __unicode__(self):
-        return "%s (%d)" % (self.lichess_username, self.rating)
+        if self.rating is None:
+            return self.lichess_username
+        else:
+            return "%s (%d)" % (self.lichess_username, self.rating)
     
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
@@ -165,7 +168,7 @@ class Pairing(_BaseModel):
 
     result = models.CharField(max_length=16, blank=True, null=True)
     game_link = models.URLField(max_length=1024, blank=True, null=True)
-    date_played = models.DateField(blank=True, null=True)
+    date_played = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         unique_together = ('team_pairing', 'board_number')

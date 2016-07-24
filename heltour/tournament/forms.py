@@ -53,3 +53,11 @@ class RejectRegistrationForm(forms.Form):
     def __init__(self, *args, **kwargs):
         reg = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
+        
+class ImportSeasonForm(forms.Form):
+    spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
+    season_name = forms.CharField(label='Season name', max_length=255)
+    rosters_only = forms.BooleanField(required=False, label='Rosters only')
+    
+    def __init__(self, *args, **kwargs):
+        super(ImportSeasonForm, self).__init__(*args, **kwargs)

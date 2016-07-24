@@ -5,4 +5,6 @@ psycopg2==2.6.1
 django-debug-toolbar==1.4
 requests==2.9.1
 django-bootstrap3==7.0.1
+gspread==0.4.1
+oauth2client==2.2.0
 -e hg+https://bitbucket.org/lakin.wecker/baste#egg=baste
