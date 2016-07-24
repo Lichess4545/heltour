@@ -6,85 +6,11 @@ from datetime import datetime, timedelta
 from django.db import transaction
 import re
 
-def _parse_player_name(player_name):
-    if player_name[-1:] == '*':
-        is_captain = True
-        player_name = player_name[:-1]
-    else:
-        is_captain = False
-    return player_name, is_captain
-
-def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pairing_rows):
-    white_col = sheet[header_row].index('WHITE')
-    white_team_col = white_col - 1
-    black_col = sheet[header_row].index('BLACK')
-    black_team_col = black_col + 1
-    result_col = sheet[header_row].index('RESULT')
-    date_col = sheet[header_row].index('DATE')
-    time_col = sheet[header_row].index('TIME')
-    pairing_row = header_row + 1
-    # Team pairings
-    for j in range(len(teams) / 2):
-        white_team_name = sheet[pairing_row][white_team_col]
-        white_team = Team.objects.get(season=season, name__iexact=white_team_name)
-        black_team_name = sheet[pairing_row][black_team_col]
-        black_team = Team.objects.get(season=season, name__iexact=black_team_name)
-        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team, black_team=black_team)
-        # Individual pairings
-        for k in range(season.boards):
-            white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
-            white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
-            black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
-            black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
-            result = sheet[pairing_row][result_col]
-            if result == '1-0':
-                if k % 2 == 0:
-                    team_pairing.white_points += 2
-                else:
-                    team_pairing.black_points += 2
-            elif result == '0-1':
-                if k % 2 == 0:
-                    team_pairing.black_points += 2
-                else:
-                    team_pairing.white_points += 2
-            elif result == '1/2-1/2':
-                team_pairing.white_points += 1
-                team_pairing.black_points += 1
-            date = sheet[pairing_row][date_col]
-            time = sheet[pairing_row][time_col]
-            date_played = None
-            if '/' in date:
-                date_played = datetime.strptime('%s %s' % (date, time), '%m/%d/%Y %H:%M')
-                if round_.start_date is None or date_played < round_.start_date:
-                    round_.start_date = date_played
-                    round_.save()
-                game_end_estimate = date_played + timedelta(hours=3)
-                if round_.end_date is None or game_end_estimate > round_.end_date:
-                    round_.end_date = game_end_estimate
-                    round_.save()
-            pairings.append(Pairing.objects.create(team_pairing=team_pairing, white=white_player, black=black_player, board_number=k + 1, result=result, date_played=date_played))
-            pairing_rows.append(pairing_row)
-            pairing_row += 1
-    return result_col
-
-def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col):
-    if len(pairings) > 0: 
-        game_link_col_letter = chr(ord('A') + game_link_col)
-        range_game_links = worksheet.range('%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
-        for i in range(len(pairings)):
-            input_value = range_game_links[pairing_rows[i]].input_value
-            match = re.match('=HYPERLINK\("(.*)","(.*)"\)', input_value)
-            if match is not None:
-                pairings[i].game_link = match.group(1)
-                pairings[i].save()
-
 def import_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
     doc = gc.open_by_url(url)
-    
-    # TODO: Figure out how to handle case-insensitive comparisons for players and teams in general
     
     with transaction.atomic():
         
@@ -211,3 +137,74 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 result_col = _read_team_pairings(sheet_current_round, header_row, season, teams, round_, pairings, pairing_rows)
                 _update_pairing_game_links(doc.worksheet(current_round_name), pairings, pairing_rows, result_col)
 
+def _parse_player_name(player_name):
+    if player_name[-1:] == '*':
+        is_captain = True
+        player_name = player_name[:-1]
+    else:
+        is_captain = False
+    return player_name, is_captain
+
+def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pairing_rows):
+    white_col = sheet[header_row].index('WHITE')
+    white_team_col = white_col - 1
+    black_col = sheet[header_row].index('BLACK')
+    black_team_col = black_col + 1
+    result_col = sheet[header_row].index('RESULT')
+    date_col = sheet[header_row].index('DATE')
+    time_col = sheet[header_row].index('TIME')
+    pairing_row = header_row + 1
+    # Team pairings
+    for j in range(len(teams) / 2):
+        white_team_name = sheet[pairing_row][white_team_col]
+        white_team = Team.objects.get(season=season, name__iexact=white_team_name)
+        black_team_name = sheet[pairing_row][black_team_col]
+        black_team = Team.objects.get(season=season, name__iexact=black_team_name)
+        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team, black_team=black_team)
+        # Individual pairings
+        for k in range(season.boards):
+            white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
+            white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+            black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
+            black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+            result = sheet[pairing_row][result_col]
+            if result == '1-0':
+                if k % 2 == 0:
+                    team_pairing.white_points += 2
+                else:
+                    team_pairing.black_points += 2
+            elif result == '0-1':
+                if k % 2 == 0:
+                    team_pairing.black_points += 2
+                else:
+                    team_pairing.white_points += 2
+            elif result == '1/2-1/2':
+                team_pairing.white_points += 1
+                team_pairing.black_points += 1
+            date = sheet[pairing_row][date_col]
+            time = sheet[pairing_row][time_col]
+            date_played = None
+            if '/' in date:
+                date_played = datetime.strptime('%s %s' % (date, time), '%m/%d/%Y %H:%M')
+                if round_.start_date is None or date_played < round_.start_date:
+                    round_.start_date = date_played
+                    round_.save()
+                game_end_estimate = date_played + timedelta(hours=3)
+                if round_.end_date is None or game_end_estimate > round_.end_date:
+                    round_.end_date = game_end_estimate
+                    round_.save()
+            pairings.append(Pairing.objects.create(team_pairing=team_pairing, white=white_player, black=black_player, board_number=k + 1, result=result, date_played=date_played))
+            pairing_rows.append(pairing_row)
+            pairing_row += 1
+    return result_col
+
+def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col):
+    if len(pairings) > 0: 
+        game_link_col_letter = chr(ord('A') + game_link_col)
+        range_game_links = worksheet.range('%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
+        for i in range(len(pairings)):
+            input_value = range_game_links[pairing_rows[i]].input_value
+            match = re.match('=HYPERLINK\("(.*)","(.*)"\)', input_value)
+            if match is not None:
+                pairings[i].game_link = match.group(1)
+                pairings[i].save()
