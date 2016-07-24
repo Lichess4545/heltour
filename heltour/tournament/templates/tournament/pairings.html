@@ -24,8 +24,8 @@
 			{% for pairing in pairing_list %}
 			<tr>
 				<td>{{ pairing.white_team_name }}</td>
-				<td>{{ pairing.white }}</td>
-				<td>{{ pairing.black }}</td>
+				<td><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white }}</a></td>
+				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black }}</a></td>
 				<td>{{ pairing.black_team_name }}</td>
 				<td>{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | default_if_none:"" }}</a>{% else %}{{ pairing.result | default_if_none:"" }}{% endif %}</td>
 				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>
