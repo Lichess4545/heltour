@@ -107,6 +107,7 @@ def deploy():
 
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour restart")
+
 #-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()
