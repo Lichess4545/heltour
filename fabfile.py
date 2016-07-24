@@ -4,6 +4,7 @@ import strabulous
 
 from fabric.api import (
     local,
+    sudo,
     lcd,
     env,
     hosts,
@@ -102,11 +103,14 @@ def deploy():
                 exclude=['env', 'data', 'lakin@heltour.lakin.ca']
             )
 
+        if confirm(colors.red("Would you like to update the dependencies?")):
+            run("/var/www/heltour.lakin.ca/current/sysadmin/update-requirements.sh")
         if confirm(colors.red("Would you like to run the migrations?")):
             run("/var/www/heltour.lakin.ca/current/sysadmin/migrate.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour restart")
+
 #-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()

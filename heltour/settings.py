@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
@@ -23,9 +22,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'heltour.lakin.ca',
+]
 
 
 # Application definition
@@ -80,18 +81,12 @@ WSGI_APPLICATION = 'heltour.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+        'HOST': 'localhost',
         'NAME': 'heltour_lichess4545',
         'USER': 'heltour_lichess4545',
         'PASSWORD': 'sown shuts combiner chattels',
     }
 }
-
-# Allow live settings (which aren't in the repository) to override the development settings.
-try:
-    from . import live_settings
-    DATABASES = live_settings.DATABASES
-except ImportError:
-    pass
 
 
 # Password validation
@@ -137,5 +132,21 @@ BOOTSTRAP3 = {
     'set_placeholder': False
 }
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/ben/gspread-creds.json'
- 
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
+
+# Host-based settings overrides.
+import platform
+import re
+try:
+    hostname = platform.node().split('.')[0]
+    exec 'from .local.%s import *' % re.sub('[^\w]', '_', hostname)
+except ImportError:
+    pass # ignore missing local settings
+
+# Allow live settings (which aren't in the repository) to override the development settings.
+import os
+import json
+if os.path.exists("/etc/heltour/production.json"):
+    overrides = json.loads(open("/etc/heltour/production.json", "r").read())
+    DATABASES = overrides.get("DATABASES", DATABASES)
+    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
