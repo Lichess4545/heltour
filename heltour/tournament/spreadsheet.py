@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from heltour import settings
 from datetime import datetime, timedelta
+from django.db import transaction
 import re
 
 def _parse_player_name(player_name):
@@ -11,13 +12,15 @@ def _parse_player_name(player_name):
         player_name = player_name[:-1]
     else:
         is_captain = False
-    return (player_name, is_captain)
+    return player_name, is_captain
 
 def import_season(league, url, name, rosters_only=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
     doc = gc.open_by_url(url)
+    
+    # TODO: Figure out how to handle case-insensitive comparisons for players and teams in general
     
     with transaction.atomic():
         
@@ -33,6 +36,7 @@ def import_season(league, url, name, rosters_only=False):
             try:
                 round_cols.append(sheet_standings[0].index('Round %d' % round_))
             except ValueError:
+                # No more rounds
                 break
             round_ += 1
         round_count = round_ - 1
@@ -62,22 +66,18 @@ def import_season(league, url, name, rosters_only=False):
             teams.append(Team.objects.create(season=season, number=len(teams) + 1, name=team_name))
             team_name_row += 1
     
-        # Read the board count, team members, and alternates
+        # Read the team members and alternates
         alternates_start_row = [row[0] == 'Alternates' for row in sheet_rosters].index(True)
         for i in range(season.boards):
             board = i + 1
-            try:
-                player_name_col = sheet_rosters[0].index('Board %d' % board)
-                player_rating_col = sheet_rosters[0].index('Rating %d' % board)
-            except ValueError:
-                # No more boards
-                break
+            player_name_col = sheet_rosters[0].index('Board %d' % board)
+            player_rating_col = sheet_rosters[0].index('Rating %d' % board)
             # Team members
             for i in range(len(teams)):
                 player_row = i + 1
                 player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
                 player_rating  = sheet_rosters[player_row][player_rating_col]
-                player, _ = Player.objects.update_or_create(lichess_username=player_name, defaults={'rating': int(player_rating)})
+                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                 SeasonPlayer.objects.get_or_create(season=season, player=player)
                 TeamMember.objects.get_or_create(player=player, team=teams[i], defaults={'board_number': board, 'is_captain':is_captain})
             # Alternates
@@ -87,11 +87,12 @@ def import_season(league, url, name, rosters_only=False):
                 player_rating  = sheet_rosters[alternates_row][player_rating_col]
                 if len(player_name) == 0 or len(player_rating) == 0:
                     break
-                player, _ = Player.objects.update_or_create(lichess_username=player_name, defaults={'rating': int(player_rating)})
+                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                 SeasonPlayer.objects.get_or_create(season=season, player=player)
                 alternates_row += 1
         
         if not rosters_only:
+            
             # Read the team scores
             team_name_col = sheet_standings[0].index('Team Name')
             match_points_col = sheet_standings[0].index('Match Points')
@@ -99,7 +100,7 @@ def import_season(league, url, name, rosters_only=False):
             for i in range(len(teams)):
                 team_row = i + 1
                 team_name = sheet_standings[team_row][team_name_col]
-                team = (t for t in teams if t.name.lower() == team_name.lower()).next()
+                team = Team.objects.get(season=season, name__iexact=team_name)
                 match_count = 0
                 for round_col in round_cols:
                     if len(sheet_standings[team_row][round_col]) > 0:
@@ -131,18 +132,20 @@ def import_season(league, url, name, rosters_only=False):
                 date_col = sheet_past_rounds[header_row].index('DATE')
                 time_col = sheet_past_rounds[header_row].index('TIME')
                 pairing_row = round_start_row + 2
+                # Team pairings
                 for j in range(len(teams) / 2):
                     white_team_name = sheet_past_rounds[pairing_row][white_team_col]
-                    white_team = (t for t in teams if t.name.lower() == white_team_name.lower()).next()
+                    white_team = Team.objects.get(season=season, name__iexact=white_team_name)
                     black_team_name = sheet_past_rounds[pairing_row][black_team_col]
-                    black_team = (t for t in teams if t.name.lower() == black_team_name.lower()).next()
+                    black_team = Team.objects.get(season=season, name__iexact=black_team_name)
                     team_pairing = TeamPairing.objects.create(round=rounds[i], white_team=white_team, black_team=black_team)
                     team_pairings.append(team_pairing)
+                    # Individual pairings
                     for k in range(season.boards):
                         white_player_name, _ = _parse_player_name(sheet_past_rounds[pairing_row][white_col])
-                        white_player, _ = Player.objects.get_or_create(lichess_username=white_player_name)
+                        white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
                         black_player_name, _ = _parse_player_name(sheet_past_rounds[pairing_row][black_col])
-                        black_player, _ = Player.objects.get_or_create(lichess_username=black_player_name)
+                        black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
                         result = sheet_past_rounds[pairing_row][result_col]
                         if result == '1-0':
                             if k % 2 == 0:
@@ -190,4 +193,6 @@ def import_season(league, url, name, rosters_only=False):
                     if match is not None:
                         pairings[i].game_link = match.group(1)
                         pairings[i].save()
+            
+            # TODO: Read the live round data
 

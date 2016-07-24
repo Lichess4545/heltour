@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.db import models, transaction
+from django.db import models
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -58,6 +58,7 @@ class RoundChange(_BaseModel):
 class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and 
     #       duplicate them here.
+    # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
     lichess_username = models.CharField(max_length=255)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
@@ -66,10 +67,7 @@ class Player(_BaseModel):
     is_active = models.BooleanField(default=True)
     
     moderator_notes = models.TextField(blank=True, max_length=4095)
-
-    class Meta:
-        unique_together = (('lichess_username',),)
-
+   
     def __unicode__(self):
         if self.rating is None:
             return self.lichess_username
@@ -236,14 +234,14 @@ class Registration(_BaseModel):
         return "%s" % (self.lichess_username)
     
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username=self.lichess_username, date_created__lt=self.date_created)
+        return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)
     
     def other_seasons(self):
-        return SeasonPlayer.objects.filter(player__lichess_username=self.lichess_username).exclude(season=self.season)
+        return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
     
     def player_notes(self):
         try:
-            return Player.objects.filter(lichess_username=self.lichess_username)[0].moderator_notes
+            return Player.objects.filter(lichess_username__iexact=self.lichess_username)[0].moderator_notes
         except IndexError:
             return None
 

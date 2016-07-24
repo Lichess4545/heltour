@@ -206,8 +206,8 @@ class RegistrationAdmin(VersionAdmin):
                 if 'confirm' in form.data:
                     # Add or update the player in the DB
                     player, _ = models.Player.objects.update_or_create(
-                        lichess_username=reg.lichess_username,
-                        defaults={'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
+                        lichess_username__iexact=reg.lichess_username,
+                        defaults={'lichess_username': reg.lichess_username, 'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
                     )
                     models.SeasonPlayer.objects.update_or_create(
                         player=player,
