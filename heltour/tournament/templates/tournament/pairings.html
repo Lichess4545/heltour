@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 
 {% block title %}Pairings{% endblock %}
 
@@ -10,7 +11,7 @@
 </div>
 
 <div class="row">
-	<div class="col-sm-12 col-md-10 col-lg-8">
+	<div class="col-md-12 col-lg-10">
 		<table class="table table-striped">
 			{% for pairing_list in pairing_lists %}
 			<tr>
@@ -19,7 +20,8 @@
 				<th>BLACK</th>
 				<th>TEAM</th>
 				<th>RESULT</th>
-				<th>TIME</th>
+				<th>TIME</th>{% if can_edit %}
+				<th></th>{% endif %}
 			</tr>
 			{% for pairing in pairing_list %}
 			<tr>
@@ -28,7 +30,12 @@
 				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black }}</a></td>
 				<td>{{ pairing.black_team_name }}</td>
 				<td>{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | default_if_none:"" }}</a>{% else %}{{ pairing.result | default_if_none:"" }}{% endif %}</td>
-				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>
+				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+				<th>
+					<a href="{% url 'admin:tournament_pairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </th>{% endif %}
 			</tr>
 			{% endfor %}
 			{% endfor %}

@@ -278,3 +278,9 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season',)
+
+#-------------------------------------------------------------------------------
+@admin.register(models.ApiKey)
+class ApiKeyAdmin(VersionAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
