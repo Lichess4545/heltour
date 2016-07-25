@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.utils.crypto import get_random_string
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -288,3 +289,14 @@ class SeasonPlayer(_BaseModel):
 
     def __unicode__(self):
         return "%s" % self.player
+    
+def create_api_token():
+    return get_random_string(length=32)
+
+#-------------------------------------------------------------------------------
+class ApiKey(_BaseModel):
+    name = models.CharField(max_length=255, unique=True)
+    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    
+    def __unicode__(self):
+        return self.name
