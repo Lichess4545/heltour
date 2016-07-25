@@ -24,6 +24,7 @@ urlpatterns = [
     url(r'^registration_closed/$', views.registration_closed, name='registration_closed'),
     url(r'^faq/$', views.faq, name='faq'),
     url(r'^rosters/$', views.rosters, name='rosters'),
+    url(r'^season/(?P<season_id>[0-9]+)/rosters/$', views.rosters_by_season, name='rosters_by_season'),
     url(r'^standings/$', views.standings, name='standings'),
     url(r'^crosstable/$', views.crosstable, name='crosstable'),
     url(r'^pairings/$', views.pairings, name='pairings'),

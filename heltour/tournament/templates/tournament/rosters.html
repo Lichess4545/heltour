@@ -8,4 +8,29 @@
 <div class="row">
 	<div class="col-md-12"><h2>Rosters</h2></div>
 </div>
+
+<div class="row">
+	<div class="col-md-12">
+		<table class="table table-striped">
+			<tr>
+				<th>Team</th>
+				{% for board_number in board_numbers %}
+				<th>Board {{ board_number }}</th>
+				<th>Rating</th>
+				{% endfor %}
+				<th>Average Rating</th>
+			</tr>
+			{% for team in teams %}
+			<tr>
+				<td>{{ team.name }}</td>
+				{% for board in team.boards %}
+				<td><a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a></td>
+				<td>{{ board.player.rating }}</td>
+				{% endfor %}
+				<td>{{ team.average_rating|floatformat:2 }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+</div>
 {% endblock %}

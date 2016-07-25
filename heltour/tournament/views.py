@@ -73,9 +73,29 @@ def faq(request):
     return render(request, 'tournament/faq.html', context)
 
 def rosters(request):
+    try:
+        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
+    except IndexError:
+        return no_rosters_available(request)
+    return rosters_by_season(request, most_recent_round.season.id)
+
+def rosters_by_season(request, season_id):
+    try:
+        season = Season.objects.filter(pk=season_id)[0]
+    except IndexError:
+        return no_rosters_available(request)
+    teams = Team.objects.filter(season=season).order_by('number')
+    board_numbers = list(range(1, season.boards + 1))
     context = {
+        'teams': teams,
+        'board_numbers': board_numbers
     }
     return render(request, 'tournament/rosters.html', context)
+
+def no_rosters_available(request):
+    context = {
+    }
+    return render(request, 'tournament/no_rosters.html', context)
 
 def standings(request):
     context = {

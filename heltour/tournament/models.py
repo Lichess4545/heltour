@@ -84,7 +84,21 @@ class Team(_BaseModel):
 
     class Meta:
         unique_together = (('season', 'number'), ('season', 'name'))
-
+    
+    def boards(self):
+        for i in range(self.season.boards):
+            board_number = i + 1
+            yield self.teammember_set.filter(board_number=board_number).first()
+    
+    def average_rating(self):
+        n = 0
+        total = 0.0
+        for board in self.boards():
+            if board is not None:
+                n += 1
+                total += board.player.rating
+        return total / n
+    
     def __unicode__(self):
         return "%s - %s" % (self.season, self.name)
 
