@@ -24,7 +24,7 @@ def _get_latest_round(season_id):
     else:
         return Round.objects.filter(season_id=season_id).order_by('-number')[0]
 
-def _get_pairings(round_, player=None, white=None, black=None):
+def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = Pairing.objects.filter(team_pairing__round=round_)
     if player is not None:
         pairings = pairings.filter(white__lichess_username__iexact=player) | pairings.filter(black__lichess_username__iexact=player)
@@ -33,8 +33,7 @@ def _get_pairings(round_, player=None, white=None, black=None):
         pairings = pairings.filter(white__lichess_username__iexact=white)
     if black is not None:
         pairings = pairings.filter(black__lichess_username__iexact=black)
-    # Try switching colors as a fallback
-    if len(pairings) == 0:
+    if color_fallback and len(pairings) == 0:
         pairings = pairings_snapshot
         if white is not None:
             pairings = pairings.filter(black__lichess_username__iexact=white)
@@ -45,10 +44,12 @@ def _get_pairings(round_, player=None, white=None, black=None):
 @api_token_required
 def find_pairing(request):
     try:
+        season_id = request.GET.get('season', None)
+        if season_id is not None:
+            season_id = int(season_id)
         player = request.GET.get('player', None)
         white = request.GET.get('white', None)
         black = request.GET.get('black', None)
-        season_id = int(request.GET.get('season', None))
     except ValueError:
         return HttpResponse('Bad request', status=400)
     
@@ -57,7 +58,7 @@ def find_pairing(request):
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
     
-    pairings = _get_pairings(round_, player, white, black)
+    pairings = _get_pairings(round_, player, white, black, True)
     
     if len(pairings) == 0:
         return JsonResponse({'pairing': None, 'error': 'not_found'})
@@ -85,11 +86,13 @@ def find_pairing(request):
 @api_token_required
 def update_pairing(request):
     try:
-        player = request.GET.get('player', None)
-        white = request.GET.get('white', None)
-        black = request.GET.get('black', None)
-        season_id = int(request.GET.get('season', None))
-        data = json.loads(request.body)
+        season_id = request.POST.get('season', None)
+        if season_id is not None:
+            season_id = int(season_id)
+        white = request.POST.get('white', None)
+        black = request.POST.get('black', None)
+        game_link = request.POST.get('game_link', None)
+        result = request.POST.get('result', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
     
@@ -98,7 +101,7 @@ def update_pairing(request):
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
 
-    pairings = _get_pairings(round_, player, white, black)
+    pairings = _get_pairings(round_, None, white, black, False)
 
     if len(pairings) == 0:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
@@ -107,10 +110,10 @@ def update_pairing(request):
     
     p = pairings[0]
     
-    if 'game_link' in data:
-        p.game_link = data['game_link']
-    if 'result' in data:
-        p.result = data['result']
+    if game_link is not None:
+        p.game_link = game_link
+    if result is not None:
+        p.result = result
     p.save()
     
     return JsonResponse({'updated': 1})
