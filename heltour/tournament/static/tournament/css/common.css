@@ -21,3 +21,18 @@
 .input-xxlarge {
   width: 530px;
 }
+
+.bottom-space {
+	margin-bottom: 20px;
+}
+
+div.inline {
+	display: inline-block;
+}
+
+.round-switcher {
+	display: inline-block;
+	position: relative;
+	top: -5px;
+	margin-left: 10px;
+}

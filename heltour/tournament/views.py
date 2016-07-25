@@ -25,21 +25,30 @@ def pairings(request, season_id=None, round_number=None):
             return no_pairings_available(request, season_id)
     team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season)
     if len(team_pairings) == 0:
-        return no_pairings_available(request, season_id)
+        return no_pairings_available(request, season_id, round_number)
     pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
+    round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
     context = {
         'season_specified': bool(season_id),
         'season': season,
         'round_number': round_number,
+        'round_number_list': round_number_list,
         'pairing_lists': pairing_lists,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/pairings.html', context)
 
-def no_pairings_available(request, season_id=None):
+def no_pairings_available(request, season_id=None, round_number=None):
+    season = _get_season(season_id)
+    if season_id is not None:
+        round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
+    else:
+        round_number_list = []
     context = {
         'season_specified': bool(season_id),
-        'season': _get_season(season_id)
+        'season': season,
+        'round_number_list': round_number_list,
+        'round_number': round_number
     }
     return render(request, 'tournament/no_pairings.html', context)
 
