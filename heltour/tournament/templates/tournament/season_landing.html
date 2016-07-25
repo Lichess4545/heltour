@@ -6,13 +6,19 @@
 {% block nav_season %}active{% endblock %}
 
 {% block content %}
-<div class="row">
-	<div class="col-md-12"><h2>{{ season.name }}</h2></div>
-</div>
-
-<div class="row">
-	<div class="col-md-12">
-		Click a link above.
-	</div>
+<div class="dropdown">
+  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+    {{ season.name }}
+    <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu">
+    {% if default_season %}
+    <li><a href="{% url 'season_landing' %}">{{ default_season.name }}</a></li>
+    <li role="separator" class="divider"></li>
+    {% endif %}
+    {% for s in season_list %}
+    <li><a href="{% url 'season_landing_by_season' s.pk %}">{{ s.name }}</a></li>
+    {% endfor %}
+  </ul>
 </div>
 {% endblock %}

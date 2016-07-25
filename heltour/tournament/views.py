@@ -3,9 +3,14 @@ from .models import *
 from .forms import *
 
 def season_landing(request, season_id=None):
+    default_season = _get_default_season()
+    season_list = list(Season.objects.order_by('-start_date', '-id'))
+    season_list.remove(default_season)
     context = {
         'season_specified': bool(season_id),
-        'season': _get_season(season_id)
+        'season': _get_season(season_id),
+        'default_season': default_season,
+        'season_list': season_list 
     }
     return render(request, 'tournament/season_landing.html', context)
 
