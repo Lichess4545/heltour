@@ -1,6 +1,12 @@
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import re
+import json
 from models import *
+
+# API methods expect an HTTP header in the form:
+# Authorization: Token abc123
+# where "abc123" is the secret token of an API key in the database
 
 def api_token_required(view_func):
     def _wrapped_view_func(request, *args, **kwargs):
@@ -12,13 +18,16 @@ def api_token_required(view_func):
         return view_func(request, *args, **kwargs)     
     return _wrapped_view_func
 
+def _get_latest_round(season_id):
+    if season_id is None:
+        return Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
+    else:
+        return Round.objects.filter(season_id=season_id).order_by('-number')[0]
+
 @api_token_required
 def find_pairing(request, player=None, white=None, black=None, season_id=None):
     try:
-        if season_id is None:
-            round_ = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
-        else:
-            round_ = Round.objects.filter(season_id=season_id).order_by('-number')[0]
+        round_ = _get_latest_round(season_id)
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
     
@@ -52,6 +61,32 @@ def find_pairing(request, player=None, white=None, black=None, season_id=None):
         'datetime': p.date_played,
     }})
 
+@csrf_exempt
 @api_token_required
 def update_pairing(request, season_id, white, black):
-    return HttpResponse(white)
+    try:
+        round_ = _get_latest_round(season_id)
+    except IndexError:
+        return JsonResponse({'updated': 0, 'error': 'no_data'})
+
+    pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=white, black__lichess_username__iexact=black)
+
+    if len(pairings) == 0:
+        return JsonResponse({'updated': 0, 'error': 'not_found'})
+    if len(pairings) > 1:
+        return JsonResponse({'updated': 0, 'error': 'ambiguous'})
+    
+    p = pairings[0]
+    try:
+        data = json.loads(request.body)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
+    if 'game_link' in data:
+        p.game_link = data['game_link']
+    if 'result' in data:
+        p.result = data['result']
+    p.save()
+    
+    return JsonResponse({'updated': 1})
+    
