@@ -13,55 +13,30 @@ def api_token_required(view_func):
     return _wrapped_view_func
 
 @api_token_required
-def find_pairing_by_player(request, player):
+def find_pairing(request, player=None, white=None, black=None, season_id=None):
     try:
-        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
+        if season_id is None:
+            round_ = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
+        else:
+            round_ = Round.objects.filter(season_id=season_id).order_by('-number')[0]
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
-    return _find_pairing_by_player(most_recent_round, player)
-
-@api_token_required
-def find_pairing_by_season_player(request, season_id, player):
-    try:
-        most_recent_round = Round.objects.filter(season_id=season_id).order_by('-number')[0]
-    except IndexError:
-        return JsonResponse({'pairing': None, 'error': 'no_data'})
-    return _find_pairing_by_player(most_recent_round, player)
-
-def _find_pairing_by_player(round_, player):
-    pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=player)
-    pairings |= Pairing.objects.filter(team_pairing__round=round_, black__lichess_username__iexact=player)
-    return _find_pairing_result(pairings)
-
-@api_token_required
-def find_pairing_by_white_black(request, white, black):
-    try:
-        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
-    except IndexError:
-        return JsonResponse({'pairing': None, 'error': 'no_data'})
-    return _find_pairing_by_white_black(most_recent_round, white, black)
-
-@api_token_required
-def find_pairing_by_season_white_black(request, season_id, white, black):
-    try:
-        most_recent_round = Round.objects.filter(season_id=season_id).order_by('-number')[0]
-    except IndexError:
-        return JsonResponse({'pairing': None, 'error': 'no_data'})
-    return _find_pairing_by_white_black(most_recent_round, white, black)
-
-def _find_pairing_by_white_black(round_, white, black):
-    pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=white, black__lichess_username__iexact=black)
-    if len(pairings) == 0:
-        # Try switching colors as a fallback
-        pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=black, black__lichess_username__iexact=white)
-    return _find_pairing_result(pairings)
-
-def _find_pairing_result(pairings):
+    
+    if player is not None:
+        pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=player)
+        pairings |= Pairing.objects.filter(team_pairing__round=round_, black__lichess_username__iexact=player)
+    else:
+        pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=white, black__lichess_username__iexact=black)
+        if len(pairings) == 0:
+            # Try switching colors as a fallback
+            pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=black, black__lichess_username__iexact=white)
+    
     if len(pairings) == 0:
         return JsonResponse({'pairing': None, 'error': 'not_found'})
     if len(pairings) > 1:
         return JsonResponse({'pairing': None, 'error': 'ambiguous'})
     p = pairings[0]
+    
     return JsonResponse({'pairing': {
         'season_id': p.team_pairing.round.season.id,
         'white_team': p.team_pairing.white_team.name if p.board_number % 2 == 1 else p.team_pairing.black_team.name,
