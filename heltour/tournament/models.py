@@ -207,13 +207,17 @@ class Pairing(_BaseModel):
     def round_number(self):
         return "%d" % self.team_pairing.round.number
     
+    def white_team(self):
+        return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
+    
+    def black_team(self):
+        return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
+    
     def white_team_name(self):
-        team = self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
-        return "%s" % team.name
+        return "%s" % self.white_team().name
     
     def black_team_name(self):
-        team = self.team_pairing.white_team if self.board_number % 2 == 0 else self.team_pairing.black_team
-        return "%s" % team.name
+        return "%s" % self.black_team().name
 
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)

@@ -48,10 +48,10 @@ def find_pairing(request, player=None, white=None, black=None, season_id=None):
     
     return JsonResponse({'pairing': {
         'season_id': p.team_pairing.round.season.id,
-        'white_team': p.team_pairing.white_team.name if p.board_number % 2 == 1 else p.team_pairing.black_team.name,
-        'white_team_number': p.team_pairing.white_team.number if p.board_number % 2 == 1 else p.team_pairing.black_team.number,
-        'black_team': p.team_pairing.black_team.name if p.board_number % 2 == 1 else p.team_pairing.white_team.name,
-        'black_team_number': p.team_pairing.black_team.number if p.board_number % 2 == 1 else p.team_pairing.white_team.number,
+        'white_team': p.white_team().name,
+        'white_team_number': p.white_team().number,
+        'black_team': p.black_team().name,
+        'black_team_number': p.black_team().number,
         'white': p.white.lichess_username,
         'white_rating': p.white.rating,
         'black': p.black.lichess_username,
