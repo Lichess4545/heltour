@@ -2,49 +2,50 @@ from django.shortcuts import render, redirect
 from .models import *
 from .forms import *
 
-def pairings(request):
-    try:
-        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
-    except IndexError:
-        return no_pairings_available(request)
-    return pairings_by_season(request, most_recent_round.season.id, most_recent_round.number)
+def season_landing(request, season_id=None):
+    context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
+    }
+    return render(request, 'tournament/season_landing.html', context)
 
-def pairings_by_round(request, round_number):
-    try:
-        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
-    except IndexError:
+def pairings(request, season_id=None, round_number=None):
+    season = _get_season(season_id)
+    if season is None:
         return no_pairings_available(request)
-    return pairings_by_season(request, most_recent_round.season.id, round_number)
-
-def pairings_by_season(request, season_id, round_number):
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season__id=season_id)
+    if round_number is None:
+        try:
+            round_number = Round.objects.filter(season=season).order_by('-number')[0].number
+        except IndexError:
+            return no_pairings_available(request, season_id)
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season)
     if len(team_pairings) == 0:
-        return no_pairings_available(request)
+        return no_pairings_available(request, season_id)
     pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
+        'season_specified': bool(season_id),
+        'season': season,
         'round_number': round_number,
         'pairing_lists': pairing_lists,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/pairings.html', context)
 
-def no_pairings_available(request):
+def no_pairings_available(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/no_pairings.html', context)
 
-def register(request):
+def register(request, season_id=None):
     try:
-        season = Season.objects.filter(registration_open=True).order_by('-start_date')[0]
+        if season_id is None:
+            season = Season.objects.filter(registration_open=True).order_by('-start_date')[0]
+        else:
+            season = Season.objects.filter(registration_open=True, pk=season_id)[0]
     except IndexError:
-        return registration_closed(request)
-    return redirect('register_by_season', season_id=season.id)
-
-def register_by_season(request, season_id):
-    try:
-        season = Season.objects.filter(registration_open=True, pk=season_id)[0]
-    except IndexError:
-        return registration_closed(request)
+        return registration_closed(request, season_id)
     if request.method == 'POST':
         form = RegistrationForm(request.POST, season=season)
         if form.is_valid():
@@ -52,62 +53,89 @@ def register_by_season(request, season_id):
             return redirect('registration_success')
     else:
         form = RegistrationForm(season=season)
-    return render(request, 'tournament/register.html', {'form': form, 'season': season})
-
-def registration_success(request):
+    
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id),
+        'form': form,
+        'registration_season': season
+    }
+    return render(request, 'tournament/register.html', context)
+
+def registration_success(request, season_id=None):
+    context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/registration_success.html', context)
 
-def registration_closed(request):
+def registration_closed(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/registration_closed.html', context)
 
 def home(request):
     return redirect('/pairings/')
 
-def faq(request):
+def faq(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/faq.html', context)
 
-def rosters(request):
-    try:
-        most_recent_round = Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
-    except IndexError:
-        return no_rosters_available(request)
-    return rosters_by_season(request, most_recent_round.season.id)
-
-def rosters_by_season(request, season_id):
-    try:
-        season = Season.objects.filter(pk=season_id)[0]
-    except IndexError:
+def rosters(request, season_id=None):
+    season = Season.objects.get(pk=season_id) if season_id else _get_default_season()
+    if season is None:
         return no_rosters_available(request)
     teams = Team.objects.filter(season=season).order_by('number')
     board_numbers = list(range(1, season.boards + 1))
     context = {
+        'season_specified': bool(season_id),
+        'season': season,
         'teams': teams,
         'board_numbers': board_numbers
     }
     return render(request, 'tournament/rosters.html', context)
 
-def no_rosters_available(request):
+def no_rosters_available(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/no_rosters.html', context)
 
-def standings(request):
+def standings(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/standings.html', context)
 
-def crosstable(request):
+def crosstable(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/crosstable.html', context)
 
-def stats(request):
+def stats(request, season_id=None):
     context = {
+        'season_specified': bool(season_id),
+        'season': _get_season(season_id)
     }
     return render(request, 'tournament/stats.html', context)
+
+def _get_season(season_id):
+    if season_id is None:
+        return _get_default_season()
+    else:
+        return Season.objects.get(pk=season_id)
+
+def _get_default_season():
+    try:
+        return Season.objects.filter(is_active=True).order_by('-start_date', '-id')[0]
+    except IndexError:
+        return None

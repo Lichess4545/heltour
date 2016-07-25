@@ -30,12 +30,13 @@
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
-	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% url 'faq' %}">FAQ</a></li>
-	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% url 'rosters' %}">Rosters</a></li>
-	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% url 'standings' %}">Standings</a></li>
-	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% url 'crosstable' %}">Crosstable</a></li>
-	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% url 'pairings' %}">Pairings</a></li>
-	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% url 'stats' %}">Stats</a></li>
+	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% if season_specified %}{% url 'faq_by_season' season.id %}{% else %}{% url 'faq' %}{% endif %}">FAQ</a></li>
+	        <li class="{% block nav_season %}{% endblock %}"><a href="{% if season_specified %}{% url 'season_landing_by_season' season.id %}{% else %}{% url 'season_landing' %}{% endif %}">{{ season.name }}</a></li>
+	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% if season_specified %}{% url 'rosters_by_season' season.id %}{% else %}{% url 'rosters' %}{% endif %}">Rosters</a></li>
+	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% if season_specified %}{% url 'standings_by_season' season.id %}{% else %}{% url 'standings' %}{% endif %}">Standings</a></li>
+	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% if season_specified %}{% url 'crosstable_by_season' season.id %}{% else %}{% url 'crosstable' %}{% endif %}">Crosstable</a></li>
+	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% if season_specified %}{% url 'pairings_by_season' season.id %}{% else %}{% url 'pairings' %}{% endif %}">Pairings</a></li>
+	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% if season_specified %}{% url 'stats_by_season' season.id %}{% else %}{% url 'stats' %}{% endif %}">Stats</a></li>
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
 	        {% if user.is_staff %}<li><a href="/admin/">Admin</a></li>{% endif %}

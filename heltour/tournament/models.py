@@ -24,9 +24,10 @@ class Season(_BaseModel):
     start_date = models.DateField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField()
-    registration_open = models.BooleanField(default=False)
 
+    is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False)
+    registration_open = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('league', 'name')
@@ -97,7 +98,7 @@ class Team(_BaseModel):
             if board is not None:
                 n += 1
                 total += board.player.rating
-        return total / n
+        return total / n if n > 0 else None
     
     def __unicode__(self):
         return "%s - %s" % (self.season, self.name)

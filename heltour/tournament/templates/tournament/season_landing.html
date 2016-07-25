@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}{{ season.name }}{% endblock %}
+
+{% block nav_season %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+	<div class="col-md-12"><h2>{{ season.name }}</h2></div>
+</div>
+
+<div class="row">
+	<div class="col-md-12">
+		Click a link above.
+	</div>
+</div>
+{% endblock %}
