@@ -27,23 +27,29 @@
 
 <div class="row">
 	<div class="col-md-12 col-lg-10">
-		<table class="table table-striped">
+		<table class="table">
 			{% for pairing_list in pairing_lists %}
-			<tr>
-				<th>TEAM</th>
+			<tr class="header-row visible-xs">
+				<th colspan="4">TEAMS</th>
+			</tr>
+			<tr class="visible-xs">
+				<td colspan="4">{{ pairing_list.0.white_team_name }} - {{ pairing_list.0.black_team_name }}</td>
+			</tr>
+			<tr class="header-row">
+				<th class="hidden-xs">TEAM</th>
 				<th>WHITE</th>
 				<th>BLACK</th>
-				<th>TEAM</th>
+				<th class="hidden-xs">TEAM</th>
 				<th>RESULT</th>
 				<th>TIME</th>{% if can_edit %}
 				<th></th>{% endif %}
 			</tr>
 			{% for pairing in pairing_list %}
 			<tr>
-				<td>{{ pairing.white_team_name }}</td>
+				<td class="hidden-xs">{{ pairing.white_team_name }}</td>
 				<td><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white }}</a></td>
 				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black }}</a></td>
-				<td>{{ pairing.black_team_name }}</td>
+				<td class="hidden-xs">{{ pairing.black_team_name }}</td>
 				<td>{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | default_if_none:"" }}</a>{% else %}{{ pairing.result | default_if_none:"" }}{% endif %}</td>
 				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 				<th>

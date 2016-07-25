@@ -33,6 +33,10 @@ div.inline {
 .round-switcher {
 	display: inline-block;
 	position: relative;
-	top: -5px;
+	top: -6px;
 	margin-left: 10px;
+}
+
+.header-row {
+	background-color: rgb(249, 249, 249)
 }
