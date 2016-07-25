@@ -30,9 +30,6 @@ urlpatterns = [
     url(r'^stats/$', views.stats, name='stats'),
     url(r'^round/(?P<round_number>[0-9]+)/pairings/$', views.pairings_by_round, name='pairings_by_round'),
     url(r'^season/(?P<season_id>[0-9]+)/round/(?P<round_number>[0-9]+)/pairings/$', views.pairings_by_season, name='pairings_by_season'),
-    url(r'^api/find_pairing/player/(?P<player>\w+)/$', api.find_pairing, name='api_find_pairing_by_player'),
-    url(r'^api/find_pairing/season/(?P<season_id>[0-9]+)/player/(?P<player>\w+)/$', api.find_pairing, name='find_pairing_by_season_player'),
-    url(r'^api/find_pairing/white/(?P<white>\w+)/black/(?P<black>\w+)/$', api.find_pairing, name='api_find_pairing_by_white_black'),
-    url(r'^api/find_pairing/season/(?P<season_id>[0-9]+)/white/(?P<white>\w+)/black/(?P<black>\w+)/$', api.find_pairing, name='api_find_pairing_by_season_white_black'),
-    url(r'^api/update_pairing/season/(?P<season_id>[0-9]+)/white/(?P<white>\w+)/black/(?P<black>\w+)/$', api.update_pairing, name='api_update_pairing'),
+    url(r'^api/find_pairing/$', api.find_pairing, name='api_find_pairing'),
+    url(r'^api/update_pairing/$', api.update_pairing, name='api_update_pairing'),
 ]

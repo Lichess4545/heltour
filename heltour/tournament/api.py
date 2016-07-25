@@ -24,26 +24,46 @@ def _get_latest_round(season_id):
     else:
         return Round.objects.filter(season_id=season_id).order_by('-number')[0]
 
+def _get_pairings(round_, player=None, white=None, black=None):
+    pairings = Pairing.objects.filter(team_pairing__round=round_)
+    if player is not None:
+        pairings = pairings.filter(white__lichess_username__iexact=player) | pairings.filter(black__lichess_username__iexact=player)
+    pairings_snapshot = pairings
+    if white is not None:
+        pairings = pairings.filter(white__lichess_username__iexact=white)
+    if black is not None:
+        pairings = pairings.filter(black__lichess_username__iexact=black)
+    # Try switching colors as a fallback
+    if len(pairings) == 0:
+        pairings = pairings_snapshot
+        if white is not None:
+            pairings = pairings.filter(black__lichess_username__iexact=white)
+        if black is not None:
+            pairings = pairings.filter(white__lichess_username__iexact=black)
+    return pairings
+
 @api_token_required
-def find_pairing(request, player=None, white=None, black=None, season_id=None):
+def find_pairing(request):
+    try:
+        player = request.GET.get('player', None)
+        white = request.GET.get('white', None)
+        black = request.GET.get('black', None)
+        season_id = int(request.GET.get('season', None))
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
     try:
         round_ = _get_latest_round(season_id)
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
     
-    if player is not None:
-        pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=player)
-        pairings |= Pairing.objects.filter(team_pairing__round=round_, black__lichess_username__iexact=player)
-    else:
-        pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=white, black__lichess_username__iexact=black)
-        if len(pairings) == 0:
-            # Try switching colors as a fallback
-            pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=black, black__lichess_username__iexact=white)
+    pairings = _get_pairings(round_, player, white, black)
     
     if len(pairings) == 0:
         return JsonResponse({'pairing': None, 'error': 'not_found'})
     if len(pairings) > 1:
         return JsonResponse({'pairing': None, 'error': 'ambiguous'})
+    
     p = pairings[0]
     
     return JsonResponse({'pairing': {
@@ -63,13 +83,22 @@ def find_pairing(request, player=None, white=None, black=None, season_id=None):
 
 @csrf_exempt
 @api_token_required
-def update_pairing(request, season_id, white, black):
+def update_pairing(request):
+    try:
+        player = request.GET.get('player', None)
+        white = request.GET.get('white', None)
+        black = request.GET.get('black', None)
+        season_id = int(request.GET.get('season', None))
+        data = json.loads(request.body)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
     try:
         round_ = _get_latest_round(season_id)
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
 
-    pairings = Pairing.objects.filter(team_pairing__round=round_, white__lichess_username__iexact=white, black__lichess_username__iexact=black)
+    pairings = _get_pairings(round_, player, white, black)
 
     if len(pairings) == 0:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
@@ -77,10 +106,6 @@ def update_pairing(request, season_id, white, black):
         return JsonResponse({'updated': 0, 'error': 'ambiguous'})
     
     p = pairings[0]
-    try:
-        data = json.loads(request.body)
-    except ValueError:
-        return HttpResponse('Bad request', status=400)
     
     if 'game_link' in data:
         p.game_link = data['game_link']
@@ -89,4 +114,3 @@ def update_pairing(request, season_id, white, black):
     p.save()
     
     return JsonResponse({'updated': 1})
-    
