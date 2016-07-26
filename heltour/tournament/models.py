@@ -2,6 +2,10 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.utils.crypto import get_random_string
+from ckeditor.fields import RichTextField
+from django.core.validators import RegexValidator
+
+tag_validator = RegexValidator(r'^[0-9a-zA-Z-_]*$', 'Only alphanumeric characters, hyphens, and underscores are allowed.')
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -13,7 +17,7 @@ class _BaseModel(models.Model):
 #-------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
-    tag = models.CharField(max_length=31, unique=True)
+    tag = models.CharField(max_length=31, unique=True, validators=[tag_validator])
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
 
@@ -352,3 +356,28 @@ class ApiKey(_BaseModel):
     
     def __unicode__(self):
         return self.name
+
+#-------------------------------------------------------------------------------
+class Document(_BaseModel):
+    name = models.CharField(max_length=255, unique=True)
+    content = RichTextField()
+    
+    def __unicode__(self):
+        return self.name
+
+LEAGUE_DOCUMENT_TYPES = (
+    ('faq', 'FAQ'),
+)
+
+#-------------------------------------------------------------------------------
+class LeagueDocument(_BaseModel):
+    league = models.ForeignKey(League)
+    type = models.CharField(blank=True, null=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
+    tag = models.CharField(max_length=255, validators=[tag_validator])
+    document = models.ForeignKey(Document)
+
+    class Meta:
+        unique_together = ('league', 'tag')
+    
+    def __unicode__(self):
+        return self.tag

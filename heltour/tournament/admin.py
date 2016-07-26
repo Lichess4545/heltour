@@ -284,3 +284,15 @@ class SeasonPlayerAdmin(VersionAdmin):
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    
+#-------------------------------------------------------------------------------
+@admin.register(models.Document)
+class DocumentAdmin(VersionAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+#-------------------------------------------------------------------------------
+@admin.register(models.LeagueDocument)
+class LeagueDocumentAdmin(VersionAdmin):
+    list_display = ('tag', 'league', 'type', 'document',)
+    search_fields = ('league__name', 'tag', 'document__name')

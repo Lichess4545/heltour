@@ -105,10 +105,16 @@ def league_home(request, league_tag=None):
         return redirect('pairings')
 
 def faq(request, league_tag=None, season_id=None):
+    faq_document = LeagueDocument.objects.filter(league=_get_league(league_tag), type='faq').first()
+    if faq_document is None:
+        faq_content = 'Coming soon.'
+    else:
+        faq_content = faq_document.document.content
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': _get_season(league_tag, season_id),
+        'faq_content': faq_content
     }
     return render(request, 'tournament/faq.html', context)
 
