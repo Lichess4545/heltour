@@ -17,7 +17,7 @@ class _BaseModel(models.Model):
 #-------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
-    tag = models.CharField(max_length=31, unique=True, validators=[tag_validator])
+    tag = models.CharField(max_length=31, unique=True, validators=[tag_validator], help_text='The league will be accessible at /{league_tag}/')
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
 
@@ -373,7 +373,7 @@ LEAGUE_DOCUMENT_TYPES = (
 class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League)
     document = models.ForeignKey(Document)
-    tag = models.CharField(max_length=255, validators=[tag_validator])
+    tag = models.CharField(max_length=255, validators=[tag_validator], help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, null=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
 
     class Meta:
