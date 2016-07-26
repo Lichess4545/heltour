@@ -167,6 +167,18 @@ class TeamScore(_BaseModel):
                 points = black_pairing.black_points / 2.0
             yield points
     
+    def cross_scores(self):
+        other_teams = Team.objects.filter(season=self.team.season).order_by('number')
+        for other_team in other_teams:
+            white_pairing = TeamPairing.objects.filter(white_team=self.team, black_team=other_team).first()
+            black_pairing = TeamPairing.objects.filter(white_team=other_team, black_team=self.team).first()
+            points = None
+            if white_pairing is not None and white_pairing.round.is_completed:
+                points = white_pairing.white_points / 2.0
+            if black_pairing is not None and black_pairing.round.is_completed:
+                points = black_pairing.black_points / 2.0
+            yield other_team.number, points
+    
     def __unicode__(self):
         return "%s" % (self.team)
     

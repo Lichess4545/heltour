@@ -8,4 +8,45 @@
 <div class="row">
 	<div class="col-md-12"><h2>Crosstable</h2></div>
 </div>
+
+<div class="row">
+	<div class="col-md-12">
+		<div class="table-responsive">
+		<table class="table table-striped table-crosstable">
+			<tr>
+				<th></th>
+				<th>Team</th>
+				{% for team_score in team_scores %}
+				<td class="cell-teamnumber cell-score">{{ team_score.team.number }}</td>
+				{% endfor %}
+				<th class="text-center">Match Points</th>
+				<th class="text-center">Game Points</th>
+				<th class="text-center">Matches Entered</th>
+			</tr>
+			{% for team_score in team_scores %}
+			<tr>
+				<td class="cell-teamnumber">{{ team_score.team.number }}</td>
+				<td>{{ team_score.team.name }}</td>
+				{% for number, score in team_score.cross_scores %}
+				{% if number == team_score.team.number %}
+				<td class="cell-score cell-cross">x</td>
+				{% elif score == None %}
+				<td class="cell-score"></td>
+				{% elif score > tie_score %}
+				<td class="cell-score cell-win">{{ score|floatformat }}</td>
+				{% elif score < tie_score %}
+				<td class="cell-score cell-loss">{{ score|floatformat }}</td>
+				{% else %}
+				<td class="cell-score cell-tie">{{ score|floatformat }}</td>
+				{% endif %}
+				{% endfor %}
+				<td class="text-center">{{ team_score.match_points_display }}</td>
+				<td class="text-center">{{ team_score.game_points_display }}</td>
+				<td class="text-center">{{ team_score.match_count }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		</div>
+	</div>
+</div>
 {% endblock %}

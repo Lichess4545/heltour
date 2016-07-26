@@ -41,6 +41,27 @@ div.inline {
 	background-color: rgb(249, 249, 249)
 }
 
+.table-crosstable tbody>tr>td, .table-crosstable tbody>tr>th {
+	white-space: nowrap;
+}
+
+.table-crosstable .cell-score {
+	border: 1px solid black;
+}
+
+.table-crosstable .cell-score, .table-crosstable .cell-teamnumber {
+	width: 37px;
+	min-width: 30px;
+	padding-left: 4px;
+	padding-right: 4px;
+	text-align: center;
+}
+
+.table-crosstable .cell-teamnumber {
+	font-weight: bold;
+}
+
+
 .cell-win {
 	background-color: #b7e1cd;
 }
@@ -51,4 +72,8 @@ div.inline {
 
 .cell-tie {
 	background-color: #fce8b2;
+}
+
+.cell-cross {
+	background-color: #c9daf8;
 }

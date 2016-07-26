@@ -157,10 +157,15 @@ def standings(request, league_tag=None, season_id=None):
     return render(request, 'tournament/standings.html', context)
 
 def crosstable(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    team_scores = sorted(TeamScore.objects.filter(team__season=season), key=lambda ts: ts.team.number)
+    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': season,
+        'team_scores': team_scores,
+        'tie_score': tie_score
     }
     return render(request, 'tournament/crosstable.html', context)
 
