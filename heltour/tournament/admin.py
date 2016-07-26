@@ -294,5 +294,5 @@ class DocumentAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
-    list_display = ('tag', 'league', 'type', 'document',)
+    list_display = ('document', 'league', 'tag', 'type')
     search_fields = ('league__name', 'tag', 'document__name')

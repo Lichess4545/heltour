@@ -372,12 +372,12 @@ LEAGUE_DOCUMENT_TYPES = (
 #-------------------------------------------------------------------------------
 class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League)
-    type = models.CharField(blank=True, null=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
-    tag = models.CharField(max_length=255, validators=[tag_validator])
     document = models.ForeignKey(Document)
+    tag = models.CharField(max_length=255, validators=[tag_validator])
+    type = models.CharField(blank=True, null=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
 
     class Meta:
         unique_together = ('league', 'tag')
     
     def __unicode__(self):
-        return self.tag
+        return self.document.name
