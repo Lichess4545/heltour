@@ -13,6 +13,9 @@ class _BaseModel(models.Model):
 #-------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
+    tag = models.CharField(max_length=31, unique=True)
+    is_active = models.BooleanField(default=True)
+    is_default = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.name
