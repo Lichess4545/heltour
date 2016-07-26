@@ -19,7 +19,7 @@
 		  </button>
 		  <ul class="dropdown-menu">
 		    {% for n in round_number_list %}
-		    <li><a href="{% if season_specified %}{% url 'pairings_by_season_round' season.pk n %}{% else %}{% url 'pairings_by_round' n %}{% endif %}">Round {{ n }}</a></li>
+		    <li><a href="{% leagueurl 'pairings_by_round' league_id season_id n %}">Round {{ n }}</a></li>
 		    {% endfor %}
 		  </ul>
 		</div>

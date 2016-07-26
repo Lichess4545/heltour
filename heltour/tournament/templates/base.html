@@ -8,6 +8,7 @@
     <title>{% block title %}Lichess 45+45 League{% endblock %}</title>
     
     {% load staticfiles %}
+    {% load tournament_extras %}
     {% block common_css %}
     <link href="{% static "lib/css/bootstrap.min.css" %}" rel="stylesheet">
     <link href="{% static "tournament/css/common.css" %}" rel="stylesheet">
@@ -30,17 +31,17 @@
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
-	        <li class="{% block nav_season %}{% endblock %}"><a href="{% if season_specified %}{% url 'season_landing_by_season' season.id %}{% else %}{% url 'season_landing' %}{% endif %}">{{ season.name }}</a></li>
-	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% if season_specified %}{% url 'faq_by_season' season.id %}{% else %}{% url 'faq' %}{% endif %}">FAQ</a></li>
-	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% if season_specified %}{% url 'rosters_by_season' season.id %}{% else %}{% url 'rosters' %}{% endif %}">Rosters</a></li>
-	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% if season_specified %}{% url 'standings_by_season' season.id %}{% else %}{% url 'standings' %}{% endif %}">Standings</a></li>
-	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% if season_specified %}{% url 'crosstable_by_season' season.id %}{% else %}{% url 'crosstable' %}{% endif %}">Crosstable</a></li>
-	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% if season_specified %}{% url 'pairings_by_season' season.id %}{% else %}{% url 'pairings' %}{% endif %}">Pairings</a></li>
-	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% if season_specified %}{% url 'stats_by_season' season.id %}{% else %}{% url 'stats' %}{% endif %}">Stats</a></li>
+	        <li class="{% block nav_season %}{% endblock %}"><a href="{% leagueurl 'season_landing' league_id season_id %}">{{ season.name }}</a></li>
+	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% leagueurl 'faq' league_id season_id %}">FAQ</a></li>
+	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% leagueurl 'rosters' league_id season_id %}">Rosters</a></li>
+	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% leagueurl 'standings' league_id season_id %}">Standings</a></li>
+	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% leagueurl 'crosstable' league_id season_id %}">Crosstable</a></li>
+	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% leagueurl 'pairings' league_id season_id %}">Pairings</a></li>
+	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% leagueurl 'stats' league_id season_id %}">Stats</a></li>
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
 	        {% if user.is_staff %}<li><a href="/admin/">Admin</a></li>{% endif %}
-	        <li><a href="{% url 'register' %}">Register</a></li>
+	        <li><a href="{% leagueurl 'register' league_id None %}">Register</a></li>
 	        <li><a href="https://lichess4545.slack.com/">Slack</a></li>
 	      </ul>
 	    </div><!-- /.navbar-collapse -->
