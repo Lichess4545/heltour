@@ -134,14 +134,18 @@ def get_roster(request):
             seasons = seasons.filter(league__tag=league_tag)
         if season_id is not None:
             seasons = seasons.filter(pk=season_id)
+        else:
+            seasons = seasons.filter(is_active=True)
+        
         season = seasons[0]
     except IndexError:
-        return JsonResponse({'pairing': None, 'error': 'no_data'})
+        return JsonResponse({'season_id': None, 'players': None, 'teams': None, 'error': 'no_data'})
     
     season_players = season.seasonplayer_set.all()
     teams = season.team_set.order_by('number').all()
     
     return JsonResponse({
+        'season_id': season.pk,
         'players': [{
             'username': season_player.player.lichess_username,
             'rating': season_player.player.rating
