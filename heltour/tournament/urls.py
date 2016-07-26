@@ -43,6 +43,6 @@ api_urlpatterns = [
 
 urlpatterns = [
     url(r'^', include(league_urlpatterns)),
-    url(r'^league/(?P<league_id>\w+)/', include(league_urlpatterns, 'by_league')),
+    url(r'^(?P<league_id>\w+)/', include(league_urlpatterns, 'by_league')),
     url(r'^api/', include(api_urlpatterns, 'api')),
 ]
