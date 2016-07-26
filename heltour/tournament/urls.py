@@ -34,6 +34,7 @@ league_urlpatterns = [
     url(r'^registration_closed/$', views.registration_closed, name='registration_closed'),
     url(r'^', include(season_urlpatterns)),
     url(r'^season/(?P<season_id>[0-9]+)/', include(season_urlpatterns, 'by_season')),
+    url(r'^document/(?P<document_tag>[\w-]+)/$', views.document, name='document'),
 ]
 
 api_urlpatterns = [
@@ -44,6 +45,6 @@ api_urlpatterns = [
 
 urlpatterns = [
     url(r'^', include(league_urlpatterns)),
-    url(r'^(?P<league_tag>\w+)/', include(league_urlpatterns, 'by_league')),
+    url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
     url(r'^api/', include(api_urlpatterns, 'api')),
 ]

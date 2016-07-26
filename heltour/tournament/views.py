@@ -172,6 +172,17 @@ def stats(request, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/stats.html', context)
 
+def document(request, document_tag, league_tag=None, season_id=None):
+    league_document = LeagueDocument.objects.get(league=_get_league(league_tag), tag=document_tag)
+    context = {
+        'league_tag': league_tag,
+        'season_id': season_id,
+        'season': _get_season(league_tag, season_id),
+        'document_content': league_document.document.content,
+        'document_name': league_document.document.name
+    }
+    return render(request, 'tournament/document.html', context)
+
 def _get_league(league_tag):
     if league_tag is None:
         return _get_default_league()
