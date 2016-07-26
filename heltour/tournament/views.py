@@ -138,7 +138,7 @@ def no_rosters_available(request, league_tag=None, season_id=None):
 def standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = sorted(TeamScore.objects.filter(team__season=season), reverse=True)
+    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True), 1)
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,

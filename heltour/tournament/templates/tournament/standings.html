@@ -13,6 +13,7 @@
 	<div class="col-md-12">
 		<table class="table table-striped">
 			<tr>
+				<th></th>
 				<th>Team</th>
 				<th>Average Rating</th>
 				<th>Match Points</th>
@@ -21,8 +22,9 @@
 				<th>Round {{ round_number }}</th>
 				{% endfor %}
 			</tr>
-			{% for team_score in team_scores %}
+			{% for number, team_score in team_scores %}
 			<tr>
+				<td>{{ number }}</td>
 				<td>{{ team_score.team.name }}</td>
 				<td>{{ team_score.team.average_rating|floatformat:2 }}</td>
 				<td>{{ team_score.match_points_display }}</td>
