@@ -30,10 +30,10 @@
 		<table class="table">
 			{% for pairing_list in pairing_lists %}
 			<tr class="header-row visible-xs">
-				<th colspan="4">TEAMS</th>
+				<th colspan="5">TEAMS</th>
 			</tr>
 			<tr class="visible-xs">
-				<td colspan="4">{{ pairing_list.0.white_team_name }} - {{ pairing_list.0.black_team_name }}</td>
+				<td colspan="5">{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }}) - {{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})</td>
 			</tr>
 			<tr class="header-row">
 				<th class="hidden-xs">TEAM</th>

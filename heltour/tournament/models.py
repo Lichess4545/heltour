@@ -176,6 +176,12 @@ class TeamPairing(_BaseModel):
                 self.white_points += 1
                 self.black_points += 1
     
+    def white_points_display(self):
+        return "%g" % (self.white_points / 2.0)
+    
+    def black_points_display(self):
+        return "%g" % (self.black_points / 2.0)
+    
     def season_name(self):
         return "%s" % self.round.season.name
     
