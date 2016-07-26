@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'heltour.tournament',
     'reversion',
     'bootstrap3',
+    'ckeditor',
 ]
 
 MIDDLEWARE_CLASSES = [
