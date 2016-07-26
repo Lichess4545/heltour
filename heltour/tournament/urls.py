@@ -39,6 +39,7 @@ league_urlpatterns = [
 api_urlpatterns = [
     url(r'^find_pairing/$', api.find_pairing, name='find_pairing'),
     url(r'^update_pairing/$', api.update_pairing, name='update_pairing'),
+    url(r'^get_roster/$', api.get_roster, name='get_roster'),
 ]
 
 urlpatterns = [
