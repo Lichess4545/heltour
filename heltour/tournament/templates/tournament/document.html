@@ -2,6 +2,10 @@
 
 {% block title %}{{ document_name }}{% endblock %}
 
+{% if document_type == 'faq' %}
+{% block nav_faq %}active{% endblock %}
+{% endif %}
+
 {% block content %}
 <div class="row">
 	<div class="col-md-12"><h2>{{ document_name }}</h2></div>

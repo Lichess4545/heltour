@@ -105,18 +105,22 @@ def league_home(request, league_tag=None):
         return redirect('pairings')
 
 def faq(request, league_tag=None, season_id=None):
-    faq_document = LeagueDocument.objects.filter(league=_get_league(league_tag), type='faq').first()
-    if faq_document is None:
-        faq_content = 'Coming soon.'
+    league_document = LeagueDocument.objects.filter(league=_get_league(league_tag), type='faq').first()
+    if league_document is None:
+        document_name = 'FAQ'
+        document_content = 'Coming soon.'
     else:
-        faq_content = faq_document.document.content
+        document_name = league_document.document.name
+        document_content = league_document.document.content
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
-        'faq_content': faq_content
+        'document_name': document_name,
+        'document_content': document_content,
+        'document_type': 'faq',
     }
-    return render(request, 'tournament/faq.html', context)
+    return render(request, 'tournament/document.html', context)
 
 def rosters(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
@@ -183,8 +187,9 @@ def document(request, document_tag, league_tag=None, season_id=None):
         'league_tag': league_tag,
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
+        'document_name': league_document.document.name,
         'document_content': league_document.document.content,
-        'document_name': league_document.document.name
+        'document_type': league_document.type,
     }
     return render(request, 'tournament/document.html', context)
 
