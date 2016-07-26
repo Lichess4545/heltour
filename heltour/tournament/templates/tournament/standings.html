@@ -8,4 +8,39 @@
 <div class="row">
 	<div class="col-md-12"><h2>Standings</h2></div>
 </div>
+
+<div class="row">
+	<div class="col-md-12">
+		<table class="table table-striped">
+			<tr>
+				<th>Team</th>
+				<th>Average Rating</th>
+				<th>Match Points</th>
+				<th>Game Points<span class="hidden-xs hidden-sm"> (Tbk 1)</span></th>
+				{% for round_number in round_numbers %}
+				<th>Round {{ round_number }}</th>
+				{% endfor %}
+			</tr>
+			{% for team_score in team_scores %}
+			<tr>
+				<td>{{ team_score.team.name }}</td>
+				<td>{{ team_score.team.average_rating|floatformat:2 }}</td>
+				<td>{{ team_score.match_points_display }}</td>
+				<td>{{ team_score.game_points_display }}</td>
+				{% for round_score in team_score.round_scores %}
+				{% if round_score == None %}
+				<td></td>
+				{% elif round_score > tie_score %}
+				<td class="cell-win">{{ round_score|floatformat }}</td>
+				{% elif round_score < tie_score %}
+				<td class="cell-loss">{{ round_score|floatformat }}</td>
+				{% else %}
+				<td class="cell-tie">{{ round_score|floatformat }}</td>
+				{% endif %}
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+</div>
 {% endblock %}

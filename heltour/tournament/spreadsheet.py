@@ -110,7 +110,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 except ValueError:
                     # No more rounds in this sheet
                     break
-                round_ = Round.objects.create(season=season, number=round_number)
+                round_ = Round.objects.create(season=season, number=round_number, is_completed=True)
                 rounds.append(round_)
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)

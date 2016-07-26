@@ -44,6 +44,8 @@ class Round(_BaseModel):
     number = models.PositiveIntegerField()
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
+    
+    is_completed = models.BooleanField(default=False)
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -139,6 +141,28 @@ class TeamScore(_BaseModel):
     class Meta:
         unique_together = (('team',),)
 
+    def match_points_display(self):
+        return str(self.match_points)
+    
+    def game_points_display(self):
+        return "%g" % (self.game_points / 2.0)
+    
+    def round_scores(self):
+        for i in range(self.team.season.rounds):
+            round_number = i + 1
+            round_ = Round.objects.filter(season=self.team.season, number=round_number).first()
+            if round_ is None or not round_.is_completed:
+                yield None
+                continue
+            points = None
+            white_pairing = TeamPairing.objects.filter(round=round_, white_team=self.team).first()
+            black_pairing = TeamPairing.objects.filter(round=round_, black_team=self.team).first()
+            if white_pairing is not None:
+                points = white_pairing.white_points / 2.0
+            if black_pairing is not None:
+                points = black_pairing.black_points / 2.0
+            yield points
+    
     def __unicode__(self):
         return "%s" % (self.team)
     

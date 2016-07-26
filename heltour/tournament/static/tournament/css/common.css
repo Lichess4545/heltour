@@ -40,3 +40,15 @@ div.inline {
 .header-row {
 	background-color: rgb(249, 249, 249)
 }
+
+.cell-win {
+	background-color: #b7e1cd;
+}
+
+.cell-loss {
+	background-color: #f4c7c3;
+}
+
+.cell-tie {
+	background-color: #fce8b2;
+}

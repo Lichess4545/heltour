@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from .models import *
 from .forms import *
 
+# TODO: Make behavior consistent when a league has no seasons
+
 def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
@@ -134,10 +136,17 @@ def no_rosters_available(request, league_tag=None, season_id=None):
     return render(request, 'tournament/no_rosters.html', context)
 
 def standings(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    round_numbers = list(range(1, season.rounds + 1))
+    team_scores = sorted(TeamScore.objects.filter(team__season=season), reverse=True)
+    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': season,
+        'round_numbers': round_numbers,
+        'team_scores': team_scores,
+        'tie_score': tie_score
     }
     return render(request, 'tournament/standings.html', context)
 
