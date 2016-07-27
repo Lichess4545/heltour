@@ -41,6 +41,7 @@
 			<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
 			<a href="{% leagueurl 'season_landing' league_tag season_id %}" class="btn btn-default">Season Details</a>
 		</div>
+		{% if season_list %}
 		<div class="well">
 			<h3>Previous Seasons</h3>
 			<div class="dropdown">
@@ -55,6 +56,7 @@
 			    </ul>
 			</div>
 		</div>
+		{% endif %}
 	</div>
 	<div class="col-lg-5 col-md-6 col-xs-12">
 		{% if registration_season %}
