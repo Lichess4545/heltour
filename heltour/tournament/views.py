@@ -1,14 +1,47 @@
 from django.shortcuts import render, redirect
+from datetime import datetime, timedelta
 from .models import *
 from .forms import *
 
 # TODO: Make behavior consistent when a league has no seasons
 
-def league_home(request, league_tag=None):
-    if league_tag is not None and league_tag != '':
-        return redirect('by_league:pairings', league_tag)
-    else:
-        return redirect('pairings')
+def league_home(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    current_season = _get_default_season(league_tag)
+    season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
+    season_list.remove(current_season)
+    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date')[0]
+    
+    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[0:5], 1)
+    
+    rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
+    rules_doc_tag = rules_doc.tag if rules_doc is not None else None
+    intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
+    
+    # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
+    # TODO: Convert game times to the user's local time (maybe in JS?)
+    current_game_time_min = datetime.utcnow() - timedelta(hours=3)
+    current_game_time_max = datetime.utcnow() + timedelta(minutes=5)
+    current_games = Pairing.objects.filter(team_pairing__round__season=current_season, result='', date_played__gt=current_game_time_min, date_played__lt=current_game_time_max).exclude(game_link='').order_by('date_played')
+    upcoming_game_time_min = datetime.utcnow() - timedelta(minutes=5)
+    upcoming_game_time_max = datetime.utcnow() + timedelta(hours=12)
+    upcoming_games = Pairing.objects.filter(team_pairing__round__season=current_season, game_link='', result='', date_played__gt=upcoming_game_time_min, date_played__lt=upcoming_game_time_max).order_by('date_played')
+    
+    context = {
+        'league_tag': league_tag,
+        'season_id': season_id,
+        'season': current_season,
+        'league': league,
+        'team_scores': team_scores,
+        'season_list': season_list,
+        'rules_doc_tag': rules_doc_tag,
+        'intro_doc': intro_doc,
+        'can_edit_document': request.user.has_perm('tournament.change_document'),
+        'registration_season': registration_season,
+        'current_games': current_games,
+        'upcoming_games': upcoming_games,
+    }
+    return render(request, 'tournament/league_home.html', context)
 
 def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
@@ -19,7 +52,7 @@ def season_landing(request, league_tag=None, season_id=None):
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
         'default_season': default_season,
-        'season_list': season_list 
+        'season_list': season_list
     }
     return render(request, 'tournament/season_landing.html', context)
 

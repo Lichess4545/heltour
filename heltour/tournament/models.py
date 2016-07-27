@@ -379,6 +379,8 @@ class Document(_BaseModel):
 
 LEAGUE_DOCUMENT_TYPES = (
     ('faq', 'FAQ'),
+    ('rules', 'Rules'),
+    ('intro', 'Intro'),
 )
 
 #-------------------------------------------------------------------------------

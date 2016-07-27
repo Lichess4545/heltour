@@ -87,3 +87,18 @@ div.inline {
 	top: -7px;
 	margin-left: 10px;
 }
+
+.well .table {
+	background-color: white;
+}
+
+.well h3 {
+	margin-top: 10px;
+}
+
+.slack-icon {
+	width: 18px;
+	height: 18px;
+	margin-left: -3px;
+	margin-top: -2px;
+}

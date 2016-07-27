@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load tournament_extras %}
+
+{% block title %}{{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+	<div class="col-lg-5 col-md-6 col-xs-12">
+		{% if intro_doc %}
+		<div class="well">
+			<div class="inline">
+				<h3>{{ intro_doc.document.name }}</h3>
+			</div>{% if can_edit_document %}
+			<div class="inline document-edit">
+				<a href="{% url 'admin:tournament_document_change' intro_doc.document.pk %}?_popup=1" id="change-document-{{ intro_doc.document.pk }}" class="large-popup-link" title="Change selected document">
+		            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+		        </a>
+	        </div>{% endif %}
+			{{ intro_doc.document.content|safe }}
+		</div>
+		{% endif %}
+		<div class="well">
+			<h3>{{ season.name }} Standings</h3>
+			<table class="table">
+				<tr>
+					<th></th>
+					<th>Team</th>
+					<th>Match Points</th>
+					<th>Game Points</th>
+				</tr>
+				{% for number, team_score in team_scores %}
+				<tr>
+					<td>{{ number }}</td>
+					<td>{{ team_score.team.name }}</td>
+					<td>{{ team_score.match_points_display }}</td>
+					<td>{{ team_score.game_points_display }}</td>
+				</tr>
+				{% endfor %}
+			</table>
+			<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
+			<a href="{% leagueurl 'season_landing' league_tag season_id %}" class="btn btn-default">Season Details</a>
+		</div>
+		<div class="well">
+			<h3>Previous Seasons</h3>
+			<div class="dropdown">
+			    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+			        Choose a Season
+			        <span class="caret"></span>
+			    </button>
+			    <ul class="dropdown-menu">
+				    {% for s in season_list %}
+				    <li><a href="{% leagueurl 'season_landing' league_tag s.pk %}">{{ s.name }}</a></li>
+				    {% endfor %}
+			    </ul>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-5 col-md-6 col-xs-12">
+		{% if registration_season %}
+		<div class="well">
+			<h3>Registration is open!</h3>
+			<p>{{ registration_season.name }} starts on {{ registration_season.start_date }}.</p>
+			<a href="{% leagueurl 'register' league_tag season_id %}" class="btn btn-default">Register Now</a>
+		</div>
+		{% endif %}
+		<div class="well">
+			<h3>Links</h3>
+			<a href="https://lichess4545.slack.com/" class="btn btn-default"><img src="{% static "tournament/img/slack_icon.png" %}" class="slack-icon"/> Slack</a>
+			{% if rules_doc_tag %}
+			<a href="{% leagueurl 'document' league_tag season_id rules_doc_tag %}" class="btn btn-default">Rules and Regulations</a>
+			{% endif %}
+		</div>
+		{% if current_games or upcoming_games %}
+		<div class="well">
+			<h3>Ongoing Games</h3>
+			{% if current_games %}
+			<table class="table">
+				{% for pairing in current_games %}
+				<tr>
+					<th>Players</th>
+					<th>Start Time</th>
+				</tr>
+				<tr>
+					<td><a href="{{ pairing.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></td>
+					<td>{{ pairing.date_played | date:"H:i" }}</td>
+				</tr>
+				{% endfor %}
+			</table>
+			{% endif %}
+			{% if upcoming_games %}
+			<h4>Starting Soon</h4>
+			<table class="table">
+				{% for pairing in upcoming_games %}
+				<tr>
+					<th>Players</th>
+					<th>Start Time</th>
+				</tr>
+				<tr>
+					<td>{{ pairing.white }} - {{ pairing.black }}</td>
+					<td>{{ pairing.date_played | date:"H:i" }}</td>
+				</tr>
+				{% endfor %}
+			</table>
+			{% endif %}
+			All times are in UTC.
+		</div>
+		{% endif %}
+	</div>
+</div>
+{% endblock %}
