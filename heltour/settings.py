@@ -152,6 +152,8 @@ if os.path.exists("/etc/heltour/production.json"):
     overrides = json.loads(open("/etc/heltour/production.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
     EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))
+    EMAIL_PORT = overrides.get("EMAIL_PORT", locals().get('EMAIL_PORT'))
+    EMAIL_USE_TLS = overrides.get("EMAIL_USE_TLS", locals().get('EMAIL_USE_TLS'))
     EMAIL_HOST_USER = overrides.get("EMAIL_HOST_USER", locals().get('EMAIL_HOST_USER'))
     EMAIL_HOST_PASSWORD = overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD'))
     SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
