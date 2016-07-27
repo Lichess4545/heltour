@@ -99,10 +99,24 @@ div.inline {
 	margin-top: 10px;
 }
 
-.slack-icon {
+.slack-icon-btn {
 	width: 18px;
 	height: 18px;
 	margin-left: -3px;
+	margin-top: -2px;
+}
+
+.slack-icon-plain {
+	width: 18px;
+	height: 18px;
+	margin-top: -3px;
+	margin-left: -3px;
+	margin-right: -5px;
+}
+
+.slack-icon-text {
+	width: 18px;
+	height: 18px;
 	margin-top: -2px;
 }
 
