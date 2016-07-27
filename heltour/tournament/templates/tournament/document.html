@@ -3,9 +3,7 @@
 
 {% block title %}{{ league_document.document.name }}{% endblock %}
 
-{% if league_document.type == 'faq' %}
-{% block nav_faq %}active{% endblock %}
-{% endif %}
+{% block nav_faq %}{% if league_document.type == 'faq' %}active{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row">
