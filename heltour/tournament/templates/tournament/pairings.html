@@ -28,7 +28,7 @@
 
 <div class="row">
 	<div class="col-md-12 col-lg-10">
-		<table class="table">
+		<table class="table table-condensed-xs">
 			{% for pairing_list in pairing_lists %}
 			<tr class="header-row visible-xs">
 				<th colspan="5">TEAMS</th>
@@ -41,7 +41,8 @@
 				<th>WHITE</th>
 				<th>BLACK</th>
 				<th class="hidden-xs">TEAM</th>
-				<th>RESULT</th>
+				<th class="hidden-xs">RESULT</th>
+				<th class="visible-xs">RS</th>
 				<th>TIME</th>{% if can_edit %}
 				<th></th>{% endif %}
 			</tr>

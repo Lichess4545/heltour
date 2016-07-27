@@ -106,3 +106,21 @@ div.inline {
 .table-round-results td {
 	width: 50%;
 }
+
+@media (max-width: 768px) {
+	#content .row > * {
+		padding-left: 0px;
+		padding-right: 0px;
+	}
+	#content .row > * h2 {
+		padding-left: 15px;
+	}
+	.table-condensed-xs > thead > tr > th,
+	.table-condensed-xs > tbody > tr > th,
+	.table-condensed-xs > tfoot > tr > th,
+	.table-condensed-xs > thead > tr > td,
+	.table-condensed-xs > tbody > tr > td,
+	.table-condensed-xs > tfoot > tr > td {
+	  padding: 4px;
+	}
+}
