@@ -26,9 +26,9 @@
 	</div>
 </div>
 
-<div class="row">
-	<div class="col-md-12 col-lg-10">
-		<table class="table table-condensed-xs">
+<div class="row row-condensed-xs">
+	<div class="col-md-12">
+		<table class="table table-condensed-xs" id="table-pairings">
 			{% for pairing_list in pairing_lists %}
 			<tr class="header-row visible-xs">
 				<th colspan="5">TEAMS</th>
@@ -41,7 +41,7 @@
 			</tr>
 			<tr class="header-row">
 				<th class="hidden-xs">TEAM</th>
-				<th>WHITE</th>
+				<th>WHITE<a name="team-{{ pairing_list.0.white_team.number }}"></a><a name="team-{{ pairing_list.0.black_team.number }}"></a></th>
 				<th>BLACK</th>
 				<th class="hidden-xs">TEAM</th>
 				<th class="hidden-xs">RESULT</th>
