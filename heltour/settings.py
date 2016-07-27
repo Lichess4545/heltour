@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 
 
-ADMINS = [('Lakin Wecker', 'lakin.wecker@gmail.com'),]
+ADMINS = []
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -154,6 +154,7 @@ import json
 if os.path.exists("/etc/heltour/production.json"):
     overrides = json.loads(open("/etc/heltour/production.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
+    ADMINS = overrides.get("ADMINS", locals().get('ADMINS'))
     EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))
     EMAIL_PORT = overrides.get("EMAIL_PORT", locals().get('EMAIL_PORT'))
     EMAIL_USE_TLS = overrides.get("EMAIL_USE_TLS", locals().get('EMAIL_USE_TLS'))
