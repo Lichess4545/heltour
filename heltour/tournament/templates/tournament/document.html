@@ -1,16 +1,28 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 
-{% block title %}{{ document_name }}{% endblock %}
+{% block title %}{{ league_document.document.name }}{% endblock %}
 
-{% if document_type == 'faq' %}
+{% if league_document.type == 'faq' %}
 {% block nav_faq %}active{% endblock %}
 {% endif %}
 
 {% block content %}
 <div class="row">
-	<div class="col-md-12"><h2>{{ document_name }}</h2></div>
+	<div class="col-md-12">
+	    <div class="inline">
+	        <h2>{{ league_document.document.name }}</h2>
+	    </div>{% if can_edit %}
+		<div class="inline document-edit">
+			<a href="{% url 'admin:tournament_document_change' league_document.document.pk %}?_popup=1" id="change-document-{{ league_document.document.pk }}" class="large-popup-link" title="Change selected document">
+	            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+	        </a>
+        </div>{% endif %}
+    </div>
 </div>
 <div class="row">
-	<div class="col-md-12">{{ document_content|safe }}</div>
+	<div class="col-md-12">
+		<div class="document-content">{{ league_document.document.content|safe }}</div>
+	</div>
 </div>
 {% endblock %}

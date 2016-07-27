@@ -4,6 +4,12 @@ from .forms import *
 
 # TODO: Make behavior consistent when a league has no seasons
 
+def league_home(request, league_tag=None):
+    if league_tag is not None and league_tag != '':
+        return redirect('by_league:pairings', league_tag)
+    else:
+        return redirect('pairings')
+
 def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
@@ -98,27 +104,21 @@ def registration_closed(request, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/registration_closed.html', context)
 
-def league_home(request, league_tag=None):
-    if league_tag is not None and league_tag != '':
-        return redirect('by_league:pairings', league_tag)
-    else:
-        return redirect('pairings')
-
 def faq(request, league_tag=None, season_id=None):
-    league_document = LeagueDocument.objects.filter(league=_get_league(league_tag), type='faq').first()
+    league = _get_league(league_tag)
+    league_document = LeagueDocument.objects.filter(league=league, type='faq').first()
+    # If the FAQ document doesn't exist, create a placeholder
     if league_document is None:
-        document_name = 'FAQ'
-        document_content = 'Coming soon.'
-    else:
-        document_name = league_document.document.name
-        document_content = league_document.document.content
+        league_document = LeagueDocument.objects.filter(league=league, tag='faq').first()
+    if league_document is None:
+        document = Document.objects.create(name='FAQ', content='Coming soon.')
+        league_document = LeagueDocument.objects.create(league=league, document=document, tag='faq', type='faq')
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
-        'document_name': document_name,
-        'document_content': document_content,
-        'document_type': 'faq',
+        'league_document': league_document,
+        'can_edit': request.user.has_perm('tournament.change_document'),
     }
     return render(request, 'tournament/document.html', context)
 
@@ -187,9 +187,8 @@ def document(request, document_tag, league_tag=None, season_id=None):
         'league_tag': league_tag,
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
-        'document_name': league_document.document.name,
-        'document_content': league_document.document.content,
-        'document_type': league_document.type,
+        'league_document': league_document,
+        'can_edit': request.user.has_perm('tournament.change_document'),
     }
     return render(request, 'tournament/document.html', context)
 

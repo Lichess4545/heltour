@@ -77,3 +77,13 @@ div.inline {
 .cell-cross {
 	background-color: #c9daf8;
 }
+
+.document-content {
+	padding: 5px;
+}
+
+.document-edit {
+	position: relative;
+	top: -7px;
+	margin-left: 10px;
+}
