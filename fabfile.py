@@ -8,6 +8,7 @@ from fabric.api import (
     lcd,
     env,
     hosts,
+    put,
     run,
     get,
     settings,
@@ -111,6 +112,11 @@ def deploy():
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour restart")
 
+        if confirm(colors.red("Would you like to install new nginx config?")):
+            sudo("cp /var/www/heltour.lakin.ca/current/sysadmin/heltour.lakin.ca.conf /etc/nginx/sites-available/heltour.lakin.ca.conf")
+        if confirm(colors.red("Would you like to reload nginx?")):
+            sudo("service nginx reload")
+
 #-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()
@@ -132,3 +138,67 @@ def latestdb():
 def runserver():
     manage_py = project_relative("manage.py")
     local("python %s runserver 0.0.0.0:8000" % manage_py)
+
+#-------------------------------------------------------------------------------
+def letsencrypt(real_cert=False):
+    domain = "lichess4545.tv"
+    domains = [
+        domain,
+        "www.{0}".format(domain)
+    ]
+    country = "CA"
+    state = "Alberta"
+    town = "Calgary"
+    email = "lakin.wecker@gmail.com"
+
+    now = datetime.datetime.now()
+    outdir = project_relative(now.strftime("certs/%Y-%m"))
+    if os.path.exists(outdir):
+        print colors.red("{0} exists, bailing to avoid overwriting files".format(outdir))
+        return
+    key = "{0}/privkey1.pem".format(outdir)
+    csr = "{0}/signreq.der".format(outdir)
+    tmpdir = "{0}/tmp".format(outdir)
+    ssl_conf = "{0}/openssl.cnf".format(tmpdir)
+    local("mkdir -p {0}".format(tmpdir))
+    with lcd(outdir):
+        # Create an openssl.cnf that we can use.
+        sans = ",".join(["DNS:{0}".format(d) for d in domains])
+        local('cat /etc/ssl/openssl.cnf > "{0}"'.format(ssl_conf))
+        local('echo "[SAN]" >> "{0}"'.format(ssl_conf))
+        local('echo "subjectAltName={1}" >> "{0}"'.format(ssl_conf, sans))
+        # Create the signing request.
+        local('openssl req -new -newkey rsa:2048 -sha256 -nodes -keyout "{key}" -out "{csr}" -outform der -subj "/C={country}/ST={state}/L={town}/O={domain}/emailAddress={email}/CN={domain}" -reqexts SAN -config "{ssl_conf}"'.format(
+            key=key,
+            csr=csr,
+            country=country,
+            state=state,
+            town=town,
+            domain=domain,
+            email=email,
+            ssl_conf=ssl_conf,
+        ))
+
+        domain_args = " ".join(["-d {0}".format(d) for d in domains])
+        log_dir = "{0}/log".format(outdir)
+        lib_dir = "{0}/lib".format(outdir)
+        etc_dir = "{0}/etc".format(outdir)
+        test_cert = "--test-cert"
+        if real_cert:
+            test_cert = ""
+        local('letsencrypt certonly --text {test_cert} --manual {domain_args} --config-dir {etc_dir} --logs-dir {log_dir} --work-dir {lib_dir} --email "{email}" --csr "{csr}"'.format(
+            domain_args=domain_args,
+            log_dir=log_dir,
+            lib_dir=lib_dir,
+            etc_dir=etc_dir,
+            email=email,
+            csr=csr,
+            test_cert=test_cert
+        ))
+    if real_cert and confirm("Install cert?"):
+        privkey = os.path.join(outdir, "privkey1.pem")
+        chain = os.path.join(outdir, "0001_chain.pem")
+        privkey_target = "/var/ssl/lichess4545.tv.key"
+        chain_target = "/var/ssl/lichess4545.tv.pem"
+        put(privkey, privkey_target)
+        put(chain, chain_target)

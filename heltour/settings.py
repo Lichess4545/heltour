@@ -28,6 +28,7 @@ SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    'www.lichess4545.tv',
     'lichess4545.tv',
     'heltour.lakin.ca',
 ]

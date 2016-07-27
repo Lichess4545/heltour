@@ -4,3 +4,4 @@ heltour/live_settings.py
 .project
 .pydevproject
 /static
+certs
