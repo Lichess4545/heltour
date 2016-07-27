@@ -23,7 +23,7 @@
 }
 
 .bottom-space {
-	margin-bottom: 20px;
+	margin-bottom: 10px;
 }
 
 div.inline {
@@ -130,6 +130,9 @@ div.inline {
 	}
 }
 @media (max-width: 768px) {
+	h2 {
+		margin-top: 2px;
+	}
 	.row-condensed-xs > * {
 		padding-left: 0px;
 		padding-right: 0px;
