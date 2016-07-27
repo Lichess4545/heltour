@@ -12,6 +12,7 @@
 		<div class="inline">
 			<h2>Pairings</h2>
 		</div>
+		{% if round_number_list %}
 		<div class="dropdown inline round-switcher">
 		  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 		    Round {{ round_number }}
@@ -23,9 +24,11 @@
 		    {% endfor %}
 		  </ul>
 		</div>
+		{% endif %}
 	</div>
 </div>
 
+{% if pairing_lists %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
 		<table class="table table-condensed-xs" id="table-pairings">
@@ -68,4 +71,9 @@
 		</table>
 	</div>
 </div>
+{% else %}
+<div class="row">
+	<div class="col-md-12">No pairings available.</div>
+</div>
+{% endif %}
 {% endblock %}

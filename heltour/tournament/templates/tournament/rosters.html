@@ -9,6 +9,7 @@
 	<div class="col-md-12"><h2>Rosters</h2></div>
 </div>
 
+{% if teams %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
 		<div class="table-responsive">
@@ -35,4 +36,9 @@
 		</div>
 	</div>
 </div>
+{% else %}
+<div class="row">
+	<div class="col-md-12">No rosters available.</div>
+</div>
+{% endif %}
 {% endblock %}

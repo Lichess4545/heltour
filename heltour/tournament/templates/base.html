@@ -31,6 +31,7 @@
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
+	        {% if season %}
 	        <li class="{% block nav_season %}{% endblock %}"><a href="{% leagueurl 'season_landing' league_tag season_id %}">{{ season.name }}</a></li>
 	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% leagueurl 'faq' league_tag season_id %}">FAQ</a></li>
 	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% leagueurl 'rosters' league_tag season_id %}">Rosters</a></li>
@@ -38,6 +39,7 @@
 	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% leagueurl 'crosstable' league_tag season_id %}">Crosstable</a></li>
 	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% leagueurl 'pairings' league_tag season_id %}">Pairings</a></li>
 	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% leagueurl 'stats' league_tag season_id %}">Stats</a></li>
+	        {% endif %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
 	        {% if user.is_staff %}<li><a href="/admin/">Admin</a></li>{% endif %}

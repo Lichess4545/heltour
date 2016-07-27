@@ -20,6 +20,7 @@
 			{{ intro_doc.document.content|safe }}
 		</div>
 		{% endif %}
+		{% if team_scores %}
 		<div class="well">
 			<h3>{{ season.name }} Standings</h3>
 			<table class="table">
@@ -41,6 +42,7 @@
 			<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
 			<a href="{% leagueurl 'season_landing' league_tag season_id %}" class="btn btn-default">Season Details</a>
 		</div>
+		{% endif %}
 		{% if season_list %}
 		<div class="well">
 			<h3>Previous Seasons</h3>

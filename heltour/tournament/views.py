@@ -1,21 +1,34 @@
 from django.shortcuts import render, redirect
+from django.http.response import Http404
 from datetime import datetime, timedelta
 from .models import *
 from .forms import *
 
-# TODO: Make behavior consistent when a league has no seasons
-
 def league_home(request, league_tag=None, season_id=None):
-    league = _get_league(league_tag)
-    current_season = _get_default_season(league_tag)
-    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
-    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
-    
-    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1)
+    league = _get_league(league_tag, allow_none=True)
+    if league is None:
+        return render(request, 'tournament/no_leagues.html', {})
     
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
     rules_doc_tag = rules_doc.tag if rules_doc is not None else None
     intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
+    
+    current_season = _get_default_season(league_tag, allow_none=True)
+    if current_season is None:
+        context = {
+            'league_tag': league_tag,
+            'season_id': season_id,
+            'league': league,
+            'rules_doc_tag': rules_doc_tag,
+            'intro_doc': intro_doc,
+            'can_edit_document': request.user.has_perm('tournament.change_document'),
+        }
+        return render(request, 'tournament/league_home.html', context)
+    
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
+    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
+    
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
     
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
@@ -47,10 +60,10 @@ def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
     
-    active_round = Round.objects.filter(season=season).order_by('-number').first()
+    active_round = Round.objects.filter(season=season, is_completed=False, start_date__lt=datetime.utcnow(), end_date__gt=datetime.utcnow()).order_by('-number').first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
-    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1)
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
     tie_score = season.boards
     
     context = {
@@ -69,18 +82,14 @@ def season_landing(request, league_tag=None, season_id=None):
 
 def pairings(request, league_tag=None, season_id=None, round_number=None):
     season = _get_season(league_tag, season_id)
-    if season is None:
-        return no_pairings_available(request)
+    round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
     if round_number is None:
         try:
-            round_number = Round.objects.filter(season=season).order_by('-number')[0].number
+            round_number = round_number_list[0]
         except IndexError:
-            return no_pairings_available(request, league_tag, season_id)
+            pass
     team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season)
-    if len(team_pairings) == 0:
-        return no_pairings_available(request, league_tag, season_id, round_number)
     pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
-    round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
@@ -91,21 +100,6 @@ def pairings(request, league_tag=None, season_id=None, round_number=None):
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/pairings.html', context)
-
-def no_pairings_available(request, league_tag=None, season_id=None, round_number=None):
-    season = _get_season(league_tag, season_id)
-    if season_id is not None:
-        round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
-    else:
-        round_number_list = []
-    context = {
-        'league_tag': league_tag,
-        'season_id': season_id,
-        'season': season,
-        'round_number_list': round_number_list,
-        'round_number': round_number
-    }
-    return render(request, 'tournament/no_pairings.html', context)
 
 def register(request, league_tag=None, season_id=None):
     try:
@@ -192,7 +186,7 @@ def no_rosters_available(request, league_tag=None, season_id=None):
 def standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True), 1)
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True), 1))
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
@@ -230,32 +224,41 @@ def document(request, document_tag, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id),
+        'season': _get_season(league_tag, season_id, allow_none=True),
         'league_document': league_document,
         'can_edit': request.user.has_perm('tournament.change_document'),
     }
     return render(request, 'tournament/document.html', context)
 
-def _get_league(league_tag):
+def _get_league(league_tag, allow_none=False):
     if league_tag is None:
-        return _get_default_league()
+        return _get_default_league(allow_none)
     else:
-        return League.objects.get(tag=league_tag)
+        try:
+            return League.objects.filter(tag=league_tag)[0]
+        except IndexError:
+            raise Http404
 
-def _get_default_league():
+def _get_default_league(allow_none=False):
     try:
         return League.objects.filter(is_default=True).order_by('id')[0]
     except IndexError:
-        return League.objects.order_by('id')[0]
+        league = League.objects.order_by('id').first()
+        if not allow_none and league is None:
+            raise Http404
+        return league
     
-def _get_season(league_tag, season_id):
+def _get_season(league_tag, season_id, allow_none=False):
     if season_id is None:
-        return _get_default_season(league_tag)
+        return _get_default_season(league_tag, allow_none)
     else:
-        return Season.objects.get(league=_get_league(league_tag), pk=season_id)
+        try:
+            return Season.objects.filter(league=_get_league(league_tag), pk=season_id)[0]
+        except IndexError:
+            raise Http404
 
-def _get_default_season(league_tag):
-    try:
-        return Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id')[0]
-    except IndexError:
-        raise ValueError('League has no seasons')
+def _get_default_season(league_tag, allow_none=False):
+    season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id').first()
+    if not allow_none and season is None:
+        raise Http404
+    return season

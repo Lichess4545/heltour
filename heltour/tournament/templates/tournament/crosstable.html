@@ -9,6 +9,7 @@
 	<div class="col-md-12"><h2>Crosstable</h2></div>
 </div>
 
+{% if team_scores %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
 		<div class="table-responsive">
@@ -49,4 +50,9 @@
 		</div>
 	</div>
 </div>
+{% else %}
+<div class="row">
+	<div class="col-md-12">No results available.</div>
+</div>
+{% endif %}
 {% endblock %}

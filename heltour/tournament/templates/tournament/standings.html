@@ -9,6 +9,7 @@
 	<div class="col-md-12"><h2>Standings</h2></div>
 </div>
 
+{% if team_scores %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
 		<div class="table-responsive">
@@ -47,4 +48,9 @@
 		</div>
 	</div>
 </div>
+{% else %}
+<div class="row">
+	<div class="col-md-12">No standings available.</div>
+</div>
+{% endif %}
 {% endblock %}

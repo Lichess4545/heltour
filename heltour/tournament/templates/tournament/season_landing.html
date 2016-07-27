@@ -36,6 +36,7 @@
 		{% endif %}
 	</div>
 	<div class="col-lg-5 col-md-6 col-xs-12">
+	    {% if season_list %}
 		<div class="well">
 			<h3>Change Season</h3>
 			<div class="dropdown">
@@ -44,18 +45,16 @@
 			        <span class="caret"></span>
 			    </button>
 			    <ul class="dropdown-menu">
-				    {% if default_season %}
 				    <li><a href="{% leagueurl 'season_landing' league_tag %}">{{ default_season.name }}</a></li>
-				    {% if season_list %}
 				    <li role="separator" class="divider"></li>
-				    {% endif %}
-				    {% endif %}
 				    {% for s in season_list %}
 				    <li><a href="{% leagueurl 'season_landing' league_tag s.pk %}">{{ s.name }}</a></li>
 				    {% endfor %}
 			    </ul>
 			</div>
 		</div>
+	    {% endif %}
+	    {% if team_scores %}
 		<div class="well">
 			<h3>Standings</h3>
 			<table class="table">
@@ -76,6 +75,7 @@
 			</table>
 			<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
 		</div>
+		{% endif %}
 	</div>
 </div>
 {% endblock %}
