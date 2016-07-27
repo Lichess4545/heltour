@@ -102,3 +102,7 @@ div.inline {
 	margin-left: -3px;
 	margin-top: -2px;
 }
+
+.table-round-results td {
+	width: 50%;
+}

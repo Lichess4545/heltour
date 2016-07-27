@@ -44,15 +44,28 @@ def league_home(request, league_tag=None, season_id=None):
     return render(request, 'tournament/league_home.html', context)
 
 def season_landing(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
     default_season = _get_default_season(league_tag)
     season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
     season_list.remove(default_season)
+    
+    active_round = Round.objects.filter(season=season).order_by('-number').first()
+    last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
+    last_round_pairings = last_round.teampairing_set.all()
+    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1)
+    tie_score = season.boards
+    
     context = {
         'league_tag': league_tag,
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id),
+        'season': season,
         'default_season': default_season,
-        'season_list': season_list
+        'season_list': season_list,
+        'active_round': active_round,
+        'last_round': last_round,
+        'last_round_pairings': last_round_pairings,
+        'team_scores': team_scores,
+        'tie_score': tie_score,
     }
     return render(request, 'tournament/season_landing.html', context)
 
