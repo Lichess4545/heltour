@@ -52,8 +52,8 @@
 			{% for pairing in pairing_list %}
 			<tr>
 				<td class="hidden-xs">{{ pairing.white_team_name }}</td>
-				<td><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }} <span class="visible-xs"></span> ({{ pairing.white.rating }})</a></td>
-				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({{ pairing.black.rating }})</a></td>
+				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }} <span class="visible-xs"></span> ({{ pairing.white.rating }})</a></div></td>
+				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({{ pairing.black.rating }})</a></div></td>
 				<td class="hidden-xs">{{ pairing.black_team_name }}</td>
 				<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
 				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
