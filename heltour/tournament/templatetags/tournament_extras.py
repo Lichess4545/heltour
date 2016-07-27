@@ -12,3 +12,11 @@ def leagueurl(name, league_tag=None, season_id=None, *args, **kwargs):
         name = "by_league:" + name
         args = [league_tag] + list(args)
     return reverse(name, args=args, kwargs=kwargs)
+
+@register.filter
+def format_result(result):
+    if result is None:
+        return ''
+    if result == '1/2-1/2':
+        return u'\u00BD-\u00BD'
+    return result

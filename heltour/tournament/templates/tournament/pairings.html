@@ -34,7 +34,10 @@
 				<th colspan="5">TEAMS</th>
 			</tr>
 			<tr class="visible-xs">
-				<td colspan="5">{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }}) - {{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})</td>
+				<td colspan="5">
+					{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }})<br/>
+					{{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})
+				</td>
 			</tr>
 			<tr class="header-row">
 				<th class="hidden-xs">TEAM</th>
@@ -49,10 +52,10 @@
 			{% for pairing in pairing_list %}
 			<tr>
 				<td class="hidden-xs">{{ pairing.white_team_name }}</td>
-				<td><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white }}</a></td>
-				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black }}</a></td>
+				<td><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }} <span class="visible-xs"></span> ({{ pairing.white.rating }})</a></td>
+				<td><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({{ pairing.black.rating }})</a></td>
 				<td class="hidden-xs">{{ pairing.black_team_name }}</td>
-				<td>{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | default_if_none:"" }}</a>{% else %}{{ pairing.result | default_if_none:"" }}{% endif %}</td>
+				<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
 				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 				<th>
 					<a href="{% url 'admin:tournament_pairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
