@@ -8,11 +8,10 @@ from .forms import *
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag)
     current_season = _get_default_season(league_tag)
-    season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
-    season_list.remove(current_season)
-    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date')[0]
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
+    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
     
-    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[0:5], 1)
+    team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1)
     
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
     rules_doc_tag = rules_doc.tag if rules_doc is not None else None
@@ -46,12 +45,11 @@ def league_home(request, league_tag=None, season_id=None):
 def season_landing(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     default_season = _get_default_season(league_tag)
-    season_list = list(Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id'))
-    season_list.remove(default_season)
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
     
     active_round = Round.objects.filter(season=season).order_by('-number').first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
-    last_round_pairings = last_round.teampairing_set.all()
+    last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1)
     tie_score = season.boards
     
