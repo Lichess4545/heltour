@@ -112,6 +112,11 @@ def deploy():
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour restart")
 
+        if confirm(colors.red("Would you like to install new nginx config?")):
+            sudo("cp /var/www/heltour.lakin.ca/current/sysadmin/heltour.lakin.ca.conf /etc/nginx/sites-available/heltour.lakin.ca.conf")
+        if confirm(colors.red("Would you like to reload nginx?")):
+            sudo("service nginx reload")
+
 #-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()
