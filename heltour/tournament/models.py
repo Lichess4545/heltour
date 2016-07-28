@@ -137,13 +137,10 @@ class TeamMember(_BaseModel):
 
 #-------------------------------------------------------------------------------
 class TeamScore(_BaseModel):
-    team = models.ForeignKey(Team)
+    team = models.OneToOneField(Team)
     match_count = models.PositiveIntegerField()
     match_points = models.PositiveIntegerField()
     game_points = models.PositiveIntegerField()
-
-    class Meta:
-        unique_together = (('team',),)
 
     def match_points_display(self):
         return str(self.match_points)
