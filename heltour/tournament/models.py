@@ -191,6 +191,7 @@ class TeamPairing(_BaseModel):
     white_team = models.ForeignKey(Team, related_name="pairings_as_white")
     black_team = models.ForeignKey(Team, related_name="pairings_as_black")
     round = models.ForeignKey(Round)
+    pairing_order = models.PositiveIntegerField()
 
     white_points = models.PositiveIntegerField(default=0)
     black_points = models.PositiveIntegerField(default=0)
@@ -303,6 +304,7 @@ class TeamPlayerPairing(_BaseModel):
 class LonePlayerPairing(_BaseModel):
     round = models.ForeignKey(Round)
     player_pairing = models.OneToOneField(PlayerPairing)
+    pairing_order = models.PositiveIntegerField()
 
     def __unicode__(self):
         return "%s" % (self.player_pairing)

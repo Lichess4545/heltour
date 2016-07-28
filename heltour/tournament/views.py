@@ -89,7 +89,7 @@ def pairings(request, league_tag=None, season_id=None, round_number=None):
             round_number = round_number_list[0]
         except IndexError:
             pass
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season)
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order')
     pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
         'league_tag': league_tag,

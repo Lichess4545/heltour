@@ -160,7 +160,7 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
         white_team = Team.objects.get(season=season, name__iexact=white_team_name)
         black_team_name = sheet[pairing_row][black_team_col]
         black_team = Team.objects.get(season=season, name__iexact=black_team_name)
-        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team, black_team=black_team)
+        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team, black_team=black_team, pairing_order=j + 1)
         # Individual pairings
         for k in range(season.boards):
             white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
