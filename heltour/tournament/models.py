@@ -104,7 +104,7 @@ class Team(_BaseModel):
         n = 0
         total = 0.0
         for board in self.boards():
-            if board is not None:
+            if board is not None and board.player.rating is not None:
                 n += 1
                 total += board.player.rating
         return total / n if n > 0 else None
