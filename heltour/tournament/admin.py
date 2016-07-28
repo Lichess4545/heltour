@@ -143,14 +143,27 @@ class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round',)
-    
+
 #-------------------------------------------------------------------------------
-@admin.register(models.Pairing)
-class PairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'season_name', 'round_number', 'white_team_name', 'black_team_name', 'board_number')
-    search_fields = ('white_team__name', 'black_team__name', 'white__lichess_username', 'black__lichess_username')
+@admin.register(models.PlayerPairing)
+class PlayerPairingAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'date_played')
+    search_fields = ('white__lichess_username', 'black__lichess_username')
+
+#-------------------------------------------------------------------------------
+@admin.register(models.TeamPlayerPairing)
+class TeamPlayerPairingAdmin(VersionAdmin):
+    list_display = ('player_pairing', 'team_pairing', 'board_number')
+    search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username', 'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round',)
-    
+
+#-------------------------------------------------------------------------------
+@admin.register(models.LonePlayerPairing)
+class LonePlayerPairingAdmin(VersionAdmin):
+    list_display = ('player_pairing', 'round')
+    search_fields = ('white__lichess_username', 'black__lichess_username')
+    list_filter = ('round',)
+
 #-------------------------------------------------------------------------------
 @admin.register(models.Registration)
 class RegistrationAdmin(VersionAdmin):

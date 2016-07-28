@@ -204,18 +204,20 @@ class TeamPairing(_BaseModel):
     def refresh_points(self):
         self.white_points = 0
         self.black_points = 0
-        for p in self.pairing_set.all():
-            if p.result == '1-0':
-                if p.board_number % 2 == 1:
+        for team_player_pairing in self.teamplayerpairing_set.all():
+            player_pairing = team_player_pairing.player_pairing
+            result = player_pairing.result
+            if result == '1-0':
+                if team_player_pairing.board_number % 2 == 1:
                     self.white_points += 2
                 else:
                     self.black_points += 2
-            elif p.result == '0-1':
-                if p.board_number % 2 == 1:
+            elif result == '0-1':
+                if team_player_pairing.board_number % 2 == 1:
                     self.black_points += 2
                 else:
                     self.white_points += 2
-            elif p.result == '1/2-1/2':
+            elif result == '1/2-1/2':
                 self.white_points += 1
                 self.black_points += 1
     
@@ -239,37 +241,41 @@ class TeamPairing(_BaseModel):
 
     def __unicode__(self):
         return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
-
+    
 #-------------------------------------------------------------------------------
-class Pairing(_BaseModel):
-    team_pairing = models.ForeignKey(TeamPairing)
+class PlayerPairing(_BaseModel):
     white = models.ForeignKey(Player, related_name="pairings_as_white")
     black = models.ForeignKey(Player, related_name="pairings_as_black")
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     result = models.CharField(max_length=16, blank=True, null=True)
     game_link = models.URLField(max_length=1024, blank=True, null=True)
     date_played = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        unique_together = ('team_pairing', 'board_number')
     
     def __init__(self, *args, **kwargs):
-        super(Pairing, self).__init__(*args, **kwargs)
+        super(PlayerPairing, self).__init__(*args, **kwargs)
         self.initial_result = self.result
         
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
-        super(Pairing, self).save(*args, **kwargs)
-        if result_changed:
-            self.team_pairing.refresh_points()
-            self.team_pairing.save()
-    
-    def season_name(self):
-        return "%s" % self.team_pairing.round.season.name
-    
-    def round_number(self):
-        return "%d" % self.team_pairing.round.number
+        super(PlayerPairing, self).save(*args, **kwargs)
+        if result_changed and hasattr(self, 'team_player_pairing'):
+            self.team_player_pairing.team_pairing.refresh_points()
+            self.team_player_pairing.team_pairing.save()
+
+    def __unicode__(self):
+        return "%s - %s" % (self.white, self.black)
+
+#-------------------------------------------------------------------------------
+class TeamPlayerPairing(_BaseModel):
+    team_pairing = models.ForeignKey(TeamPairing)
+    player_pairing = models.OneToOneField(PlayerPairing)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+
+    class Meta:
+        unique_together = ('team_pairing', 'board_number')
+
+    def __unicode__(self):
+        return "%s" % (self.player_pairing)
     
     def white_team(self):
         return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
@@ -282,9 +288,27 @@ class Pairing(_BaseModel):
     
     def black_team_name(self):
         return "%s" % self.black_team().name
+    
+    def season_name(self):
+        return "%s" % self.team_pairing.round.season.name
+    
+    def round_number(self):
+        return "%d" % self.team_pairing.round.number
+        
+    def save(self, *args, **kwargs):
+        new_object = self.pk is None
+        super(TeamPlayerPairing, self).save(*args, **kwargs)
+        if new_object:
+            self.team_pairing.refresh_points()
+            self.team_pairing.save()
+
+#-------------------------------------------------------------------------------
+class LonePlayerPairing(_BaseModel):
+    round = models.ForeignKey(Round)
+    player_pairing = models.OneToOneField(PlayerPairing)
 
     def __unicode__(self):
-        return "%s - %s" % (self.white, self.black)
+        return "%s" % (self.player_pairing)
 
 REGISTRATION_STATUS_OPTIONS = (
     ('pending', 'Pending'),

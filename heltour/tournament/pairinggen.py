@@ -25,7 +25,8 @@ def generate_pairings(round_, overwrite=False):
             if board_number % 2 == 0:
                 white, black = black, white
             if white is not None and black is not None:
-                Pairing.objects.create(team_pairing=team_pairing, white=white.player, black=black.player, board_number=board_number)
+                player_pairing = PlayerPairing.objects.create(white=white.player, black=black.player)
+                TeamPlayerPairing.objects.create(player_pairing=player_pairing, team_pairing=team_pairing, board_number=board_number)
             else:
                 # TODO: Consider how to handle missing players
                 # Maybe allow null players in pairings? Or just raise an error
