@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 
-{% block title %}{{ league_document.document.name }}{% endblock %}
+{% block title %}{{ league_document.document.name }} - {{ league.name }}{% endblock %}
 
 {% block nav_faq %}{% if league_document.type == 'faq' %}active{% endif %}{% endblock %}
 

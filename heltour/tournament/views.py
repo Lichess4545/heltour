@@ -17,8 +17,8 @@ def league_home(request, league_tag=None, season_id=None):
     if current_season is None:
         context = {
             'league_tag': league_tag,
-            'season_id': season_id,
             'league': league,
+            'season_id': season_id,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': request.user.has_perm('tournament.change_document'),
@@ -34,16 +34,16 @@ def league_home(request, league_tag=None, season_id=None):
     # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = datetime.utcnow() - timedelta(hours=3)
     current_game_time_max = datetime.utcnow() + timedelta(minutes=5)
-    current_games = Pairing.objects.filter(team_pairing__round__season=current_season, result='', date_played__gt=current_game_time_min, date_played__lt=current_game_time_max).exclude(game_link='').order_by('date_played')
+    current_games = Pairing.objects.filter(team_pairing__round__season=current_season, result=u'\u2694', date_played__gt=current_game_time_min, date_played__lt=current_game_time_max).exclude(game_link='').order_by('date_played')
     upcoming_game_time_min = datetime.utcnow() - timedelta(minutes=5)
     upcoming_game_time_max = datetime.utcnow() + timedelta(hours=12)
     upcoming_games = Pairing.objects.filter(team_pairing__round__season=current_season, game_link='', result='', date_played__gt=upcoming_game_time_min, date_played__lt=upcoming_game_time_max).order_by('date_played')
     
     context = {
         'league_tag': league_tag,
+        'league': league,
         'season_id': season_id,
         'season': current_season,
-        'league': league,
         'team_scores': team_scores,
         'season_list': season_list,
         'rules_doc_tag': rules_doc_tag,
@@ -68,6 +68,7 @@ def season_landing(request, league_tag=None, season_id=None):
     
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
         'default_season': default_season,
@@ -92,6 +93,7 @@ def pairings(request, league_tag=None, season_id=None, round_number=None):
     pairing_lists = [team_pairing.pairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
         'round_number': round_number,
@@ -119,6 +121,7 @@ def register(request, league_tag=None, season_id=None):
     
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
         'form': form,
@@ -129,6 +132,7 @@ def register(request, league_tag=None, season_id=None):
 def registration_success(request, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id)
     }
@@ -137,6 +141,7 @@ def registration_success(request, league_tag=None, season_id=None):
 def registration_closed(request, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id)
     }
@@ -153,6 +158,7 @@ def faq(request, league_tag=None, season_id=None):
         league_document = LeagueDocument.objects.create(league=league, document=document, tag='faq', type='faq')
     context = {
         'league_tag': league_tag,
+        'league': league,
         'season_id': season_id,
         'season': _get_season(league_tag, season_id),
         'league_document': league_document,
@@ -168,6 +174,7 @@ def rosters(request, league_tag=None, season_id=None):
     board_numbers = list(range(1, season.boards + 1))
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
         'teams': teams,
@@ -178,6 +185,7 @@ def rosters(request, league_tag=None, season_id=None):
 def no_rosters_available(request, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id)
     }
@@ -190,6 +198,7 @@ def standings(request, league_tag=None, season_id=None):
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
         'round_numbers': round_numbers,
@@ -204,6 +213,7 @@ def crosstable(request, league_tag=None, season_id=None):
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
         'team_scores': team_scores,
@@ -214,6 +224,7 @@ def crosstable(request, league_tag=None, season_id=None):
 def stats(request, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id)
     }
@@ -223,6 +234,7 @@ def document(request, document_tag, league_tag=None, season_id=None):
     league_document = LeagueDocument.objects.get(league=_get_league(league_tag), tag=document_tag)
     context = {
         'league_tag': league_tag,
+        'league': _get_league(league_tag),
         'season_id': season_id,
         'season': _get_season(league_tag, season_id, allow_none=True),
         'league_document': league_document,

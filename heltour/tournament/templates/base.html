@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <title>{% block title %}Lichess 45+45 League{% endblock %}</title>
+    <title>{% block title %}{{ league.name }}{% endblock %}</title>
     
     {% load staticfiles %}
     {% load tournament_extras %}
@@ -26,7 +26,7 @@
 	        <span class="icon-bar"></span>
 	        <span class="icon-bar"></span>
 	      </button>
-	      <a class="navbar-brand" href="/">Lichess 45+45 League</a>
+	      <a class="navbar-brand" href="/">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
 	    </div>
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
