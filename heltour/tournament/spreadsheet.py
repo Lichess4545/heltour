@@ -170,17 +170,17 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             result = sheet[pairing_row][result_col]
             date = sheet[pairing_row][date_col]
             time = sheet[pairing_row][time_col]
-            date_played = None
+            scheduled_time = None
             if '/' in date:
-                date_played = datetime.strptime('%s %s' % (date, time), '%m/%d/%Y %H:%M')
-                if round_.start_date is None or date_played < round_.start_date:
-                    round_.start_date = date_played
+                scheduled_time = datetime.strptime('%s %s' % (date, time), '%m/%d/%Y %H:%M')
+                if round_.start_date is None or scheduled_time < round_.start_date:
+                    round_.start_date = scheduled_time
                     round_.save()
-                game_end_estimate = date_played + timedelta(hours=3)
+                game_end_estimate = scheduled_time + timedelta(hours=3)
                 if round_.end_date is None or game_end_estimate > round_.end_date:
                     round_.end_date = game_end_estimate
                     round_.save()
-            pairing = PlayerPairing.objects.create(white=white_player, black=black_player, result=result, date_played=date_played)
+            pairing = PlayerPairing.objects.create(white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
             TeamPlayerPairing.objects.create(player_pairing=pairing, team_pairing=team_pairing, board_number=k + 1)
             pairings.append(pairing)
             pairing_rows.append(pairing_row)

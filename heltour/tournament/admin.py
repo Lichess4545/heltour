@@ -147,7 +147,7 @@ class TeamPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerPairing)
 class PlayerPairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'date_played')
+    list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
 
 #-------------------------------------------------------------------------------

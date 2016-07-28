@@ -249,7 +249,7 @@ class PlayerPairing(_BaseModel):
 
     result = models.CharField(max_length=16, blank=True, null=True)
     game_link = models.URLField(max_length=1024, blank=True, null=True)
-    date_played = models.DateTimeField(blank=True, null=True)
+    scheduled_time = models.DateTimeField(blank=True, null=True)
     
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)

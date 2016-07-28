@@ -34,10 +34,10 @@ def league_home(request, league_tag=None, season_id=None):
     # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = datetime.utcnow() - timedelta(hours=3)
     current_game_time_max = datetime.utcnow() + timedelta(minutes=5)
-    current_games = PlayerPairing.objects.filter(result=u'\u2694', date_played__gt=current_game_time_min, date_played__lt=current_game_time_max).exclude(game_link='').order_by('date_played')
+    current_games = PlayerPairing.objects.filter(result=u'\u2694', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max).exclude(game_link='').order_by('scheduled_time')
     upcoming_game_time_min = datetime.utcnow() - timedelta(minutes=5)
     upcoming_game_time_max = datetime.utcnow() + timedelta(hours=12)
-    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', date_played__gt=upcoming_game_time_min, date_played__lt=upcoming_game_time_max).order_by('date_played')
+    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max).order_by('scheduled_time')
     
     context = {
         'league_tag': league_tag,

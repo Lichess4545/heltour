@@ -57,7 +57,7 @@ def find_pairing(request):
         'black_rating': player_pairing.black.rating,
         'game_link': player_pairing.game_link,
         'result': player_pairing.result,
-        'datetime': player_pairing.date_played,
+        'datetime': player_pairing.scheduled_time,
     }})
 
 @csrf_exempt

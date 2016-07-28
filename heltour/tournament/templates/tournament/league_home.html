@@ -87,7 +87,7 @@
 				</tr>
 				<tr>
 					<td><a href="{{ pairing.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></td>
-					<td>{{ pairing.date_played | date:"H:i" }}</td>
+					<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
 				</tr>
 				{% endfor %}
 			</table>
@@ -102,7 +102,7 @@
 				</tr>
 				<tr>
 					<td>{{ pairing.white }} - {{ pairing.black }}</td>
-					<td>{{ pairing.date_played | date:"H:i" }}</td>
+					<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
 				</tr>
 				{% endfor %}
 			</table>

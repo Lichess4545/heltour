@@ -60,7 +60,7 @@
 				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({{ pairing.black.rating }})</a></div></td>
 				<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
 				<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
-				<td>{{ pairing.date_played | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+				<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 				<th>
 					<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
