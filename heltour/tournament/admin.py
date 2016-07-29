@@ -72,15 +72,46 @@ class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings']
     
+    def get_urls(self):
+        urls = super(RoundAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
+        ]
+        return my_urls + urls
+    
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
             self.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
             return
-        try:
-            pairinggen.generate_pairings(queryset.first())
-            self.message_user(request, 'Pairings created', messages.INFO)
-        except ValueError:
-            self.message_user(request, 'Pairings already exist for the selected round', messages.ERROR)
+        return redirect('admin:generate_pairings', object_id=queryset[0].pk)
+    
+    def generate_pairings_view(self, request, object_id):
+        round_ = models.Round.objects.get(pk=object_id)
+        
+        if request.method == 'POST':
+            form = forms.GeneratePairingsForm(request.POST)
+            if form.is_valid():
+                try:
+                    pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
+                    self.message_user(request, 'Pairings created.', messages.INFO)
+                except pairinggen.PairingsExistException:
+                    self.message_user(request, 'Pairings already exist for the selected round.', messages.ERROR)
+                except pairinggen.PairingHasResultException:
+                    self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
+                return redirect('admin:tournament_round_changelist')
+        else:
+            form = forms.GeneratePairingsForm()
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': round_,
+            'title': 'Generate pairings',
+            'form': form
+        }
+    
+        return render(request, 'tournament/admin/generate_pairings.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)

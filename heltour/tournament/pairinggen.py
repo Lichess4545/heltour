@@ -4,13 +4,15 @@ import tempfile
 import subprocess
 import os
 
-def generate_pairings(round_, overwrite=True):
+def generate_pairings(round_, overwrite=False):
     existing_pairings = TeamPairing.objects.filter(round=round_)
     if existing_pairings.count() > 0:
         if overwrite:
+            if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result=None).exclude(player_pairing__result='').count():
+                raise PairingHasResultException()
             existing_pairings.delete()
         else:
-            raise ValueError("The specified round already has pairings.")
+            raise PairingsExistException()
     teams = Team.objects.filter(season=round_.season, is_active=True).order_by('number') # TODO: Order by/generate a seed
     previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
     
@@ -35,8 +37,13 @@ def generate_pairings(round_, overwrite=True):
                 # TODO: Consider how to handle missing players
                 # Maybe allow null players in pairings? Or just raise an error
                 pass
-    
-    
+
+class PairingsExistException(Exception):
+    pass
+
+class PairingHasResultException(Exception):
+    pass
+
 class PlaceholderTeamPairingSystem:
     def create_team_pairings(self, round_, teams, previous_pairings):
         # Pair teams in some arbitrary order for testing purposes

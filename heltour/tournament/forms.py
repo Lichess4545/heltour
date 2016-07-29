@@ -97,12 +97,12 @@ class RejectRegistrationForm(forms.Form):
     def __init__(self, *args, **kwargs):
         reg = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
-        
+    
 class ImportSeasonForm(forms.Form):
     spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
     season_name = forms.CharField(label='Season name', max_length=255)
     rosters_only = forms.BooleanField(required=False, label='Rosters only')
     exclude_live_pairings = forms.BooleanField(required=False, label='Exclude live pairings')
-    
-    def __init__(self, *args, **kwargs):
-        super(ImportSeasonForm, self).__init__(*args, **kwargs)
+
+class GeneratePairingsForm(forms.Form):
+    overwrite_existing = forms.BooleanField(required=False, label='Overwrite existing pairings')
