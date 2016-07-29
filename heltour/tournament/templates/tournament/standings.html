@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load staticfiles %}
+{% load tournament_extras %}
 
 {% block title %}Standings - {{ season.name }} - {{ league.name }}{% endblock %}
 
@@ -32,15 +34,7 @@
 					<td>{{ team_score.match_points_display }}</td>
 					<td>{{ team_score.game_points_display }}</td>
 					{% for round_score in team_score.round_scores %}
-					{% if round_score == None %}
-					<td></td>
-					{% elif round_score > tie_score %}
-					<td class="cell-win">{{ round_score|floatformat }}</td>
-					{% elif round_score < tie_score %}
-					<td class="cell-loss">{{ round_score|floatformat }}</td>
-					{% else %}
-					<td class="cell-tie">{{ round_score|floatformat }}</td>
-					{% endif %}
+					<td class="{% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
 					{% endfor %}
 				</tr>
 				{% endfor %}

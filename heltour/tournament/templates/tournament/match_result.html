@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load tournament_extras %}
+
+{% block title %}Match Result - {{ season.name }} - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="row bottom-space">
+	<div class="col-md-12"><h2>Match Result - Round {{ round_number }}</h2></div>
+</div>
+
+<div class="row row-condensed-xs">
+	<div class="col-md-12">
+		<table class="table table-striped" id="table-match-result">
+			<tr>
+				<th>Team</th>
+				<th colspan="2">Score</th>
+				<th>Team</th>
+			</tr>
+			<tr>
+				<td class="{% resultclass tie_score team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_team_name }}</td>
+				<td class="{% resultclass tie_score team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_points_display }}</td>
+				<td class="{% resultclass tie_score team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_points_display }}</td>
+				<td class="{% resultclass tie_score team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_team_name }}</td>
+			</tr>
+			<tr>
+				<th>Player</th>
+				<th colspan="2">Score</th>
+				<th>Player</th>
+			</tr>
+			{% for pairing in pairings %}
+			<tr>
+				<td><a href="http://lichess.org/@/{{ pairing.white_team_player.lichess_username }}">{{ pairing.white_team_player }}</a></td>
+				<td class="cell-score {% resultclass 0.5 pairing.white_team_score pairing.black_team_score %}">
+					{% if pairing.white_team_score != None %}<a href="{{ pairing.player_pairing.game_link }}">{{ pairing.white_team_score }}</a>{% endif %}
+				</td>
+				<td class="cell-score {% resultclass 0.5 pairing.black_team_score pairing.white_team_score %}">
+					{% if pairing.black_team_score != None %}<a href="{{ pairing.player_pairing.game_link }}">{{ pairing.black_team_score }}</a>{% endif %}
+				</td>
+				<td><a href="http://lichess.org/@/{{ pairing.black_team_player.lichess_username }}">{{ pairing.black_team_player }}</a></td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+</div>
+{% endblock %}

@@ -221,6 +221,26 @@ def crosstable(request, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/crosstable.html', context)
 
+def result(request, pairing_id, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    try:
+        team_pairing = TeamPairing.objects.filter(round__season=season, pk=pairing_id)[0]
+    except IndexError:
+        raise Http404
+    pairings = team_pairing.teamplayerpairing_set.order_by('board_number')
+    tie_score = season.boards
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_id': season_id,
+        'season': season,
+        'team_pairing': team_pairing,
+        'pairings': pairings,
+        'round_number': team_pairing.round.number,
+        'tie_score': tie_score
+    }
+    return render(request, 'tournament/match_result.html', context)
+
 def stats(request, league_tag=None, season_id=None):
     context = {
         'league_tag': league_tag,

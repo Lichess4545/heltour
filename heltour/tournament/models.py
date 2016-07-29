@@ -170,11 +170,14 @@ class TeamScore(_BaseModel):
             white_pairing = TeamPairing.objects.filter(white_team=self.team, black_team=other_team).first()
             black_pairing = TeamPairing.objects.filter(white_team=other_team, black_team=self.team).first()
             points = None
+            id = None
             if white_pairing is not None and white_pairing.round.is_completed:
                 points = white_pairing.white_points / 2.0
+                id = white_pairing.pk
             if black_pairing is not None and black_pairing.round.is_completed:
                 points = black_pairing.black_points / 2.0
-            yield other_team.number, points
+                id = black_pairing.pk
+            yield other_team.number, points, id
     
     def __unicode__(self):
         return "%s" % (self.team)
@@ -253,6 +256,24 @@ class PlayerPairing(_BaseModel):
         super(PlayerPairing, self).__init__(*args, **kwargs)
         self.initial_result = self.result
         
+    def white_score(self):
+        if self.result == '1-0':
+            return 1
+        elif self.result == '0-1':
+            return 0
+        elif self.result == '1/2-1/2':
+            return 0.5
+        return None
+        
+    def black_score(self):
+        if self.result == '0-1':
+            return 1
+        elif self.result == '1-0':
+            return 0
+        elif self.result == '1/2-1/2':
+            return 0.5
+        return None
+        
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
         super(PlayerPairing, self).save(*args, **kwargs)
@@ -280,6 +301,18 @@ class TeamPlayerPairing(_BaseModel):
     
     def black_team(self):
         return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
+    
+    def white_team_player(self):
+        return self.player_pairing.white if self.board_number % 2 == 1 else self.player_pairing.black
+    
+    def black_team_player(self):
+        return self.player_pairing.black if self.board_number % 2 == 1 else self.player_pairing.white
+    
+    def white_team_score(self):
+        return self.player_pairing.white_score() if self.board_number % 2 == 1 else self.player_pairing.black_score()
+    
+    def black_team_score(self):
+        return self.player_pairing.black_score() if self.board_number % 2 == 1 else self.player_pairing.white_score()
     
     def white_team_name(self):
         return "%s" % self.white_team().name
