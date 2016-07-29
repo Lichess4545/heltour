@@ -8,7 +8,7 @@ def generate_pairings(round_, overwrite=False):
     existing_pairings = TeamPairing.objects.filter(round=round_)
     if existing_pairings.count() > 0:
         if overwrite:
-            if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result=None).exclude(player_pairing__result='').count():
+            if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
                 raise PairingHasResultException()
             existing_pairings.delete()
         else:

@@ -73,7 +73,7 @@ class Player(_BaseModel):
     lichess_username = models.CharField(max_length=255)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
-    email = models.CharField(max_length=255, blank=True, null=True)
+    email = models.CharField(max_length=255, blank=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     
@@ -248,8 +248,8 @@ class PlayerPairing(_BaseModel):
     white = models.ForeignKey(Player, related_name="pairings_as_white")
     black = models.ForeignKey(Player, related_name="pairings_as_black")
 
-    result = models.CharField(max_length=16, blank=True, null=True)
-    game_link = models.URLField(max_length=1024, blank=True, null=True)
+    result = models.CharField(max_length=16, blank=True)
+    game_link = models.URLField(max_length=1024, blank=True)
     scheduled_time = models.DateTimeField(blank=True, null=True)
     
     def __init__(self, *args, **kwargs):
@@ -444,7 +444,7 @@ class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League)
     document = models.ForeignKey(Document)
     tag = models.CharField(max_length=255, validators=[tag_validator], help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
-    type = models.CharField(blank=True, null=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
+    type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
 
     class Meta:
         unique_together = ('league', 'tag')
