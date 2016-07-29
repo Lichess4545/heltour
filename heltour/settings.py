@@ -139,6 +139,7 @@ BOOTSTRAP3 = {
 }
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
+JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
 # Host-based settings overrides.
 import platform
