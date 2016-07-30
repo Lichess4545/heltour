@@ -122,9 +122,16 @@ class RoundAdmin(VersionAdmin):
         if request.method == 'POST':
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
-                round_.publish_pairings = True
-                round_.save()
-                self.message_user(request, 'Pairings published.', messages.INFO)
+                if 'publish' in form.data:
+                    round_.publish_pairings = True
+                    round_.save()
+                    self.message_user(request, 'Pairings published.', messages.INFO)
+                elif 'delete' in form.data:
+                    try:
+                        pairinggen.delete_pairings(round_)
+                        self.message_user(request, 'Pairings deleted.', messages.INFO)
+                    except pairinggen.PairingHasResultException:
+                        self.message_user(request, 'Pairings with results can\'t be deleted.', messages.ERROR)
                 return redirect('admin:tournament_round_changelist')
         else:
             form = forms.ReviewPairingsForm()

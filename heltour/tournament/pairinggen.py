@@ -10,9 +10,7 @@ def generate_pairings(round_, overwrite=False):
         existing_pairings = TeamPairing.objects.filter(round=round_)
         if existing_pairings.count() > 0:
             if overwrite:
-                if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
-                    raise PairingHasResultException()
-                existing_pairings.delete()
+                delete_pairings(round_)
             else:
                 raise PairingsExistException()
         
@@ -40,6 +38,11 @@ def generate_pairings(round_, overwrite=False):
                     # TODO: Consider how to handle missing players
                     # Maybe allow null players in pairings? Or just raise an error
                     pass
+
+def delete_pairings(round_):
+    if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
+        raise PairingHasResultException()
+    TeamPairing.objects.filter(round=round_).delete()
 
 class PairingsExistException(Exception):
     pass
