@@ -76,6 +76,7 @@ class RoundAdmin(VersionAdmin):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.change_round')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
         ]
         return my_urls + urls
     
@@ -93,7 +94,9 @@ class RoundAdmin(VersionAdmin):
             if form.is_valid():
                 try:
                     pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
-                    self.message_user(request, 'Pairings created.', messages.INFO)
+                    round_.publish_pairings = False
+                    round_.save()
+                    return redirect('admin:review_pairings', object_id) 
                 except pairinggen.PairingsExistException:
                     self.message_user(request, 'Pairings already exist for the selected round.', messages.ERROR)
                 except pairinggen.PairingHasResultException:
@@ -112,6 +115,34 @@ class RoundAdmin(VersionAdmin):
         }
     
         return render(request, 'tournament/admin/generate_pairings.html', context)
+    
+    def review_pairings_view(self, request, object_id):
+        round_ = models.Round.objects.get(pk=object_id)
+        
+        if request.method == 'POST':
+            form = forms.ReviewPairingsForm(request.POST)
+            if form.is_valid():
+                round_.publish_pairings = True
+                round_.save()
+                self.message_user(request, 'Pairings published.', messages.INFO)
+                return redirect('admin:tournament_round_changelist')
+        else:
+            form = forms.ReviewPairingsForm()
+        
+        team_pairings = round_.teampairing_set.order_by('pairing_order')
+        pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number') for team_pairing in team_pairings]
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': round_,
+            'title': 'Review pairings',
+            'form': form,
+            'pairing_lists': pairing_lists
+        }
+        
+        return render(request, 'tournament/admin/review_pairings.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)

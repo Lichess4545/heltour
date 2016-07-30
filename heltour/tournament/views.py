@@ -61,7 +61,7 @@ def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
     
-    active_round = Round.objects.filter(season=season, is_completed=False, start_date__lt=datetime.utcnow(), end_date__gt=datetime.utcnow()).order_by('-number').first()
+    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=datetime.utcnow(), end_date__gt=datetime.utcnow()).order_by('-number').first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
@@ -84,7 +84,7 @@ def season_landing(request, league_tag=None, season_id=None):
 
 def pairings(request, league_tag=None, season_id=None, round_number=None):
     season = _get_season(league_tag, season_id)
-    round_number_list = [round_.number for round_ in Round.objects.filter(season=season).order_by('-number')]
+    round_number_list = [round_.number for round_ in Round.objects.filter(season=season, publish_pairings=True).order_by('-number')]
     if round_number is None:
         try:
             round_number = round_number_list[0]

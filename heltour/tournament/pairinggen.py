@@ -1,42 +1,45 @@
 from .models import *
 from heltour import settings
+from django.db import transaction
 import tempfile
 import subprocess
 import os
 
 def generate_pairings(round_, overwrite=False):
-    existing_pairings = TeamPairing.objects.filter(round=round_)
-    if existing_pairings.count() > 0:
-        if overwrite:
-            if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
-                raise PairingHasResultException()
-            existing_pairings.delete()
-        else:
-            raise PairingsExistException()
-    teams = Team.objects.filter(season=round_.season, is_active=True).order_by('number') # TODO: Order by/generate a seed
-    previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
-    
-    # Run the pairing algorithm
-    # TODO: Implement a proper algorithm
-    pairing_system = DutchTeamPairingSystem()
-    team_pairings = pairing_system.create_team_pairings(round_, teams, previous_pairings)
-    
-    # Save the team pairings and create the individual pairings based on the team pairings
-    board_count = round_.season.boards
-    for team_pairing in team_pairings:
-        team_pairing.save()
-        for board_number in range(1, board_count + 1):
-            white = TeamMember.objects.filter(team=team_pairing.white_team, board_number=board_number).first()
-            black = TeamMember.objects.filter(team=team_pairing.black_team, board_number=board_number).first()
-            if board_number % 2 == 0:
-                white, black = black, white
-            if white is not None and black is not None:
-                player_pairing = PlayerPairing.objects.create(white=white.player, black=black.player)
-                TeamPlayerPairing.objects.create(player_pairing=player_pairing, team_pairing=team_pairing, board_number=board_number)
+    with transaction.atomic():
+        existing_pairings = TeamPairing.objects.filter(round=round_)
+        if existing_pairings.count() > 0:
+            if overwrite:
+                if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
+                    raise PairingHasResultException()
+                existing_pairings.delete()
             else:
-                # TODO: Consider how to handle missing players
-                # Maybe allow null players in pairings? Or just raise an error
-                pass
+                raise PairingsExistException()
+        
+        teams = Team.objects.filter(season=round_.season, is_active=True).order_by('number') # TODO: Order by/generate a seed
+        previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
+        
+        # Run the pairing algorithm
+        # TODO: Implement a proper algorithm
+        pairing_system = DutchTeamPairingSystem()
+        team_pairings = pairing_system.create_team_pairings(round_, teams, previous_pairings)
+        
+        # Save the team pairings and create the individual pairings based on the team pairings
+        board_count = round_.season.boards
+        for team_pairing in team_pairings:
+            team_pairing.save()
+            for board_number in range(1, board_count + 1):
+                white = TeamMember.objects.filter(team=team_pairing.white_team, board_number=board_number).first()
+                black = TeamMember.objects.filter(team=team_pairing.black_team, board_number=board_number).first()
+                if board_number % 2 == 0:
+                    white, black = black, white
+                if white is not None and black is not None:
+                    player_pairing = PlayerPairing.objects.create(white=white.player, black=black.player)
+                    TeamPlayerPairing.objects.create(player_pairing=player_pairing, team_pairing=team_pairing, board_number=board_number)
+                else:
+                    # TODO: Consider how to handle missing players
+                    # Maybe allow null players in pairings? Or just raise an error
+                    pass
 
 class PairingsExistException(Exception):
     pass
@@ -123,6 +126,7 @@ class JavafoInstance:
                 line = '001  {0: >3}  {1:74.1f}     '.format(n, player.score)
                 for pairing in player.pairings:
                     opponent_num = next((num for num, player in enumerate(self.players, 1) if player.player == pairing.opponent))
+                    # TODO: Handle forfeits/byes properly
                     color = 'w' if pairing.color == 'white' else 'b' if pairing.color == 'black' else '-'
                     score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
                     line += '{0: >6} {1} {2}'.format(opponent_num, color, score)

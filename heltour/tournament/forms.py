@@ -106,3 +106,6 @@ class ImportSeasonForm(forms.Form):
 
 class GeneratePairingsForm(forms.Form):
     overwrite_existing = forms.BooleanField(required=False, label='Overwrite existing pairings')
+
+class ReviewPairingsForm(forms.Form):
+    pass

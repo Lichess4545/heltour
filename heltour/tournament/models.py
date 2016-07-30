@@ -49,6 +49,7 @@ class Round(_BaseModel):
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
     
+    publish_pairings = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
 
     def __unicode__(self):
