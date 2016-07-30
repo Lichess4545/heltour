@@ -15,6 +15,7 @@ def leagueurl(name, league_tag=None, season_id=None, *args, **kwargs):
 
 @register.simple_tag
 def resultclass(tie_score, my_score, other_score=None):
+    # If other_score is specified, assume the match may be incomplete and only display results that are clinched
     if my_score is None:
         return ''
     elif my_score > tie_score:
