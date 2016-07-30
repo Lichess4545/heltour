@@ -1,7 +1,7 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.http.response import Http404
-from django.shortcuts import get_object_or_404
-from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import timedelta
 from .models import *
 from .forms import *
 
@@ -33,11 +33,11 @@ def league_home(request, league_tag=None, season_id=None):
     
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
-    current_game_time_min = datetime.utcnow() - timedelta(hours=3)
-    current_game_time_max = datetime.utcnow() + timedelta(minutes=5)
+    current_game_time_min = timezone.now() - timedelta(hours=3)
+    current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result=u'\u2694', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max).exclude(game_link='').order_by('scheduled_time')
-    upcoming_game_time_min = datetime.utcnow() - timedelta(minutes=5)
-    upcoming_game_time_max = datetime.utcnow() + timedelta(hours=12)
+    upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
+    upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max).order_by('scheduled_time')
     
     context = {
@@ -61,7 +61,7 @@ def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
     
-    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=datetime.utcnow(), end_date__gt=datetime.utcnow()).order_by('-number').first()
+    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()).order_by('-number').first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))

@@ -1,10 +1,10 @@
 from django.contrib import admin, messages
+from django.utils import timezone
 from heltour.tournament import models, lichessapi, views, forms
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import permission_required
-from datetime import datetime
 
 import pairinggen
 import spreadsheet
@@ -293,7 +293,7 @@ class RegistrationAdmin(VersionAdmin):
                     # TODO: Invite to slack, send confirmation email, etc. based on form input
                     reg.status = 'approved'
                     reg.status_changed_by = request.user.username
-                    reg.status_changed_date = datetime.now()
+                    reg.status_changed_date = timezone.now()
                     reg.save()
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
@@ -325,7 +325,7 @@ class RegistrationAdmin(VersionAdmin):
                 if 'confirm' in form.data:
                     reg.status = 'rejected'
                     reg.status_changed_by = request.user.username
-                    reg.status_changed_date = datetime.now()
+                    reg.status_changed_date = timezone.now()
                     reg.save()
                     self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')

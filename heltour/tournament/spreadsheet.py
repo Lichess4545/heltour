@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from heltour import settings
 from datetime import datetime, timedelta
+from django.utils import timezone
 from django.db import transaction
 import re
 
@@ -122,7 +123,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
             if len(rounds) > 0:
                 season.start_date = rounds[0].start_date.date()
             else:
-                season.start_date = datetime.now().date()
+                season.start_date = timezone.now().date()
             
             if not exclude_live_pairings:
                 
@@ -173,6 +174,7 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             scheduled_time = None
             if '/' in date:
                 scheduled_time = datetime.strptime('%s %s' % (date, time), '%m/%d/%Y %H:%M')
+                scheduled_time = scheduled_time.replace(tzinfo=timezone.UTC())
                 if round_.start_date is None or scheduled_time < round_.start_date:
                     round_.start_date = scheduled_time
                     round_.save()
