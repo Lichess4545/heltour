@@ -99,9 +99,9 @@ def update_pairing(request):
 
 def _get_latest_round(season_id):
     if season_id is None:
-        return Round.objects.order_by('-season__start_date', '-season__id', '-number')[0]
+        return Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')[0]
     else:
-        return Round.objects.filter(season_id=season_id).order_by('-number')[0]
+        return Round.objects.filter(season_id=season_id, publish_pairings=True, is_completed=False).order_by('-number')[0]
 
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
