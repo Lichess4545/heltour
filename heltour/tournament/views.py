@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http.response import Http404
+from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
 from .models import *
 from .forms import *
@@ -223,10 +224,7 @@ def crosstable(request, league_tag=None, season_id=None):
 
 def result(request, pairing_id, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
-    try:
-        team_pairing = TeamPairing.objects.filter(round__season=season, pk=pairing_id)[0]
-    except IndexError:
-        raise Http404
+    team_pairing = get_object_or_404(TeamPairing, round__season=season, pk=pairing_id)
     pairings = team_pairing.teamplayerpairing_set.order_by('board_number')
     tie_score = season.boards
     context = {
@@ -266,10 +264,7 @@ def _get_league(league_tag, allow_none=False):
     if league_tag is None:
         return _get_default_league(allow_none)
     else:
-        try:
-            return League.objects.filter(tag=league_tag)[0]
-        except IndexError:
-            raise Http404
+        return get_object_or_404(League, tag=league_tag)
 
 def _get_default_league(allow_none=False):
     try:
@@ -284,10 +279,7 @@ def _get_season(league_tag, season_id, allow_none=False):
     if season_id is None:
         return _get_default_season(league_tag, allow_none)
     else:
-        try:
-            return Season.objects.filter(league=_get_league(league_tag), pk=season_id)[0]
-        except IndexError:
-            raise Http404
+        return get_object_or_404(Season, league=_get_league(league_tag), pk=season_id)
 
 def _get_default_season(league_tag, allow_none=False):
     season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id').first()
