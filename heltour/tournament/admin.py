@@ -76,7 +76,7 @@ class RoundAdmin(VersionAdmin):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
-            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.change_round')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
         ]
         return my_urls + urls
     
