@@ -19,6 +19,7 @@ from . import views, api
 season_urlpatterns = [
     url(r'^summary/$', views.season_landing, name='season_landing'),
     url(r'^register/$', views.register, name='register'),
+    url(r'^registration_success/$', views.registration_success, name='registration_success'),
     url(r'^faq/$', views.faq, name='faq'),
     url(r'^rosters/$', views.rosters, name='rosters'),
     url(r'^standings/$', views.standings, name='standings'),
@@ -31,8 +32,6 @@ season_urlpatterns = [
 
 league_urlpatterns = [
     url(r'^$', views.league_home, name='league_home'),
-    url(r'^registration_success/$', views.registration_success, name='registration_success'),
-    url(r'^registration_closed/$', views.registration_closed, name='registration_closed'),
     url(r'^', include(season_urlpatterns)),
     url(r'^season/(?P<season_id>[0-9]+)/', include(season_urlpatterns, 'by_season')),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.document, name='document'),

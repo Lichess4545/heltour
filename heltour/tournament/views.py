@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import *
 from .forms import *
+from heltour.tournament.templatetags.tournament_extras import leagueurl
 
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
@@ -116,7 +117,7 @@ def register(request, league_tag=None, season_id=None):
         form = RegistrationForm(request.POST, season=season)
         if form.is_valid():
             registration = form.save()
-            return redirect('registration_success')
+            return redirect(leagueurl('registration_success', league_tag=league_tag, season_id=season_id))
     else:
         form = RegistrationForm(season=season)
     
@@ -131,11 +132,19 @@ def register(request, league_tag=None, season_id=None):
     return render(request, 'tournament/register.html', context)
 
 def registration_success(request, league_tag=None, season_id=None):
+    try:
+        if season_id is None:
+            season = Season.objects.filter(league=_get_league(league_tag), registration_open=True).order_by('-start_date')[0]
+        else:
+            season = Season.objects.filter(league=_get_league(league_tag), registration_open=True, pk=season_id)[0]
+    except IndexError:
+        return registration_closed(request, league_tag, season_id)
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': _get_season(league_tag, season_id),
+        'registration_season': season
     }
     return render(request, 'tournament/registration_success.html', context)
 

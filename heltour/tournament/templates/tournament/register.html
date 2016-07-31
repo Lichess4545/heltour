@@ -4,21 +4,22 @@
 {% block title %}Registration - {{ season.name }} - {{ league.name }}{% endblock %}
 
 {% block content %}
-
-<div class="row">
+<div class="row row-condensed-xs">
 	<div class="col-md-12">
-	    <h2>{{ registration_season.name }} Registration (Starts {{ registration_season.start_date }})</h2>
-	</div>
-</div>
-<div class="row">
-	<div class="col-sm-12 col-md-10 col-lg-8">
-		<form action="" method="post">
-		    {% csrf_token %}
-		    {% bootstrap_form form %}
-		    {% buttons %}
-		        <button type="submit" class="btn btn-primary">Submit</button>
-		    {% endbuttons %}
-		</form>
+		<div class="well" id="well-register">
+			<div class="well-head">
+				<h3>{{ registration_season.name }} Registration (Starts {{ registration_season.start_date }})</h3>
+			</div>
+			<div class="well-body">
+				<form action="" method="post">
+				    {% csrf_token %}
+				    {% bootstrap_form form %}
+				    {% buttons %}
+				        <button type="submit" class="btn btn-primary">Submit</button>
+				    {% endbuttons %}
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
 {% endblock %}

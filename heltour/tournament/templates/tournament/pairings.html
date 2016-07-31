@@ -7,75 +7,83 @@
 {% block nav_pairings %}active{% endblock %}
 
 {% block content %}
-<div class="row bottom-space">
-	<div class="col-md-12">
-		<div class="inline">
-			<h2>Pairings</h2>
-		</div>
-		{% if round_number_list %}
-		<div class="dropdown inline round-switcher">
-		  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-		    Round {{ round_number }}
-		    <span class="caret"></span>
-		  </button>
-		  <ul class="dropdown-menu">
-		    {% for n in round_number_list %}
-		    <li><a href="{% leagueurl 'pairings_by_round' league_tag season_id n %}">Round {{ n }}</a></li>
-		    {% endfor %}
-		  </ul>
-		</div>
-		{% endif %}
-	</div>
-</div>
-
-{% if pairing_lists %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
-		<table class="table table-condensed-xs" id="table-pairings">
-			{% for pairing_list in pairing_lists %}
-			<tr class="header-row visible-xs">
-				<th colspan="5">TEAMS</th>
-			</tr>
-			<tr class="visible-xs">
-				<td colspan="5">
-					{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }})<br/>
-					{{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})
-				</td>
-			</tr>
-			<tr class="header-row">
-				<th class="hidden-xs">TEAM</th>
-				<th>WHITE<a name="team-{{ pairing_list.0.white_team.number }}"></a><a name="team-{{ pairing_list.0.black_team.number }}"></a></th>
-				<th>BLACK</th>
-				<th class="hidden-xs">TEAM</th>
-				<th class="hidden-xs">RESULT</th>
-				<th class="visible-xs">RS</th>
-				<th>TIME</th>{% if can_edit %}
-				<th></th>{% endif %}
-			</tr>
-			{% for team_player_pairing in pairing_list %}
-			{% with pairing=team_player_pairing.player_pairing %}
-			<tr>
-				<td class="hidden-xs">{{ team_player_pairing.white_team_name }}</td>
-				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}</a></div></td>
-				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}</a></div></td>
-				<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
-				<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
-				<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
-				<th>
-					<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
-			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-			        </a>
-		        </th>{% endif %}
-			</tr>
-			{% endwith %}
-			{% endfor %}
-			{% endfor %}
-		</table>
+		<div class="well" id="well-pairings">
+			<div class="well-head">
+				<h3>Pairings</h3>
+			</div>
+			<div class="well-body">
+				{% if round_number_list %}
+				<div class="dropdown inline round-switcher">
+				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+				    Round {{ round_number }}
+				    <span class="caret"></span>
+				  </button>
+				  <ul class="dropdown-menu">
+				    {% for n in round_number_list %}
+				    <li><a href="{% leagueurl 'pairings_by_round' league_tag season_id n %}">Round {{ n }}</a></li>
+				    {% endfor %}
+				  </ul>
+				</div>
+				{% endif %}
+				<div class="dropdown inline round-switcher">
+				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+				    All Teams
+				    <span class="caret"></span>
+				  </button>
+				  <ul class="dropdown-menu">
+				    {% for team in team_list %}
+				    <li><a href="{% leagueurl 'pairings_by_round' league_tag season_id n %}">{{ team.name }}</a></li>
+				    {% endfor %}
+				  </ul>
+				</div>
+				{% if pairing_lists %}
+				<table class="table table-condensed-xs">
+					{% for pairing_list in pairing_lists %}
+					<tr class="header-row visible-xs">
+						<th colspan="5">TEAMS</th>
+					</tr>
+					<tr class="visible-xs">
+						<td colspan="5">
+							{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }})<br/>
+							{{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})
+						</td>
+					</tr>
+					<tr class="header-row">
+						<th class="hidden-xs">TEAM</th>
+						<th>WHITE<a name="team-{{ pairing_list.0.white_team.number }}"></a><a name="team-{{ pairing_list.0.black_team.number }}"></a></th>
+						<th>BLACK</th>
+						<th class="hidden-xs">TEAM</th>
+						<th class="hidden-xs">RESULT</th>
+						<th class="visible-xs">RS</th>
+						<th>TIME</th>{% if can_edit %}
+						<th></th>{% endif %}
+					</tr>
+					{% for team_player_pairing in pairing_list %}
+					{% with pairing=team_player_pairing.player_pairing %}
+					<tr>
+						<td class="hidden-xs">{{ team_player_pairing.white_team_name }}</td>
+						<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}</a></div></td>
+						<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}</a></div></td>
+						<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
+						<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
+						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+						<th>
+							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
+					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+					        </a>
+				        </th>{% endif %}
+					</tr>
+					{% endwith %}
+					{% endfor %}
+					{% endfor %}
+				</table>
+				{% else %}
+				No pairings available.
+				{% endif %}
+			</div>
+		</div>
 	</div>
 </div>
-{% else %}
-<div class="row">
-	<div class="col-md-12">No pairings available.</div>
-</div>
-{% endif %}
 {% endblock %}

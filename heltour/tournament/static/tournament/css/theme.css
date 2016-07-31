@@ -51,6 +51,10 @@
 	background-color: #ffffff;
 }
 
+.well-body :last-child {
+	margin-bottom: 0;
+}
+
 
 body {
 	background-color: #f9f9f9;
@@ -79,8 +83,26 @@ body {
 	color: #000000;
 }
 
+
 @media (max-width: 768px) {
 	.row-condensed-xs .well {
 		border-radius: 0;
+	}
+	.row-condensed-xs .well .table-condensed-xs {
+		margin-left: -15px;
+		min-width: calc(100% + 30px);
+	}
+}
+@media (max-width: 992px) {
+	.row-condensed-sm .well {
+		border-radius: 0;
+	}
+	.row-condensed-xs .well-body > .table-condensed-sm {
+		margin-left: -15px;
+		min-width: calc(100% + 30px);
+	}
+	.row-condensed-xs .well-body > .table-responsive {
+		margin-left: -15px;
+		min-width: calc(100% + 30px);
 	}
 }
