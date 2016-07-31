@@ -11,69 +11,85 @@
 	<div class="col-lg-5 col-md-6 col-xs-12">
 		{% if active_round %}
 		<div class="well">
-			<h3>Round {{ active_round.number}} has started!</h3>
-			<p>Games must be completed by {{ active_round.end_date | date:"m/d H:i" }} UTC.</p>
-			<a href="{% leagueurl 'pairings' league_tag season_id %}" class="btn btn-default">Pairings</a>
+			<div class="well-head">
+				<h3>Round {{ active_round.number}} has started!</h3>
+			</div>
+			<div class="well-body">
+				<p>Games must be completed by {{ active_round.end_date | date:"m/d H:i" }} UTC.</p>
+				<a href="{% leagueurl 'pairings' league_tag season_id %}" class="btn btn-default">Pairings</a>
+			</div>
 		</div>
 		{% endif %}
 		{% if last_round %}
 		<div class="well">
-			<h3>Round {{ last_round.number }} Results</h3>
-			<table class="table table-round-results">
-				{% for team_pairing in last_round_pairings %}
-				<tr>
-					<td class="{% if team_pairing.white_points > tie_score %}cell-win{% elif team_pairing.white_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
-						{{ team_pairing.white_team.name }} ({{ team_pairing.white_points_display }})
-					</td>
-					<td class="{% if team_pairing.black_points > tie_score %}cell-win{% elif team_pairing.black_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
-						{{ team_pairing.black_team.name }} ({{ team_pairing.black_points_display }})
-					</td>
-				</tr>
-				{% endfor %}
-			</table>
-			<a href="{% leagueurl 'crosstable' league_tag season_id %}" class="btn btn-default">All Results</a>
+			<div class="well-head">
+				<h3>Round {{ last_round.number }} Results</h3>
+			</div>
+			<div class="well-body">
+				<table class="table table-round-results">
+					{% for team_pairing in last_round_pairings %}
+					<tr>
+						<td class="{% if team_pairing.white_points > tie_score %}cell-win{% elif team_pairing.white_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
+							{{ team_pairing.white_team.name }} ({{ team_pairing.white_points_display }})
+						</td>
+						<td class="{% if team_pairing.black_points > tie_score %}cell-win{% elif team_pairing.black_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
+							{{ team_pairing.black_team.name }} ({{ team_pairing.black_points_display }})
+						</td>
+					</tr>
+					{% endfor %}
+				</table>
+				<a href="{% leagueurl 'crosstable' league_tag season_id %}" class="btn btn-default">All Results</a>
+			</div>
 		</div>
 		{% endif %}
 	</div>
 	<div class="col-lg-5 col-md-6 col-xs-12">
 	    {% if season_list %}
 		<div class="well">
-			<h3>Change Season</h3>
-			<div class="dropdown">
-			    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-			        {{ season.name }}
-			        <span class="caret"></span>
-			    </button>
-			    <ul class="dropdown-menu">
-				    <li><a href="{% leagueurl 'season_landing' league_tag %}">{{ default_season.name }}</a></li>
-				    <li role="separator" class="divider"></li>
-				    {% for s in season_list %}
-				    <li><a href="{% leagueurl 'season_landing' league_tag s.pk %}">{{ s.name }}</a></li>
-				    {% endfor %}
-			    </ul>
+			<div class="well-head">
+				<h3>Change Season</h3>
+			</div>
+			<div class="well-body">
+				<div class="dropdown">
+				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+				        {{ season.name }}
+				        <span class="caret"></span>
+				    </button>
+				    <ul class="dropdown-menu">
+					    <li><a href="{% leagueurl 'season_landing' league_tag %}">{{ default_season.name }}</a></li>
+					    <li role="separator" class="divider"></li>
+					    {% for s in season_list %}
+					    <li><a href="{% leagueurl 'season_landing' league_tag s.pk %}">{{ s.name }}</a></li>
+					    {% endfor %}
+				    </ul>
+				</div>
 			</div>
 		</div>
 	    {% endif %}
 	    {% if team_scores %}
 		<div class="well">
-			<h3>Standings</h3>
-			<table class="table">
-				<tr>
-					<th></th>
-					<th>Team</th>
-					<th>Match Points</th>
-					<th>Game Points</th>
-				</tr>
-				{% for number, team_score in team_scores %}
-				<tr>
-					<td>{{ number }}</td>
-					<td>{{ team_score.team.name }}</td>
-					<td>{{ team_score.match_points_display }}</td>
-					<td>{{ team_score.game_points_display }}</td>
-				</tr>
-				{% endfor %}
-			</table>
-			<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
+			<div class="well-head">
+				<h3>Standings</h3>
+			</div>
+			<div class="well-body">
+				<table class="table">
+					<tr>
+						<th></th>
+						<th>Team</th>
+						<th>Match Points</th>
+						<th>Game Points</th>
+					</tr>
+					{% for number, team_score in team_scores %}
+					<tr>
+						<td>{{ number }}</td>
+						<td>{{ team_score.team.name }}</td>
+						<td>{{ team_score.match_points_display }}</td>
+						<td>{{ team_score.game_points_display }}</td>
+					</tr>
+					{% endfor %}
+				</table>
+				<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
+			</div>
 		</div>
 		{% endif %}
 	</div>
