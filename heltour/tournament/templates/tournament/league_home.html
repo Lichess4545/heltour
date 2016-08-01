@@ -45,27 +45,31 @@
 			</div>
 		    <div class="well-body">
 				{% if current_games %}
-				<table class="table">
-					{% for pairing in current_games %}
-					<tr>
-						<th>Players</th>
-						<th>Start Time</th>
-					</tr>
-					<tr>
-						<td><a href="{{ pairing.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></td>
-						<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
-					</tr>
-					{% endfor %}
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>Players</th>
+							<th>Start Time</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for pairing in current_games %}
+						<tr>
+							<td><a href="{{ pairing.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></td>
+							<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
 				</table>
 				{% endif %}
 				{% if upcoming_games %}
 				<h4>Starting Soon</h4>
 				<table class="table">
-					{% for pairing in upcoming_games %}
 					<tr>
 						<th>Players</th>
 						<th>Start Time</th>
 					</tr>
+					{% for pairing in upcoming_games %}
 					<tr>
 						<td>{{ pairing.white }} - {{ pairing.black }}</td>
 						<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
@@ -73,7 +77,7 @@
 					{% endfor %}
 				</table>
 				{% endif %}
-				All times are in UTC.
+				<p>All times are in UTC.</p>
 			</div>
 		</div>
 		{% endif %}
@@ -86,21 +90,24 @@
 			</div>
 		    <div class="well-body">
 				<table class="table table-striped">
-					<tr></tr>
-					<tr>
-						<th></th>
-						<th>Team</th>
-						<th class="text-center">Match Points</th>
-						<th class="text-center">Game Points</th>
-					</tr>
-					{% for number, team_score in team_scores %}
-					<tr>
-						<td class="text-center">{{ number }}</td>
-						<td>{{ team_score.team.name }}</td>
-						<td class="text-center">{{ team_score.match_points_display }}</td>
-						<td class="text-center">{{ team_score.game_points_display }}</td>
-					</tr>
-					{% endfor %}
+					<thead>
+						<tr>
+							<th></th>
+							<th>Team</th>
+							<th class="text-center">Match Points</th>
+							<th class="text-center">Game Points</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for number, team_score in team_scores %}
+						<tr>
+							<td class="text-center">{{ number }}</td>
+							<td>{{ team_score.team.name }}</td>
+							<td class="text-center">{{ team_score.match_points_display }}</td>
+							<td class="text-center">{{ team_score.game_points_display }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
 				</table>
 				<a href="{% leagueurl 'standings' league_tag season_id %}" class="btn btn-default">Full Standings</a>
 				<a href="{% leagueurl 'season_landing' league_tag season_id %}" class="btn btn-default">Season Details</a>

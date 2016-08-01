@@ -17,28 +17,32 @@
 				{% if team_scores %}
 				<div class="table-responsive">
 					<table class="table table-striped table-condensed-sm">
-						<tr>
-							<th></th>
-							<th>Team</th>
-							<th>Average Rating</th>
-							<th>Match Points</th>
-							<th>Game Points<span class="hidden-xs hidden-sm"> (Tbk 1)</span></th>
-							{% for round_number in round_numbers %}
-							<th>Round {{ round_number }}</th>
+						<thead>
+							<tr>
+								<th></th>
+								<th>Team</th>
+								<th>Average Rating</th>
+								<th>Match Points</th>
+								<th>Game Points<span class="hidden-xs hidden-sm"> (Tbk 1)</span></th>
+								{% for round_number in round_numbers %}
+								<th>Round {{ round_number }}</th>
+								{% endfor %}
+							</tr>
+						</thead>
+						<tbody>
+							{% for number, team_score in team_scores %}
+							<tr>
+								<td class="text-center">{{ number }}</td>
+								<td>{{ team_score.team.name }}</td>
+								<td>{{ team_score.team.average_rating|floatformat:2 }}</td>
+								<td>{{ team_score.match_points_display }}</td>
+								<td>{{ team_score.game_points_display }}</td>
+								{% for round_score in team_score.round_scores %}
+								<td class="{% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
+								{% endfor %}
+							</tr>
 							{% endfor %}
-						</tr>
-						{% for number, team_score in team_scores %}
-						<tr>
-							<td>{{ number }}</td>
-							<td>{{ team_score.team.name }}</td>
-							<td>{{ team_score.team.average_rating|floatformat:2 }}</td>
-							<td>{{ team_score.match_points_display }}</td>
-							<td>{{ team_score.game_points_display }}</td>
-							{% for round_score in team_score.round_scores %}
-							<td class="{% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
-							{% endfor %}
-						</tr>
-						{% endfor %}
+						</tbody>
 					</table>
 				</div>
 				{% else %}

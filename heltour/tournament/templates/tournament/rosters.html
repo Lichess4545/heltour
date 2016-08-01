@@ -14,25 +14,29 @@
 			<div class="well-body">
 				{% if teams %}
 				<div class="table-responsive">
-					<table class="table table-striped table-condensed-sm">
-						<tr>
-							<th>Team</th>
-							{% for board_number in board_numbers %}
-							<th>Board {{ board_number }}</th>
-							<th>Rating</th>
+					<table class="table table-striped table-condensed-sm" id="table-rosters">
+						<thead>
+							<tr>
+								<th>Team</th>
+								{% for board_number in board_numbers %}
+								<th>Board {{ board_number }}</th>
+								<th>Rating</th>
+								{% endfor %}
+								<th>Average Rating</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for team in teams %}
+							<tr>
+								<td>{{ team.name }}</td>
+								{% for board in team.boards %}
+								<td><a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a></td>
+								<td>{{ board.player.rating }}</td>
+								{% endfor %}
+								<td>{{ team.average_rating|floatformat:2 }}</td>
+							</tr>
 							{% endfor %}
-							<th>Average Rating</th>
-						</tr>
-						{% for team in teams %}
-						<tr>
-							<td>{{ team.name }}</td>
-							{% for board in team.boards %}
-							<td><a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a></td>
-							<td>{{ board.player.rating }}</td>
-							{% endfor %}
-							<td>{{ team.average_rating|floatformat:2 }}</td>
-						</tr>
-						{% endfor %}
+						</tbody>
 					</table>
 				</div>
 				{% else %}
