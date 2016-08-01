@@ -31,17 +31,17 @@
 						<tr>
 							<th></th>
 							<th>Team</th>
-							<th>Match Points</th>
-							<th>Game Points</th>
+							<th class="text-center">Match Points</th>
+							<th class="text-center">Game Points</th>
 						</tr>
 					</thead>
 					<tbody>
 						{% for number, team_score in team_scores %}
 						<tr>
-							<td>{{ number }}</td>
+							<td class="text-center">{{ number }}</td>
 							<td>{{ team_score.team.name }}</td>
-							<td>{{ team_score.match_points_display }}</td>
-							<td>{{ team_score.game_points_display }}</td>
+							<td class="text-center">{{ team_score.match_points_display }}</td>
+							<td class="text-center">{{ team_score.game_points_display }}</td>
 						</tr>
 						{% endfor %}
 					</tbody>

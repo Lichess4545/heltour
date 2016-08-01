@@ -21,11 +21,11 @@
 							<tr>
 								<th></th>
 								<th>Team</th>
-								<th>Average Rating</th>
-								<th>Match Points</th>
-								<th>Game Points<span class="hidden-xs hidden-sm"> (Tbk 1)</span></th>
+								<th class="text-center">Average Rating</th>
+								<th class="text-center">Match Points</th>
+								<th class="text-center">Game Points<span class="hidden-xs hidden-sm"> (Tbk 1)</span></th>
 								{% for round_number in round_numbers %}
-								<th>Round {{ round_number }}</th>
+								<th class="text-center">Round {{ round_number }}</th>
 								{% endfor %}
 							</tr>
 						</thead>
@@ -34,11 +34,11 @@
 							<tr>
 								<td class="text-center">{{ number }}</td>
 								<td>{{ team_score.team.name }}</td>
-								<td>{{ team_score.team.average_rating|floatformat:2 }}</td>
-								<td>{{ team_score.match_points_display }}</td>
-								<td>{{ team_score.game_points_display }}</td>
+								<td class="text-center">{{ team_score.team.average_rating|floatformat:2 }}</td>
+								<td class="text-center">{{ team_score.match_points_display }}</td>
+								<td class="text-center">{{ team_score.game_points_display }}</td>
 								{% for round_score in team_score.round_scores %}
-								<td class="{% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
+								<td class="text-center {% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
 								{% endfor %}
 							</tr>
 							{% endfor %}
