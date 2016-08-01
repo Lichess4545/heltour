@@ -139,9 +139,9 @@ class TeamMember(_BaseModel):
 #-------------------------------------------------------------------------------
 class TeamScore(_BaseModel):
     team = models.OneToOneField(Team)
-    match_count = models.PositiveIntegerField()
-    match_points = models.PositiveIntegerField()
-    game_points = models.PositiveIntegerField()
+    match_count = models.PositiveIntegerField(default=0)
+    match_points = models.PositiveIntegerField(default=0)
+    game_points = models.PositiveIntegerField(default=0)
 
     def match_points_display(self):
         return str(self.match_points)
