@@ -83,7 +83,8 @@ def season_landing(request, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/season_landing.html', context)
 
-def pairings(request, league_tag=None, season_id=None, round_number=None):
+def pairings(request, league_tag=None, season_id=None, round_number=None, team_number=None):
+    specified_round = round_number is not None
     season = _get_season(league_tag, season_id)
     round_number_list = [round_.number for round_ in Round.objects.filter(season=season, publish_pairings=True).order_by('-number')]
     if round_number is None:
@@ -91,7 +92,13 @@ def pairings(request, league_tag=None, season_id=None, round_number=None):
             round_number = round_number_list[0]
         except IndexError:
             pass
+    team_list = season.team_set.order_by('name')
     team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order')
+    if team_number is not None:
+        current_team = get_object_or_404(team_list, number=team_number)
+        team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
+    else:
+        current_team = None
     pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number') for team_pairing in team_pairings]
     context = {
         'league_tag': league_tag,
@@ -100,7 +107,11 @@ def pairings(request, league_tag=None, season_id=None, round_number=None):
         'season': season,
         'round_number': round_number,
         'round_number_list': round_number_list,
+        'current_team': current_team,
+        'team_list': team_list,
         'pairing_lists': pairing_lists,
+        'specified_round': specified_round,
+        'specified_team': team_number is not None,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/pairings.html', context)
