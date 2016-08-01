@@ -17,27 +17,27 @@ class RegistrationForm(forms.ModelForm):
         model = Registration
         fields = (
             'lichess_username', 'slack_username', 'email', 'classical_rating',
-            'peak_classical_rating', 'has_played_20_games',
-            'already_in_slack_group', 'can_commit', 'friends', 'agreed_to_rules',
+            'peak_classical_rating', 'has_played_20_games', 'already_in_slack_group',
+            'previous_season_alternate', 'can_commit', 'friends', 'agreed_to_rules',
             'alternate_preference', 'weeks_unavailable',
         )
         labels = {
             'lichess_username': _(u'Your Lichess Username'),
             'slack_username': _(u'Your Slack Username'),
-            'email': _(u'Your email'),
+            'email': _(u'Your Email'),
             'classical_rating': _(u'Your Lichess Classical Rating'),
-            'peak_classical_rating': _(u'Your highest peak Lichess Classical Rating'),
+            'peak_classical_rating': _(u'Your Highest Peak Lichess Classical Rating'),
             'has_played_20_games': _(u'Have you played more than 20 games of classical chess on Lichess?'),
             'already_in_slack_group': _(u'Are you on our Slack group?'),
-            'can_commit': _(u'Are you able to commit to 1 Long Time Control Game (45|45 currently) of Classical Chess on Lichess.org per week?'),
+            'can_commit': _(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'),
             'agreed_to_rules': _(u'Do you agree to the rules of the 45|45 League?'),
             'alternate_preference': _(u'Are you interested in being an alternate or a full time player?'),
             'previous_season_alternate': _(u'Were you an alternate for the previous season?'),
             'friends': _(u'Are there any friends you would like to be paired with?'),
         }
         help_texts = {
-            'slack_username': _(u"Please, it should be the same. If you aren't. on our Slack yet, please fill in N/A."),
-            'friends': _(u'Note: All players must register. All players must join Slack. All players should also request each other?'),
+            'slack_username': _(u"Please, it should be the same. If you aren't on our Slack yet, please fill in N/A."),
+            'friends': _(u'Note: All players must register. All players must join Slack. All players should also request each other.'),
             'has_played_20_games': _(u'If no, this must be fulfilled ASAP.'),
             # TODO: This rules link should be specified in the league object.
             'agreed_to_rules': _(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'),
@@ -45,9 +45,10 @@ class RegistrationForm(forms.ModelForm):
         widgets = {
             'has_played_20_games': forms.RadioSelect(choices=YES_NO_OPTIONS),
             'already_in_slack_group': forms.RadioSelect(choices=YES_NO_OPTIONS),
+            'previous_season_alternate': forms.RadioSelect(),
             'can_commit': forms.RadioSelect(choices=YES_NO_OPTIONS),
             'agreed_to_rules': forms.RadioSelect(choices=YES_NO_OPTIONS),
-            'alternate_preference': forms.RadioSelect(choices=ALTERNATE_PREFERENCE_OPTIONS),
+            'alternate_preference': forms.RadioSelect(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -58,8 +59,10 @@ class RegistrationForm(forms.ModelForm):
         self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label='Are there any weeks you would be unable to play?', choices=weeks, widget=forms.CheckboxSelectMultiple)
         self.fields['has_played_20_games'].required = True
         self.fields['already_in_slack_group'].required = True
+        self.fields['previous_season_alternate'].choices = PREVIOUS_SEASON_ALTERNATE_OPTIONS
         self.fields['can_commit'].required = True
         self.fields['agreed_to_rules'].required = True
+        self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
