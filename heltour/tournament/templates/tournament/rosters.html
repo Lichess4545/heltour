@@ -30,8 +30,12 @@
 							<tr>
 								<td class="cell-team" colspan="3">{{ team.name }}</td>
 								{% for board in team.boards %}
-								<td class="cell-player" colspan="2"><a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a></td>
-								<td class="cell-rating">{{ board.player.rating }}</td>
+								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
+									<span class="player-name">
+										<a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a>
+									</span>
+								</td>
+								<td class="cell-rating">{{ board.player.rating|default_if_none:"" }}</td>
 								{% endfor %}
 								<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>
 							</tr>

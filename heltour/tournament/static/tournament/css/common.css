@@ -239,10 +239,21 @@ body {
 	text-align: center;
 }
 
-#table-rosters .cell-player {
+#table-rosters .cell-player .player-name {
+	display: inline-block;
+    vertical-align:top;
+    max-width: 100%;
 	text-overflow: ellipsis;
 	white-space: nowrap;
     overflow: hidden;
+}
+
+#table-rosters .cell-player.captain .player-name {
+    max-width: calc(100% - 25px);
+}
+
+#table-rosters .cell-player.captain:after {
+	content: '(C)';
 }
 
 @media (max-width: 992px) {
@@ -264,6 +275,9 @@ body {
 	}
 	#table-rosters {
 		table-layout: auto;
+	}
+	#table-rosters .cell-player.captain .player-name {
+	    max-width: 100%;
 	}
 }
 @media (max-width: 768px) {
