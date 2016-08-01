@@ -12,6 +12,7 @@ def createCommonLeagueData():
     player_num = 1
     for n in range(1, team_count + 1):
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
+        TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
             player = Player.objects.create(lichess_username='Player %d' % player_num)
             player_num += 1
@@ -51,3 +52,47 @@ class TeamTestCase(TestCase):
         
         bd1.delete()
         self.assertEqual(1600, team.average_rating())
+
+class TeamScoreTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+        team3 = Team.objects.get(number=3)
+        
+        round1 = Round.objects.get(number=1)
+        round1.is_completed = True
+        round1.save()
+        TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1, pairing_order=0, white_points = 3)
+        
+        round2 = Round.objects.get(number=2)
+        round2.is_completed = True
+        round2.save()
+        TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2, pairing_order=0, black_points = 2)
+    
+    def test_teamscore_round_scores(self):
+        teamscore = TeamScore.objects.get(team__number=1)
+        
+        self.assertItemsEqual([1.5, 1.0, None], teamscore.round_scores())
+    
+    def test_teamscore_cross_scores(self):
+        teamscore = TeamScore.objects.get(team__number=1)
+        pairing1 = TeamPairing.objects.get(round__number=1)
+        pairing2 = TeamPairing.objects.get(round__number=2)
+        
+        self.assertItemsEqual([(1, None, None), (2, 1.5, pairing1.pk), (3, 1.0, pairing2.pk), (4, None, None)], teamscore.cross_scores())
+    
+    def test_teamscore_cmp(self):
+        ts1 = TeamScore.objects.get(team__number=1)
+        ts2 = TeamScore.objects.get(team__number=2)
+        
+        self.assertEqual(0, ts1.__cmp__(ts2))
+        
+        ts1.match_points = 2
+        self.assertGreater(ts1, ts2)
+        
+        ts2.match_points = 2
+        ts2.game_points = 1
+        self.assertLess(ts1, ts2)
+
+    
