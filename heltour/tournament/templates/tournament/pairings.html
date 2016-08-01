@@ -38,6 +38,7 @@
 				    {% endfor %}
 				  </ul>
 				</div>
+				
 				{% if pairing_lists %}
 				<table class="table table-condensed-xs">
 					{% for pairing_list in pairing_lists %}
@@ -55,8 +56,8 @@
 						<th>WHITE<a name="team-{{ pairing_list.0.white_team.number }}"></a><a name="team-{{ pairing_list.0.black_team.number }}"></a></th>
 						<th>BLACK</th>
 						<th class="hidden-xs">TEAM</th>
-						<th class="hidden-xs">RESULT</th>
-						<th class="visible-xs">RS</th>
+						<th class="text-center hidden-xs">RESULT</th>
+						<th class="text-center visible-xs">RS</th>
 						<th>TIME</th>{% if can_edit %}
 						<th></th>{% endif %}
 					</tr>
@@ -67,7 +68,7 @@
 						<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}</a></div></td>
 						<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}</a></div></td>
 						<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
-						<td class="text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
+						<td class="text-center text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
 						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 						<th>
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
