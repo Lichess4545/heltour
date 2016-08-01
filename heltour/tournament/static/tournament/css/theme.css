@@ -93,16 +93,20 @@ body {
 		margin-left: -15px;
 		min-width: calc(100% + 30px);
 	}
+	.row-condensed-xs .well-body > .table-responsive {
+		margin-left: -15px;
+		min-width: calc(100% + 30px);
+	}
 }
 @media (max-width: 992px) {
 	.row-condensed-sm .well {
 		border-radius: 0;
 	}
-	.row-condensed-xs .well-body > .table-condensed-sm {
+	.row-condensed-sm .well-body > .table-condensed-sm {
 		margin-left: -15px;
 		min-width: calc(100% + 30px);
 	}
-	.row-condensed-xs .well-body > .table-responsive {
+	.row-condensed-sm .well-body > .table-responsive {
 		margin-left: -15px;
 		min-width: calc(100% + 30px);
 	}

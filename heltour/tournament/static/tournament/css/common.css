@@ -225,6 +225,26 @@ body {
 	max-width: 1250px;
 }
 
+#table-rosters {
+	table-layout: fixed;
+}
+
+#table-rosters .cell-rating {
+	width: 45px;
+	text-align: center;
+}
+
+#table-rosters .cell-average-rating {
+	width: 80px;
+	text-align: center;
+}
+
+#table-rosters .cell-player {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+    overflow: hidden;
+}
+
 @media (max-width: 992px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;
@@ -237,6 +257,13 @@ body {
 	.table-condensed-sm > tbody > tr > td,
 	.table-condensed-sm > tfoot > tr > td {
 	  padding: 4px 6px 4px 6px;
+	}
+	.table-responsive .table-condensed-sm th,
+	.table-responsive .table-condensed-sm td {
+		white-space: nowrap;
+	}
+	#table-rosters {
+		table-layout: auto;
 	}
 }
 @media (max-width: 768px) {
