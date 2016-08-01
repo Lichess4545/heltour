@@ -38,6 +38,9 @@ class Season(_BaseModel):
 
     class Meta:
         unique_together = ('league', 'name')
+        permissions = (
+            ('edit_rosters', 'Can edit rosters'),
+        )
 
     def __unicode__(self):
         return self.name
@@ -51,6 +54,11 @@ class Round(_BaseModel):
     
     publish_pairings = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        permissions = (
+            ('generate_pairings', 'Can generate and review pairings'),
+        )
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -189,7 +197,19 @@ class TeamScore(_BaseModel):
             return result
         result = self.game_points - other.game_points
         return result
-    
+
+#-------------------------------------------------------------------------------
+class Alternate(_BaseModel):
+    season = models.ForeignKey(Season)
+    player = models.ForeignKey(Player)
+    board_number = models.PositiveIntegerField(blank=True, null=True, choices=BOARD_NUMBER_OPTIONS)
+
+    class Meta:
+        unique_together = ('season', 'player')
+
+    def __unicode__(self):
+        return "%s" % self.player
+
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
     white_team = models.ForeignKey(Team, related_name="pairings_as_white")
