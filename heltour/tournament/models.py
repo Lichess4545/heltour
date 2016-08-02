@@ -211,6 +211,19 @@ class Alternate(_BaseModel):
         return "%s" % self.player
 
 #-------------------------------------------------------------------------------
+class AlternateAssignment(_BaseModel):
+    round = models.ForeignKey(Round)
+    team = models.ForeignKey(Team)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    player = models.ForeignKey(Player)
+    
+    class Meta:
+        unique_together = ('round', 'team', 'board_number')
+    
+    def __unicode__(self):
+        return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
+
+#-------------------------------------------------------------------------------
 class AlternateBucket(_BaseModel):
     season = models.ForeignKey(Season)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
