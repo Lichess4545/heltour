@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
+from datetime import timedelta
 
 tag_validator = RegexValidator(r'^[0-9a-zA-Z-_]*$', 'Only alphanumeric characters, hyphens, and underscores are allowed.')
 
@@ -28,7 +29,7 @@ class League(_BaseModel):
 class Season(_BaseModel):
     league = models.ForeignKey(League)
     name = models.CharField(max_length=255)
-    start_date = models.DateField(blank=True, null=True)
+    start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField()
 
@@ -41,7 +42,26 @@ class Season(_BaseModel):
         permissions = (
             ('edit_rosters', 'Can edit rosters'),
         )
-
+    
+    def __init__(self, *args, **kwargs):
+        super(Season, self).__init__(*args, **kwargs)
+        self.initial_rounds = self.rounds
+        self.initial_start_date = self.start_date
+        
+    def save(self, *args, **kwargs):
+        # TODO: Add validation to prevent changes after a certain point
+        rounds_changed = self.pk is None or self.rounds != self.initial_rounds
+        start_date_changed = self.pk is None or self.start_date != self.initial_start_date
+        super(Season, self).save(*args, **kwargs)
+        
+        if rounds_changed or start_date_changed:
+            date = self.start_date
+            for round_num in range(1, self.rounds + 1):
+                # TODO: Allow round duration to be customized
+                next_date = date + timedelta(days=7) if date is not None else None
+                Round.objects.update_or_create(season=self, number=round_num, defaults={'start_date': date, 'end_date': next_date})
+                date = next_date
+    
     def __unicode__(self):
         return self.name
 

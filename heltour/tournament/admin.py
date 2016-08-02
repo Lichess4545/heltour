@@ -51,20 +51,10 @@ class LeagueAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.Season)
 class SeasonAdmin(VersionAdmin):
-    list_display = (
-            '__unicode__',
-            'league',
-        )
-    list_display_links = (
-            '__unicode__',
-        )
-    list_filter = (
-        'league',
-    )
+    list_display = ('__unicode__', 'league',)
+    list_display_links = ('__unicode__',)
+    list_filter = ('league',)
     actions = ['edit_rosters']
-    # TODO: when rounds are set or the season is 'started' create 
-    #       all of the round records for this season, and don't let
-    #       the number of rounds to change after that.
     
     def edit_rosters(self, request, queryset):
         if queryset.count() > 1:
