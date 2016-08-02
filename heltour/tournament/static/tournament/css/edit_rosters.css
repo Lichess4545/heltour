@@ -18,7 +18,7 @@
 #table-edit-rosters [data-board],
 #table-alternates table td,
 #table-unassigned table td {
-	padding: 2px;
+	padding: 1px;
 }
 
 #table-alternates table,
@@ -50,7 +50,7 @@
 	z-index: 1000;
 }
 
-.team .team-name {
+.team .team-name-editable {
 	display: inline-block;
 	vertical-align: top;
 	min-width: 160px;
@@ -59,4 +59,8 @@
 
 .team .team-name-edit {
 	margin: -10px -7px -7px -7px;
+}
+
+.new-team-template .team-name {
+	color: #777;
 }

@@ -81,11 +81,13 @@ class SeasonAdmin(VersionAdmin):
     
     def edit_rosters_view(self, request, object_id):
         season = models.Season.objects.get(pk=object_id)
+        teams_locked = bool(models.Round.objects.filter(season=season, publish_pairings=True).count())
         
         if request.method == 'POST':
             form = forms.EditRostersForm(request.POST)
             if form.is_valid():
                 changes = json.loads(form.cleaned_data['changes'])
+                # raise ValueError(changes)
                 has_error = False
                 for change in changes:
                     try:
@@ -106,14 +108,38 @@ class SeasonAdmin(VersionAdmin):
                                 teammember.is_captain = player_info['is_captain']
                                 teammember.save()
                         
-                        if change['action'] == 'change-team':
+                        if change['action'] == 'change-team' and not teams_locked:
                             team_num = change['team_number']
                             team = models.Team.objects.get(season=season, number=team_num)
                             
                             team_name = change['team_name']
                             team.name = team_name
                             team.save()
-                    except:
+                        
+                        if change['action'] == 'create-team' and not teams_locked:
+                            model = change['model']
+                            team = models.Team.objects.create(season=season, number=model['number'], name=model['name'])
+                            
+                            for board_num, player_info in enumerate(model['boards'], 1):
+                                if player_info is not None:
+                                    player = models.Player.objects.get(lichess_username=player_info['name'])
+                                    is_captain = player_info['is_captain']
+                                    models.TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
+                        
+                        if change['action'] == 'create-alternate':
+                            board_num = change['board_number']
+                            player = models.Player.objects.get(lichess_username=change['player_name'])
+                            
+                            models.Alternate.objects.update_or_create(season=season, player=player, defaults={ 'board_number': board_num })
+                            
+                        if change['action'] == 'delete-alternate':
+                            board_num = change['board_number']
+                            player = models.Player.objects.get(lichess_username=change['player_name'])
+                            alt = models.Alternate.objects.filter(season=season, player=player, board_number=board_num).first()
+                            if alt is not None:
+                                alt.delete()
+                        
+                    except Exception:
                         has_error = True
                 
                 if has_error:
@@ -126,7 +152,7 @@ class SeasonAdmin(VersionAdmin):
             form = forms.EditRostersForm()
         
         board_numbers = list(range(1, season.boards + 1))
-        teams = models.Team.objects.filter(season=season).order_by('number') 
+        teams = list(models.Team.objects.filter(season=season).order_by('number')) 
         team_members = models.TeamMember.objects.filter(team__season=season)
         alternates = models.Alternate.objects.filter(season=season)
         alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-player__rating')) for n in board_numbers]
@@ -156,7 +182,7 @@ class SeasonAdmin(VersionAdmin):
                             break
                     unassigned_by_board[board_num - 1][1].append(p)
         
-        if models.Round.objects.filter(season=season, publish_pairings=True).count():
+        if teams_locked:
             new_team_number = None
         elif len(teams) == 0:
             new_team_number = 1
@@ -171,6 +197,7 @@ class SeasonAdmin(VersionAdmin):
             'title': 'Edit rosters',
             'form': form,
             'teams': teams,
+            'teams_locked': teams_locked,
             'new_team_number': new_team_number,
             'alternates_by_board': alternates_by_board,
             'unassigned_by_board': unassigned_by_board,

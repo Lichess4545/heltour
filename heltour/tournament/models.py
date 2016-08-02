@@ -134,7 +134,7 @@ BOARD_NUMBER_OPTIONS = (
 class TeamMember(_BaseModel):
     team = models.ForeignKey(Team)
     player = models.ForeignKey(Player)
-    board_number = models.PositiveIntegerField(blank=True, null=True, choices=BOARD_NUMBER_OPTIONS)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
 

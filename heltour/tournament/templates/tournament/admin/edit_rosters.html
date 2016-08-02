@@ -29,7 +29,7 @@
 			{% for team in teams %}
 			<tr class="team" data-number="{{ team.number }}">
 				<td>
-					<span class="team-name">{{ team.name }}</span>
+					<span class="team-name{% if not teams_locked %} team-name-editable{% endif %}">{{ team.name }}</span>
 				</td>
 				{% for board_number, board in team.boards %}
 				<td data-board="{{ board_number }}">
@@ -47,10 +47,10 @@
 				</td>
 			</tr>
 			{% endfor %}
-			{% if new_team_number %}
+			{% if not teams_locked %}
 			<tr class="team new-team new-team-template" data-number="{{ new_team_number }}">
 				<td>
-					<span class="team-name default-name">Team {{ new_team_number }}</span>
+					<span class="team-name{% if not teams_locked %} team-name-editable{% endif %}">Team {{ new_team_number }}</span>
 				</td>
 				{% for board_number in board_numbers %}
 				<td data-board="{{ board_number }}">
@@ -79,8 +79,8 @@
 			<tr>
 				<td>&nbsp;</td>
 				{% for board_number, alternates in alternates_by_board %}
-				<td>
-					<table class="table-drop">
+				<td data-board="{{ board_number }}" class="table-drop">
+					<table>
 						{% for alt in alternates %}
 						<tr>
 							<td>
@@ -115,8 +115,8 @@
 			<tr>
 				<td>&nbsp;</td>
 				{% for board_number, player_list in unassigned_by_board %}
-				<td>
-					<table class="table-drop">
+				<td class="table-drop">
+					<table>
 						{% for player in player_list %}
 						<tr>
 							<td>
