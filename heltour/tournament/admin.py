@@ -336,7 +336,6 @@ class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team',)
-    pass
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamScore)
@@ -344,7 +343,27 @@ class TeamScoreAdmin(VersionAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
     list_filter = ('team__season',)
-    pass
+
+#-------------------------------------------------------------------------------
+@admin.register(models.Alternate)
+class AlternateAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'season', 'board_number')
+    search_fields = ('player__lichess_username',)
+    list_filter = ('season', 'board_number')
+
+#-------------------------------------------------------------------------------
+@admin.register(models.AlternateAssignment)
+class AlternateAssignmentAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'player')
+    search_fields = ('team__name', 'player__lichess_username')
+    list_filter = ('round__season', 'round__number', 'board_number')
+
+#-------------------------------------------------------------------------------
+@admin.register(models.AlternateBucket)
+class AlternateBucketAdmin(VersionAdmin):
+    list_display = ('__unicode__',)
+    search_fields = ()
+    list_filter = ('season', 'board_number')
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPairing)
