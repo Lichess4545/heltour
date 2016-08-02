@@ -163,3 +163,52 @@ def get_roster(request):
         } for team in teams],
     })
 
+@csrf_exempt
+@api_token_required
+def assign_alternate(request):
+    try:
+        season_id = request.POST.get('season', None)
+        if season_id is not None:
+            season_id = int(season_id)
+        round_num = request.POST.get('round', None)
+        if round_num is not None:
+            season_id = int(season_id)
+        team_num = request.POST.get('team', None)
+        if team_num is not None:
+            team_num = int(team_num)
+        board_num = request.POST.get('board', None)
+        if board_num is not None:
+            board_num = int(board_num)
+        player_name = request.POST.get('player', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
+    if team_num is None or board_num is None or player_name is None:
+        return HttpResponse('Bad request', status=400)
+    
+    try:
+        latest_round = _get_latest_round(season_id)
+        season = latest_round.season
+        if round_num is None:
+            round_ = latest_round
+        else:
+            round_ = season.round_set.filter(number=round_num)[0]
+        team = season.team_set.filter(number=team_num)[0]
+        player = Player.objects.filter(lichess_username__iexact=player_name).first()
+    except IndexError:
+        return JsonResponse({'updated': 0, 'error': 'no_data'})
+    
+    if player is None:
+        return JsonResponse({'updated': 0, 'error': 'player_not_found'})
+    
+    if round_.is_completed:
+        return JsonResponse({'updated': 0, 'error': 'round_over'})
+    
+    alternate = Alternate.objects.filter(season=season, player=player, board_number=board_num).first()
+    member_playing_up = team.teammember_set.filter(player=player, board_number__gt=board_num).first()
+    if alternate is None and member_playing_up is None:
+        return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
+    
+    AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player})
+    
+    return JsonResponse({'updated': 1})

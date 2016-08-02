@@ -48,7 +48,7 @@ class Season(_BaseModel):
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
     season = models.ForeignKey(Season)
-    number = models.PositiveIntegerField()
+    number = models.PositiveIntegerField(verbose_name='round number')
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
     
@@ -97,8 +97,8 @@ class Player(_BaseModel):
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
     season = models.ForeignKey(Season)
-    number = models.PositiveIntegerField()
-    name = models.CharField(max_length=255)
+    number = models.PositiveIntegerField(verbose_name='team number')
+    name = models.CharField(max_length=255, verbose_name='team name')
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -219,6 +219,29 @@ class AlternateAssignment(_BaseModel):
     
     class Meta:
         unique_together = ('round', 'team', 'board_number')
+        
+    def save(self, *args, **kwargs):
+        super(AlternateAssignment, self).save(*args, **kwargs)
+        
+        # Find and update any current pairings
+        white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
+        if white_pairing is not None:
+            tpp = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if tpp is not None:
+                if self.board_number % 2 == 1:
+                    tpp.player_pairing.white = self.player
+                else:
+                    tpp.player_pairing.black = self.player
+                tpp.player_pairing.save()
+        black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
+        if black_pairing is not None:
+            tpp = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if tpp is not None:
+                if self.board_number % 2 == 1:
+                    tpp.player_pairing.black = self.player
+                else:
+                    tpp.player_pairing.white = self.player
+                tpp.player_pairing.save()
     
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
