@@ -199,7 +199,8 @@ def rosters(request, league_tag=None, season_id=None):
         'season_id': season_id,
         'season': season,
         'teams': teams,
-        'board_numbers': board_numbers
+        'board_numbers': board_numbers,
+        'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }
     return render(request, 'tournament/rosters.html', context)
 

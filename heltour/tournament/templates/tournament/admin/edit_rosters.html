@@ -1,0 +1,56 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load staticfiles %}
+{% load tournament_extras %}
+
+{% block extrahead %}{{ block.super }}
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+<script type="text/javascript" src="{% static 'tournament/js/edit_rosters.js' %}"></script>
+<link rel="stylesheet" href="{% static 'tournament/css/edit_rosters.css' %}">
+{% endblock %}
+
+{% block content %}
+<form action="" method="post" id="form-edit-rosters">
+	{% csrf_token %}
+	{{ form }}
+	<table id="table-edit-rosters" data-boards="{{ board_count }}">
+		<thead>
+			<tr>
+				<th>Team</th>
+				{% for board_number in board_numbers %}
+				<th>Board {{ board_number }}</th>
+				{% endfor %}
+				<th>Average</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for team in teams %}
+			<tr>
+				<td>
+					<span class="team" data-number="{{ team.number }}">{{ team.name }}</span>
+				</td>
+				{% for board_number, board in team.boards %}
+				<td data-board="{{ board_number }}">
+					{% if board %}
+					<span class="player">
+						<span class="name">{{ board.player.lichess_username }}</span>
+						(<span class="rating">{{ board.player.rating|default_if_none:"?" }}</span>)
+						<span class="extra">{% if board.is_captain %}(C){% endif %}</span>
+					</span>
+					{% endif %}
+				</td>
+				{% endfor %}
+				<td>
+					<span class="average-rating">{{ team.average_rating|floatformat:2 }}</span>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	<div class="submit-row">
+		<input class="default" value="Save" name="save" type="submit">
+		<input value="Save and continue editing" name="save_continue" type="submit">
+	</div>
+</form>
+{% endblock %}

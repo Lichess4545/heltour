@@ -107,12 +107,12 @@ class Team(_BaseModel):
     def boards(self):
         for i in range(self.season.boards):
             board_number = i + 1
-            yield self.teammember_set.filter(board_number=board_number).first()
+            yield board_number, self.teammember_set.filter(board_number=board_number).first()
     
     def average_rating(self):
         n = 0
         total = 0.0
-        for board in self.boards():
+        for board_number, board in self.boards():
             if board is not None and board.player.rating is not None:
                 n += 1
                 total += board.player.rating
@@ -139,7 +139,7 @@ class TeamMember(_BaseModel):
     is_vice_captain = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('team', 'player')
+        unique_together = ('team', 'board_number')
 
     def __unicode__(self):
         return "%s" % self.player

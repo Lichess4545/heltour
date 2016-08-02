@@ -6,6 +6,7 @@ from django.conf.urls import url
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import permission_required
 
+import json
 import pairinggen
 import spreadsheet
 
@@ -60,13 +61,73 @@ class SeasonAdmin(VersionAdmin):
     list_filter = (
         'league',
     )
+    actions = ['edit_rosters']
     # TODO: when rounds are set or the season is 'started' create 
     #       all of the round records for this season, and don't let
     #       the number of rounds to change after that.
+    
+    def edit_rosters(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Rosters can only be edited one season at a time', messages.ERROR)
+            return
+        return redirect('admin:edit_rosters', object_id=queryset[0].pk)
+    
+    def get_urls(self):
+        urls = super(SeasonAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)), name='edit_rosters'),
+        ]
+        return my_urls + urls
+    
+    def edit_rosters_view(self, request, object_id):
+        season = models.Season.objects.get(pk=object_id)
+        
+        if request.method == 'POST':
+            form = forms.EditRostersForm(request.POST)
+            if form.is_valid():
+                changes = json.loads(form.cleaned_data['changes'])
+                for change in changes:
+                    
+                    if change['action'] == 'change-member':
+                        team_num = change['team_number']
+                        team = models.Team.objects.get(season=season, number=team_num)
+                        
+                        board_num = change['board_number']
+                        player_info = change['player']
+                        
+                        teammember = models.TeamMember.objects.filter(team=team, board_number=board_num).first()
+                        if teammember == None:
+                            teammember = models.TeamMember(team=team, board_number=board_num)
+                        if player_info is None:
+                            teammember.delete()
+                        else:
+                            teammember.player = models.Player.objects.get(lichess_username=player_info['name'])
+                            teammember.is_captain = player_info['is_captain']
+                            teammember.save()
+                    
+                if 'save_continue' in form.data:
+                    return redirect('admin:edit_rosters', object_id)
+                return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.EditRostersForm()
+        
+        teams = models.Team.objects.filter(season=season).order_by('number')
+        board_numbers = list(range(1, season.boards + 1))
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Edit rosters',
+            'form': form,
+            'teams': teams,
+            'board_numbers': board_numbers,
+            'board_count': season.boards,
+        }
+        
+        return render(request, 'tournament/admin/edit_rosters.html', context)
 
-# TODO: flesh out the rest of these admin classes based on the workflows of
-#       The moderators
-#-------------------------------------------------------------------------------
 @admin.register(models.Round)
 class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
@@ -75,8 +136,8 @@ class RoundAdmin(VersionAdmin):
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
-            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.change_playerpairing')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
         ]
         return my_urls + urls
     

@@ -112,3 +112,6 @@ class GeneratePairingsForm(forms.Form):
 
 class ReviewPairingsForm(forms.Form):
     pass
+
+class EditRostersForm(forms.Form):
+    changes = forms.CharField(widget=forms.HiddenInput)

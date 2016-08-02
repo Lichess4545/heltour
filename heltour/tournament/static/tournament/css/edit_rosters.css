@@ -1,0 +1,26 @@
+#table-edit-rosters {
+	table-layout: fixed;
+	width: 100%;
+}
+
+#table-edit-rosters tr th:last-child {
+	width: 60px;
+}
+
+.player {
+	display: inline-block;
+	vertical-align: top;
+	margin-bottom: -5px;
+	margin-right: -5px;
+	width: 100%;
+	background-color: white;
+}
+
+.player.ui-draggable {
+	cursor: pointer;
+}
+
+.player.ui-draggable-dragging {
+	border: 1px solid orange;
+	z-index: 1000;
+}

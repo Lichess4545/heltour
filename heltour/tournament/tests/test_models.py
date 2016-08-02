@@ -30,10 +30,10 @@ class TeamTestCase(TestCase):
         bd1 = team.teammember_set.get(board_number=1)
         bd2 = team.teammember_set.get(board_number=2)
         
-        self.assertItemsEqual([bd1, bd2], team.boards())
+        self.assertItemsEqual([(1, bd1), (2, bd2)], team.boards())
         
         bd1.delete()
-        self.assertItemsEqual([None, bd2], team.boards())
+        self.assertItemsEqual([(1, None), (2, bd2)], team.boards())
     
     def test_team_average_rating(self):
         team = Team.objects.get(number=1)

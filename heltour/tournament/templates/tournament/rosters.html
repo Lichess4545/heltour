@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load staticfiles %}
+{% load tournament_extras %}
 
 {% block title %}Rosters - {{ season.name }} - {{ league.name }}{% endblock %}
 
@@ -9,7 +11,14 @@
 	<div class="col-md-12">
 		<div class="well">
 			<div class="well-head">
-				<h3>Rosters</h3>
+				<div class="inline">
+					<h3>Rosters</h3>
+				</div>{% if can_edit %}
+				<div class="inline document-edit">
+					<a href="{% url 'admin:edit_rosters' season.pk %}" id="edit-rosters" title="Edit rosters">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </div>{% endif %}
 			</div>
 			<div class="well-body">
 				{% if teams %}
@@ -29,7 +38,7 @@
 							{% for team in teams %}
 							<tr>
 								<td class="cell-team" colspan="3">{{ team.name }}</td>
-								{% for board in team.boards %}
+								{% for board_number, board in team.boards %}
 								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
 									<span class="player-name">
 										<a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a>
