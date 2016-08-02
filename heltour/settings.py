@@ -138,6 +138,8 @@ BOOTSTRAP3 = {
     'set_placeholder': False
 }
 
+LOGIN_URL = '/admin/login/'
+
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
