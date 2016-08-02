@@ -5,6 +5,7 @@ from datetime import timedelta
 from .models import *
 from .forms import *
 from heltour.tournament.templatetags.tournament_extras import leagueurl
+import itertools
 
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
@@ -193,6 +194,13 @@ def rosters(request, league_tag=None, season_id=None):
         return no_rosters_available(request, league_tag, season_id)
     teams = Team.objects.filter(season=season).order_by('number')
     board_numbers = list(range(1, season.boards + 1))
+    
+    alternates = Alternate.objects.filter(season=season)
+    alternates_by_board = [alternates.filter(board_number=n).order_by('-player__rating') for n in board_numbers]
+    alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
+    if len(alternate_rows) == 0:
+        alternate_rows.append((1, [None for _ in board_numbers]))
+    
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -200,6 +208,7 @@ def rosters(request, league_tag=None, season_id=None):
         'season': season,
         'teams': teams,
         'board_numbers': board_numbers,
+        'alternate_rows': alternate_rows,
         'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }
     return render(request, 'tournament/rosters.html', context)

@@ -46,6 +46,10 @@ div.inline {
 	white-space: nowrap;
 }
 
+#table-rosters .cell-alternates {
+	padding-top: 37px;
+}
+
 #table-crosstable tbody>tr>td, #table-crosstable thead>tr>th {
 	white-space: nowrap;
 }

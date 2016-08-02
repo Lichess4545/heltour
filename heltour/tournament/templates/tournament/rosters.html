@@ -50,6 +50,38 @@
 							</tr>
 							{% endfor %}
 						</tbody>
+						<thead>
+							<tr>
+								<th class="cell-alternates" colspan="3">Alternates</th>
+								{% for board_number in board_numbers %}
+								<th class="cell-player" colspan="2">Board {{ board_number }}</th>
+								<th class="cell-rating">Rtg</th>
+								{% endfor %}
+								<th>&nbsp;</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for row_num, row in alternate_rows %}
+							<tr>
+								<td colspan="3">&nbsp;</td>
+								{% for alt in row %}
+								<td class="cell-player" colspan="2">
+									{% if alt == None %}
+									{% if row_num == 1 %}
+									-
+									{% endif %}
+									{% else %}
+									<span class="player-name">
+										<a href="http://lichess.org/@/{{ alt.player.lichess_username }}">{{ alt.player.lichess_username }}</a>
+									</span>
+									{% endif %}
+								</td>
+								<td class="cell-rating">{{ alt.player.rating|default_if_none:"" }}</td>
+								{% endfor %}
+								<td>&nbsp;</td>
+							</tr>
+							{% endfor %}
+						</tbody>
 					</table>
 				</div>
 				{% else %}
