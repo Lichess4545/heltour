@@ -62,6 +62,12 @@ class Season(_BaseModel):
                 Round.objects.update_or_create(season=self, number=round_num, defaults={'start_date': date, 'end_date': next_date})
                 date = next_date
     
+    def end_date(self):
+        last_round = self.round_set.filter(number=self.rounds).first()
+        if last_round is not None:
+            return last_round.end_date
+        return None
+    
     def __unicode__(self):
         return self.name
 

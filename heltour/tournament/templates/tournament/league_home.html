@@ -33,7 +33,11 @@
 				<h3>Registration is open!</h3>
 			</div>
 		    <div class="well-body">
-				<p>{{ registration_season.name }} starts on {{ registration_season.start_date.date }}.</p>
+		    	{% if registration_season_end_date %}
+		    	<p>{{ registration_season.name }} ends on {{ registration_season_end_date|date_or_q }}.</p>
+		    	{% else %}
+				<p>{{ registration_season.name }} starts on {{ registration_season.start_date|date_or_q }}.</p>
+				{% endif %}
 				<a href="{% leagueurl 'register' league_tag season_id %}" class="btn btn-default">Register Now</a>
 			</div>
 		</div>

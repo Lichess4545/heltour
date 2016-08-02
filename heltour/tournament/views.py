@@ -30,6 +30,9 @@ def league_home(request, league_tag=None, season_id=None):
     
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
+    registration_season_end_date = None
+    if registration_season.start_date is not None and registration_season.start_date < timezone.now():
+        registration_season_end_date = registration_season.end_date()
     
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
     
@@ -53,6 +56,7 @@ def league_home(request, league_tag=None, season_id=None):
         'intro_doc': intro_doc,
         'can_edit_document': request.user.has_perm('tournament.change_document'),
         'registration_season': registration_season,
+        'registration_season_end_date': registration_season_end_date,
         'current_games': current_games,
         'upcoming_games': upcoming_games,
     }

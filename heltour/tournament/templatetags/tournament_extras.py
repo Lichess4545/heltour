@@ -33,3 +33,9 @@ def format_result(result):
     if result == '1/2-1/2':
         return u'\u00BD-\u00BD'
     return result
+
+@register.filter
+def date_or_q(datetime):
+    if datetime is None:
+        return '?'
+    return datetime.date()

@@ -1,4 +1,5 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load tournament_extras %}
 
 {% block content %}
 <form action="" method="post">
@@ -20,7 +21,7 @@
 		
 		<div class="form-row">
 			<label>Season start:</label>
-		    {{ original.season.start_date.date }}
+		    {{ original.season.start_date|date_or_q }}
 		</div>
 		
 		<h2>Registration form</h2>
