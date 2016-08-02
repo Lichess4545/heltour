@@ -205,7 +205,7 @@ def assign_alternate(request):
         return JsonResponse({'updated': 0, 'error': 'round_over'})
     
     alternate = Alternate.objects.filter(season=season, player=player, board_number=board_num).first()
-    member_playing_up = team.teammember_set.filter(player=player, board_number__gt=board_num).first()
+    member_playing_up = team.teammember_set.filter(player=player, board_number__gte=board_num).first()
     if alternate is None and member_playing_up is None:
         return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
     
