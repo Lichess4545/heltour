@@ -86,33 +86,82 @@ class SeasonAdmin(VersionAdmin):
             form = forms.EditRostersForm(request.POST)
             if form.is_valid():
                 changes = json.loads(form.cleaned_data['changes'])
+                has_error = False
                 for change in changes:
-                    
-                    if change['action'] == 'change-member':
-                        team_num = change['team_number']
-                        team = models.Team.objects.get(season=season, number=team_num)
+                    try:
+                        if change['action'] == 'change-member':
+                            team_num = change['team_number']
+                            team = models.Team.objects.get(season=season, number=team_num)
+                            
+                            board_num = change['board_number']
+                            player_info = change['player']
+                            
+                            teammember = models.TeamMember.objects.filter(team=team, board_number=board_num).first()
+                            if teammember == None:
+                                teammember = models.TeamMember(team=team, board_number=board_num)
+                            if player_info is None:
+                                teammember.delete()
+                            else:
+                                teammember.player = models.Player.objects.get(lichess_username=player_info['name'])
+                                teammember.is_captain = player_info['is_captain']
+                                teammember.save()
                         
-                        board_num = change['board_number']
-                        player_info = change['player']
-                        
-                        teammember = models.TeamMember.objects.filter(team=team, board_number=board_num).first()
-                        if teammember == None:
-                            teammember = models.TeamMember(team=team, board_number=board_num)
-                        if player_info is None:
-                            teammember.delete()
-                        else:
-                            teammember.player = models.Player.objects.get(lichess_username=player_info['name'])
-                            teammember.is_captain = player_info['is_captain']
-                            teammember.save()
-                    
+                        if change['action'] == 'change-team':
+                            team_num = change['team_number']
+                            team = models.Team.objects.get(season=season, number=team_num)
+                            
+                            team_name = change['team_name']
+                            team.name = team_name
+                            team.save()
+                    except:
+                        has_error = True
+                
+                if has_error:
+                    self.message_user(request, 'Some changes could not be saved.', messages.WARNING)
+                
                 if 'save_continue' in form.data:
                     return redirect('admin:edit_rosters', object_id)
                 return redirect('admin:tournament_season_changelist')
         else:
             form = forms.EditRostersForm()
         
-        teams = models.Team.objects.filter(season=season).order_by('number')
         board_numbers = list(range(1, season.boards + 1))
+        teams = models.Team.objects.filter(season=season).order_by('number') 
+        team_members = models.TeamMember.objects.filter(team__season=season)
+        alternates = models.Alternate.objects.filter(season=season)
+        alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-player__rating')) for n in board_numbers]
+        
+        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True))
+        team_players = set(tm.player for tm in team_members)
+        alternate_players = set(alt.player for alt in alternates)
+        
+        alternate_buckets = models.AlternateBucket.objects.filter(season=season)
+        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: -p.rating))
+        if len(alternate_buckets) == season.boards:
+            # Sort unassigned players by alternate buckets
+            unassigned_by_board = [(n, [p for p in unassigned_players if alternate_buckets.get(board_number=n).contains(p.rating)]) for n in board_numbers]
+        else:
+            # Season doesn't have buckets yet. Sort by player soup
+            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: -p.rating))
+            player_count = len(sorted_players)
+            unassigned_by_board = [(n, []) for n in board_numbers]
+            if player_count > 0:
+                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) / season.boards].rating) for n in board_numbers]
+                for p in unassigned_players:
+                    board_num = 1
+                    for n, max_rating in max_ratings:
+                        if p.rating <= max_rating:
+                            board_num = n
+                        else:
+                            break
+                    unassigned_by_board[board_num - 1][1].append(p)
+        
+        if models.Round.objects.filter(season=season, publish_pairings=True).count():
+            new_team_number = None
+        elif len(teams) == 0:
+            new_team_number = 1
+        else:
+            new_team_number = teams[-1].number + 1
         
         context = {
             'has_permission': True,
@@ -122,6 +171,9 @@ class SeasonAdmin(VersionAdmin):
             'title': 'Edit rosters',
             'form': form,
             'teams': teams,
+            'new_team_number': new_team_number,
+            'alternates_by_board': alternates_by_board,
+            'unassigned_by_board': unassigned_by_board,
             'board_numbers': board_numbers,
             'board_count': season.boards,
         }

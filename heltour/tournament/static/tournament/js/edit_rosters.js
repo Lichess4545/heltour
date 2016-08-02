@@ -3,15 +3,19 @@ function parse_model() {
 	var $table = $('#table-edit-rosters');
 	var board_count = parseInt($table.attr('data-boards'));
 	var teams = [];
+	var team_number_offset = 0;
 	
 	$.each($table.find('.team'), function () {
 		var $team = $(this);
+		var team_number = parseInt($team.attr('data-number')) - team_number_offset;
+		var $team_name = $team.find('.team-name');
 		var team = {
-			name: $team.text(),
-			number: parseInt($team.attr('data-number')),
+			name: $team_name.is('.default-name') ? 'Team ' + team_number : $team_name.text(),
+			number: team_number,
 			boards: []
 		};
-		$.each($team.closest('tr').find('[data-board]'), function () {
+		var has_player = false;
+		$.each($team.find('[data-board]'), function () {
 			var $board = $(this);
 			var $player = $board.find('.player');
 			if (!$player.length) {
@@ -23,8 +27,13 @@ function parse_model() {
 				is_captain: $player.find('.extra').text().contains('C')
 			};
 			team.boards.push(player);
+			has_player = true;
 		});
-		teams.push(team);
+		if (has_player || !$team.is('.new-team')) {
+			teams.push(team);
+		} else {
+			team_number_offset++;
+		}
 	});
 	
 	return {
@@ -33,10 +42,64 @@ function parse_model() {
 	};
 }
 
-function setUpPlayerEvents($players) {
+function setUpDragEvents($players) {
 	$players.draggable({
         revert: true,
         revertDuration: 0
+	});
+}
+
+function setUpDropEvents($boards) {
+	$boards.droppable({
+		drop: function (event, ui) {
+			var $player = ui.draggable;
+			var $source = $player.parent();
+			var $target = $(this);
+			var $target_team = $target.closest('.team');
+			var $other_player = $target_team.length > 0 ? $target.find('.player') : [];
+			
+			var $source_team = $source.closest('.team');
+			if ($source_team.length === 0) {
+				var $row = $player.closest('tr');
+				$player.detach();
+				if ($other_player.length > 0) {
+					$other_player.detach();
+					$source.append($other_player);
+				} else {
+					$row.remove();
+				}
+			} else {
+				$player.detach();
+				if ($other_player.length > 0) {
+					$other_player.detach();
+					$source.append($other_player);
+				}
+			}
+			
+			if ($target_team.length > 0 && $target_team.is('.new-team-template')) {
+				$new_team = $target_team.clone();
+				$target_team.after($new_team);
+				var num = parseInt($new_team.attr('data-number')) + 1;
+				$new_team.attr('data-number', num);
+				$new_team.find('.team-name').text('Team ' + num);
+				setUpDropEvents($new_team.find('[data-board]'));
+				$target_team.removeClass('new-team-template');
+			}
+			
+			if ($target_team.length > 0) {
+				$target.append($player);
+			} else {
+				var $tr = $('<tr><td></td></tr>')
+				$target.closest('table').append($tr);
+				$tr.find('td').append($player);
+			}
+			
+			// TODO: Update average ratings
+			
+			setTimeout(function() {
+				$player.add($other_player).stop().css("background-color", "orange").animate({ backgroundColor: "#FFFFFF"}, 1000);
+			}, 1)
+		}
 	});
 }
 
@@ -86,23 +149,22 @@ $(function() {
 	     $('#id_changes').val(JSON.stringify(changes));
 	});
 	
-	setUpPlayerEvents($('.player'));
+	setUpDragEvents($('.player'));
 	
-	$('[data-board]').droppable({
-		drop: function (event, ui) {
-			var $player = ui.draggable;
-			var $source = $player.parent();
-			var $target = $(this);
-			var $other = $target.find('.player');
-			
-			$player.detach();
-			$other.detach();
-			$target.append($player);
-			$source.append($other);
-			
-			setTimeout(function() {
-				$player.add($other).stop().css("background-color", "orange").animate({ backgroundColor: "#FFFFFF"}, 1000);
-			}, 1)
-		}
+	setUpDropEvents($('[data-board], .table-drop'));
+	
+	$('body').on('click', '.team-name', function(e) {
+		$team_name = $(this);
+		team_name = $team_name.text();
+		$edit = $('<input type="text" class="team-name-edit">');
+		$edit.val(team_name);
+		$team_name.after($edit);
+		$team_name.hide();
+		$edit.focus();
+		$edit.on('blur', function() {
+			$team_name.text($edit.val());
+			$edit.remove();
+			$team_name.show();
+		});
 	});
 });

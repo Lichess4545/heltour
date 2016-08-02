@@ -202,13 +202,29 @@ class TeamScore(_BaseModel):
 class Alternate(_BaseModel):
     season = models.ForeignKey(Season)
     player = models.ForeignKey(Player)
-    board_number = models.PositiveIntegerField(blank=True, null=True, choices=BOARD_NUMBER_OPTIONS)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     class Meta:
         unique_together = ('season', 'player')
-
+    
     def __unicode__(self):
         return "%s" % self.player
+
+#-------------------------------------------------------------------------------
+class AlternateBucket(_BaseModel):
+    season = models.ForeignKey(Season)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    min_rating = models.PositiveIntegerField(null=True, blank=True)
+    max_rating = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('season', 'board_number')
+    
+    def contains(self, rating):
+        return (self.min_rating is None or rating >= self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
+
+    def __unicode__(self):
+        return "Board %d [%d, %d]" % (self.board_number, self.min_rating, self.max_rating)
 
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):

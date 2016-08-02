@@ -14,6 +14,7 @@
 <form action="" method="post" id="form-edit-rosters">
 	{% csrf_token %}
 	{{ form }}
+	<h2>Teams</h2>
 	<table id="table-edit-rosters" data-boards="{{ board_count }}">
 		<thead>
 			<tr>
@@ -26,9 +27,9 @@
 		</thead>
 		<tbody>
 			{% for team in teams %}
-			<tr>
+			<tr class="team" data-number="{{ team.number }}">
 				<td>
-					<span class="team" data-number="{{ team.number }}">{{ team.name }}</span>
+					<span class="team-name">{{ team.name }}</span>
 				</td>
 				{% for board_number, board in team.boards %}
 				<td data-board="{{ board_number }}">
@@ -46,8 +47,95 @@
 				</td>
 			</tr>
 			{% endfor %}
+			{% if new_team_number %}
+			<tr class="team new-team new-team-template" data-number="{{ new_team_number }}">
+				<td>
+					<span class="team-name default-name">Team {{ new_team_number }}</span>
+				</td>
+				{% for board_number in board_numbers %}
+				<td data-board="{{ board_number }}">
+				</td>
+				{% endfor %}
+				<td>
+					<span class="average-rating"></span>
+				</td>
+			</tr>
+			{% endif %}
 		</tbody>
 	</table>
+	
+	<h2>Alternates</h2>
+	<table id="table-alternates" data-boards="{{ board_count }}">
+		<thead>
+			<tr>
+				<th>&nbsp;</th>
+				{% for board_number in board_numbers %}
+				<th>Board {{ board_number }}</th>
+				{% endfor %}
+				<th>&nbsp;</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>&nbsp;</td>
+				{% for board_number, alternates in alternates_by_board %}
+				<td>
+					<table class="table-drop">
+						{% for alt in alternates %}
+						<tr>
+							<td>
+								<span class="player">
+									<span class="name">{{ alt.player.lichess_username }}</span>
+									(<span class="rating">{{ alt.player.rating|default_if_none:"?" }}</span>)
+									<span class="extra"></span>
+								</span>
+							</td>
+						</tr>
+						{% endfor %}
+					</table>
+				</td>
+				{% endfor %}
+				<td></td>
+			</tr>
+		</tbody>
+	</table>
+	
+	<h2>Unassigned</h2>
+	<table id="table-unassigned" data-boards="{{ board_count }}">
+		<thead>
+			<tr>
+				<th>&nbsp;</th>
+				{% for board_number in board_numbers %}
+				<th>&nbsp;</th>
+				{% endfor %}
+				<th>&nbsp;</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>&nbsp;</td>
+				{% for board_number, player_list in unassigned_by_board %}
+				<td>
+					<table class="table-drop">
+						{% for player in player_list %}
+						<tr>
+							<td>
+								<span class="player">
+									<span class="name">{{ player.lichess_username }}</span>
+									(<span class="rating">{{ player.rating|default_if_none:"?" }}</span>)
+									<span class="extra"></span>
+								</span>
+							</td>
+						</tr>
+						{% endfor %}
+					</table>
+				</td>
+				{% endfor %}
+				<td></td>
+			</tr>
+		</tbody>
+	</table>
+	
 	<div class="submit-row">
 		<input class="default" value="Save" name="save" type="submit">
 		<input value="Save and continue editing" name="save_continue" type="submit">
