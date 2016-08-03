@@ -29,6 +29,12 @@ def generate_pairings(round_, overwrite=False):
             for board_number in range(1, board_count + 1):
                 white = TeamMember.objects.filter(team=team_pairing.white_team, board_number=board_number).first()
                 black = TeamMember.objects.filter(team=team_pairing.black_team, board_number=board_number).first()
+                white_alt = AlternateAssignment.objects.filter(round=round_, team=team_pairing.white_team, board_number=board_number).first()
+                if white_alt is not None:
+                    white = white_alt
+                black_alt = AlternateAssignment.objects.filter(round=round_, team=team_pairing.black_team, board_number=board_number).first()
+                if black_alt is not None:
+                    black = black_alt
                 if board_number % 2 == 0:
                     white, black = black, white
                 if white is not None and black is not None:
