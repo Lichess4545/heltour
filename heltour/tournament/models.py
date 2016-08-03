@@ -8,14 +8,23 @@ from datetime import timedelta
 from memoize import memoize, delete_memoized
 
 _to_clear = []
+_needs_clear = False
 # Decorator for functions to be memoized. The cache is cleared whenever any changes are made to the DB
 def memoize_clearable(fn):
+    global _to_clear
     _to_clear.append(fn)
-    return memoize(timeout=60)(fn)
+    def wrapper(*args, **kwargs):
+        global _needs_clear
+        _needs_clear = True
+        return memoize(timeout=60)(fn)(*args, **kwargs)
+    return wrapper
 
 def _clear_caches(sender, **kwargs):
-    for fn in _to_clear:
-        delete_memoized(fn)
+    global _needs_clear, _to_clear
+    if _needs_clear:
+        for fn in _to_clear:
+            delete_memoized(fn)
+        _needs_clear = False
 
 models.signals.post_save.connect(_clear_caches)
 models.signals.post_delete.connect(_clear_caches)
