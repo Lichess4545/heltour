@@ -70,7 +70,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 player_rating  = sheet_rosters[player_row][player_rating_col]
                 player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                 SeasonPlayer.objects.get_or_create(season=season, player=player)
-                TeamMember.objects.get_or_create(player=player, team=teams[i], defaults={'board_number': board, 'is_captain':is_captain})
+                TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
             # Alternates
             alternates_row = alternates_start_row
             while True:
