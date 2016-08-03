@@ -352,8 +352,8 @@ class TeamPairing(_BaseModel):
     
 #-------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
-    white = models.ForeignKey(Player, related_name="pairings_as_white")
-    black = models.ForeignKey(Player, related_name="pairings_as_black")
+    white = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_white")
+    black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
 
     result = models.CharField(max_length=16, blank=True)
     game_link = models.URLField(max_length=1024, blank=True)
