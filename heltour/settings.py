@@ -47,9 +47,11 @@ INSTALLED_APPS = [
     'reversion',
     'bootstrap3',
     'ckeditor',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE_CLASSES = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -139,6 +141,9 @@ BOOTSTRAP3 = {
 }
 
 LOGIN_URL = '/admin/login/'
+
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+INTERNAL_IPS = ['127.0.0.1', '::1']
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
