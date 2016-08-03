@@ -5,6 +5,27 @@ from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
+from memoize import memoize, delete_memoized
+
+_to_clear = []
+# Decorator for functions to be memoized. The cache is cleared whenever any changes are made to the DB
+def memoize_clearable(fn):
+    _to_clear.append(fn)
+    return memoize(timeout=60)(fn)
+
+def _clear_caches(sender, **kwargs):
+    for fn in _to_clear:
+        delete_memoized(fn)
+
+models.signals.post_save.connect(_clear_caches)
+models.signals.post_delete.connect(_clear_caches)
+
+# Helper function to find an item in a list by its properties
+def find(lst, **prop_values):
+    it = iter(lst)
+    for k, v in prop_values.items():
+        it = (obj for obj in it if getattr(obj, k) == v) 
+    return next(it, None)
 
 tag_validator = RegexValidator(r'^[0-9a-zA-Z-_]*$', 'Only alphanumeric characters, hyphens, and underscores are allowed.')
 
@@ -43,6 +64,11 @@ class Season(_BaseModel):
             ('edit_rosters', 'Can edit rosters'),
         )
     
+    @staticmethod
+    @memoize_clearable
+    def get(pk):
+        return Season.objects.get(pk=pk)
+    
     def __init__(self, *args, **kwargs):
         super(Season, self).__init__(*args, **kwargs)
         self.initial_rounds = self.rounds
@@ -68,6 +94,9 @@ class Season(_BaseModel):
             return last_round.end_date
         return None
     
+    def board_number_list(self):
+        return [n for n in range(1, self.boards + 1)]
+    
     def __unicode__(self):
         return self.name
 
@@ -86,6 +115,11 @@ class Round(_BaseModel):
             ('generate_pairings', 'Can generate and review pairings'),
         )
 
+    @staticmethod
+    @memoize_clearable
+    def get_list_by_season(season_id):
+        return list(Round.objects.filter(season_id=season_id).order_by('number'))
+    
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
 
@@ -131,14 +165,18 @@ class Team(_BaseModel):
         unique_together = (('season', 'number'), ('season', 'name'))
     
     def boards(self):
-        for i in range(self.season.boards):
-            board_number = i + 1
-            yield board_number, self.teammember_set.filter(board_number=board_number).first()
+        return Team._boards(self.season_id, self.pk)
+    
+    @staticmethod
+    @memoize_clearable
+    def _boards(season_id, pk):
+        team_members = TeamMember.objects.filter(team_id=pk).select_related('player').all()
+        return [(n, find(team_members, board_number=n)) for n in Season.get(season_id).board_number_list()]
     
     def average_rating(self):
         n = 0
         total = 0.0
-        for board_number, board in self.boards():
+        for _, board in self.boards():
             if board is not None and board.player.rating is not None:
                 n += 1
                 total += board.player.rating
@@ -166,7 +204,7 @@ class TeamMember(_BaseModel):
 
     class Meta:
         unique_together = ('team', 'board_number')
-
+        
     def __unicode__(self):
         return "%s" % self.player
 
@@ -184,15 +222,15 @@ class TeamScore(_BaseModel):
         return "%g" % (self.game_points / 2.0)
     
     def round_scores(self):
-        for i in range(self.team.season.rounds):
-            round_number = i + 1
-            round_ = Round.objects.filter(season=self.team.season, number=round_number).first()
+        white_pairings = self.team.pairings_as_white.all()
+        black_pairings = self.team.pairings_as_black.all()
+        for round_ in Round.get_list_by_season(self.team.season_id):
             if round_ is None or not round_.is_completed:
                 yield None
                 continue
             points = None
-            white_pairing = TeamPairing.objects.filter(round=round_, white_team=self.team).first()
-            black_pairing = TeamPairing.objects.filter(round=round_, black_team=self.team).first()
+            white_pairing = find(white_pairings, round_id=round_.id)
+            black_pairing = find(black_pairings, round_id=round_.id)
             if white_pairing is not None:
                 points = white_pairing.white_points / 2.0
             if black_pairing is not None:
@@ -200,10 +238,12 @@ class TeamScore(_BaseModel):
             yield points
     
     def cross_scores(self):
-        other_teams = Team.objects.filter(season=self.team.season).order_by('number')
+        other_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
+        white_pairings = self.team.pairings_as_white.all().select_related('round')
+        black_pairings = self.team.pairings_as_black.all().select_related('round')
         for other_team in other_teams:
-            white_pairing = TeamPairing.objects.filter(white_team=self.team, black_team=other_team).first()
-            black_pairing = TeamPairing.objects.filter(white_team=other_team, black_team=self.team).first()
+            white_pairing = find(white_pairings, black_team_id=other_team.pk)
+            black_pairing = find(black_pairings, white_team_id=other_team.pk)
             points = None
             id = None
             if white_pairing is not None and white_pairing.round.is_completed:

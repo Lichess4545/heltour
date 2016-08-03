@@ -98,13 +98,13 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         except IndexError:
             pass
     team_list = season.team_set.order_by('name')
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order')
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order').select_related('white_team', 'black_team')
     if team_number is not None:
         current_team = get_object_or_404(team_list, number=team_number)
         team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
     else:
         current_team = None
-    pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number') for team_pairing in team_pairings]
+    pairing_lists = [list(team_pairing.teamplayerpairing_set.order_by('board_number').select_related('player_pairing__white', 'player_pairing__black')) for team_pairing in team_pairings]
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -229,7 +229,7 @@ def no_rosters_available(request, league_tag=None, season_id=None):
 def standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True), 1))
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team'), reverse=True), 1))
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
@@ -244,7 +244,7 @@ def standings(request, league_tag=None, season_id=None):
 
 def crosstable(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
-    team_scores = sorted(TeamScore.objects.filter(team__season=season), key=lambda ts: ts.team.number)
+    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team')
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
@@ -294,12 +294,14 @@ def document(request, document_tag, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/document.html', context)
 
+@memoize_clearable
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
         return _get_default_league(allow_none)
     else:
         return get_object_or_404(League, tag=league_tag)
 
+@memoize_clearable
 def _get_default_league(allow_none=False):
     try:
         return League.objects.filter(is_default=True).order_by('id')[0]
@@ -308,13 +310,15 @@ def _get_default_league(allow_none=False):
         if not allow_none and league is None:
             raise Http404
         return league
-    
+
+@memoize_clearable
 def _get_season(league_tag, season_id, allow_none=False):
     if season_id is None:
         return _get_default_season(league_tag, allow_none)
     else:
         return get_object_or_404(Season, league=_get_league(league_tag), pk=season_id)
 
+@memoize_clearable
 def _get_default_season(league_tag, allow_none=False):
     season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id').first()
     if not allow_none and season is None:
