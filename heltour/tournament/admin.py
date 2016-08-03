@@ -54,7 +54,51 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['edit_rosters']
+    actions = ['update_board_order_by_rating', 'edit_rosters']
+    
+    def update_board_order_by_rating(self, request, queryset):
+        try:
+            for season in queryset.all():
+                # Update board order in teams
+                for team in season.team_set.all():
+                    members = list(team.teammember_set.all())
+                    members.sort(key=lambda m: -m.player.rating)
+                    occupied_boards = [m.board_number for m in members]
+                    occupied_boards.sort()
+                    for i, board_number in enumerate(occupied_boards):
+                        m = members[i]
+                        models.TeamMember.objects.update_or_create(team=team, board_number=board_number, defaults={ 'player': m.player, 'is_captain': m.is_captain, 'is_vice_captain': m.is_vice_captain })
+                
+                # Update alternate buckets
+                members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
+                ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+                # Exclude highest/lowest values if possible (to avoid outliers skewing the average)
+                average_by_board = [sum(r_list[1:-1]) / (len(r_list) - 2) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
+                boundaries = []
+                for i in range(season.boards + 1):
+                    # The logic here is a bit complicated in order to handle cases where there are no players for a board
+                    left_i = i - 1
+                    while left_i >= 0 and average_by_board[left_i] is None:
+                        left_i -= 1
+                    left = average_by_board[left_i] if left_i >= 0 else None
+                    right_i = i
+                    while right_i < season.boards and average_by_board[right_i] is None:
+                        right_i += 1
+                    right = average_by_board[right_i] if right_i < season.boards else None
+                    if left is None or right is None:
+                        boundaries.append(None)
+                    else:
+                        boundaries.append((left + right) / 2)
+                for board_num in range(1, season.boards + 1):
+                    models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
+                
+                # Assign alternates to buckets
+                for alt in models.Alternate.objects.filter(season=season):
+                    alt.update_board_number()
+                
+            self.message_user(request, 'Board order updated.', messages.INFO)
+        except IndexError:
+            self.message_user(request, 'Error updating board order.', messages.ERROR)
     
     def edit_rosters(self, request, queryset):
         if queryset.count() > 1:

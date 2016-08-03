@@ -233,6 +233,14 @@ class Alternate(_BaseModel):
     class Meta:
         unique_together = ('season', 'player')
     
+    def update_board_number(self):
+        buckets = AlternateBucket.objects.filter(season=self.season)
+        if len(buckets) == self.season.boards:
+            for b in buckets:
+                if (b.max_rating is None or b.max_rating >= self.player.rating) and (b.min_rating is None or self.player.rating > b.min_rating):
+                    self.board_number = b.board_number
+                    self.save()
+    
     def __unicode__(self):
         return "%s" % self.player
 
@@ -286,7 +294,7 @@ class AlternateBucket(_BaseModel):
         return (self.min_rating is None or rating >= self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
 
     def __unicode__(self):
-        return "Board %d [%d, %d]" % (self.board_number, self.min_rating, self.max_rating)
+        return "Board %d [%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
 
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
