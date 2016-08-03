@@ -64,3 +64,9 @@
 .new-team-template .team-name {
 	color: #777;
 }
+
+.table-player-info label {
+	vertical-align: middle;
+	margin-left: 8px;
+	color: #333;
+}

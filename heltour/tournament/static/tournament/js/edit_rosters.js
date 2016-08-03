@@ -23,7 +23,8 @@ function parse_model() {
 			var extra_text = $player.find('.extra').text();
 			var player = {
 				name: $player.find('.name').text(),
-				is_captain: extra_text && extra_text.contains('C')
+				is_captain: extra_text.indexOf('C') !== -1,
+				is_vice_captain: extra_text.indexOf('V') !== -1
 			};
 			team.boards.push(player);
 		});
@@ -81,7 +82,8 @@ function detect_changes(initial) {
 				}
 				if (old_player === null || new_player === null
 						|| old_player.name != new_player.name
-						|| old_player.is_captain != new_player.is_captain) {
+						|| old_player.is_captain != new_player.is_captain
+						|| old_player.is_vice_captain != new_player.is_vice_captain) {
 					changes.push({
 						action: 'change-member',
 						team_number: new_team.number,
@@ -137,7 +139,6 @@ function update_average($team) {
 			total += rating;
 		}
 	}
-	console.log(n + ' ' + total);
 	if (n > 0) {
 		$team.find('.average-rating').text((total / n).toFixed(2));
 	} else {
@@ -228,6 +229,62 @@ function setUpDropEvents($boards) {
 	});
 }
 
+function setUpPopovers($players) {
+	var $spinner = $('#spinner-template').clone().show();
+	$players.popover({
+		container: 'body',
+		content: $spinner,
+		html: true,
+		placement: 'top',
+		title: function() {
+			var player_name = $(this).find('.name').text();
+			var url = $(this).attr('data-url');
+			return $('<a></a>').attr('href', url).attr('target', '_blank').text(player_name);
+		},
+		trigger: 'click',
+	});
+	$players.on('shown.bs.popover', function() {
+		var $player = $(this);
+		var popover = $player.data('bs.popover');
+		var $extra = $player.find('.extra');
+		var $captain = popover.$tip.find('.captain-checkbox');
+		$captain.prop('checked', $extra.text().indexOf('(C)') !== -1);
+		var $vice_captain = popover.$tip.find('.vice-captain-checkbox');
+		$vice_captain.prop('checked', $extra.text().indexOf('(V)') !== -1);
+		
+		$captain.click(function() {
+			if ($captain.prop('checked')) {
+				$vice_captain.prop('checked', false);
+				$extra.text('(C)');
+			} else {
+				$extra.text('');
+			}
+		});
+		$vice_captain.click(function() {
+			if ($vice_captain.prop('checked')) {
+				$captain.prop('checked', false);
+				$extra.text('(V)');
+			} else {
+				$extra.text('');
+			}
+		});
+		
+		if (!$player.data('has_info')) {
+			var url = $player.attr('data-info-url');
+			$.get(url, function(data) {
+				popover.options.content = data;
+				$player.data('has_info', true);
+				$player.popover('show');
+			});
+		}
+	});
+	$('body').on('mousedown', function(e) {
+	    if ($(e.target).parents('.popover.in').length === 0) { 
+	        $('[data-toggle="popover"]').popover('hide');
+	    }
+	});
+}
+
 $(function() {
 	var initial = parse_model();
 	
@@ -238,6 +295,8 @@ $(function() {
 	});
 	
 	setUpDragEvents($('.player'));
+	
+	setUpPopovers($('.player'));
 	
 	setUpDropEvents($('#table-edit-rosters [data-board], .table-drop'));
 	
