@@ -200,7 +200,7 @@ def rosters(request, league_tag=None, season_id=None):
     board_numbers = list(range(1, season.boards + 1))
     
     alternates = Alternate.objects.filter(season_player__season=season)
-    alternates_by_board = [alternates.filter(board_number=n).order_by('-season_player__player__rating') for n in board_numbers]
+    alternates_by_board = [sorted(alternates.filter(board_number=n).select_related('season_player__registration'), key=lambda alt: alt.priority_date()) for n in board_numbers]
     alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))

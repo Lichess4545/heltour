@@ -203,7 +203,7 @@ class SeasonAdmin(VersionAdmin):
         teams = list(models.Team.objects.filter(season=season).order_by('number')) 
         team_members = models.TeamMember.objects.filter(team__season=season).select_related('player')
         alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player')
-        alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-season_player__player__rating')) for n in board_numbers]
+        alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration'), key=lambda alt: alt.priority_date())) for n in board_numbers]
         
         season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player'))
         team_players = set(tm.player for tm in team_members)
@@ -383,7 +383,7 @@ class TeamAdmin(VersionAdmin):
 class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
-    list_filter = ('team',)
+    list_filter = ('team__season',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamScore)
@@ -418,7 +418,7 @@ class AlternateBucketAdmin(VersionAdmin):
 class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
-    list_filter = ('round',)
+    list_filter = ('round__season', 'round__number')
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerPairing)
@@ -431,14 +431,14 @@ class PlayerPairingAdmin(VersionAdmin):
 class TeamPlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'team_pairing', 'board_number')
     search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username', 'team_pairing__white_team__name', 'team_pairing__black_team__name')
-    list_filter = ('team_pairing__round',)
+    list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.LonePlayerPairing)
 class LonePlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
-    list_filter = ('round',)
+    list_filter = ('round__season', 'round__number')
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Registration)
