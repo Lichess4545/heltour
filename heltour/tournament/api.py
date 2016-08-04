@@ -161,6 +161,10 @@ def get_roster(request):
                 'is_captain': team_member.is_captain
             } for team_member in team.teammember_set.order_by('board_number')]
         } for team in teams],
+        'alternates': [{
+            'board_number': board_number,
+            'usernames': [alt.season_player.player.lichess_username for alt in sorted(Alternate.objects.filter(season_player__season=season, board_number=board_number), key=lambda alt: alt.priority_date())]
+        } for board_number in season.board_number_list()]
     })
 
 @csrf_exempt
