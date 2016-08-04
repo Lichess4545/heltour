@@ -4,9 +4,8 @@ from django.db import models
 from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
-from datetime import timedelta, datetime
+from datetime import timedelta
 from memoize import memoize, delete_memoized
-from django.utils import timezone
 
 _to_clear = []
 _needs_clear = False
@@ -513,24 +512,17 @@ class Alternate(_BaseModel):
                     self.save()
     
     def priority_date(self):
-        season_pairings = TeamPlayerPairing.objects.filter(team_pairing__round__season=self.season_player.season)
-        white_pairings = season_pairings.filter(player_pairing__white=self.season_player.player)
-        black_pairings = season_pairings.filter(player_pairing__black=self.season_player.player)
-        most_recent_pairing = (white_pairings | black_pairings).order_by('-team_pairing__round__start_date').select_related('team_pairing__round').first()
+        most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').select_related('round').first()
         
-        if most_recent_pairing is not None:
-            pairing_date = most_recent_pairing.team_pairing.round.start_date
-            if pairing_date is not None:
-                return pairing_date
+        if most_recent_assign is not None:
+            round_date = most_recent_assign.round.start_date
+            if round_date is not None:
+                return round_date
         
         if self.season_player.registration is not None:
             return self.season_player.registration.date_created
         
-        season_start = self.season_player.season.start_date
-        if season_start is not None:
-            return season_start
-        
-        return datetime.min.replace(tzinfo=timezone.UTC())
+        return self.date_created
     
     def __unicode__(self):
         return "%s" % self.season_player

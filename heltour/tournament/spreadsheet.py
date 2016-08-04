@@ -79,7 +79,8 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 if len(player_name) == 0 or len(player_rating) == 0:
                     break
                 player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
-                SeasonPlayer.objects.get_or_create(season=season, player=player)
+                season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
+                Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
                 alternates_row += 1
         
         if not rosters_only:
