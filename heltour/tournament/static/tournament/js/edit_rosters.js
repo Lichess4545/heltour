@@ -1,4 +1,4 @@
-
+// Parse a model object from the HTML
 function parse_model() {
 	var $table_teams = $('#table-edit-rosters');
 	var board_count = parseInt($table_teams.attr('data-boards'));
@@ -54,6 +54,7 @@ function parse_model() {
 	};
 }
 
+// Determine a list of changes from the current model compared to the provided model
 function detect_changes(initial) {
 	var current = parse_model();
 	var changes = [];
@@ -125,6 +126,7 @@ function detect_changes(initial) {
 	return changes;
 }
 
+// Recalculate the average rating for the speciifed team
 function update_average($team) {
 	if ($team.length === 0) {
 		return;
@@ -231,6 +233,7 @@ function setUpDropEvents($boards) {
 
 function setUpPopovers($players) {
 	var $spinner = $('#spinner-template').clone().show();
+	// Init popovers
 	$players.popover({
 		container: 'body',
 		content: $spinner,
@@ -243,15 +246,19 @@ function setUpPopovers($players) {
 		},
 		trigger: 'click',
 	});
+	// Handle the popover generation
 	$players.on('shown.bs.popover', function() {
 		var $player = $(this);
 		var popover = $player.data('bs.popover');
 		var $extra = $player.find('.extra');
+		
+		// Populate checkboxes
 		var $captain = popover.$tip.find('.captain-checkbox');
 		$captain.prop('checked', $extra.text().indexOf('(C)') !== -1);
 		var $vice_captain = popover.$tip.find('.vice-captain-checkbox');
 		$vice_captain.prop('checked', $extra.text().indexOf('(V)') !== -1);
 		
+		// Set up checkbox events
 		$captain.click(function() {
 			if ($captain.prop('checked')) {
 				$vice_captain.prop('checked', false);
@@ -269,7 +276,13 @@ function setUpPopovers($players) {
 			}
 		});
 		
+		if ($player.closest('#table-edit-rosters').length === 0) {
+			// Not in a team so don't display captain checkboxes
+			$captain.closest('tr').add($vice_captain.closest('tr')).hide();
+		}
+		
 		if (!$player.data('has_info')) {
+			// Pull the popover content from the server
 			var url = $player.attr('data-info-url');
 			$.get(url, function(data) {
 				popover.options.content = data;
@@ -278,6 +291,7 @@ function setUpPopovers($players) {
 			});
 		}
 	});
+	// Close popovers when the user clicks outside 
 	$('body').on('mousedown', function(e) {
 	    if ($(e.target).parents('.popover.in').length === 0) { 
 	        $('[data-toggle="popover"]').popover('hide');
@@ -288,6 +302,7 @@ function setUpPopovers($players) {
 $(function() {
 	var initial = parse_model();
 	
+	// Populate the form with the actual data in JSON format before submitting
 	$('#form-edit-rosters').submit(function(e) {
 		var changes = detect_changes(initial);
 		$('#id_changes').val(JSON.stringify(changes));
@@ -300,6 +315,7 @@ $(function() {
 	
 	setUpDropEvents($('#table-edit-rosters [data-board], .table-drop'));
 	
+	// Allow team names to be edited by clicking on them
 	$('body').on('click', '.team-name-editable', function(e) {
 		var $team_name = $(this);
 		var team_name = $team_name.text();
@@ -322,6 +338,7 @@ $(function() {
 		$edit.on('blur', hideEdit);
 	});
 	
+	// Check for unsaved changes
 	$(window).on('beforeunload', function() {
 		if (detect_changes(initial).length > 0) {
 			return 'Are you sure you want to leave? You have unsaved changes.';
