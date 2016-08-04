@@ -5,6 +5,7 @@
 <tr><td>Rating:</td><td>{{ player.rating }}</td></tr>
 {% if reg %}
 <tr><td>Peak Rating:</td><td>{{ reg.peak_classical_rating }}</td></tr>
+<tr><td>Registration date:</td><td>{{ reg.date_created.date }}</td></tr>
 <tr><td>20 games:</td><td>{{ reg.has_played_20_games|yesno:'Yes,No' }}</td></tr>
 <tr><td>Friends:</td><td>{{ reg.friends }}</td></tr>
 <tr><td>Alt Pref:</td><td>{{ reg.get_alternate_preference_display }}</td></tr>
