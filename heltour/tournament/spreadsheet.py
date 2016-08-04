@@ -101,18 +101,20 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 TeamScore.objects.create(team=team, match_count=match_count, match_points=match_points, game_points=game_points)
             
             # Read the pairings and create the rounds
-            rounds = []
+            rounds = Round.objects.filter(season=season).order_by('number')
+            last_round_number = 0
             pairings = []
             pairing_rows = []
-            for i in range(season.rounds):
-                round_number = i + 1
+            for round_ in rounds:
+                round_number = round_.number
                 try:
                     round_start_row = [row[0] == 'Round %d' % round_number for row in sheet_past_rounds].index(True)
                 except ValueError:
                     # No more rounds in this sheet
+                    last_round_number = round_number - 1
                     break
-                round_ = Round.objects.create(season=season, number=round_number, is_completed=True, publish_pairings=True)
-                rounds.append(round_)
+                round_.is_completed=True
+                round_.publish_pairings=True
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
             
@@ -128,8 +130,8 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
             if not exclude_live_pairings:
                 
                 # Read the live round data
-                round_ = Round.objects.create(season=season, number=rounds[-1].number + 1, publish_pairings=True)
-                rounds.append(round_)
+                round_ = rounds[last_round_number]
+                round_.publish_pairings = True
                 current_round_name = 'Round %d' % round_.number
                 sheet_current_round = doc.worksheet(current_round_name).get_all_values()
                 header_row = 0

@@ -17,9 +17,6 @@ def createCommonLeagueData():
             player = Player.objects.create(lichess_username='Player %d' % player_num)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
-    
-    for n in range(1, round_count + 1):
-        Round.objects.create(season=season, number=n)
 
 class TeamTestCase(TestCase):
     def setUp(self):

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'bootstrap3',
     'ckeditor',
     'debug_toolbar',
+    'memoize',
 ]
 
 MIDDLEWARE_CLASSES = [

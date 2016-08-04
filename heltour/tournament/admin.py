@@ -56,6 +56,14 @@ class SeasonAdmin(VersionAdmin):
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'edit_rosters']
     
+    def get_urls(self):
+        urls = super(SeasonAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)), name='edit_rosters'),
+            url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.player_info_view)), name='edit_rosters_player_info'),
+        ]
+        return my_urls + urls
+    
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
@@ -106,12 +114,18 @@ class SeasonAdmin(VersionAdmin):
             return
         return redirect('admin:edit_rosters', object_id=queryset[0].pk)
     
-    def get_urls(self):
-        urls = super(SeasonAdmin, self).get_urls()
-        my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)), name='edit_rosters'),
-        ]
-        return my_urls + urls
+    
+    def player_info_view(self, request, object_id, player_name):
+        season = models.Season.objects.get(pk=object_id)
+        season_player = models.SeasonPlayer.objects.select_related('player').get(season=season, player__lichess_username=player_name)
+        
+        context = {
+            'season_player': season_player,
+            'player': season_player.player,
+            'reg': season_player.registration
+        }
+        
+        return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
     
     def edit_rosters_view(self, request, object_id):
         season = models.Season.objects.get(pk=object_id)
@@ -140,6 +154,7 @@ class SeasonAdmin(VersionAdmin):
                             else:
                                 teammember.player = models.Player.objects.get(lichess_username=player_info['name'])
                                 teammember.is_captain = player_info['is_captain']
+                                teammember.is_vice_captain = player_info['is_vice_captain']
                                 teammember.save()
                         
                         if change['action'] == 'change-team' and not teams_locked:
@@ -187,19 +202,19 @@ class SeasonAdmin(VersionAdmin):
         
         board_numbers = list(range(1, season.boards + 1))
         teams = list(models.Team.objects.filter(season=season).order_by('number')) 
-        team_members = models.TeamMember.objects.filter(team__season=season)
-        alternates = models.Alternate.objects.filter(season=season)
+        team_members = models.TeamMember.objects.filter(team__season=season).select_related('player')
+        alternates = models.Alternate.objects.filter(season=season).select_related('player')
         alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-player__rating')) for n in board_numbers]
         
-        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True))
+        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player'))
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.player for alt in alternates)
         
-        alternate_buckets = models.AlternateBucket.objects.filter(season=season)
+        alternate_buckets = list(models.AlternateBucket.objects.filter(season=season))
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: -p.rating))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
-            unassigned_by_board = [(n, [p for p in unassigned_players if alternate_buckets.get(board_number=n).contains(p.rating)]) for n in board_numbers]
+            unassigned_by_board = [(n, [p for p in unassigned_players if models.find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
             sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: -p.rating))

@@ -1,0 +1,5 @@
+{% if player %}<span class="player" data-url="http://lichess.org/@/{{ player.lichess_username }}" data-info-url="{% url 'admin:edit_rosters_player_info' season.pk player.lichess_username %}" data-toggle="popover">
+	<span class="name">{{ player.lichess_username }}</span>
+	(<span class="rating">{{ player.rating|default_if_none:"?" }}</span>)
+	<span class="extra">{% if is_captain %}(C){% elif is_vice_captain %}(V){% endif %}</span>
+</span>{% endif %}
