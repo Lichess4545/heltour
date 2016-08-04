@@ -72,11 +72,11 @@
 									{% endif %}
 									{% else %}
 									<span class="player-name">
-										<a href="http://lichess.org/@/{{ alt.player.lichess_username }}">{{ alt.player.lichess_username }}</a>
+										<a href="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}">{{ alt.season_player.player.lichess_username }}</a>
 									</span>
 									{% endif %}
 								</td>
-								<td class="cell-rating">{{ alt.player.rating|default_if_none:"" }}</td>
+								<td class="cell-rating">{{ alt.season_player.player.rating|default_if_none:"" }}</td>
 								{% endfor %}
 								<td>&nbsp;</td>
 							</tr>

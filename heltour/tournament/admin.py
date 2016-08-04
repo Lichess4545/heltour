@@ -101,7 +101,7 @@ class SeasonAdmin(VersionAdmin):
                     models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
                 
                 # Assign alternates to buckets
-                for alt in models.Alternate.objects.filter(season=season):
+                for alt in models.Alternate.objects.filter(season_player__season=season):
                     alt.update_board_number()
                 
             self.message_user(request, 'Board order updated.', messages.INFO)
@@ -177,14 +177,13 @@ class SeasonAdmin(VersionAdmin):
                         
                         if change['action'] == 'create-alternate':
                             board_num = change['board_number']
-                            player = models.Player.objects.get(lichess_username=change['player_name'])
-                            
-                            models.Alternate.objects.update_or_create(season=season, player=player, defaults={ 'board_number': board_num })
+                            season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                            models.Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
                             
                         if change['action'] == 'delete-alternate':
                             board_num = change['board_number']
-                            player = models.Player.objects.get(lichess_username=change['player_name'])
-                            alt = models.Alternate.objects.filter(season=season, player=player, board_number=board_num).first()
+                            season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                            alt = models.Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
                             if alt is not None:
                                 alt.delete()
                         
@@ -203,12 +202,12 @@ class SeasonAdmin(VersionAdmin):
         board_numbers = list(range(1, season.boards + 1))
         teams = list(models.Team.objects.filter(season=season).order_by('number')) 
         team_members = models.TeamMember.objects.filter(team__season=season).select_related('player')
-        alternates = models.Alternate.objects.filter(season=season).select_related('player')
-        alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-player__rating')) for n in board_numbers]
+        alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player')
+        alternates_by_board = [(n, alternates.filter(board_number=n).order_by('-season_player__player__rating')) for n in board_numbers]
         
         season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player'))
         team_players = set(tm.player for tm in team_members)
-        alternate_players = set(alt.player for alt in alternates)
+        alternate_players = set(alt.season_player.player for alt in alternates)
         
         alternate_buckets = list(models.AlternateBucket.objects.filter(season=season))
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: -p.rating))
@@ -396,9 +395,9 @@ class TeamScoreAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.Alternate)
 class AlternateAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'season', 'board_number')
-    search_fields = ('player__lichess_username',)
-    list_filter = ('season', 'board_number')
+    list_display = ('__unicode__', 'board_number')
+    search_fields = ('season_player__player__lichess_username',)
+    list_filter = ('season_player__season', 'board_number')
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateAssignment)

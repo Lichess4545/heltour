@@ -274,78 +274,6 @@ class TeamScore(_BaseModel):
         return result
 
 #-------------------------------------------------------------------------------
-class Alternate(_BaseModel):
-    season = models.ForeignKey(Season)
-    player = models.ForeignKey(Player)
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-
-    class Meta:
-        unique_together = ('season', 'player')
-    
-    def update_board_number(self):
-        buckets = AlternateBucket.objects.filter(season=self.season)
-        if len(buckets) == self.season.boards:
-            for b in buckets:
-                if (b.max_rating is None or b.max_rating >= self.player.rating) and (b.min_rating is None or self.player.rating > b.min_rating):
-                    self.board_number = b.board_number
-                    self.save()
-    
-    def __unicode__(self):
-        return "%s" % self.player
-
-#-------------------------------------------------------------------------------
-class AlternateAssignment(_BaseModel):
-    round = models.ForeignKey(Round)
-    team = models.ForeignKey(Team)
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-    player = models.ForeignKey(Player)
-    
-    class Meta:
-        unique_together = ('round', 'team', 'board_number')
-        
-    def save(self, *args, **kwargs):
-        super(AlternateAssignment, self).save(*args, **kwargs)
-        
-        # Find and update any current pairings
-        white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
-        if white_pairing is not None:
-            tpp = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
-            if tpp is not None:
-                if self.board_number % 2 == 1:
-                    tpp.player_pairing.white = self.player
-                else:
-                    tpp.player_pairing.black = self.player
-                tpp.player_pairing.save()
-        black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
-        if black_pairing is not None:
-            tpp = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
-            if tpp is not None:
-                if self.board_number % 2 == 1:
-                    tpp.player_pairing.black = self.player
-                else:
-                    tpp.player_pairing.white = self.player
-                tpp.player_pairing.save()
-    
-    def __unicode__(self):
-        return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
-
-#-------------------------------------------------------------------------------
-class AlternateBucket(_BaseModel):
-    season = models.ForeignKey(Season)
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-    min_rating = models.PositiveIntegerField(null=True, blank=True)
-    max_rating = models.PositiveIntegerField(null=True, blank=True)
-
-    class Meta:
-        unique_together = ('season', 'board_number')
-    
-    def contains(self, rating):
-        return (self.min_rating is None or rating >= self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
-
-    def __unicode__(self):
-        return "Board %d [%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
-
-#-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
     white_team = models.ForeignKey(Team, related_name="pairings_as_white")
     black_team = models.ForeignKey(Team, related_name="pairings_as_black")
@@ -569,6 +497,74 @@ class SeasonPlayer(_BaseModel):
 
     def __unicode__(self):
         return "%s" % self.player
+
+#-------------------------------------------------------------------------------
+class Alternate(_BaseModel):
+    season_player = models.OneToOneField(SeasonPlayer)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    
+    def update_board_number(self):
+        buckets = AlternateBucket.objects.filter(season=self.season)
+        if len(buckets) == self.season.boards:
+            for b in buckets:
+                if (b.max_rating is None or b.max_rating >= self.player.rating) and (b.min_rating is None or self.player.rating > b.min_rating):
+                    self.board_number = b.board_number
+                    self.save()
+    
+    def __unicode__(self):
+        return "%s" % self.season_player
+
+#-------------------------------------------------------------------------------
+class AlternateAssignment(_BaseModel):
+    round = models.ForeignKey(Round)
+    team = models.ForeignKey(Team)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    player = models.ForeignKey(Player)
+    
+    class Meta:
+        unique_together = ('round', 'team', 'board_number')
+        
+    def save(self, *args, **kwargs):
+        super(AlternateAssignment, self).save(*args, **kwargs)
+        
+        # Find and update any current pairings
+        white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
+        if white_pairing is not None:
+            tpp = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if tpp is not None:
+                if self.board_number % 2 == 1:
+                    tpp.player_pairing.white = self.player
+                else:
+                    tpp.player_pairing.black = self.player
+                tpp.player_pairing.save()
+        black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
+        if black_pairing is not None:
+            tpp = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if tpp is not None:
+                if self.board_number % 2 == 1:
+                    tpp.player_pairing.black = self.player
+                else:
+                    tpp.player_pairing.white = self.player
+                tpp.player_pairing.save()
+    
+    def __unicode__(self):
+        return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
+
+#-------------------------------------------------------------------------------
+class AlternateBucket(_BaseModel):
+    season = models.ForeignKey(Season)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    min_rating = models.PositiveIntegerField(null=True, blank=True)
+    max_rating = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('season', 'board_number')
+    
+    def contains(self, rating):
+        return (self.min_rating is None or rating >= self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
+
+    def __unicode__(self):
+        return "Board %d [%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
     
 def create_api_token():
     return get_random_string(length=32)
