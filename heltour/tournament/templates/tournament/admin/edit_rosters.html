@@ -83,7 +83,7 @@
 						{% for alt in alternates %}
 						<tr>
 							<td>
-								{% include "tournament/admin/edit_rosters_player_block.html" with season=original player=alt.player %}
+								{% include "tournament/admin/edit_rosters_player_block.html" with season=original player=alt.season_player.player %}
 							</td>
 						</tr>
 						{% endfor %}
