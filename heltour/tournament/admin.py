@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import permission_required
 import json
 import pairinggen
 import spreadsheet
-from setuptools.ssl_support import is_available
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
