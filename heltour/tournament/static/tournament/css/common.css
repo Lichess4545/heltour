@@ -264,6 +264,10 @@ body {
 	background-color: #fffcab;
 }
 
+.player-unresponsive {
+	background-color: #ddd6ff;
+}
+
 @media (max-width: 992px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;

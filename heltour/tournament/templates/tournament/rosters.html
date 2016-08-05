@@ -40,7 +40,7 @@
 								<td class="cell-team" colspan="3">{{ team.name }}</td>
 								{% for board_number, board in team.boards %}
 								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
-									<span class="player-name">
+									<span class="player-name{% if board.player in unresponsive_players %} player-unresponsive" title="unresponsive{% endif %}">
 										<a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a>
 									</span>
 								</td>
@@ -71,7 +71,7 @@
 									-
 									{% endif %}
 									{% else %}
-									<span class="player-name">
+									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive{% endif %}">
 										<a href="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}">{{ alt.season_player.player.lichess_username }}</a>
 									</span>
 									{% endif %}

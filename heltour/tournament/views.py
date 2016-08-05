@@ -207,6 +207,8 @@ def rosters(request, league_tag=None, season_id=None):
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))
     
+    unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player')}
+    
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -215,6 +217,7 @@ def rosters(request, league_tag=None, season_id=None):
         'teams': teams,
         'board_numbers': board_numbers,
         'alternate_rows': alternate_rows,
+        'unresponsive_players': unresponsive_players,
         'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }
     return render(request, 'tournament/rosters.html', context)

@@ -491,6 +491,7 @@ class SeasonPlayer(_BaseModel):
     is_active = models.BooleanField(default=True)
 
     games_missed = models.IntegerField(default=0)
+    unresponsive = models.BooleanField(default=False)    
 
     class Meta:
         unique_together = ('season', 'player')
