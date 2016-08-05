@@ -11,7 +11,10 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
-    doc = gc.open_by_url(url)
+    try:
+        doc = gc.open_by_url(url)
+    except gspread.SpreadsheetNotFound:
+        raise SpreadsheetNotFound
     
     with transaction.atomic():
         
@@ -140,6 +143,9 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 pairing_rows = []
                 result_col = _read_team_pairings(sheet_current_round, header_row, season, teams, round_, pairings, pairing_rows)
                 _update_pairing_game_links(doc.worksheet(current_round_name), pairings, pairing_rows, result_col)
+
+class SpreadsheetNotFound(Exception):
+    pass
 
 def _parse_player_name(player_name):
     if player_name[-1:] == '*':

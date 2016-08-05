@@ -32,8 +32,11 @@ class LeagueAdmin(VersionAdmin):
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
             if form.is_valid():
-                spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
-                self.message_user(request, "Season imported.")
+                try:
+                    spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
+                    self.message_user(request, "Season imported.")
+                except spreadsheet.SpreadsheetNotFound:
+                    self.message_user(request, "Spreadsheet not found. The service account may not have edit permissions.", messages.ERROR)
                 return redirect('admin:tournament_league_changelist')
         else:
             form = forms.ImportSeasonForm()
