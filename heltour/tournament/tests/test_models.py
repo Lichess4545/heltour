@@ -24,7 +24,7 @@ class SeasonTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
     
-    def test_save_round_creation(self):
+    def test_season_save_round_creation(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4, boards=6)
         
         self.assertEqual(4, season.round_set.count())
@@ -34,7 +34,7 @@ class SeasonTestCase(TestCase):
         
         self.assertEqual(6, season.round_set.count())
     
-    def test_save_round_date(self):
+    def test_season_save_round_date(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', start_date=datetime(2016, 7, 1, tzinfo=timezone.get_current_timezone()), rounds=4, boards=6)
         
         self.assertEqual(datetime(2016, 7, 22, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].start_date)
@@ -46,12 +46,12 @@ class SeasonTestCase(TestCase):
         self.assertEqual(datetime(2016, 7, 23, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].start_date)
         self.assertEqual(datetime(2016, 7, 30, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].end_date)
     
-    def test_end_date(self):
+    def test_season_end_date(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', start_date=datetime(2016, 7, 1, tzinfo=timezone.get_current_timezone()), rounds=4, boards=6)
         
         self.assertEqual(datetime(2016, 7, 29, tzinfo=timezone.get_current_timezone()), season.end_date())
         
-    def test_board_number_list(self):
+    def test_season_board_number_list(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=2, boards=4)
         
         self.assertItemsEqual([1, 2, 3, 4], season.board_number_list())
@@ -193,3 +193,46 @@ class PlayerPairingTestCase(TestCase):
         pp.result = '0-1'
         self.assertEqual(0, pp.white_score())
         self.assertEqual(1, pp.black_score())
+
+class RegistrationTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+    
+    def create_reg(self, season, name):
+        return Registration.objects.create(season=season, status='pending', lichess_username=name, slack_username=name,
+                                           email='a@test.com', classical_rating=1500, peak_classical_rating=1600,
+                                           has_played_20_games=True, already_in_slack_group=True, previous_season_alternate='new',
+                                           can_commit=True, agreed_to_rules=True, alternate_preference='full_time')
+    
+    def test_registration_previous(self):
+        season = Season.objects.all()[0]
+        reg = self.create_reg(season, 'testuser')
+        
+        self.assertItemsEqual([], reg.previous_registrations())
+        
+        reg2 = self.create_reg(season, 'testuser')
+        self.assertItemsEqual([], reg.previous_registrations())
+        self.assertItemsEqual([reg], reg2.previous_registrations())
+    
+    def test_registration_other_seasons(self):
+        season = Season.objects.all()[0]
+        season2 = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4, boards=6)
+        
+        player = Player.objects.create(lichess_username='testuser')
+        sp = SeasonPlayer.objects.create(season=season, player=player)
+        reg = self.create_reg(season2, 'testuser')
+        
+        self.assertItemsEqual([sp], reg.other_seasons())
+    
+    def test_registration_player_notes(self):
+        season = Season.objects.all()[0]
+        reg = self.create_reg(season, 'testuser')
+        
+        self.assertEqual(None, reg.player_notes())
+        
+        player = Player.objects.create(lichess_username='testuser')
+        self.assertEqual('', reg.player_notes())
+        
+        player.moderator_notes = 'some notes'
+        player.save()
+        self.assertEqual('some notes', reg.player_notes())

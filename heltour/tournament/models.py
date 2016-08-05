@@ -449,7 +449,7 @@ ALTERNATE_PREFERENCE_OPTIONS = (
 #-------------------------------------------------------------------------------
 class Registration(_BaseModel):
     season = models.ForeignKey(Season)
-    status = models.CharField(blank=False, max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
+    status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
     
