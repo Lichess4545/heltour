@@ -1,5 +1,7 @@
 from django.test import TestCase
 from heltour.tournament.models import *
+from datetime import datetime
+from django.utils import timezone
 
 def createCommonLeagueData():
     team_count = 4
@@ -17,6 +19,42 @@ def createCommonLeagueData():
             player = Player.objects.create(lichess_username='Player %d' % player_num)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
+
+class SeasonTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+    
+    def test_save_round_creation(self):
+        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4, boards=6)
+        
+        self.assertEqual(4, season.round_set.count())
+        
+        season.rounds = 6
+        season.save()
+        
+        self.assertEqual(6, season.round_set.count())
+    
+    def test_save_round_date(self):
+        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', start_date=datetime(2016, 7, 1, tzinfo=timezone.get_current_timezone()), rounds=4, boards=6)
+        
+        self.assertEqual(datetime(2016, 7, 22, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].start_date)
+        self.assertEqual(datetime(2016, 7, 29, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].end_date)
+        
+        season.start_date = datetime(2016, 7, 2, tzinfo=timezone.get_current_timezone())
+        season.save()
+        
+        self.assertEqual(datetime(2016, 7, 23, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].start_date)
+        self.assertEqual(datetime(2016, 7, 30, tzinfo=timezone.get_current_timezone()), season.round_set.order_by('-number')[0].end_date)
+    
+    def test_end_date(self):
+        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', start_date=datetime(2016, 7, 1, tzinfo=timezone.get_current_timezone()), rounds=4, boards=6)
+        
+        self.assertEqual(datetime(2016, 7, 29, tzinfo=timezone.get_current_timezone()), season.end_date())
+        
+    def test_board_number_list(self):
+        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=2, boards=4)
+        
+        self.assertItemsEqual([1, 2, 3, 4], season.board_number_list())
 
 class TeamTestCase(TestCase):
     def setUp(self):
@@ -83,7 +121,8 @@ class TeamScoreTestCase(TestCase):
         ts1 = TeamScore.objects.get(team__number=1)
         ts2 = TeamScore.objects.get(team__number=2)
         
-        self.assertEqual(0, ts1.__cmp__(ts2))
+        self.assertGreaterEqual(ts1, ts2)
+        self.assertLessEqual(ts1, ts2)
         
         ts1.match_points = 2
         self.assertGreater(ts1, ts2)
