@@ -14,7 +14,13 @@ def generate_pairings(round_, overwrite=False):
             else:
                 raise PairingsExistException()
         
-        teams = Team.objects.filter(season=round_.season, is_active=True).order_by('number') # TODO: Order by/generate a seed
+        teams = Team.objects.filter(season=round_.season, is_active=True)
+        for team in teams:
+            if team.seed_rating is None:
+                team.seed_rating = team.average_rating()
+                team.save()
+        teams = sorted(teams, key=lambda team: team.seed_rating, reverse=True)
+        
         previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
         
         # Run the pairing algorithm

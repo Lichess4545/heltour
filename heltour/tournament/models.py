@@ -169,6 +169,8 @@ class Team(_BaseModel):
     number = models.PositiveIntegerField(verbose_name='team number')
     name = models.CharField(max_length=255, verbose_name='team name')
     is_active = models.BooleanField(default=True)
+    
+    seed_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         unique_together = (('season', 'number'), ('season', 'name'))
