@@ -176,7 +176,7 @@ def assign_alternate(request):
             season_id = int(season_id)
         round_num = request.POST.get('round', None)
         if round_num is not None:
-            season_id = int(season_id)
+            round_num = int(round_num)
         team_num = request.POST.get('team', None)
         if team_num is not None:
             team_num = int(team_num)
@@ -214,5 +214,47 @@ def assign_alternate(request):
         return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
     
     AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player})
+    
+    return JsonResponse({'updated': 1})
+
+@csrf_exempt
+@api_token_required
+def set_availability(request):
+    try:
+        season_id = request.POST.get('season', None)
+        if season_id is not None:
+            season_id = int(season_id)
+        round_num = request.POST.get('round', None)
+        if round_num is not None:
+            round_num = int(round_num)
+        player_name = request.POST.get('player', None)
+        is_available = request.POST.get('available', None)
+        if is_available == 'true':
+            is_available = True
+        elif is_available == 'false':
+            is_available = False
+        else:
+            raise ValueError
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
+    try:
+        latest_round = _get_latest_round(season_id)
+        season = latest_round.season
+        if round_num is None:
+            round_ = latest_round
+        else:
+            round_ = season.round_set.filter(number=round_num)[0]
+        player = Player.objects.filter(lichess_username__iexact=player_name).first()
+    except IndexError:
+        return JsonResponse({'updated': 0, 'error': 'no_data'})
+    
+    if player is None:
+        return JsonResponse({'updated': 0, 'error': 'player_not_found'})
+    
+    if round_.is_completed:
+        return JsonResponse({'updated': 0, 'error': 'round_over'})
+    
+    PlayerAvailability.objects.update_or_create(round=round_, player=player, defaults={'is_available': is_available})
     
     return JsonResponse({'updated': 1})

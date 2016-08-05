@@ -44,6 +44,7 @@ api_urlpatterns = [
     url(r'^update_pairing/$', api.update_pairing, name='update_pairing'),
     url(r'^get_roster/$', api.get_roster, name='get_roster'),
     url(r'^assign_alternate/$', api.assign_alternate, name='assign_alternate'),
+    url(r'^set_availability/$', api.set_availability, name='set_availability'),
 ]
 
 urlpatterns = [
