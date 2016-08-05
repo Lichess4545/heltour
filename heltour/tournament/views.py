@@ -105,6 +105,7 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
     else:
         current_team = None
     pairing_lists = [list(team_pairing.teamplayerpairing_set.order_by('board_number').select_related('player_pairing__white', 'player_pairing__black')) for team_pairing in team_pairings]
+    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False).select_related('player')} 
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -115,6 +116,7 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         'current_team': current_team,
         'team_list': team_list,
         'pairing_lists': pairing_lists,
+        'unavailable_players': unavailable_players,
         'specified_round': specified_round,
         'specified_team': team_number is not None,
         'can_edit': request.user.has_perm('tournament.change_pairing')

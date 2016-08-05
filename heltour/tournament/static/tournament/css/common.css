@@ -260,6 +260,10 @@ body {
 	content: '(C)';
 }
 
+.player-unavailable {
+	background-color: #fffcab;
+}
+
 @media (max-width: 992px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;
