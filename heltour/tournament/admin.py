@@ -569,6 +569,13 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_filter = ('season',)
 
 #-------------------------------------------------------------------------------
+@admin.register(models.PlayerAvailability)
+class PlayerAvailabilityAdmin(VersionAdmin):
+    list_display = ('player', 'round', 'is_available')
+    search_fields = ('player__lichess_username',)
+    list_filter = ('round__season', 'round__number')
+
+#-------------------------------------------------------------------------------
 @admin.register(models.ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)

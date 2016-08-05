@@ -499,6 +499,18 @@ class SeasonPlayer(_BaseModel):
         return "%s" % self.player
 
 #-------------------------------------------------------------------------------
+class PlayerAvailability(_BaseModel):
+    round = models.ForeignKey(Round)
+    player = models.ForeignKey(Player)
+    is_available = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name_plural = 'player availabilities'
+    
+    def __unicode__(self):
+        return "%s" % self.player
+
+#-------------------------------------------------------------------------------
 class Alternate(_BaseModel):
     season_player = models.OneToOneField(SeasonPlayer)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
