@@ -207,6 +207,8 @@ def rosters(request, league_tag=None, season_id=None):
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))
     
+    current_round = Round.objects.filter(season=season, publish_pairings=True).order_by('-number').first()
+    scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player')}
     unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player')}
     
     context = {
@@ -217,6 +219,7 @@ def rosters(request, league_tag=None, season_id=None):
         'teams': teams,
         'board_numbers': board_numbers,
         'alternate_rows': alternate_rows,
+        'scheduled_alternates': scheduled_alternates,
         'unresponsive_players': unresponsive_players,
         'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }

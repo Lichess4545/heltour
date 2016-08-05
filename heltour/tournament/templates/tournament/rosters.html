@@ -71,7 +71,7 @@
 									-
 									{% endif %}
 									{% else %}
-									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive{% endif %}">
+									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive{% elif alt.season_player.player in scheduled_alternates %} player-scheduled" title="scheduled{% endif %}">
 										<a href="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}">{{ alt.season_player.player.lichess_username }}</a>
 									</span>
 									{% endif %}
