@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import permission_required
 import json
 import pairinggen
 import spreadsheet
+from setuptools.ssl_support import is_available
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -509,6 +510,13 @@ class RegistrationAdmin(VersionAdmin):
                     reg.status_changed_by = request.user.username
                     reg.status_changed_date = timezone.now()
                     reg.save()
+                    
+                    for week_number in reg.weeks_unavailable.split(','):
+                        if week_number != '':
+                            round_ = models.Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                            if round_ is not None:
+                                models.PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                    
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
                 else:
