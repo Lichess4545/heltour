@@ -363,12 +363,20 @@ class PlayerAdmin(VersionAdmin):
         except:
             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
+
+#-------------------------------------------------------------------------------
+class TeamMemberInline(admin.TabularInline):
+    model = models.TeamMember
+    extra = 0
+    ordering = ('board_number',)
+
 #-------------------------------------------------------------------------------
 @admin.register(models.Team)
 class TeamAdmin(VersionAdmin):
     list_display = ('name', 'season')
     search_fields = ('name',)
     list_filter = ('season',)
+    inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
     
     def update_board_order_by_rating(self, request, queryset):
