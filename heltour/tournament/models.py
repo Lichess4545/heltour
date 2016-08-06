@@ -69,6 +69,44 @@ class Season(_BaseModel):
                 Round.objects.update_or_create(season=self, number=round_num, defaults={'start_date': date, 'end_date': next_date})
                 date = next_date
     
+    def calculate_scores(self):
+        # Note: The scores are calculated in a particular way to allow easy adding of new tiebreaks
+        score_dict = {}
+        
+        last_round = None
+        for round_ in self.round_set.filter(is_completed=True).order_by('number'):
+            round_pairings = round_.teampairing_set.all()
+            for team in Team.objects.filter(season=self):
+                white_pairing = find(round_pairings, white_team_id=team.id)
+                black_pairing = find(round_pairings, black_team_id=team.id)
+                if white_pairing is not None:
+                    self._increment_score(score_dict, round_, last_round, team, white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
+                elif black_pairing is not None:
+                    self._increment_score(score_dict, round_, last_round, team, black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
+                else:
+                    score_dict[(team, round_)] = score_dict[(team, last_round)][:3] + (0,) if last_round is not None else (0, 0, 0, 0)
+            last_round = round_
+        
+        team_scores = TeamScore.objects.filter(team__season=self)
+        for score in team_scores:
+            if last_round is None:
+                score.match_count = 0
+                score.match_points = 0
+                score.game_points = 0
+            else:
+                score.match_count, score.match_points, score.game_points, _ = score_dict[(score.team, last_round)]
+            score.save()
+    
+    def _increment_score(self, score_dict, round_, last_round, team, opponent, points, opponent_points):
+        match_count, match_points, game_points, _ = score_dict[(team, last_round)] if last_round is not None else (0, 0, 0, 0)
+        match_count += 1
+        game_points += points
+        if points > opponent_points:
+            match_points += 2
+        elif points == opponent_points:
+            match_points += 1
+        score_dict[(team, round_)] = (match_count, match_points, game_points, points)
+    
     def end_date(self):
         last_round = self.round_set.filter(number=self.rounds).first()
         if last_round is not None:
@@ -95,6 +133,16 @@ class Round(_BaseModel):
         permissions = (
             ('generate_pairings', 'Can generate and review pairings'),
         )
+    
+    def __init__(self, *args, **kwargs):
+        super(Round, self).__init__(*args, **kwargs)
+        self.initial_is_completed = self.is_completed
+        
+    def save(self, *args, **kwargs):
+        is_completed_changed = self.pk is None and self.is_completed or self.is_completed != self.initial_is_completed
+        super(Round, self).save(*args, **kwargs)
+        if is_completed_changed:
+            self.season.calculate_scores()
     
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -250,6 +298,17 @@ class TeamPairing(_BaseModel):
     class Meta:
         unique_together = ('white_team', 'black_team', 'round')
     
+    def __init__(self, *args, **kwargs):
+        super(TeamPairing, self).__init__(*args, **kwargs)
+        self.initial_white_points = self.white_points
+        self.initial_black_points = self.black_points
+        
+    def save(self, *args, **kwargs):
+        points_changed = self.pk is None or self.white_points != self.initial_white_points or self.black_points != self.initial_black_points
+        super(TeamPairing, self).save(*args, **kwargs)
+        if points_changed and self.round.is_completed:
+            self.round.season.calculate_scores()
+    
     def refresh_points(self):
         self.white_points = 0
         self.black_points = 0
@@ -325,9 +384,9 @@ class PlayerPairing(_BaseModel):
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
         super(PlayerPairing, self).save(*args, **kwargs)
-        if result_changed and hasattr(self, 'team_player_pairing'):
-            self.team_player_pairing.team_pairing.refresh_points()
-            self.team_player_pairing.team_pairing.save()
+        if result_changed and hasattr(self, 'teamplayerpairing'):
+            self.teamplayerpairing.team_pairing.refresh_points()
+            self.teamplayerpairing.team_pairing.save()
 
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)

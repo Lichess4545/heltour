@@ -55,6 +55,24 @@ class SeasonTestCase(TestCase):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=2, boards=4)
         
         self.assertItemsEqual([1, 2, 3, 4], season.board_number_list())
+        
+    def test_season_calculate_scores(self):
+        rounds = list(Round.objects.order_by('number'))
+        teams = list(Team.objects.order_by('number'))
+        
+        def score_matrix():
+            scores = list(TeamScore.objects.order_by('team__number'))
+            return [(s.match_count, s.match_points, s.game_points) for s in scores]
+        
+        self.assertItemsEqual([(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)], score_matrix())
+        
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=4, black_points=2)
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=3, black_points=3)
+        self.assertItemsEqual([(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)], score_matrix())
+        
+        rounds[0].is_completed = True
+        rounds[0].save()
+        self.assertItemsEqual([(1, 2, 4), (1, 0, 2), (1, 1, 3), (1, 1, 3)], score_matrix())
 
 class TeamTestCase(TestCase):
     def setUp(self):
@@ -118,8 +136,8 @@ class TeamScoreTestCase(TestCase):
         self.assertItemsEqual([(1, None, None), (2, 1.5, pairing1.pk), (3, 1.0, pairing2.pk), (4, None, None)], teamscore.cross_scores())
     
     def test_teamscore_cmp(self):
-        ts1 = TeamScore.objects.get(team__number=1)
-        ts2 = TeamScore.objects.get(team__number=2)
+        ts1 = TeamScore()
+        ts2 = TeamScore()
         
         self.assertGreaterEqual(ts1, ts2)
         self.assertLessEqual(ts1, ts2)
