@@ -197,7 +197,7 @@ class TeamScore(_BaseModel):
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()
         black_pairings = self.team.pairings_as_black.all()
-        for round_ in Round.objects.filter(season_id=self.team.season_id):
+        for round_ in Round.objects.filter(season_id=self.team.season_id).order_by('number'):
             if round_ is None or not round_.is_completed:
                 yield None
                 continue
