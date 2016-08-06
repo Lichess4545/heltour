@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import permission_required
 import json
 import pairinggen
 import spreadsheet
+from django.db.models.query import Prefetch
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -203,7 +204,9 @@ class SeasonAdmin(VersionAdmin):
             form = forms.EditRostersForm()
         
         board_numbers = list(range(1, season.boards + 1))
-        teams = list(models.Team.objects.filter(season=season).order_by('number')) 
+        teams = models.Team.objects.filter(season=season).order_by('number').prefetch_related(
+            Prefetch('teammember_set', queryset=models.TeamMember.objects.select_related('player'))
+        ).nocache()
         team_members = models.TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
         alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration').nocache(), key=lambda alt: alt.priority_date())) for n in board_numbers]
