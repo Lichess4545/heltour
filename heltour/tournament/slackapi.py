@@ -14,9 +14,13 @@ def invite_user(email):
             raise AlreadyInvited
         if json['error'] == 'already_in_team':
             raise AlreadyInTeam
+        raise SlackError(json['error'])
 
-class AlreadyInvited(Exception):
+class SlackError(Exception):
     pass
 
-class AlreadyInTeam(Exception):
+class AlreadyInvited(SlackError):
+    pass
+
+class AlreadyInTeam(SlackError):
     pass
