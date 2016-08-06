@@ -8,6 +8,6 @@ django-bootstrap3==7.0.1
 gspread==0.4.1
 oauth2client==2.2.0
 django-ckeditor==5.0.3
-django-memoize==2.0.0
+django-cacheops==2.4.5
 letsencrypt
 -e hg+https://bitbucket.org/lakin.wecker/baste#egg=baste

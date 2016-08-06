@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'bootstrap3',
     'ckeditor',
     'debug_toolbar',
-    'memoize',
+    'cacheops',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -146,8 +146,23 @@ LOGIN_URL = '/admin/login/'
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '::1']
 
+CACHEOPS_REDIS = {
+    'host': 'localhost',
+    'port': 6379,
+    'db': 1,
+}
+CACHEOPS_DEGRADE_ON_FAILURE = True
+CACHEOPS = {
+    '*.*': {'ops': 'all', 'timeout': 60*60},
+}
+
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
+
+# Testing overrides
+import sys
+if 'test' in sys.argv:
+    CACHEOPS = {}
 
 # Host-based settings overrides.
 import platform

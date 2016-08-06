@@ -5,29 +5,6 @@ from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
-from memoize import memoize, delete_memoized
-
-_to_clear = []
-_needs_clear = False
-# Decorator for functions to be memoized. The cache is cleared whenever any changes are made to the DB
-def memoize_clearable(fn):
-    global _to_clear
-    _to_clear.append(fn)
-    def wrapper(*args, **kwargs):
-        global _needs_clear
-        _needs_clear = True
-        return memoize(timeout=60)(fn)(*args, **kwargs)
-    return wrapper
-
-def _clear_caches(sender, **kwargs):
-    global _needs_clear, _to_clear
-    if _needs_clear:
-        for fn in _to_clear:
-            delete_memoized(fn)
-        _needs_clear = False
-
-models.signals.post_save.connect(_clear_caches)
-models.signals.post_delete.connect(_clear_caches)
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -72,11 +49,6 @@ class Season(_BaseModel):
         permissions = (
             ('edit_rosters', 'Can edit rosters'),
         )
-    
-    @staticmethod
-    @memoize_clearable
-    def get(pk):
-        return Season.objects.get(pk=pk)
     
     def __init__(self, *args, **kwargs):
         super(Season, self).__init__(*args, **kwargs)
@@ -123,11 +95,6 @@ class Round(_BaseModel):
         permissions = (
             ('generate_pairings', 'Can generate and review pairings'),
         )
-
-    @staticmethod
-    @memoize_clearable
-    def get_list_by_season(season_id):
-        return list(Round.objects.filter(season_id=season_id).order_by('number'))
     
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -176,13 +143,8 @@ class Team(_BaseModel):
         unique_together = (('season', 'number'), ('season', 'name'))
     
     def boards(self):
-        return Team._boards(self.season_id, self.pk)
-    
-    @staticmethod
-    @memoize_clearable
-    def _boards(season_id, pk):
-        team_members = TeamMember.objects.filter(team_id=pk).select_related('player').all()
-        return [(n, find(team_members, board_number=n)) for n in Season.get(season_id).board_number_list()]
+        team_members = TeamMember.objects.filter(team_id=self.pk).select_related('player').all()
+        return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
     
     def average_rating(self):
         n = 0
@@ -235,7 +197,7 @@ class TeamScore(_BaseModel):
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()
         black_pairings = self.team.pairings_as_black.all()
-        for round_ in Round.get_list_by_season(self.team.season_id):
+        for round_ in Round.objects.filter(season_id=self.team.season_id):
             if round_ is None or not round_.is_completed:
                 yield None
                 continue
