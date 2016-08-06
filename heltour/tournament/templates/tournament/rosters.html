@@ -40,9 +40,7 @@
 								<td class="cell-team" colspan="3">{{ team.name }}</td>
 								{% for board_number, board in team.boards %}
 								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
-									<span class="player-name{% if board.player in unresponsive_players %} player-unresponsive" title="unresponsive{% endif %}">
-										<a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a>
-									</span>
+									{% include 'tournament/rosters_player_span.html' with player=board.player %}
 								</td>
 								<td class="cell-rating">{{ board.player.rating|default_if_none:"" }}</td>
 								{% endfor %}
@@ -71,9 +69,7 @@
 									-
 									{% endif %}
 									{% else %}
-									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive{% elif alt.season_player.player in scheduled_alternates %} player-scheduled" title="scheduled{% endif %}">
-										<a href="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}">{{ alt.season_player.player.lichess_username }}</a>
-									</span>
+									{% include 'tournament/rosters_player_span.html' with player=alt.season_player.player %}
 									{% endif %}
 								</td>
 								<td class="cell-rating">{{ alt.season_player.player.rating|default_if_none:"" }}</td>

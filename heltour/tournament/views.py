@@ -214,6 +214,10 @@ def rosters(request, league_tag=None, season_id=None):
     scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player').nocache()}
     unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player').nocache()}
     
+    games_missed_by_player = {sp.player: sp.games_missed for sp in SeasonPlayer.objects.filter(season=season).select_related('player').nocache()}
+    yellow_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed == 1}
+    red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
+    
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -224,6 +228,8 @@ def rosters(request, league_tag=None, season_id=None):
         'alternate_rows': alternate_rows,
         'scheduled_alternates': scheduled_alternates,
         'unresponsive_players': unresponsive_players,
+        'yellow_card_players': yellow_card_players,
+        'red_card_players': red_card_players,
         'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }
     return render(request, 'tournament/rosters.html', context)
