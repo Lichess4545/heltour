@@ -191,7 +191,7 @@ class Team(_BaseModel):
         unique_together = (('season', 'number'), ('season', 'name'))
     
     def boards(self):
-        team_members = TeamMember.objects.filter(team_id=self.pk).select_related('player').all()
+        team_members = self.teammember_set.all()
         return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
     
     def average_rating(self):
@@ -260,8 +260,8 @@ class TeamScore(_BaseModel):
     
     def cross_scores(self):
         other_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
-        white_pairings = self.team.pairings_as_white.all().select_related('round')
-        black_pairings = self.team.pairings_as_black.all().select_related('round')
+        white_pairings = self.team.pairings_as_white.all()
+        black_pairings = self.team.pairings_as_black.all()
         for other_team in other_teams:
             white_pairing = find(white_pairings, black_team_id=other_team.pk)
             black_pairing = find(black_pairings, white_team_id=other_team.pk)
@@ -548,7 +548,7 @@ class Alternate(_BaseModel):
                     self.save()
     
     def priority_date(self):
-        most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').select_related('round').first()
+        most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').first()
         
         if most_recent_assign is not None:
             round_date = most_recent_assign.round.start_date

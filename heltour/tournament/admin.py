@@ -120,7 +120,7 @@ class SeasonAdmin(VersionAdmin):
     
     def player_info_view(self, request, object_id, player_name):
         season = models.Season.objects.get(pk=object_id)
-        season_player = models.SeasonPlayer.objects.select_related('player').get(season=season, player__lichess_username=player_name)
+        season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username=player_name)
         
         context = {
             'season_player': season_player,
@@ -204,11 +204,11 @@ class SeasonAdmin(VersionAdmin):
         
         board_numbers = list(range(1, season.boards + 1))
         teams = list(models.Team.objects.filter(season=season).order_by('number')) 
-        team_members = models.TeamMember.objects.filter(team__season=season).select_related('player')
-        alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player')
-        alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration'), key=lambda alt: alt.priority_date())) for n in board_numbers]
+        team_members = models.TeamMember.objects.filter(team__season=season).select_related('player').nocache()
+        alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+        alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration').nocache(), key=lambda alt: alt.priority_date())) for n in board_numbers]
         
-        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player'))
+        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
         

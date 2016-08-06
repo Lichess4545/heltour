@@ -6,6 +6,7 @@ from .models import *
 from .forms import *
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 import itertools
+from django.db.models.query import Prefetch
 
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
@@ -98,14 +99,14 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         except IndexError:
             pass
     team_list = season.team_set.order_by('name')
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order').select_related('white_team', 'black_team')
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order').select_related('white_team', 'black_team').nocache()
     if team_number is not None:
         current_team = get_object_or_404(team_list, number=team_number)
         team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
     else:
         current_team = None
-    pairing_lists = [list(team_pairing.teamplayerpairing_set.order_by('board_number').select_related('player_pairing__white', 'player_pairing__black')) for team_pairing in team_pairings]
-    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False).select_related('player')} 
+    pairing_lists = [list(team_pairing.teamplayerpairing_set.order_by('board_number').select_related('player_pairing__white', 'player_pairing__black').nocache()) for team_pairing in team_pairings]
+    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False).select_related('player').nocache()}
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -198,18 +199,20 @@ def rosters(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     if season is None:
         return no_rosters_available(request, league_tag, season_id)
-    teams = Team.objects.filter(season=season).order_by('number')
+    teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
+        Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
+    ).nocache()
     board_numbers = list(range(1, season.boards + 1))
     
     alternates = Alternate.objects.filter(season_player__season=season)
-    alternates_by_board = [sorted(alternates.filter(board_number=n).select_related('season_player__registration'), key=lambda alt: alt.priority_date()) for n in board_numbers]
+    alternates_by_board = [sorted(alternates.filter(board_number=n).select_related('season_player__registration', 'season_player__player').nocache(), key=lambda alt: alt.priority_date()) for n in board_numbers]
     alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))
     
     current_round = Round.objects.filter(season=season, publish_pairings=True).order_by('-number').first()
-    scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player')}
-    unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player')}
+    scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player').nocache()}
+    unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player').nocache()}
     
     context = {
         'league_tag': league_tag,
@@ -237,7 +240,7 @@ def no_rosters_available(request, league_tag=None, season_id=None):
 def standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team'), reverse=True), 1))
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
@@ -252,7 +255,7 @@ def standings(request, league_tag=None, season_id=None):
 
 def crosstable(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
-    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team')
+    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
