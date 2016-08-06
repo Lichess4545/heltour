@@ -31,7 +31,7 @@ def league_home(request, league_tag=None, season_id=None):
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
     registration_season_end_date = None
-    if registration_season.start_date is not None and registration_season.start_date < timezone.now():
+    if registration_season is not None and registration_season.start_date is not None and registration_season.start_date < timezone.now():
         registration_season_end_date = registration_season.end_date()
     
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
@@ -302,14 +302,12 @@ def document(request, document_tag, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/document.html', context)
 
-@memoize_clearable
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
         return _get_default_league(allow_none)
     else:
         return get_object_or_404(League, tag=league_tag)
 
-@memoize_clearable
 def _get_default_league(allow_none=False):
     try:
         return League.objects.filter(is_default=True).order_by('id')[0]
@@ -319,14 +317,12 @@ def _get_default_league(allow_none=False):
             raise Http404
         return league
 
-@memoize_clearable
 def _get_season(league_tag, season_id, allow_none=False):
     if season_id is None:
         return _get_default_season(league_tag, allow_none)
     else:
         return get_object_or_404(Season, league=_get_league(league_tag), pk=season_id)
 
-@memoize_clearable
 def _get_default_season(league_tag, allow_none=False):
     season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id').first()
     if not allow_none and season is None:
