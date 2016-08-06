@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% with "1" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -11,9 +11,9 @@
     {% load tournament_extras %}
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
     {% block common_css %}
-    <link href="{% static "lib/css/bootstrap.min.css" %}" rel="stylesheet">
-    <link href="{% static "tournament/css/common.css" %}" rel="stylesheet">
-    <link href="{% static "tournament/css/theme.css" %}" rel="stylesheet">
+    <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
+    <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
+    <link href="{% static "tournament/css/theme.css" %}?v={{ static_version }}" rel="stylesheet">
     {% endblock %}
     {% block css %}{% endblock %}
 </head>
@@ -67,9 +67,9 @@
     
     {% block common_js %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="{% static "lib/js/bootstrap.min.js" %}"></script>
-    <script src="{% static "tournament/js/common.js" %}"></script>
+    <script src="{% static "lib/js/bootstrap.min.js" %}?v={{ static_version }}"></script>
+    <script src="{% static "tournament/js/common.js" %}"?v={{ static_version }}></script>
     {% endblock %}
     {% block js %}{% endblock %}
 </body>
-</html>
+</html>{% endwith %}
