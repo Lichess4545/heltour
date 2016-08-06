@@ -27,10 +27,6 @@ class RegistrationForm(forms.ModelForm):
             'email': _(u'Your Email'),
             'classical_rating': _(u'Your Lichess Classical Rating'),
             'peak_classical_rating': _(u'Your Highest Peak Lichess Classical Rating'),
-            'has_played_20_games': _(u'Have you played more than 20 games of classical chess on Lichess?'),
-            'already_in_slack_group': _(u'Are you on our Slack group?'),
-            'can_commit': _(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'),
-            'agreed_to_rules': _(u'Do you agree to the rules of the 45|45 League?'),
             'alternate_preference': _(u'Are you interested in being an alternate or a full time player?'),
             'previous_season_alternate': _(u'Were you an alternate for the previous season?'),
             'friends': _(u'Are there any friends you would like to be paired with?'),
@@ -38,9 +34,6 @@ class RegistrationForm(forms.ModelForm):
         help_texts = {
             'slack_username': _(u"Please, it should be the same. If you aren't on our Slack yet, please fill in N/A."),
             'friends': _(u'Note: All players must register. All players must join Slack. All players should also request each other.'),
-            'has_played_20_games': _(u'If no, this must be fulfilled ASAP.'),
-            # TODO: This rules link should be specified in the league object.
-            'agreed_to_rules': _(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'),
         }
         widgets = {
             'has_played_20_games': forms.RadioSelect(choices=YES_NO_OPTIONS),
@@ -56,12 +49,13 @@ class RegistrationForm(forms.ModelForm):
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
         weeks = [(i, 'Week %s' % i) for i in range(1, self.season.rounds + 1)]
-        self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label='Are there any weeks you would be unable to play?', choices=weeks, widget=forms.CheckboxSelectMultiple)
-        self.fields['has_played_20_games'].required = True
-        self.fields['already_in_slack_group'].required = True
+        self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would be unable to play?'), choices=weeks, widget=forms.CheckboxSelectMultiple)
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 games of classical chess on Lichess?'), help_text=_(u'If no, this must be fulfilled ASAP.'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['previous_season_alternate'].choices = PREVIOUS_SEASON_ALTERNATE_OPTIONS
-        self.fields['can_commit'].required = True
-        self.fields['agreed_to_rules'].required = True
+        self.fields['can_commit'] = forms.TypedChoiceField(required=True, label=_(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        # TODO: This rules link should be specified in the league object.
+        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the 45|45 League?'), help_text=_(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
 
     def save(self, commit=True, *args, **kwargs):

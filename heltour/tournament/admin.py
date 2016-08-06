@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import models, lichessapi, views, forms
+from heltour.tournament import models, lichessapi, slackapi, views, forms
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect
@@ -10,6 +10,7 @@ import json
 import pairinggen
 import spreadsheet
 from django.db.models.query import Prefetch
+from django.db import transaction
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -507,28 +508,37 @@ class RegistrationAdmin(VersionAdmin):
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
-                    # Add or update the player in the DB
-                    player, _ = models.Player.objects.update_or_create(
-                        lichess_username__iexact=reg.lichess_username,
-                        defaults={'lichess_username': reg.lichess_username, 'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
-                    )
-                    models.SeasonPlayer.objects.update_or_create(
-                        player=player,
-                        season=reg.season,
-                        defaults={'registration': reg, 'is_active': True}
-                    )
-                    # TODO: Update model to associate players with seasons and create the association here
-                    # TODO: Invite to slack, send confirmation email, etc. based on form input
-                    reg.status = 'approved'
-                    reg.status_changed_by = request.user.username
-                    reg.status_changed_date = timezone.now()
-                    reg.save()
-                    
-                    for week_number in reg.weeks_unavailable.split(','):
-                        if week_number != '':
-                            round_ = models.Round.objects.filter(season=reg.season, number=int(week_number)).first()
-                            if round_ is not None:
-                                models.PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                    with transaction.atomic():
+                        # Add or update the player in the DB
+                        player, _ = models.Player.objects.update_or_create(
+                            lichess_username__iexact=reg.lichess_username,
+                            defaults={'lichess_username': reg.lichess_username, 'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
+                        )
+                        models.SeasonPlayer.objects.update_or_create(
+                            player=player,
+                            season=reg.season,
+                            defaults={'registration': reg, 'is_active': True}
+                        )
+                        # TODO: Send confirmation email, etc. based on form input
+                        if form.cleaned_data['invite_to_slack']:
+                            try:
+                                slackapi.invite_user(reg.email)
+                                self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                            except slackapi.AlreadyInTeam:
+                                self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
+                            except slackapi.AlreadyInvited:
+                                self.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
+                        
+                        reg.status = 'approved'
+                        reg.status_changed_by = request.user.username
+                        reg.status_changed_date = timezone.now()
+                        reg.save()
+                        
+                        for week_number in reg.weeks_unavailable.split(','):
+                            if week_number != '':
+                                round_ = models.Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                                if round_ is not None:
+                                    models.PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
                     
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')

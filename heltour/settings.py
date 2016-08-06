@@ -157,6 +157,7 @@ CACHEOPS = {
 }
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
+SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
 # Testing overrides
@@ -187,3 +188,4 @@ if os.path.exists("/etc/heltour/production.json"):
     EMAIL_HOST_PASSWORD = overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD'))
     SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
     GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
+    SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
