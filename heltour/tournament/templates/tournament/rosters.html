@@ -74,12 +74,12 @@
 									-
 									{% endif %}
 									{% else %}
-									<span class="player-name{% if player in unresponsive_players %} player-unresponsive" title="unresponsive"
-									                           {% elif player in scheduled_alternates %} player-scheduled" title="scheduled"
-									                           {% elif player in yellow_card_players %} player-yellow-card" title="1 game missed"
-									                           {% elif player in red_card_players %} player-red-card" title="2+ games missed"
+									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									                           {% elif alt.season_player.player in scheduled_alternates %} player-scheduled" title="scheduled"
+									                           {% elif alt.season_player.player in yellow_card_players %} player-yellow-card" title="1 game missed"
+									                           {% elif alt.season_player.player in red_card_players %} player-red-card" title="2+ games missed"
 									                           {% else %}"{% endif %}>
-										<a href="http://lichess.org/@/{{ player.lichess_username }}">{{ player.lichess_username }}</a>
+										<a href="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}">{{ alt.season_player.player.lichess_username }}</a>
 									</span>
 									{% endif %}
 								</td>
