@@ -37,7 +37,11 @@
 				{% for board_number, board in team.boards %}
 				<td data-board="{{ board_number }}">
 					{% if board %}
-					{% include "tournament/admin/edit_rosters_player_block.html" with season=original player=board.player is_captain=board.is_captain is_vice_captain=board.is_vice_captain %}
+						<span class="player" data-url="http://lichess.org/@/{{ board.player.lichess_username }}" data-info-url="{% url 'admin:edit_rosters_player_info' original.pk board.player.lichess_username %}" data-toggle="popover">
+							<span class="name">{{ board.player.lichess_username }}</span>
+							(<span class="rating">{{ board.player.rating|default_if_none:"?" }}</span>)
+							<span class="extra">{% if board.is_captain %}(C){% elif board.is_vice_captain %}(V){% endif %}</span>
+						</span>
 					{% endif %}
 				</td>
 				{% endfor %}
@@ -83,7 +87,11 @@
 						{% for alt in alternates %}
 						<tr>
 							<td>
-								{% include "tournament/admin/edit_rosters_player_block.html" with season=original player=alt.season_player.player %}
+								<span class="player" data-url="http://lichess.org/@/{{ alt.season_player.player.lichess_username }}" data-info-url="{% url 'admin:edit_rosters_player_info' original.pk alt.season_player.player.lichess_username %}" data-toggle="popover">
+									<span class="name">{{ alt.season_player.player.lichess_username }}</span>
+									(<span class="rating">{{ alt.season_player.player.rating|default_if_none:"?" }}</span>)
+									<span class="extra"></span>
+								</span>
 							</td>
 						</tr>
 						{% endfor %}
@@ -115,7 +123,11 @@
 						{% for player in player_list %}
 						<tr>
 							<td>
-								{% include "tournament/admin/edit_rosters_player_block.html" with season=original player=player %}
+								<span class="player" data-url="http://lichess.org/@/{{ player.lichess_username }}" data-info-url="{% url 'admin:edit_rosters_player_info' original.pk player.lichess_username %}" data-toggle="popover">
+									<span class="name">{{ player.lichess_username }}</span>
+									(<span class="rating">{{ player.rating|default_if_none:"?" }}</span>)
+									<span class="extra"></span>
+								</span>
 							</td>
 						</tr>
 						{% endfor %}

@@ -40,7 +40,12 @@
 								<td class="cell-team" colspan="3">{{ team.name }}</td>
 								{% for board_number, board in team.boards %}
 								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
-									{% include 'tournament/rosters_player_span.html' with player=board.player %}
+									<span class="player-name{% if board.player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									                           {% elif board.player in yellow_card_players %} player-yellow-card" title="1 game missed"
+									                           {% elif board.player in red_card_players %} player-red-card" title="2+ games missed"
+									                           {% else %}"{% endif %}>
+										<a href="http://lichess.org/@/{{ board.player.lichess_username }}">{{ board.player.lichess_username }}</a>
+									</span>
 								</td>
 								<td class="cell-rating">{{ board.player.rating|default_if_none:"" }}</td>
 								{% endfor %}
@@ -69,7 +74,13 @@
 									-
 									{% endif %}
 									{% else %}
-									{% include 'tournament/rosters_player_span.html' with player=alt.season_player.player %}
+									<span class="player-name{% if player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									                           {% elif player in scheduled_alternates %} player-scheduled" title="scheduled"
+									                           {% elif player in yellow_card_players %} player-yellow-card" title="1 game missed"
+									                           {% elif player in red_card_players %} player-red-card" title="2+ games missed"
+									                           {% else %}"{% endif %}>
+										<a href="http://lichess.org/@/{{ player.lichess_username }}">{{ player.lichess_username }}</a>
+									</span>
 									{% endif %}
 								</td>
 								<td class="cell-rating">{{ alt.season_player.player.rating|default_if_none:"" }}</td>
