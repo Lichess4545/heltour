@@ -5,6 +5,7 @@ from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
+from django.utils import timezone
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -106,6 +107,9 @@ class Season(_BaseModel):
         elif points == opponent_points:
             match_points += 1
         score_dict[(team, round_)] = (match_count, match_points, game_points, points)
+    
+    def is_started(self):
+        return self.start_date is not None and self.start_date < timezone.now()
     
     def end_date(self):
         last_round = self.round_set.filter(number=self.rounds).first()
