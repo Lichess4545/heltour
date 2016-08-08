@@ -638,6 +638,7 @@ LEAGUE_DOCUMENT_TYPES = (
     ('faq', 'FAQ'),
     ('rules', 'Rules'),
     ('intro', 'Intro'),
+    ('slack-welcome', 'Slack Welcome'),
 )
 
 #-------------------------------------------------------------------------------
