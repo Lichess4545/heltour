@@ -11,6 +11,10 @@ import pairinggen
 import spreadsheet
 from django.db.models.query import Prefetch
 from django.db import transaction
+from smtplib import SMTPException
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from heltour import settings
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -519,7 +523,21 @@ class RegistrationAdmin(VersionAdmin):
                             season=reg.season,
                             defaults={'registration': reg, 'is_active': True}
                         )
-                        # TODO: Send confirmation email, etc. based on form input
+                        if form.cleaned_data['send_confirm_email']:
+                            try:
+                                subject = render_to_string('tournament/emails/registration_approved_subject.txt', {'reg': reg})
+                                msg_plain = render_to_string('tournament/emails/registration_approved.txt', {'reg': reg})
+                                msg_html = render_to_string('tournament/emails/registration_approved.html', {'reg': reg})
+                                send_mail(
+                                    subject,
+                                    msg_plain,
+                                    settings.DEFAULT_FROM_EMAIL,
+                                    [reg.email],
+                                    html_message=msg_html,
+                                )
+                                self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
+                            except SMTPException:
+                                self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
                         if form.cleaned_data['invite_to_slack']:
                             try:
                                 slackapi.invite_user(reg.email)
