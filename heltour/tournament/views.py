@@ -12,11 +12,11 @@ def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
     if league is None:
         return render(request, 'tournament/no_leagues.html', {})
-    
+
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
     rules_doc_tag = rules_doc.tag if rules_doc is not None else None
     intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
-    
+
     current_season = _get_default_season(league_tag, allow_none=True)
     if current_season is None:
         context = {
@@ -28,15 +28,15 @@ def league_home(request, league_tag=None, season_id=None):
             'can_edit_document': request.user.has_perm('tournament.change_document'),
         }
         return render(request, 'tournament/league_home.html', context)
-    
+
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
     registration_season_end_date = None
     if registration_season is not None and registration_season.start_date is not None and registration_season.start_date < timezone.now():
         registration_season_end_date = registration_season.end_date()
-    
+
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
-    
+
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = timezone.now() - timedelta(hours=3)
@@ -45,7 +45,7 @@ def league_home(request, league_tag=None, season_id=None):
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max).order_by('scheduled_time')
-    
+
     context = {
         'league_tag': league_tag,
         'league': league,
@@ -67,13 +67,13 @@ def season_landing(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
-    
+
     active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()).order_by('-number').first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
     tie_score = season.boards
-    
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -139,7 +139,7 @@ def register(request, league_tag=None, season_id=None):
             return redirect(leagueurl('registration_success', league_tag=league_tag, season_id=season_id))
     else:
         form = RegistrationForm(season=season)
-    
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -203,21 +203,21 @@ def rosters(request, league_tag=None, season_id=None):
         Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
     ).nocache()
     board_numbers = list(range(1, season.boards + 1))
-    
+
     alternates = Alternate.objects.filter(season_player__season=season)
     alternates_by_board = [sorted(alternates.filter(board_number=n).select_related('season_player__registration', 'season_player__player').nocache(), key=lambda alt: alt.priority_date()) for n in board_numbers]
     alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))
-    
+
     current_round = Round.objects.filter(season=season, publish_pairings=True).order_by('-number').first()
     scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player').nocache()}
     unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player').nocache()}
-    
+
     games_missed_by_player = {sp.player: sp.games_missed for sp in SeasonPlayer.objects.filter(season=season).select_related('player').nocache()}
     yellow_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed == 1}
     red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
-    
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),

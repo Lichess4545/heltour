@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import transaction
 import re
 
-def import_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
+def import_4545_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
@@ -15,14 +15,14 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
         doc = gc.open_by_url(url)
     except gspread.SpreadsheetNotFound:
         raise SpreadsheetNotFound
-    
+
     with transaction.atomic():
-        
+
         # Open the sheets
         sheet_rosters = doc.worksheet('Rosters').get_all_values()
         sheet_standings = doc.worksheet('Standings').get_all_values()
         sheet_past_rounds = doc.worksheet('Past Rounds').get_all_values()
-        
+
         # Read the round count
         round_ = 1
         round_cols = []
@@ -34,7 +34,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 break
             round_ += 1
         round_count = round_ - 1
-        
+
         # Read the board count
         board = 1
         while True:
@@ -45,10 +45,10 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 break
             board += 1
         board_count = board - 1
-        
+
         # Create the season
         season = Season.objects.create(league=league, name=name, rounds=round_count, boards=board_count)
-        
+
         # Read the teams
         team_name_col = sheet_rosters[0].index('Teams')
         team_name_row = 1
@@ -59,7 +59,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 break
             teams.append(Team.objects.create(season=season, number=len(teams) + 1, name=team_name))
             team_name_row += 1
-    
+
         # Read the team members and alternates
         alternates_start_row = [row[0] == 'Alternates' for row in sheet_rosters].index(True)
         for i in range(season.boards):
@@ -85,9 +85,9 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
                 Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
                 alternates_row += 1
-        
+
         if not rosters_only:
-            
+
             # Read the team scores
             team_name_col = sheet_standings[0].index('Team Name')
             match_points_col = sheet_standings[0].index('Match Points')
@@ -103,7 +103,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 match_points = int(sheet_standings[team_row][match_points_col])
                 game_points = int(float(sheet_standings[team_row][game_points_col]) * 2)
                 TeamScore.objects.create(team=team, match_count=match_count, match_points=match_points, game_points=game_points)
-            
+
             # Read the pairings and create the rounds
             rounds = Round.objects.filter(season=season).order_by('number')
             last_round_number = 0
@@ -121,18 +121,18 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 round_.publish_pairings=True
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
-            
+
             # Load game links from the input formatting on the result column range
             _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows, result_col)
-            
+
             # Update the season date based on the round dates
             if len(rounds) > 0:
                 season.start_date = rounds[0].start_date.date()
             else:
                 season.start_date = timezone.now().date()
-            
+
             if not exclude_live_pairings:
-                
+
                 # Read the live round data
                 round_ = rounds[last_round_number]
                 round_.publish_pairings = True
@@ -199,7 +199,7 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
     return result_col
 
 def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col):
-    if len(pairings) > 0: 
+    if len(pairings) > 0:
         game_link_col_letter = chr(ord('A') + game_link_col)
         range_game_links = worksheet.range('%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
         for i in range(len(pairings)):
