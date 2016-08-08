@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import re
 import json
 from models import *
+from django.utils.html import strip_tags
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
@@ -258,3 +259,29 @@ def set_availability(request):
     PlayerAvailability.objects.update_or_create(round=round_, player=player, defaults={'is_available': is_available})
     
     return JsonResponse({'updated': 1})
+
+@api_token_required
+def league_document(request):
+    try:
+        league_tag = request.GET.get('league', None)
+        type_ = request.GET.get('type', None)
+        strip_html = request.GET.get('strip_html', None) == 'true'
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+    
+    if league_tag is None or type_ is None:
+        return HttpResponse('Bad request', status=400)
+    
+    league_doc = LeagueDocument.objects.filter(league__tag=league_tag, type=type_).first()
+    if league_doc is None:
+        return JsonResponse({'name': None, 'content': None, 'error': 'not_found'})
+    
+    document = league_doc.document
+    content = document.content
+    if strip_html:
+        content = strip_tags(content)
+    
+    return JsonResponse({
+         'name': document.name,
+         'content': content
+     })
