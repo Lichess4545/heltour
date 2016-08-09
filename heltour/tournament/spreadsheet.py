@@ -57,7 +57,9 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
             team_name = sheet_rosters[team_name_row][team_name_col]
             if len(team_name) == 0:
                 break
-            teams.append(Team.objects.create(season=season, number=len(teams) + 1, name=team_name))
+            team = Team.objects.create(season=season, number=len(teams) + 1, name=team_name)
+            TeamScore.objects.create(team=team)
+            teams.append(team)
             team_name_row += 1
     
         # Read the team members and alternates
@@ -88,23 +90,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
         
         if not rosters_only:
             
-            # Read the team scores
-            team_name_col = sheet_standings[0].index('Team Name')
-            match_points_col = sheet_standings[0].index('Match Points')
-            game_points_col = sheet_standings[0].index('Game Points (Tbk 1)')
-            for i in range(len(teams)):
-                team_row = i + 1
-                team_name = sheet_standings[team_row][team_name_col]
-                team = Team.objects.get(season=season, name__iexact=team_name)
-                match_count = 0
-                for round_col in round_cols:
-                    if len(sheet_standings[team_row][round_col]) > 0:
-                        match_count += 1
-                match_points = int(sheet_standings[team_row][match_points_col])
-                game_points = int(float(sheet_standings[team_row][game_points_col]) * 2)
-                TeamScore.objects.create(team=team, match_count=match_count, match_points=match_points, game_points=game_points)
-            
-            # Read the pairings and create the rounds
+            # Read the pairings
             rounds = Round.objects.filter(season=season).order_by('number')
             last_round_number = 0
             pairings = []
@@ -117,10 +103,11 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                     # No more rounds in this sheet
                     last_round_number = round_number - 1
                     break
-                round_.is_completed=True
-                round_.publish_pairings=True
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
+                round_.publish_pairings = True
+                round_.is_completed = True
+                round_.save()
             
             # Load game links from the input formatting on the result column range
             _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows, result_col)
@@ -135,7 +122,6 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 
                 # Read the live round data
                 round_ = rounds[last_round_number]
-                round_.publish_pairings = True
                 current_round_name = 'Round %d' % round_.number
                 sheet_current_round = doc.worksheet(current_round_name).get_all_values()
                 header_row = 0
@@ -143,6 +129,8 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 pairing_rows = []
                 result_col = _read_team_pairings(sheet_current_round, header_row, season, teams, round_, pairings, pairing_rows)
                 _update_pairing_game_links(doc.worksheet(current_round_name), pairings, pairing_rows, result_col)
+                round_.publish_pairings = True
+                round_.save()
 
 class SpreadsheetNotFound(Exception):
     pass
