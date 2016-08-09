@@ -31,6 +31,7 @@
 				  </ul>
 				</div>
 				{% endif %}
+				{% if team_list %}
 				<div class="dropdown inline round-switcher">
 				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 				    {% if current_team %}{{ current_team.name }}{% else %}All Teams{% endif %}
@@ -52,6 +53,7 @@
 				    {% endfor %}
 				  </ul>
 				</div>
+				{% endif %}
 				
 				{% if pairing_lists %}
 				<table class="table table-condensed-xs">
@@ -107,7 +109,7 @@
 					{% endfor %}
 				</table>
 				{% else %}
-				No pairings available.
+				<p>No pairings available.</p>
 				{% endif %}
 			</div>
 		</div>
