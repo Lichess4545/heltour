@@ -125,6 +125,11 @@ class SeasonAdmin(VersionAdmin):
         elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, self._time_from_now(round_to_open.start_date - timezone.now())), messages.WARNING)
         
+        if round_to_close is not None:
+            incomplete_pairings = models.PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
+            if len(incomplete_pairings) > 0:
+                self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
+        
         context = {
             'has_permission': True,
             'opts': self.model._meta,
