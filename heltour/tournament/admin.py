@@ -15,6 +15,7 @@ from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
+from datetime import timedelta
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -119,6 +120,11 @@ class SeasonAdmin(VersionAdmin):
         else:
             form = forms.RoundTransitionForm(round_to_close, round_to_open)
         
+        if round_to_close is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
+            self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, self._time_from_now(round_to_close.end_date - timezone.now())), messages.WARNING)
+        elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+            self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, self._time_from_now(round_to_open.start_date - timezone.now())), messages.WARNING)
+        
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -129,6 +135,19 @@ class SeasonAdmin(VersionAdmin):
         }
     
         return render(request, 'tournament/admin/round_transition.html', context)
+    
+    def _time_from_now(self, delta):
+        if delta.days > 0:
+            if delta.days == 1:
+                return '1 day'
+            else:
+                return '%d days' % delta.days
+        else:
+            hours = delta.seconds / 3600
+            if hours == 1:
+                return '1 hour'
+            else:
+                return '%d hours' % hours
     
     def update_board_order_by_rating(self, request, queryset):
         try:
