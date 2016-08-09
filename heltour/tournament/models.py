@@ -544,10 +544,12 @@ class Alternate(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     
     def update_board_number(self):
-        buckets = AlternateBucket.objects.filter(season=self.season)
-        if len(buckets) == self.season.boards:
+        season = self.season_player.season
+        player = self.season_player.player
+        buckets = AlternateBucket.objects.filter(season=season)
+        if len(buckets) == season.boards:
             for b in buckets:
-                if (b.max_rating is None or b.max_rating >= self.player.rating) and (b.min_rating is None or self.player.rating > b.min_rating):
+                if (b.max_rating is None or b.max_rating >= player.rating) and (b.min_rating is None or player.rating > b.min_rating):
                     self.board_number = b.board_number
                     self.save()
     
