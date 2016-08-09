@@ -27,6 +27,7 @@ admin.site.unregister(Site)
 @admin.register(models.League)
 class LeagueAdmin(VersionAdmin):
     actions = ['import_season']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -359,6 +360,7 @@ class SeasonAdmin(VersionAdmin):
 class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
@@ -446,7 +448,7 @@ class RoundAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)
 class RoundChangeAdmin(VersionAdmin):
-    pass
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Player)
@@ -454,6 +456,7 @@ class PlayerAdmin(VersionAdmin):
     search_fields = ('lichess_username',)
     list_filter = ('is_active',)
     actions = ['update_selected_player_ratings']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
     def update_selected_player_ratings(self, request, queryset):
         try:
@@ -481,6 +484,7 @@ class TeamAdmin(VersionAdmin):
     list_filter = ('season',)
     inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
@@ -496,6 +500,7 @@ class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamScore)
@@ -503,6 +508,7 @@ class TeamScoreAdmin(VersionAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
     list_filter = ('team__season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Alternate)
@@ -510,6 +516,7 @@ class AlternateAdmin(VersionAdmin):
     list_display = ('__unicode__', 'board_number')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateAssignment)
@@ -517,6 +524,7 @@ class AlternateAssignmentAdmin(VersionAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateBucket)
@@ -524,6 +532,7 @@ class AlternateBucketAdmin(VersionAdmin):
     list_display = ('__unicode__',)
     search_fields = ()
     list_filter = ('season', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPairing)
@@ -531,12 +540,14 @@ class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerPairing)
 class PlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPlayerPairing)
@@ -544,6 +555,7 @@ class TeamPlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'team_pairing', 'board_number')
     search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username', 'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.LonePlayerPairing)
@@ -551,6 +563,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Registration)
@@ -571,10 +584,8 @@ class RegistrationAdmin(VersionAdmin):
         reg = models.Registration.objects.get(pk=object_id)
         
         if request.method == 'POST':
-            form = forms.ReviewRegistrationForm(request.POST, registration=reg)
+            form = forms.ReviewRegistrationForm(request.POST)
             if form.is_valid():
-                reg.moderator_notes = form.cleaned_data['moderator_notes']
-                reg.save()
                 if 'approve' in form.data and reg.status == 'pending':
                     return redirect('admin:approve_registration', object_id=object_id)
                 elif 'reject' in form.data and reg.status == 'pending':
@@ -582,7 +593,7 @@ class RegistrationAdmin(VersionAdmin):
                 else:
                     return redirect('admin:tournament_registration_changelist')
         else:
-            form = forms.ReviewRegistrationForm(registration=reg)
+            form = forms.ReviewRegistrationForm()
         
         context = {
             'has_permission': True,
@@ -709,6 +720,7 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerAvailability)
@@ -716,21 +728,25 @@ class PlayerAvailabilityAdmin(VersionAdmin):
     list_display = ('player', 'round', 'is_available')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
 #-------------------------------------------------------------------------------
 @admin.register(models.Document)
 class DocumentAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
     list_display = ('document', 'league', 'tag', 'type')
     search_fields = ('league__name', 'tag', 'document__name')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'

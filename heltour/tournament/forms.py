@@ -71,13 +71,7 @@ class RegistrationForm(forms.ModelForm):
 
 
 class ReviewRegistrationForm(forms.Form):
-    moderator_notes = forms.CharField(required=False, max_length=4095, widget=forms.Textarea(attrs={'class':'notes'}))
-    
-    def __init__(self, *args, **kwargs):
-        reg = kwargs.pop('registration')
-        super(ReviewRegistrationForm, self).__init__(*args, **kwargs)
-        
-        self.fields['moderator_notes'].initial = reg.moderator_notes
+    pass
 
 class ApproveRegistrationForm(forms.Form):
     invite_to_slack = forms.BooleanField(required=False)

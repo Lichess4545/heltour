@@ -242,15 +242,3 @@ class RegistrationTestCase(TestCase):
         
         self.assertItemsEqual([sp], reg.other_seasons())
     
-    def test_registration_player_notes(self):
-        season = Season.objects.all()[0]
-        reg = self.create_reg(season, 'testuser')
-        
-        self.assertEqual(None, reg.player_notes())
-        
-        player = Player.objects.create(lichess_username='testuser')
-        self.assertEqual('', reg.player_notes())
-        
-        player.moderator_notes = 'some notes'
-        player.save()
-        self.assertEqual('some notes', reg.player_notes())

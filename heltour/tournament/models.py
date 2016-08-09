@@ -6,8 +6,6 @@ from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
-from django_comments.models import Comment
-from django.contrib.contenttypes.fields import GenericRelation
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -46,8 +44,6 @@ class Season(_BaseModel):
     is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
-    
-    comments = GenericRelation(Comment)
 
     class Meta:
         unique_together = ('league', 'name')
@@ -177,8 +173,6 @@ class Player(_BaseModel):
     email = models.CharField(max_length=255, blank=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    
-    moderator_notes = models.TextField(blank=True, max_length=4095)
    
     def __unicode__(self):
         if self.rating is None:
@@ -497,8 +491,6 @@ class Registration(_BaseModel):
     alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
     
-    moderator_notes = models.TextField(blank=True, max_length=4095)
-    
     def __unicode__(self):
         return "%s" % (self.lichess_username)
     
@@ -508,11 +500,8 @@ class Registration(_BaseModel):
     def other_seasons(self):
         return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
     
-    def player_notes(self):
-        try:
-            return Player.objects.filter(lichess_username__iexact=self.lichess_username)[0].moderator_notes
-        except IndexError:
-            return None
+    def player(self):
+        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):

@@ -1,5 +1,5 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
-{% load tournament_extras %}
+{% load tournament_extras comments %}
 
 {% block content %}
 <form action="" method="post">
@@ -112,15 +112,13 @@
 		</div>
 		{% endfor %}
 		
-		{% if original.player_notes %}
+		{% get_comment_list for original.player as comments %}
+		{% if comments %}
 		<div class="form-row">
-			<strong>Moderator notes for {{ original.lichess_username }}:</strong> {{ original.player_notes }}
+			<strong>Comments for {{ original.player.lichess_username }}:</strong>
+			{% render_comment_list for original.player %}
 		</div>
 		{% endif %}
-		
-		<h2>Moderator notes</h2>
-		
-		{{ form.moderator_notes }}
 	
 	</div>
 	
@@ -132,4 +130,8 @@
 		<input value="Save Notes" name="save" type="submit">
 	</div>
 </form>
+
+<h2>Comments</h2>
+{% render_comment_list for original %}
+{% render_comment_form for original %}
 {% endblock %}
