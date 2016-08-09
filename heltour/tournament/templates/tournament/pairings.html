@@ -96,7 +96,15 @@
 							</div>
 						</td>
 						<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
-						<td class="text-center text-nowrap">{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result|format_result }}</a>{% else %}{{ pairing.result|format_result }}{% endif %}</td>
+						<td class="text-center text-nowrap">
+							{% if pairing.game_link %}
+							<a href="{{ pairing.game_link }}">
+								{% if pairing.result %}{{ pairing.result|format_result }}{% else %}&#x2694;{% endif %}
+							</a>
+							{% else %}
+							{{ pairing.result|format_result }}
+							{% endif %}
+						</td>
 						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 						<th>
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">

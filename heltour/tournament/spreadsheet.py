@@ -172,6 +172,8 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
             black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
             result = sheet[pairing_row][result_col]
+            if result == u'\u2694':
+                result = ''
             date = sheet[pairing_row][date_col]
             time = sheet[pairing_row][time_col]
             scheduled_time = None
