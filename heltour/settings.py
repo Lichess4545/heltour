@@ -31,6 +31,8 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'www.lichess4545.tv',
     'lichess4545.tv',
+    'www.lichess4545.com',
+    'lichess4545.com',
     'heltour.lakin.ca',
 ]
 
