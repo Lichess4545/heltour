@@ -7,6 +7,7 @@
 
 {% block js %}
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+{% if has_win_rate_stats %}
 <script type="text/javascript">
   google.charts.load('current', {'packages':['corechart', 'bar']});
   google.charts.setOnLoadCallback(drawChart);
@@ -39,6 +40,7 @@
     chart.draw(data, options);
   }
 </script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -49,6 +51,7 @@
 				<h3>Stats</h3>
 			</div>
 			<div class="well-body">
+				{% if has_win_rate_stats %}
 				<h4>Win Rate</h4>
 				<div id="result-chart-div" style="height: 400px;"></div>
 				<table class="table" id="table-result-stats">
@@ -103,6 +106,9 @@
 					</tr>
 					{% endfor %}
 				</table>
+				{% else %}
+				<p>No stats available.</p>
+				{% endif %}
 			</div>
 		</div>
 	</div>

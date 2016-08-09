@@ -323,6 +323,7 @@ def stats(request, league_tag=None, season_id=None):
         'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
+        'has_win_rate_stats': total_counts != (0, 0, 0, 0),
         'total_rating_delta': total_rating_delta,
         'total_counts': total_counts,
         'total_percents': total_percents,
