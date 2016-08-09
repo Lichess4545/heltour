@@ -6,6 +6,8 @@ from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
+from django_comments.models import Comment
+from django.contrib.contenttypes.fields import GenericRelation
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -44,6 +46,8 @@ class Season(_BaseModel):
     is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
+    
+    comments = GenericRelation(Comment)
 
     class Meta:
         unique_together = ('league', 'name')

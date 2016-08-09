@@ -46,12 +46,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'heltour.tournament',
     'reversion',
     'bootstrap3',
     'ckeditor',
     'debug_toolbar',
     'cacheops',
+    'django_comments'
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -85,6 +87,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'heltour.wsgi.application'
+
+SITE_ID = 1
 
 
 # Database

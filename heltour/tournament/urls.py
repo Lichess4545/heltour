@@ -52,4 +52,5 @@ urlpatterns = [
     url(r'^', include(league_urlpatterns)),
     url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
     url(r'^api/', include(api_urlpatterns, 'api')),
+    url(r'^comments/', include('django_comments.urls')),
 ]

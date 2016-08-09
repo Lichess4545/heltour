@@ -16,6 +16,12 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
 from datetime import timedelta
+from django_comments.models import Comment
+from django.contrib.sites.models import Site
+
+# Customize which sections are visible 
+# admin.site.register(Comment)
+admin.site.unregister(Site)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -65,6 +71,7 @@ class SeasonAdmin(VersionAdmin):
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'edit_rosters', 'round_transition']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
     
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
