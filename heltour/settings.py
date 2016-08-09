@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+from datetime import timedelta
 
 
 ADMINS = []
@@ -135,6 +136,22 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/topics/email/
 
 DEFAULT_FROM_EMAIL = 'noreply@lichess4545.tv'
+
+
+# Celery (tasks)
+
+BROKER_URL = 'redis://localhost:6379/1'
+
+CELERYBEAT_SCHEDULE = {
+    'update-ratings': {
+        'task': 'heltour.tournament.tasks.update_player_ratings',
+        'schedule': timedelta(minutes=30),
+        'args': ()
+    },
+}
+
+CELERY_TIMEZONE = 'UTC'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/

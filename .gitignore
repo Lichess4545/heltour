@@ -5,3 +5,4 @@ heltour/live_settings.py
 .pydevproject
 /static
 certs
+celerybeat-schedule
