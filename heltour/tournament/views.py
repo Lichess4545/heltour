@@ -286,12 +286,47 @@ def result(request, pairing_id, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/match_result.html', context)
 
+def _count_results(pairings, board_num=None):
+    total = 0.0
+    counts = [0, 0, 0, 0]
+    rating_delta = 0
+    for p in pairings:
+        if p.game_link == '' or p.result == '':
+            # Don't count forfeits etc
+            continue
+        total += 1
+        if p.white.rating is not None and p.black.rating is not None:
+            rating_delta += p.white.rating - p.black.rating
+        if p.result == '1-0':
+            counts[0] += 1
+            counts[3] += 1
+        elif p.result == '0-1':
+            counts[2] += 1
+            counts[3] -= 1
+        elif p.result == '1/2-1/2':
+            counts[1] += 1
+    if total == 0:
+        return board_num, tuple(counts), (0, 0, 0, 0), 0.0
+    percents = (counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
+    return board_num, tuple(counts), percents, rating_delta / total
+
 def stats(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    
+    all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season).select_related('teamplayerpairing', 'white', 'black').nocache()
+    
+    _, total_counts, total_percents, total_rating_delta = _count_results(all_pairings)
+    boards = [_count_results(filter(lambda p: p.teamplayerpairing.board_number == n, all_pairings), n) for n in season.board_number_list()]
+    
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': season,
+        'total_rating_delta': total_rating_delta,
+        'total_counts': total_counts,
+        'total_percents': total_percents,
+        'boards': boards,
     }
     return render(request, 'tournament/stats.html', context)
 

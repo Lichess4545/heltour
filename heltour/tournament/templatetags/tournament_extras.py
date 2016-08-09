@@ -39,3 +39,7 @@ def date_or_q(datetime):
     if datetime is None:
         return '?'
     return datetime.date()
+
+@register.filter
+def percent(number, decimal_digits=0):
+    return ('{:.' + str(decimal_digits) + '%}').format(number)
