@@ -19,9 +19,9 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
     with transaction.atomic():
         
         # Open the sheets
-        sheet_rosters = doc.worksheet('Rosters').get_all_values()
-        sheet_standings = doc.worksheet('Standings').get_all_values()
-        sheet_past_rounds = doc.worksheet('Past Rounds').get_all_values()
+        sheet_rosters = _trim_cells(doc.worksheet('Rosters').get_all_values())
+        sheet_standings = _trim_cells(doc.worksheet('Standings').get_all_values())
+        sheet_past_rounds = _trim_cells(doc.worksheet('Past Rounds').get_all_values())
         
         # Read the round count
         round_ = 1
@@ -123,7 +123,7 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
                 # Read the live round data
                 round_ = rounds[last_round_number]
                 current_round_name = 'Round %d' % round_.number
-                sheet_current_round = doc.worksheet(current_round_name).get_all_values()
+                sheet_current_round = _trim_cells(doc.worksheet(current_round_name).get_all_values())
                 header_row = 0
                 pairings = []
                 pairing_rows = []
@@ -134,6 +134,12 @@ def import_season(league, url, name, rosters_only=False, exclude_live_pairings=F
 
 class SpreadsheetNotFound(Exception):
     pass
+
+def _trim_cells(sheet_array):
+    for x in range(len(sheet_array)):
+        for y in range(len(sheet_array[x])):
+            sheet_array[x][y] = sheet_array[x][y].strip()
+    return sheet_array
 
 def _parse_player_name(player_name):
     if player_name[-1:] == '*':
