@@ -143,9 +143,12 @@ def runserver():
 #-------------------------------------------------------------------------------
 def letsencrypt(real_cert=False):
     domain = "lichess4545.tv"
+    domain2 = "lichess4545.com"
     domains = [
         domain,
-        "www.{0}".format(domain)
+        "www.{0}".format(domain),
+        domain2,
+        "www.{0}".format(domain2)
     ]
     country = "CA"
     state = "Alberta"
