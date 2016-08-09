@@ -73,7 +73,7 @@
 						<td>{{ total_percents.0|percent:2 }}</td>
 						<td>{{ total_percents.1|percent:2 }}</td>
 						<td>{{ total_percents.2|percent:2 }}</td>
-						<td>{{ total_percents.3|floatformat:2 }}</td>
+						<td>{{ total_percents.3|percent:2 }}</td>
 						<td>&nbsp;</td>
 					</tr>
 					{% for board_number, board_counts, board_percents, rating_delta in boards %}
@@ -98,7 +98,7 @@
 						<td>{{ board_percents.0|percent:2 }}</td>
 						<td>{{ board_percents.1|percent:2 }}</td>
 						<td>{{ board_percents.2|percent:2 }}</td>
-						<td>{{ board_percents.3|floatformat:2 }}</td>
+						<td>{{ board_percents.3|percent:2 }}</td>
 						<td>&nbsp;</td>
 					</tr>
 					{% endfor %}
