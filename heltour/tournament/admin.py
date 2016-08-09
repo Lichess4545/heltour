@@ -15,6 +15,7 @@ from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
+from django.core.urlresolvers import reverse
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
@@ -300,9 +301,12 @@ class RoundAdmin(VersionAdmin):
                     self.message_user(request, 'Pairings already exist for the selected round.', messages.ERROR)
                 except pairinggen.PairingHasResultException:
                     self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
-                return redirect('admin:tournament_round_changelist')
+                return redirect('admin:generate_pairings', object_id=round_.pk)
         else:
             form = forms.GeneratePairingsForm()
+        
+        if not round_.publish_pairings and len(round_.teampairing_set.all()) > 0:
+            self.message_user(request, 'Unpublished pairings already exist. <a href="%s">Review</a>' % reverse('admin:review_pairings', args=[round_.pk]), messages.WARNING, 'safe')
         
         context = {
             'has_permission': True,

@@ -8,6 +8,16 @@
 {{ media }}
 {% endblock %}
 
+{% block messages %}
+{% if messages %}
+<ul class="messagelist">{% for message in messages %}
+    <li class="{{ message.tags }}">
+    {% if 'safe' in message.tags %}{{ message|safe }}{% else %}{{ message }}{% endif %}
+    </li>
+{% endfor %}</ul>
+{% endif %}
+{% endblock messages %}
+
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />{% endblock %}
 
 {% block coltype %}colM{% endblock %}
