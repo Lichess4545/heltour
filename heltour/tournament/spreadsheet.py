@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import transaction
 import re
 
-def import_4545_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
+def import_team_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
@@ -208,3 +208,15 @@ def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col)
             if match is not None:
                 pairings[i].game_link = match.group(1)
                 pairings[i].save()
+
+def import_lonewolf_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
+    scope = ['https://spreadsheets.google.com/feeds']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
+    gc = gspread.authorize(credentials)
+    try:
+        doc = gc.open_by_url(url)
+    except gspread.SpreadsheetNotFound:
+        raise SpreadsheetNotFound
+
+    with transaction.atomic():
+        pass
