@@ -213,7 +213,7 @@ if os.path.exists("/etc/heltour/production.json"):
     EMAIL_PORT = overrides.get("EMAIL_PORT", locals().get('EMAIL_PORT'))
     EMAIL_USE_TLS = overrides.get("EMAIL_USE_TLS", locals().get('EMAIL_USE_TLS'))
     EMAIL_HOST_USER = overrides.get("EMAIL_HOST_USER", locals().get('EMAIL_HOST_USER'))
-    EMAIL_HOST_PASSWORD = overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD'))
+    EMAIL_HOST_PASSWORD = str(overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD')))
     SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
     DEFAULT_FROM_EMAIL = overrides.get("DEFAULT_FROM_EMAIL", locals().get('DEFAULT_FROM_EMAIL'))
     GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
