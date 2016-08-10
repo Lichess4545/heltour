@@ -14,3 +14,6 @@ may vary slightly.
 6. `python manage.py migrate`
 7. `python manage.py createsuperuser`
 8. `fab runserver`
+
+### Optional Components
+- To generate pairings, download [JaVaFo](http://www.rrweb.org/javafo/current/javafo.jar) and set JAVAFO_COMMAND to 'java -jar /path/to/javafo.jar'
