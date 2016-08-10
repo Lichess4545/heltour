@@ -89,29 +89,8 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
                 alternates_row += 1
 
         if not rosters_only:
-<<<<<<< HEAD
 
-            # Read the team scores
-            team_name_col = sheet_standings[0].index('Team Name')
-            match_points_col = sheet_standings[0].index('Match Points')
-            game_points_col = sheet_standings[0].index('Game Points (Tbk 1)')
-            for i in range(len(teams)):
-                team_row = i + 1
-                team_name = sheet_standings[team_row][team_name_col]
-                team = Team.objects.get(season=season, name__iexact=team_name)
-                match_count = 0
-                for round_col in round_cols:
-                    if len(sheet_standings[team_row][round_col]) > 0:
-                        match_count += 1
-                match_points = int(sheet_standings[team_row][match_points_col])
-                game_points = int(float(sheet_standings[team_row][game_points_col]) * 2)
-                TeamScore.objects.create(team=team, match_count=match_count, match_points=match_points, game_points=game_points)
-
-            # Read the pairings and create the rounds
-=======
-            
             # Read the pairings
->>>>>>> df6b842858e4eff0f2ca9150ad2ebd94139afebf
             rounds = Round.objects.filter(season=season).order_by('number')
             last_round_number = 0
             pairings = []
@@ -126,14 +105,10 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
                     break
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
-<<<<<<< HEAD
-
-=======
                 round_.publish_pairings = True
                 round_.is_completed = True
                 round_.save()
-            
->>>>>>> df6b842858e4eff0f2ca9150ad2ebd94139afebf
+
             # Load game links from the input formatting on the result column range
             _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows, result_col)
 

@@ -59,7 +59,7 @@ PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/var/www/heltour.lakin.ca/current/sysadmin/backup.sh"
 env.roledefs = {
-        'live': ['lakin@heltour.lakin.ca'],
+        'live': ['lichess4545@lichess4545.com'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -102,7 +102,7 @@ def deploy():
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lakin@heltour.lakin.ca']
+                exclude=['env', 'data', 'lichess4545@lichess4545.com']
             )
 
         if confirm(colors.red("Would you like to update the dependencies?")):
@@ -114,7 +114,7 @@ def deploy():
             sudo("service heltour restart")
 
         if confirm(colors.red("Would you like to install new nginx config?")):
-            sudo("cp /var/www/heltour.lakin.ca/current/sysadmin/heltour.lakin.ca.conf /etc/nginx/sites-available/heltour.lakin.ca.conf")
+            run("cp /var/www/heltour.lakin.ca/current/sysadmin/heltour.lakin.ca.conf /etc/nginx/sites-available/heltour.lakin.ca.conf")
         if confirm(colors.red("Would you like to reload nginx?")):
             sudo("service nginx reload")
 
