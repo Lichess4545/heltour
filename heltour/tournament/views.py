@@ -7,6 +7,7 @@ from .forms import *
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 import itertools
 from django.db.models.query import Prefetch
+from django.contrib.admin.views.decorators import staff_member_required
 
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
@@ -355,6 +356,42 @@ def stats(request, league_tag=None, season_id=None):
         'boards': boards,
     }
     return render(request, 'tournament/stats.html', context)
+
+@staff_member_required
+def league_dashboard(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag, season_id)
+    season = _get_season(league_tag, season_id, allow_none=True)
+
+    default_season = _get_default_season(league_tag, allow_none=True)
+    season_list = list(Season.objects.filter(league=league).order_by('-start_date', '-id'))
+    if default_season is not None:
+        season_list.remove(default_season)
+
+    pending_reg_count = len(Registration.objects.filter(season=season, status='pending'))
+
+    team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
+    alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+    season_players = set(sp.player for sp in SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
+    team_players = set(tm.player for tm in team_members)
+    alternate_players = set(alt.season_player.player for alt in alternates)
+    unassigned_player_count = len(season_players - team_players - alternate_players)
+
+    last_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False).order_by('number').first()
+    next_round = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number').first()
+
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_id': season_id,
+        'season': season,
+        'default_season': default_season,
+        'season_list': season_list,
+        'pending_reg_count': pending_reg_count,
+        'unassigned_player_count': unassigned_player_count,
+        'last_round': last_round,
+        'next_round': next_round
+    }
+    return render(request, 'tournament/league_dashboard.html', context)
 
 def document(request, document_tag, league_tag=None, season_id=None):
     league_document = LeagueDocument.objects.get(league=_get_league(league_tag), tag=document_tag)

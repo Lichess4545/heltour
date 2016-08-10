@@ -30,6 +30,7 @@ season_urlpatterns = [
     url(r'^round/(?P<round_number>[0-9]+)/pairings/team/(?P<team_number>[0-9]+)/$', views.pairings, name='pairings_by_round_team'),
     url(r'^stats/$', views.stats, name='stats'),
     url(r'^result/(?P<pairing_id>[0-9]+)/$', views.result, name='result'),
+    url(r'^dashboard/$', views.league_dashboard, name='league_dashboard'),
 ]
 
 league_urlpatterns = [

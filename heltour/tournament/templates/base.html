@@ -1,4 +1,4 @@
-{% with "3" as static_version %}<!DOCTYPE html>
+{% with "4" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -44,7 +44,7 @@
 	        {% endif %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
-	        {% if user.is_staff %}<li><a href="/admin/">Admin</a></li>{% endif %}
+	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league_tag None %}">Dashboard</a></li>{% endif %}
 	        <li><a href="{% leagueurl 'register' league_tag None %}">Register</a></li>
 	        <li>
 	        	<a class="hidden-xs" href="https://lichess4545.slack.com/"><img class="slack-icon-plain" src="{% static 'tournament/img/slack_icon.png' %}"/ alt="Slack"></a>
