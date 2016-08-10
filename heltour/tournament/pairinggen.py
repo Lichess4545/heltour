@@ -115,11 +115,11 @@ class JavafoPairingResult:
 
 class JavafoInstance:
     '''Interfaces with javafo.jar
-    
+
     Arguments:
     total_round_count -- number of rounds in the tournament
     players -- a list of JavafoPlayer objects ordered by seed
-    
+
     Each player's list of pairings should be ordered by round number.
     '''
     def __init__(self, total_round_count, players):
@@ -127,7 +127,7 @@ class JavafoInstance:
         self.players = players
 
     '''Runs the Javafo process
-    
+
     Returns a list of JavafoPairingResult objects in the order they should be displayed.
     '''
     def run(self):

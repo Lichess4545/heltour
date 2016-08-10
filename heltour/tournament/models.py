@@ -23,10 +23,20 @@ class _BaseModel(models.Model):
     class Meta:
         abstract = True
 
+COMPETITOR_TYPE_OPTIONS = (
+    ('team', 'Team'),
+    ('individual', 'Individual'),
+)
+PAIRING_TYPE_OPTIONS = (
+    ('swiss-dutch', 'Swiss Tournament: Dutch Algorithm'),
+)
+
 #-------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     tag = models.CharField(max_length=31, unique=True, validators=[tag_validator], help_text='The league will be accessible at /{league_tag}/')
+    competitor_type = models.CharField(max_length=32, choices=COMPETITOR_TYPE_OPTIONS)
+    pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
 
