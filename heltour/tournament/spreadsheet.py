@@ -19,9 +19,9 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
     with transaction.atomic():
 
         # Open the sheets
-        sheet_rosters = doc.worksheet('Rosters').get_all_values()
-        sheet_standings = doc.worksheet('Standings').get_all_values()
-        sheet_past_rounds = doc.worksheet('Past Rounds').get_all_values()
+        sheet_rosters = _trim_cells(doc.worksheet('Rosters').get_all_values())
+        sheet_standings = _trim_cells(doc.worksheet('Standings').get_all_values())
+        sheet_past_rounds = _trim_cells(doc.worksheet('Past Rounds').get_all_values())
 
         # Read the round count
         round_ = 1
@@ -57,7 +57,9 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
             team_name = sheet_rosters[team_name_row][team_name_col]
             if len(team_name) == 0:
                 break
-            teams.append(Team.objects.create(season=season, number=len(teams) + 1, name=team_name))
+            team = Team.objects.create(season=season, number=len(teams) + 1, name=team_name)
+            TeamScore.objects.create(team=team)
+            teams.append(team)
             team_name_row += 1
 
         # Read the team members and alternates
@@ -87,6 +89,7 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
                 alternates_row += 1
 
         if not rosters_only:
+<<<<<<< HEAD
 
             # Read the team scores
             team_name_col = sheet_standings[0].index('Team Name')
@@ -105,6 +108,10 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
                 TeamScore.objects.create(team=team, match_count=match_count, match_points=match_points, game_points=game_points)
 
             # Read the pairings and create the rounds
+=======
+            
+            # Read the pairings
+>>>>>>> df6b842858e4eff0f2ca9150ad2ebd94139afebf
             rounds = Round.objects.filter(season=season).order_by('number')
             last_round_number = 0
             pairings = []
@@ -117,11 +124,16 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
                     # No more rounds in this sheet
                     last_round_number = round_number - 1
                     break
-                round_.is_completed=True
-                round_.publish_pairings=True
                 header_row = round_start_row + 1
                 result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
+<<<<<<< HEAD
 
+=======
+                round_.publish_pairings = True
+                round_.is_completed = True
+                round_.save()
+            
+>>>>>>> df6b842858e4eff0f2ca9150ad2ebd94139afebf
             # Load game links from the input formatting on the result column range
             _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows, result_col)
 
@@ -135,17 +147,24 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
 
                 # Read the live round data
                 round_ = rounds[last_round_number]
-                round_.publish_pairings = True
                 current_round_name = 'Round %d' % round_.number
-                sheet_current_round = doc.worksheet(current_round_name).get_all_values()
+                sheet_current_round = _trim_cells(doc.worksheet(current_round_name).get_all_values())
                 header_row = 0
                 pairings = []
                 pairing_rows = []
                 result_col = _read_team_pairings(sheet_current_round, header_row, season, teams, round_, pairings, pairing_rows)
                 _update_pairing_game_links(doc.worksheet(current_round_name), pairings, pairing_rows, result_col)
+                round_.publish_pairings = True
+                round_.save()
 
 class SpreadsheetNotFound(Exception):
     pass
+
+def _trim_cells(sheet_array):
+    for x in range(len(sheet_array)):
+        for y in range(len(sheet_array[x])):
+            sheet_array[x][y] = sheet_array[x][y].strip()
+    return sheet_array
 
 def _parse_player_name(player_name):
     if player_name[-1:] == '*':
@@ -178,6 +197,8 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
             black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
             result = sheet[pairing_row][result_col]
+            if result == u'\u2694':
+                result = ''
             date = sheet[pairing_row][date_col]
             time = sheet[pairing_row][time_col]
             scheduled_time = None

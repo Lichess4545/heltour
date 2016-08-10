@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+from datetime import timedelta
 
 
 ADMINS = []
@@ -30,6 +31,8 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'www.lichess4545.tv',
     'lichess4545.tv',
+    'www.lichess4545.com',
+    'lichess4545.com',
     'heltour.lakin.ca',
 ]
 
@@ -43,12 +46,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'heltour.tournament',
     'reversion',
     'bootstrap3',
     'ckeditor',
     'debug_toolbar',
     'cacheops',
+    'django_comments'
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -82,6 +87,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'heltour.wsgi.application'
+
+SITE_ID = 1
 
 
 # Database
@@ -129,6 +136,27 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+
+# Email
+# https://docs.djangoproject.com/en/1.10/topics/email/
+
+DEFAULT_FROM_EMAIL = 'noreply@lichess4545.tv'
+
+
+# Celery (tasks)
+
+BROKER_URL = 'redis://localhost:6379/1'
+
+CELERYBEAT_SCHEDULE = {
+    'update-ratings': {
+        'task': 'heltour.tournament.tasks.update_player_ratings',
+        'schedule': timedelta(minutes=30),
+        'args': ()
+    },
+}
+
+CELERY_TIMEZONE = 'UTC'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -187,5 +215,6 @@ if os.path.exists("/etc/heltour/production.json"):
     EMAIL_HOST_USER = overrides.get("EMAIL_HOST_USER", locals().get('EMAIL_HOST_USER'))
     EMAIL_HOST_PASSWORD = overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD'))
     SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
+    DEFAULT_FROM_EMAIL = overrides.get("DEFAULT_FROM_EMAIL", locals().get('DEFAULT_FROM_EMAIL'))
     GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
     SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)

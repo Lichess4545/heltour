@@ -11,11 +11,23 @@ import pairinggen
 import spreadsheet
 from django.db.models.query import Prefetch
 from django.db import transaction
+from smtplib import SMTPException
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from heltour import settings
+from datetime import timedelta
+from django_comments.models import Comment
+from django.contrib.sites.models import Site
+
+# Customize which sections are visible 
+# admin.site.register(Comment)
+admin.site.unregister(Site)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.League)
 class LeagueAdmin(VersionAdmin):
     actions = ['import_season']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -65,66 +77,148 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'edit_rosters']
+    actions = ['update_board_order_by_rating', 'edit_rosters', 'round_transition']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/edit_rosters/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)), name='edit_rosters'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.player_info_view)), name='edit_rosters_player_info'),
+            url(r'^(?P<object_id>[0-9]+)/round_transition/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)), name='round_transition'),
         ]
         return my_urls + urls
+
+    def round_transition(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Rounds can only be transitioned one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:round_transition', object_id=queryset[0].pk)
+
+    def round_transition_view(self, request, object_id):
+        season = models.Season.objects.get(pk=object_id)
+
+        round_to_close = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
+        round_to_open = season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
+
+        if request.method == 'POST':
+            form = forms.RoundTransitionForm(round_to_close, round_to_open, request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    if 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number:
+                        if form.cleaned_data['complete_round']:
+                            round_to_close.is_completed = True
+                            round_to_close.save()
+                            self.message_user(request, 'Round %d set as completed.' % round_to_close.number, messages.INFO)
+                    if 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number:
+                        if form.cleaned_data['update_board_order']:
+                            try:
+                                self.do_update_board_order(season)
+                                self.message_user(request, 'Board order updated.', messages.INFO)
+                            except IndexError:
+                                self.message_user(request, 'Error updating board order.', messages.ERROR)
+                                return redirect('admin:round_transition', object_id)
+                        if form.cleaned_data['generate_pairings']:
+                            try:
+                                pairinggen.generate_pairings(round_to_open, overwrite=False)
+                                round_to_open.publish_pairings = False
+                                round_to_open.save()
+                                self.message_user(request, 'Pairings generated.', messages.INFO)
+                                return redirect('admin:review_pairings', round_to_open.pk) 
+                            except pairinggen.PairingsExistException:
+                                self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)
+                                return redirect('admin:review_pairings', round_to_open.pk)
+                            except pairinggen.PairingHasResultException:
+                                self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
+                    return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.RoundTransitionForm(round_to_close, round_to_open)
+
+        if round_to_close is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
+            self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, self._time_from_now(round_to_close.end_date - timezone.now())), messages.WARNING)
+        elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+            self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, self._time_from_now(round_to_open.start_date - timezone.now())), messages.WARNING)
+
+        if round_to_close is not None:
+            incomplete_pairings = models.PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
+            if len(incomplete_pairings) > 0:
+                self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Round transition',
+            'form': form
+        }
+
+        return render(request, 'tournament/admin/round_transition.html', context)
+
+    def _time_from_now(self, delta):
+        if delta.days > 0:
+            if delta.days == 1:
+                return '1 day'
+            else:
+                return '%d days' % delta.days
+        else:
+            hours = delta.seconds / 3600
+            if hours == 1:
+                return '1 hour'
+            else:
+                return '%d hours' % hours
 
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
-                # Update board order in teams
-                for team in season.team_set.all():
-                    members = list(team.teammember_set.all())
-                    members.sort(key=lambda m: -m.player.rating)
-                    occupied_boards = [m.board_number for m in members]
-                    occupied_boards.sort()
-                    for i, board_number in enumerate(occupied_boards):
-                        m = members[i]
-                        models.TeamMember.objects.update_or_create(team=team, board_number=board_number, defaults={ 'player': m.player, 'is_captain': m.is_captain, 'is_vice_captain': m.is_vice_captain })
-
-                # Update alternate buckets
-                members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
-                ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
-                # Exclude highest/lowest values if possible (to avoid outliers skewing the average)
-                average_by_board = [sum(r_list[1:-1]) / (len(r_list) - 2) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
-                boundaries = []
-                for i in range(season.boards + 1):
-                    # The logic here is a bit complicated in order to handle cases where there are no players for a board
-                    left_i = i - 1
-                    while left_i >= 0 and average_by_board[left_i] is None:
-                        left_i -= 1
-                    left = average_by_board[left_i] if left_i >= 0 else None
-                    right_i = i
-                    while right_i < season.boards and average_by_board[right_i] is None:
-                        right_i += 1
-                    right = average_by_board[right_i] if right_i < season.boards else None
-                    if left is None or right is None:
-                        boundaries.append(None)
-                    else:
-                        boundaries.append((left + right) / 2)
-                for board_num in range(1, season.boards + 1):
-                    models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
-
-                # Assign alternates to buckets
-                for alt in models.Alternate.objects.filter(season_player__season=season):
-                    alt.update_board_number()
-
+                self.do_update_board_order(season)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)
 
+    def do_update_board_order(self, season):
+        # Update board order in teams
+        for team in season.team_set.all():
+            members = list(team.teammember_set.all())
+            members.sort(key=lambda m: -m.player.rating)
+            occupied_boards = [m.board_number for m in members]
+            occupied_boards.sort()
+            for i, board_number in enumerate(occupied_boards):
+                m = members[i]
+                models.TeamMember.objects.update_or_create(team=team, board_number=board_number, defaults={ 'player': m.player, 'is_captain': m.is_captain, 'is_vice_captain': m.is_vice_captain })
+
+        # Update alternate buckets
+        members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
+        ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+        # Exclude highest/lowest values if possible (to avoid outliers skewing the average)
+        average_by_board = [sum(r_list[1:-1]) / (len(r_list) - 2) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
+        boundaries = []
+        for i in range(season.boards + 1):
+            # The logic here is a bit complicated in order to handle cases where there are no players for a board
+            left_i = i - 1
+            while left_i >= 0 and average_by_board[left_i] is None:
+                left_i -= 1
+            left = average_by_board[left_i] if left_i >= 0 else None
+            right_i = i
+            while right_i < season.boards and average_by_board[right_i] is None:
+                right_i += 1
+            right = average_by_board[right_i] if right_i < season.boards else None
+            if left is None or right is None:
+                boundaries.append(None)
+            else:
+                boundaries.append((left + right) / 2)
+        for board_num in range(1, season.boards + 1):
+            models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
+
+        # Assign alternates to buckets
+        for alt in models.Alternate.objects.filter(season_player__season=season):
+            alt.update_board_number()
+
     def edit_rosters(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Rosters can only be edited one season at a time', messages.ERROR)
+            self.message_user(request, 'Rosters can only be edited one season at a time.', messages.ERROR)
             return
         return redirect('admin:edit_rosters', object_id=queryset[0].pk)
-
 
     def player_info_view(self, request, object_id, player_name):
         season = models.Season.objects.get(pk=object_id)
@@ -272,6 +366,7 @@ class SeasonAdmin(VersionAdmin):
 class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
@@ -297,12 +392,16 @@ class RoundAdmin(VersionAdmin):
                     pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
                     round_.publish_pairings = False
                     round_.save()
+                    self.message_user(request, 'Pairings generated.', messages.INFO)
                     return redirect('admin:review_pairings', object_id)
                 except pairinggen.PairingsExistException:
+                    if not round_.publish_pairings:
+                        self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)
+                        return redirect('admin:review_pairings', object_id)
                     self.message_user(request, 'Pairings already exist for the selected round.', messages.ERROR)
                 except pairinggen.PairingHasResultException:
                     self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
-                return redirect('admin:tournament_round_changelist')
+                return redirect('admin:generate_pairings', object_id=round_.pk)
         else:
             form = forms.GeneratePairingsForm()
 
@@ -355,7 +454,7 @@ class RoundAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)
 class RoundChangeAdmin(VersionAdmin):
-    pass
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Player)
@@ -363,6 +462,7 @@ class PlayerAdmin(VersionAdmin):
     search_fields = ('lichess_username',)
     list_filter = ('is_active',)
     actions = ['update_selected_player_ratings']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def update_selected_player_ratings(self, request, queryset):
         try:
@@ -390,6 +490,7 @@ class TeamAdmin(VersionAdmin):
     list_filter = ('season',)
     inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
@@ -405,6 +506,7 @@ class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamScore)
@@ -412,6 +514,7 @@ class TeamScoreAdmin(VersionAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
     list_filter = ('team__season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Alternate)
@@ -419,6 +522,7 @@ class AlternateAdmin(VersionAdmin):
     list_display = ('__unicode__', 'board_number')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateAssignment)
@@ -426,6 +530,7 @@ class AlternateAssignmentAdmin(VersionAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateBucket)
@@ -433,6 +538,7 @@ class AlternateBucketAdmin(VersionAdmin):
     list_display = ('__unicode__',)
     search_fields = ()
     list_filter = ('season', 'board_number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPairing)
@@ -440,12 +546,14 @@ class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerPairing)
 class PlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPlayerPairing)
@@ -453,6 +561,7 @@ class TeamPlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'team_pairing', 'board_number')
     search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username', 'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.LonePlayerPairing)
@@ -460,6 +569,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Registration)
@@ -480,10 +590,8 @@ class RegistrationAdmin(VersionAdmin):
         reg = models.Registration.objects.get(pk=object_id)
 
         if request.method == 'POST':
-            form = forms.ReviewRegistrationForm(request.POST, registration=reg)
+            form = forms.ReviewRegistrationForm(request.POST)
             if form.is_valid():
-                reg.moderator_notes = form.cleaned_data['moderator_notes']
-                reg.save()
                 if 'approve' in form.data and reg.status == 'pending':
                     return redirect('admin:approve_registration', object_id=object_id)
                 elif 'reject' in form.data and reg.status == 'pending':
@@ -491,7 +599,7 @@ class RegistrationAdmin(VersionAdmin):
                 else:
                     return redirect('admin:tournament_registration_changelist')
         else:
-            form = forms.ReviewRegistrationForm(registration=reg)
+            form = forms.ReviewRegistrationForm()
 
         context = {
             'has_permission': True,
@@ -525,7 +633,21 @@ class RegistrationAdmin(VersionAdmin):
                             season=reg.season,
                             defaults={'registration': reg, 'is_active': True}
                         )
-                        # TODO: Send confirmation email, etc. based on form input
+                        if form.cleaned_data['send_confirm_email']:
+                            try:
+                                subject = render_to_string('tournament/emails/registration_approved_subject.txt', {'reg': reg})
+                                msg_plain = render_to_string('tournament/emails/registration_approved.txt', {'reg': reg})
+                                msg_html = render_to_string('tournament/emails/registration_approved.html', {'reg': reg})
+                                send_mail(
+                                    subject,
+                                    msg_plain,
+                                    settings.DEFAULT_FROM_EMAIL,
+                                    [reg.email],
+                                    html_message=msg_html,
+                                )
+                                self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
+                            except SMTPException:
+                                self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
                         if form.cleaned_data['invite_to_slack']:
                             try:
                                 slackapi.invite_user(reg.email)
@@ -604,6 +726,7 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerAvailability)
@@ -611,21 +734,25 @@ class PlayerAvailabilityAdmin(VersionAdmin):
     list_display = ('player', 'round', 'is_available')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Document)
 class DocumentAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
     list_display = ('document', 'league', 'tag', 'type')
     search_fields = ('league__name', 'tag', 'document__name')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'

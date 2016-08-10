@@ -1,0 +1,45 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+
+{% block content %}
+<form action="" method="post">
+	{% csrf_token %}
+	<div class="aligned">
+		{% if not form.round_to_close and not form.round_to_open %}
+		<p>Nothing to do.</p>
+		{% endif %}
+		{% if form.round_to_close %}
+		{{ form.round_to_close }}
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.complete_round }}
+				<label for="{{ form.complete_round.id_for_label }}" class="vCheckboxLabel">
+					{{ form.complete_round.label }}
+				</label>
+			</div>
+		</div>
+		{% endif %}
+		{% if form.round_to_open %}
+		{{ form.round_to_open }}
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.update_board_order }}
+				<label for="{{ form.update_board_order.id_for_label }}" class="vCheckboxLabel">
+					{{ form.update_board_order.label }}
+				</label>
+			</div>
+		</div>
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.generate_pairings }}
+				<label for="{{ form.generate_pairings.id_for_label }}" class="vCheckboxLabel">
+					{{ form.generate_pairings.label }}
+				</label>
+			</div>
+		</div>
+		{% endif %}
+	</div>
+	<div class="submit-row">
+		<input class="default" value="Go" name="confirm" type="submit">
+	</div>
+</form>
+{% endblock %}

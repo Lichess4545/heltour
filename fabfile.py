@@ -87,6 +87,7 @@ def update():
         python_dependency(repo.name, PYTHON_VERSION)
 
     python_dependency('heltour', PYTHON_VERSION)
+    local("pip install -r {}".format(project_relative("requirements.txt")))
 
 up = update # defines 'up' as the shortcut for 'update'
 
@@ -142,9 +143,12 @@ def runserver():
 #-------------------------------------------------------------------------------
 def letsencrypt(real_cert=False):
     domain = "lichess4545.tv"
+    domain2 = "lichess4545.com"
     domains = [
         domain,
-        "www.{0}".format(domain)
+        "www.{0}".format(domain),
+        domain2,
+        "www.{0}".format(domain2)
     ]
     country = "CA"
     state = "Alberta"
@@ -198,7 +202,7 @@ def letsencrypt(real_cert=False):
     if real_cert and confirm("Install cert?"):
         privkey = os.path.join(outdir, "privkey1.pem")
         chain = os.path.join(outdir, "0001_chain.pem")
-        privkey_target = "/var/ssl/lichess4545.tv.key"
-        chain_target = "/var/ssl/lichess4545.tv.pem"
+        privkey_target = "/var/ssl/lichess4545.com.key"
+        chain_target = "/var/ssl/lichess4545.com.pem"
         put(privkey, privkey_target)
         put(chain, chain_target)

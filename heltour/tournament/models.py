@@ -5,6 +5,7 @@ from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
+from django.utils import timezone
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -117,6 +118,9 @@ class Season(_BaseModel):
             match_points += 1
         score_dict[(team, round_)] = (match_count, match_points, game_points, points)
 
+    def is_started(self):
+        return self.start_date is not None and self.start_date < timezone.now()
+
     def end_date(self):
         last_round = self.round_set.filter(number=self.rounds).first()
         if last_round is not None:
@@ -179,8 +183,6 @@ class Player(_BaseModel):
     email = models.CharField(max_length=255, blank=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-
-    moderator_notes = models.TextField(blank=True, max_length=4095)
 
     def __unicode__(self):
         if self.rating is None:
@@ -499,8 +501,6 @@ class Registration(_BaseModel):
     alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    moderator_notes = models.TextField(blank=True, max_length=4095)
-
     def __unicode__(self):
         return "%s" % (self.lichess_username)
 
@@ -510,11 +510,8 @@ class Registration(_BaseModel):
     def other_seasons(self):
         return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
 
-    def player_notes(self):
-        try:
-            return Player.objects.filter(lichess_username__iexact=self.lichess_username)[0].moderator_notes
-        except IndexError:
-            return None
+    def player(self):
+        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
@@ -550,10 +547,12 @@ class Alternate(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     def update_board_number(self):
-        buckets = AlternateBucket.objects.filter(season=self.season)
-        if len(buckets) == self.season.boards:
+        season = self.season_player.season
+        player = self.season_player.player
+        buckets = AlternateBucket.objects.filter(season=season)
+        if len(buckets) == season.boards:
             for b in buckets:
-                if (b.max_rating is None or b.max_rating >= self.player.rating) and (b.min_rating is None or self.player.rating > b.min_rating):
+                if (b.max_rating is None or b.max_rating >= player.rating) and (b.min_rating is None or player.rating > b.min_rating):
                     self.board_number = b.board_number
                     self.save()
 
@@ -648,6 +647,7 @@ LEAGUE_DOCUMENT_TYPES = (
     ('faq', 'FAQ'),
     ('rules', 'Rules'),
     ('intro', 'Intro'),
+    ('slack-welcome', 'Slack Welcome'),
 )
 
 #-------------------------------------------------------------------------------

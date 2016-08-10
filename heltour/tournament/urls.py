@@ -45,10 +45,12 @@ api_urlpatterns = [
     url(r'^get_roster/$', api.get_roster, name='get_roster'),
     url(r'^assign_alternate/$', api.assign_alternate, name='assign_alternate'),
     url(r'^set_availability/$', api.set_availability, name='set_availability'),
+    url(r'^league_document/$', api.league_document, name='league_document'),
 ]
 
 urlpatterns = [
     url(r'^', include(league_urlpatterns)),
     url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
     url(r'^api/', include(api_urlpatterns, 'api')),
+    url(r'^comments/', include('django_comments.urls')),
 ]

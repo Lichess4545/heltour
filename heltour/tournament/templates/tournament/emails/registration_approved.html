@@ -1,0 +1,20 @@
+{% load tournament_extras %}
+<p>Hi {{ reg.lichess_username }}!</p>
+
+<p>Your registration for {{ reg.season.name }} has been approved.</p>
+
+<p>
+Please join us on Slack - if you aren't already signed up you should receive an invitation soon.
+<br/>
+{% if reg.season.is_started %}The season has already begun, so you'll probably start as an alternate.{% else %}The season starts on {{ reg.season.start_date|date_or_q }}. You'll either be assigned to a team or start as an alternate.{% endif %} 
+</p>
+
+<p>
+For more information, or if you have any questions, please check out <a href="https://lichess4545.slack.com/">our Slack</a>.
+</p>
+
+<p>
+Regards,
+<br/>
+The {{ reg.season.league.name }} Mods
+</p>

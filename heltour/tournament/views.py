@@ -31,17 +31,13 @@ def league_home(request, league_tag=None, season_id=None):
 
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
-    registration_season_end_date = None
-    if registration_season is not None and registration_season.start_date is not None and registration_season.start_date < timezone.now():
-        registration_season_end_date = registration_season.end_date()
-
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
 
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
-    current_games = PlayerPairing.objects.filter(result=u'\u2694', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max).exclude(game_link='').order_by('scheduled_time')
+    current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max).exclude(game_link='').order_by('scheduled_time')
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max).order_by('scheduled_time')
@@ -57,7 +53,6 @@ def league_home(request, league_tag=None, season_id=None):
         'intro_doc': intro_doc,
         'can_edit_document': request.user.has_perm('tournament.change_document'),
         'registration_season': registration_season,
-        'registration_season_end_date': registration_season_end_date,
         'current_games': current_games,
         'upcoming_games': upcoming_games,
     }
@@ -290,12 +285,48 @@ def result(request, pairing_id, league_tag=None, season_id=None):
     }
     return render(request, 'tournament/match_result.html', context)
 
+def _count_results(pairings, board_num=None):
+    total = 0.0
+    counts = [0, 0, 0, 0]
+    rating_delta = 0
+    for p in pairings:
+        if p.game_link == '' or p.result == '':
+            # Don't count forfeits etc
+            continue
+        total += 1
+        if p.white.rating is not None and p.black.rating is not None:
+            rating_delta += p.white.rating - p.black.rating
+        if p.result == '1-0':
+            counts[0] += 1
+            counts[3] += 1
+        elif p.result == '0-1':
+            counts[2] += 1
+            counts[3] -= 1
+        elif p.result == '1/2-1/2':
+            counts[1] += 1
+    if total == 0:
+        return board_num, tuple(counts), (0, 0, 0, 0), 0.0
+    percents = (counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
+    return board_num, tuple(counts), percents, rating_delta / total
+
 def stats(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    
+    all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season).select_related('teamplayerpairing', 'white', 'black').nocache()
+    
+    _, total_counts, total_percents, total_rating_delta = _count_results(all_pairings)
+    boards = [_count_results(filter(lambda p: p.teamplayerpairing.board_number == n, all_pairings), n) for n in season.board_number_list()]
+    
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
+        'season': season,
+        'has_win_rate_stats': total_counts != (0, 0, 0, 0),
+        'total_rating_delta': total_rating_delta,
+        'total_counts': total_counts,
+        'total_percents': total_percents,
+        'boards': boards,
     }
     return render(request, 'tournament/stats.html', context)
 

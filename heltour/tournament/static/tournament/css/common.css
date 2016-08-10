@@ -280,6 +280,11 @@ body {
 	background-color: #ffabab;
 }
 
+#table-result-stats {
+	max-width: 700px;
+	table-layout: fixed;
+}
+
 @media (max-width: 992px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;
