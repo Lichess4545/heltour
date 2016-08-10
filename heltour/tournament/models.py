@@ -326,20 +326,13 @@ class TeamPairing(_BaseModel):
         self.black_points = 0
         for team_player_pairing in self.teamplayerpairing_set.all():
             player_pairing = team_player_pairing.player_pairing
-            result = player_pairing.result
-            if result == '1-0':
-                if team_player_pairing.board_number % 2 == 1:
-                    self.white_points += 2
-                else:
-                    self.black_points += 2
-            elif result == '0-1':
-                if team_player_pairing.board_number % 2 == 1:
-                    self.black_points += 2
-                else:
-                    self.white_points += 2
-            elif result == '1/2-1/2':
-                self.white_points += 1
-                self.black_points += 1
+
+            if team_player_pairing.board_number % 2 == 1:
+                self.white_points += (player_pairing.white_score() or 0) * 2
+                self.black_points += (player_pairing.black_score() or 0) * 2
+            else:
+                self.white_points += (player_pairing.black_score() or 0) * 2
+                self.black_points += (player_pairing.white_score() or 0) * 2
 
     def white_points_display(self):
         return "%g" % (self.white_points / 2.0)
