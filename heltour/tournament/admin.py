@@ -147,12 +147,8 @@ class SeasonAdmin(VersionAdmin):
             time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
             self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING)
         elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
-<<<<<<< HEAD
-            self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, self._time_from_now(round_to_open.start_date - timezone.now())), messages.WARNING)
-=======
             time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
->>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         if round_to_close is not None:
             incomplete_pairings = models.PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
@@ -200,13 +196,9 @@ class SeasonAdmin(VersionAdmin):
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
                 m = members[i]
-<<<<<<< HEAD
-                models.TeamMember.objects.update_or_create(team=team, board_number=board_number, defaults={ 'player': m.player, 'is_captain': m.is_captain, 'is_vice_captain': m.is_vice_captain })
-=======
                 models.TeamMember.objects.update_or_create(team=team, board_number=board_number, \
                                                            defaults={ 'player': m.player, 'is_captain': m.is_captain,
                                                                       'is_vice_captain': m.is_vice_captain })
->>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         # Update alternate buckets
         members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
@@ -229,12 +221,8 @@ class SeasonAdmin(VersionAdmin):
             else:
                 boundaries.append((left + right) / 2)
         for board_num in range(1, season.boards + 1):
-<<<<<<< HEAD
-            models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
-=======
             models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num,
                                                             defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
->>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         # Assign alternates to buckets
         for alt in models.Alternate.objects.filter(season_player__season=season):
@@ -336,14 +324,10 @@ class SeasonAdmin(VersionAdmin):
         ).nocache()
         team_members = models.TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
-<<<<<<< HEAD
-        alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration').nocache(), key=lambda alt: alt.priority_date())) for n in board_numbers]
-=======
         alternates_by_board = [(n, sorted(
                                           alternates.filter(board_number=n).select_related('season_player__registration').nocache(),
                                           key=lambda alt: alt.priority_date()
                                          )) for n in board_numbers]
->>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
         team_players = set(tm.player for tm in team_members)
