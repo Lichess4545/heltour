@@ -17,7 +17,9 @@
     var data = google.visualization.arrayToDataTable([
         ['Board', 'White Win', { role: 'style' }, 'Draw', { role: 'style' }, 'Black Win', { role: 'style' }],
         {% for board_number, board_counts, board_percents, rating_delta in boards %}
-        ['Board {{ board_number }}', {{ board_percents.0 }}, 'color: #eee; stroke-width: 1; stroke-color: #000', {{ board_percents.1 }}, 'color: #999; stroke-width: 1; stroke-color: #000', {{ board_percents.2 }}, 'color: #000; stroke-width: 1; stroke-color: #000'],
+        ['Board {{ board_number }}', {{ board_percents.0 }}, 'color: #eee; stroke-width: 1; stroke-color: #000',
+                                     {{ board_percents.1 }}, 'color: #999; stroke-width: 1; stroke-color: #000',
+                                     {{ board_percents.2 }}, 'color: #000; stroke-width: 1; stroke-color: #000'],
         {% endfor %}
     ]);
 	var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});

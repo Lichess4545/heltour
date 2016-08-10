@@ -49,13 +49,20 @@ class RegistrationForm(forms.ModelForm):
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
         weeks = [(i, 'Week %s' % i) for i in range(1, self.season.rounds + 1)]
-        self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would be unable to play?'), choices=weeks, widget=forms.CheckboxSelectMultiple)
-        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 games of classical chess on Lichess?'), help_text=_(u'If no, this must be fulfilled ASAP.'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
-        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would be unable to play?'),
+                                                                     choices=weeks, widget=forms.CheckboxSelectMultiple)
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 games of classical chess on Lichess?'),
+                                                                    help_text=_(u'If no, this must be fulfilled ASAP.'), choices=YES_NO_OPTIONS,
+                                                                    widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS,
+                                                                       widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['previous_season_alternate'].choices = PREVIOUS_SEASON_ALTERNATE_OPTIONS
-        self.fields['can_commit'] = forms.TypedChoiceField(required=True, label=_(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        self.fields['can_commit'] = forms.TypedChoiceField(required=True, label=_(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'),
+                                                           choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         # TODO: This rules link should be specified in the league object.
-        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the 45|45 League?'), help_text=_(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'), choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the 45|45 League?'),
+                                                                help_text=_(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'),
+                                                                choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
 
     def save(self, commit=True, *args, **kwargs):
@@ -76,19 +83,19 @@ class ReviewRegistrationForm(forms.Form):
 class ApproveRegistrationForm(forms.Form):
     invite_to_slack = forms.BooleanField(required=False)
     send_confirm_email = forms.BooleanField(required=False, initial=True)
-    
+
     def __init__(self, *args, **kwargs):
         reg = kwargs.pop('registration')
         super(ApproveRegistrationForm, self).__init__(*args, **kwargs)
-        
+
         self.fields['invite_to_slack'].initial = not reg.already_in_slack_group
 
 class RejectRegistrationForm(forms.Form):
-    
+
     def __init__(self, *args, **kwargs):
         reg = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
-    
+
 class ImportSeasonForm(forms.Form):
     spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
     season_name = forms.CharField(label='Season name', max_length=255)
@@ -107,11 +114,11 @@ class EditRostersForm(forms.Form):
 class RoundTransitionForm(forms.Form):
     def __init__(self, round_to_close, round_to_open, *args, **kwargs):
         super(RoundTransitionForm, self).__init__(*args, **kwargs)
-        
+
         if round_to_close is not None:
             self.fields['complete_round'] = forms.BooleanField(initial=True, required=False, label='Set round %d as completed' % round_to_close.number)
             self.fields['round_to_close'] = forms.IntegerField(initial=round_to_close.number, widget=forms.HiddenInput)
-            
+
         if round_to_open is not None:
             self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
             self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)

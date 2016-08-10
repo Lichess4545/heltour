@@ -16,7 +16,7 @@ def api_token_required(view_func):
         match = re.match('\s*Token\s*(\w+)\s*', request.META['HTTP_AUTHORIZATION'])
         if match is None or len(ApiKey.objects.filter(secret_token=match.group(1))) == 0:
             return HttpResponse('Unauthorized', status=401)
-        return view_func(request, *args, **kwargs)     
+        return view_func(request, *args, **kwargs)
     return _wrapped_view_func
 
 @api_token_required
@@ -30,22 +30,22 @@ def find_pairing(request):
         black = request.GET.get('black', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     try:
         round_ = _get_latest_round(season_id)
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
-    
+
     pairings = _get_pairings(round_, player, white, black, True)
-    
+
     if len(pairings) == 0:
         return JsonResponse({'pairing': None, 'error': 'not_found'})
     if len(pairings) > 1:
         return JsonResponse({'pairing': None, 'error': 'ambiguous'})
-    
+
     team_player_pairing = pairings[0]
     player_pairing = team_player_pairing.player_pairing
-    
+
     return JsonResponse({'pairing': {
         'season_id': team_player_pairing.team_pairing.round.season.id,
         'white_team': team_player_pairing.white_team().name,
@@ -74,7 +74,7 @@ def update_pairing(request):
         result = request.POST.get('result', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     try:
         round_ = _get_latest_round(season_id)
     except IndexError:
@@ -86,16 +86,16 @@ def update_pairing(request):
         return JsonResponse({'updated': 0, 'error': 'not_found'})
     if len(pairings) > 1:
         return JsonResponse({'updated': 0, 'error': 'ambiguous'})
-    
+
     team_player_pairing = pairings[0]
     player_pairing = team_player_pairing.player_pairing
-    
+
     if game_link is not None:
         player_pairing.game_link = game_link
     if result is not None:
         player_pairing.result = result
     player_pairing.save()
-    
+
     return JsonResponse({'updated': 1})
 
 def _get_latest_round(season_id):
@@ -107,7 +107,9 @@ def _get_latest_round(season_id):
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
     if player is not None:
-        pairings = pairings.filter(player_pairing__white__lichess_username__iexact=player) | pairings.filter(player_pairing__black__lichess_username__iexact=player)
+        white_pairings = pairings.filter(player_pairing__white__lichess_username__iexact=player)
+        black_pairings = pairings.filter(player_pairing__black__lichess_username__iexact=player)
+        pairings = white_pairings | black_pairings
     pairings_snapshot = pairings
     if white is not None:
         pairings = pairings.filter(player_pairing__white__lichess_username__iexact=white)
@@ -130,7 +132,7 @@ def get_roster(request):
             season_id = int(season_id)
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     try:
         seasons = Season.objects.order_by('-start_date', '-id')
         if league_tag is not None:
@@ -139,14 +141,14 @@ def get_roster(request):
             seasons = seasons.filter(pk=season_id)
         else:
             seasons = seasons.filter(is_active=True)
-        
+
         season = seasons[0]
     except IndexError:
         return JsonResponse({'season_id': None, 'players': None, 'teams': None, 'error': 'no_data'})
-    
+
     season_players = season.seasonplayer_set.all()
     teams = season.team_set.order_by('number').all()
-    
+
     return JsonResponse({
         'season_id': season.pk,
         'players': [{
@@ -164,7 +166,10 @@ def get_roster(request):
         } for team in teams],
         'alternates': [{
             'board_number': board_number,
-            'usernames': [alt.season_player.player.lichess_username for alt in sorted(Alternate.objects.filter(season_player__season=season, board_number=board_number), key=lambda alt: alt.priority_date())]
+            'usernames': [alt.season_player.player.lichess_username for alt in sorted(
+                             Alternate.objects.filter(season_player__season=season, board_number=board_number),
+                             key=lambda alt: alt.priority_date()
+                         )]
         } for board_number in season.board_number_list()]
     })
 
@@ -187,10 +192,10 @@ def assign_alternate(request):
         player_name = request.POST.get('player', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     if team_num is None or board_num is None or player_name is None:
         return HttpResponse('Bad request', status=400)
-    
+
     try:
         latest_round = _get_latest_round(season_id)
         season = latest_round.season
@@ -202,20 +207,20 @@ def assign_alternate(request):
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
-    
+
     if player is None:
         return JsonResponse({'updated': 0, 'error': 'player_not_found'})
-    
+
     if round_.is_completed:
         return JsonResponse({'updated': 0, 'error': 'round_over'})
-    
+
     alternate = Alternate.objects.filter(season_player__season=season, season_player__player=player, board_number=board_num).first()
     member_playing_up = team.teammember_set.filter(player=player, board_number__gte=board_num).first()
     if alternate is None and member_playing_up is None:
         return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
-    
+
     AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player})
-    
+
     return JsonResponse({'updated': 1})
 
 @csrf_exempt
@@ -238,7 +243,7 @@ def set_availability(request):
             raise ValueError
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     try:
         latest_round = _get_latest_round(season_id)
         season = latest_round.season
@@ -249,15 +254,15 @@ def set_availability(request):
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
-    
+
     if player is None:
         return JsonResponse({'updated': 0, 'error': 'player_not_found'})
-    
+
     if round_.is_completed:
         return JsonResponse({'updated': 0, 'error': 'round_over'})
-    
+
     PlayerAvailability.objects.update_or_create(round=round_, player=player, defaults={'is_available': is_available})
-    
+
     return JsonResponse({'updated': 1})
 
 @api_token_required
@@ -268,19 +273,19 @@ def league_document(request):
         strip_html = request.GET.get('strip_html', None) == 'true'
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     if league_tag is None or type_ is None:
         return HttpResponse('Bad request', status=400)
-    
+
     league_doc = LeagueDocument.objects.filter(league__tag=league_tag, type=type_).first()
     if league_doc is None:
         return JsonResponse({'name': None, 'content': None, 'error': 'not_found'})
-    
+
     document = league_doc.document
     content = document.content
     if strip_html:
         content = strip_tags(content)
-    
+
     return JsonResponse({
          'name': document.name,
          'content': content

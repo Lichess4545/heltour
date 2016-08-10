@@ -18,8 +18,20 @@
 			<tr>
 				<td>{{ team_player_pairing.board_number }}</td>
 				<td>{{ team_player_pairing.white_team_name }}</td>
-				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}</a></div></td>
-				<td><div class="pairing-player"><a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}</a></div></td>
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
 				<td>{{ team_player_pairing.black_team_name }}</td>
 			</tr>
 			{% endwith %}
