@@ -30,9 +30,7 @@ def resultclass(tie_score, my_score, other_score=None):
 def format_result(result):
     if result is None:
         return ''
-    if result == '1/2-1/2':
-        return u'\u00BD-\u00BD'
-    return result
+    return result.replace('1/2', u'\u00BD')
 
 @register.filter
 def date_or_q(datetime):
