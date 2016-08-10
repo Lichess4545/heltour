@@ -181,7 +181,7 @@ CACHEOPS_REDIS = {
 }
 CACHEOPS_DEGRADE_ON_FAILURE = True
 CACHEOPS = {
-    '*.*': {'ops': 'all', 'timeout': 60*60},
+    '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
@@ -200,7 +200,7 @@ try:
     hostname = platform.node().split('.')[0]
     exec 'from .local.%s import *' % re.sub('[^\w]', '_', hostname)
 except ImportError:
-    pass # ignore missing local settings
+    pass  # ignore missing local settings
 
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os

@@ -31,16 +31,19 @@ def league_home(request, league_tag=None, season_id=None):
 
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
+
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
 
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
-    current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max).exclude(game_link='').order_by('scheduled_time')
+    current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
+                                         .exclude(game_link='').order_by('scheduled_time')
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
-    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max).order_by('scheduled_time')
+    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
+                                          .order_by('scheduled_time')
 
     context = {
         'league_tag': league_tag,
@@ -63,7 +66,9 @@ def season_landing(request, league_tag=None, season_id=None):
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
-    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()).order_by('-number').first()
+    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
+                                .order_by('-number') \
+                                .first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
@@ -94,14 +99,23 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         except IndexError:
             pass
     team_list = season.team_set.order_by('name')
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season).order_by('pairing_order').select_related('white_team', 'black_team').nocache()
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season) \
+                                       .order_by('pairing_order') \
+                                       .select_related('white_team', 'black_team') \
+                                       .nocache()
     if team_number is not None:
         current_team = get_object_or_404(team_list, number=team_number)
         team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
     else:
         current_team = None
-    pairing_lists = [list(team_pairing.teamplayerpairing_set.order_by('board_number').select_related('player_pairing__white', 'player_pairing__black').nocache()) for team_pairing in team_pairings]
-    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False).select_related('player').nocache()}
+    pairing_lists = [list(
+                          team_pairing.teamplayerpairing_set.order_by('board_number')
+                                      .select_related('player_pairing__white', 'player_pairing__black')
+                                      .nocache()
+                    ) for team_pairing in team_pairings]
+    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False) \
+                                                                         .select_related('player')
+                                                                         .nocache()}
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -200,16 +214,26 @@ def rosters(request, league_tag=None, season_id=None):
     board_numbers = list(range(1, season.boards + 1))
 
     alternates = Alternate.objects.filter(season_player__season=season)
-    alternates_by_board = [sorted(alternates.filter(board_number=n).select_related('season_player__registration', 'season_player__player').nocache(), key=lambda alt: alt.priority_date()) for n in board_numbers]
+    alternates_by_board = [sorted(
+                                  alternates.filter(board_number=n)
+                                            .select_related('season_player__registration', 'season_player__player')
+                                            .nocache(),
+                                  key=lambda alt: alt.priority_date()
+                           ) for n in board_numbers]
     alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
     if len(alternate_rows) == 0:
         alternate_rows.append((1, [None for _ in board_numbers]))
 
     current_round = Round.objects.filter(season=season, publish_pairings=True).order_by('-number').first()
-    scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round).select_related('player').nocache()}
-    unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True).select_related('player').nocache()}
-
-    games_missed_by_player = {sp.player: sp.games_missed for sp in SeasonPlayer.objects.filter(season=season).select_related('player').nocache()}
+    scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round)
+                                                                                   .select_related('player')
+                                                                                   .nocache()}
+    unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, unresponsive=True)
+                                                                    .select_related('player')
+                                                                    .nocache()}
+    games_missed_by_player = {sp.player: sp.games_missed for sp in SeasonPlayer.objects.filter(season=season)
+                                                                                       .select_related('player')
+                                                                                       .nocache()}
     yellow_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed == 1}
     red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
 
@@ -311,12 +335,14 @@ def _count_results(pairings, board_num=None):
 
 def stats(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
-    
-    all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season).select_related('teamplayerpairing', 'white', 'black').nocache()
-    
+
+    all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season) \
+                                        .select_related('teamplayerpairing', 'white', 'black') \
+                                        .nocache()
+
     _, total_counts, total_percents, total_rating_delta = _count_results(all_pairings)
     boards = [_count_results(filter(lambda p: p.teamplayerpairing.board_number == n, all_pairings), n) for n in season.board_number_list()]
-    
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),

@@ -107,7 +107,9 @@ def _get_latest_round(season_id):
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
     if player is not None:
-        pairings = pairings.filter(player_pairing__white__lichess_username__iexact=player) | pairings.filter(player_pairing__black__lichess_username__iexact=player)
+        white_pairings = pairings.filter(player_pairing__white__lichess_username__iexact=player)
+        black_pairings = pairings.filter(player_pairing__black__lichess_username__iexact=player)
+        pairings = white_pairings | black_pairings
     pairings_snapshot = pairings
     if white is not None:
         pairings = pairings.filter(player_pairing__white__lichess_username__iexact=white)
@@ -164,7 +166,10 @@ def get_roster(request):
         } for team in teams],
         'alternates': [{
             'board_number': board_number,
-            'usernames': [alt.season_player.player.lichess_username for alt in sorted(Alternate.objects.filter(season_player__season=season, board_number=board_number), key=lambda alt: alt.priority_date())]
+            'usernames': [alt.season_player.player.lichess_username for alt in sorted(
+                             Alternate.objects.filter(season_player__season=season, board_number=board_number),
+                             key=lambda alt: alt.priority_date()
+                         )]
         } for board_number in season.board_number_list()]
     })
 
@@ -268,19 +273,19 @@ def league_document(request):
         strip_html = request.GET.get('strip_html', None) == 'true'
     except ValueError:
         return HttpResponse('Bad request', status=400)
-    
+
     if league_tag is None or type_ is None:
         return HttpResponse('Bad request', status=400)
-    
+
     league_doc = LeagueDocument.objects.filter(league__tag=league_tag, type=type_).first()
     if league_doc is None:
         return JsonResponse({'name': None, 'content': None, 'error': 'not_found'})
-    
+
     document = league_doc.document
     content = document.content
     if strip_html:
         content = strip_tags(content)
-    
+
     return JsonResponse({
          'name': document.name,
          'content': content

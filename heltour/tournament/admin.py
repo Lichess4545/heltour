@@ -19,7 +19,7 @@ from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
 
-# Customize which sections are visible 
+# Customize which sections are visible
 # admin.site.register(Comment)
 admin.site.unregister(Site)
 
@@ -32,7 +32,9 @@ class LeagueAdmin(VersionAdmin):
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/import_season/$', permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)), name='import_season'),
+            url(r'^(?P<object_id>[0-9]+)/import_season/$',
+                permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)),
+                name='import_season'),
         ]
         return my_urls + urls
 
@@ -47,7 +49,8 @@ class LeagueAdmin(VersionAdmin):
             if form.is_valid():
                 try:
                     if league.competitor_type == 'team':
-                        spreadsheet.import_team_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
+                        spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'],
+                                                  form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
                         self.message_user(request, "Season imported.")
                     elif league.competitor_type == 'individual':
                         spreadsheet.import_lonewolf_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
@@ -83,9 +86,15 @@ class SeasonAdmin(VersionAdmin):
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)), name='edit_rosters'),
-            url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$', permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.player_info_view)), name='edit_rosters_player_info'),
-            url(r'^(?P<object_id>[0-9]+)/round_transition/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)), name='round_transition'),
+            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$',
+                permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)),
+                name='edit_rosters'),
+            url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
+                permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.player_info_view)),
+                name='edit_rosters_player_info'),
+            url(r'^(?P<object_id>[0-9]+)/round_transition/$',
+                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)),
+                name='round_transition'),
         ]
         return my_urls + urls
 
@@ -124,7 +133,7 @@ class SeasonAdmin(VersionAdmin):
                                 round_to_open.publish_pairings = False
                                 round_to_open.save()
                                 self.message_user(request, 'Pairings generated.', messages.INFO)
-                                return redirect('admin:review_pairings', round_to_open.pk) 
+                                return redirect('admin:review_pairings', round_to_open.pk)
                             except pairinggen.PairingsExistException:
                                 self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)
                                 return redirect('admin:review_pairings', round_to_open.pk)
@@ -135,9 +144,15 @@ class SeasonAdmin(VersionAdmin):
             form = forms.RoundTransitionForm(round_to_close, round_to_open)
 
         if round_to_close is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
-            self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, self._time_from_now(round_to_close.end_date - timezone.now())), messages.WARNING)
+            time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
+            self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING)
         elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+<<<<<<< HEAD
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, self._time_from_now(round_to_open.start_date - timezone.now())), messages.WARNING)
+=======
+            time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
+            self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
+>>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         if round_to_close is not None:
             incomplete_pairings = models.PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
@@ -180,12 +195,18 @@ class SeasonAdmin(VersionAdmin):
         # Update board order in teams
         for team in season.team_set.all():
             members = list(team.teammember_set.all())
-            members.sort(key=lambda m: -m.player.rating)
+            members.sort(key=lambda m:-m.player.rating)
             occupied_boards = [m.board_number for m in members]
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
                 m = members[i]
+<<<<<<< HEAD
                 models.TeamMember.objects.update_or_create(team=team, board_number=board_number, defaults={ 'player': m.player, 'is_captain': m.is_captain, 'is_vice_captain': m.is_vice_captain })
+=======
+                models.TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                                                           defaults={ 'player': m.player, 'is_captain': m.is_captain,
+                                                                      'is_vice_captain': m.is_vice_captain })
+>>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         # Update alternate buckets
         members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
@@ -208,7 +229,12 @@ class SeasonAdmin(VersionAdmin):
             else:
                 boundaries.append((left + right) / 2)
         for board_num in range(1, season.boards + 1):
+<<<<<<< HEAD
             models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
+=======
+            models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num,
+                                                            defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
+>>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         # Assign alternates to buckets
         for alt in models.Alternate.objects.filter(season_player__season=season):
@@ -310,20 +336,27 @@ class SeasonAdmin(VersionAdmin):
         ).nocache()
         team_members = models.TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+<<<<<<< HEAD
         alternates_by_board = [(n, sorted(alternates.filter(board_number=n).select_related('season_player__registration').nocache(), key=lambda alt: alt.priority_date())) for n in board_numbers]
+=======
+        alternates_by_board = [(n, sorted(
+                                          alternates.filter(board_number=n).select_related('season_player__registration').nocache(),
+                                          key=lambda alt: alt.priority_date()
+                                         )) for n in board_numbers]
+>>>>>>> 3d81f0826c6c3cb1c6a4d6b1110bb234c6ea1665
 
         season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
 
         alternate_buckets = list(models.AlternateBucket.objects.filter(season=season))
-        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: -p.rating))
+        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p:-p.rating))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
             unassigned_by_board = [(n, [p for p in unassigned_players if models.find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
-            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: -p.rating))
+            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p:-p.rating))
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:
@@ -371,8 +404,12 @@ class RoundAdmin(VersionAdmin):
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.generate_pairings_view)), name='generate_pairings'),
-            url(r'^(?P<object_id>[0-9]+)/review_pairings/$', permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.review_pairings_view)), name='review_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$',
+                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.generate_pairings_view)),
+                name='generate_pairings'),
+            url(r'^(?P<object_id>[0-9]+)/review_pairings/$',
+                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.review_pairings_view)),
+                name='review_pairings'),
         ]
         return my_urls + urls
 
@@ -559,7 +596,8 @@ class PlayerPairingAdmin(VersionAdmin):
 @admin.register(models.TeamPlayerPairing)
 class TeamPlayerPairingAdmin(VersionAdmin):
     list_display = ('player_pairing', 'team_pairing', 'board_number')
-    search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username', 'team_pairing__white_team__name', 'team_pairing__black_team__name')
+    search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username',
+                     'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
@@ -581,8 +619,12 @@ class RegistrationAdmin(VersionAdmin):
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/approve/$', permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)), name='approve_registration'),
-            url(r'^(?P<object_id>[0-9]+)/reject/$', permission_required('tournament.change_registration')(self.admin_site.admin_view(self.reject_registration)), name='reject_registration')
+            url(r'^(?P<object_id>[0-9]+)/approve/$',
+                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)),
+                name='approve_registration'),
+            url(r'^(?P<object_id>[0-9]+)/reject/$',
+                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.reject_registration)),
+                name='reject_registration')
         ]
         return my_urls + urls
 

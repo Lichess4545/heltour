@@ -72,18 +72,20 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
             for i in range(len(teams)):
                 player_row = i + 1
                 player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
-                player_rating  = sheet_rosters[player_row][player_rating_col]
-                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                player_rating = sheet_rosters[player_row][player_rating_col]
+                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
+                                                            defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                 SeasonPlayer.objects.get_or_create(season=season, player=player)
                 TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
             # Alternates
             alternates_row = alternates_start_row
             while True:
                 player_name = sheet_rosters[alternates_row][player_name_col]
-                player_rating  = sheet_rosters[alternates_row][player_rating_col]
+                player_rating = sheet_rosters[alternates_row][player_rating_col]
                 if len(player_name) == 0 or len(player_rating) == 0:
                     break
-                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name, defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
+                                                            defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                 season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
                 Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
                 alternates_row += 1
