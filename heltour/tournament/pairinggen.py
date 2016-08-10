@@ -103,10 +103,11 @@ class JavafoPlayer:
         self.pairings = pairings
 
 class JavafoPairing:
-    def __init__(self, opponent, color, score):
+    def __init__(self, opponent, color, score, forfeit=False):
         self.opponent = opponent
         self.color = color
         self.score = score
+        self.forfeit = forfeit
 
 class JavafoPairingResult:
     def __init__(self, white, black):
@@ -132,6 +133,7 @@ class JavafoInstance:
     '''
     def run(self):
         input_file = tempfile.NamedTemporaryFile(suffix='.trfx')
+        output_file_name = input_file.name + ".out.txt"
         try:
             # Write to input file
             # TODO: Consider adding a seed rating field to teams/lone players for consistent pairings
@@ -139,16 +141,17 @@ class JavafoInstance:
             for n, player in enumerate(self.players, 1):
                 line = '001  {0: >3}  {1:74.1f}     '.format(n, player.score)
                 for pairing in player.pairings:
-                    opponent_num = next((num for num, player in enumerate(self.players, 1) if player.player == pairing.opponent))
-                    # TODO: Handle forfeits/byes properly
+                    opponent_num = next((num for num, player in enumerate(self.players, 1) if player.player == pairing.opponent), '0000')
                     color = 'w' if pairing.color == 'white' else 'b' if pairing.color == 'black' else '-'
-                    score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
+                    if pairing.forfeit:
+                        score = '+' if pairing.score == 1 else '-' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
+                    else:
+                        score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
                     line += '{0: >6} {1} {2}'.format(opponent_num, color, score)
                 line += '\n'
                 input_file.write(line)
             input_file.flush()
 
-            output_file_name = input_file.name + ".out.txt"
             self._call_proc(input_file.name, output_file_name, '-q 10000')
 
             pairs = self._read_output(output_file_name)
@@ -160,7 +163,10 @@ class JavafoInstance:
             return pairs
         finally:
             input_file.close()
-            os.remove(output_file_name)
+            try:
+                os.remove(output_file_name)
+            except OSError:
+                pass
 
     def _call_proc(self, input_file_name, output_file_name, args):
         proc = subprocess.Popen('%s %s -p %s %s' % (settings.JAVAFO_COMMAND, input_file_name, output_file_name, args), shell=True, stdout=subprocess.PIPE)
