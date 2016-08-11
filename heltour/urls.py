@@ -19,7 +19,7 @@ import settings
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^', include('heltour.tournament.urls')),
+    url(r'^', include('heltour.%s.urls' % settings.HELTOUR_APP)),
 ]
 
 if settings.DEBUG:

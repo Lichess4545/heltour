@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    'heltour.tournament',
     'reversion',
     'bootstrap3',
     'ckeditor',
@@ -55,6 +54,14 @@ INSTALLED_APPS = [
     'cacheops',
     'django_comments'
 ]
+if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
+    INSTALLED_APPS += ['heltour.api_worker', ]
+    HELTOUR_APP = 'api_worker'
+else:
+    INSTALLED_APPS += ['heltour.tournament', ]
+    HELTOUR_APP = 'tournament'
+
+API_WORKER_HOST = 'http://localhost:8001'
 
 MIDDLEWARE_CLASSES = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -159,6 +166,19 @@ CELERYBEAT_SCHEDULE = {
 CELERY_TIMEZONE = 'UTC'
 
 
+# Django-Redis
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
@@ -200,7 +220,7 @@ try:
     hostname = platform.node().split('.')[0]
     exec 'from .local.%s import *' % re.sub('[^\w]', '_', hostname)
 except ImportError:
-    pass  # ignore missing local settings
+    pass # ignore missing local settings
 
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os

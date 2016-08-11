@@ -141,6 +141,12 @@ def runserver():
     local("python %s runserver 0.0.0.0:8000" % manage_py)
 
 #-------------------------------------------------------------------------------
+def runapiworker():
+    manage_py = project_relative("manage.py")
+    local("export HELTOUR_APP=API_WORKER")
+    local("python %s runserver 0.0.0.0:8001" % manage_py)
+
+#-------------------------------------------------------------------------------
 def letsencrypt(real_cert=False):
     domain = "lichess4545.tv"
     domain2 = "lichess4545.com"
