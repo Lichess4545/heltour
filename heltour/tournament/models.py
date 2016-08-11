@@ -543,9 +543,9 @@ class Alternate(_BaseModel):
         season = self.season_player.season
         player = self.season_player.player
         buckets = AlternateBucket.objects.filter(season=season)
-        if len(buckets) == season.boards:
+        if len(buckets) == season.boards and player.rating is not None:
             for b in buckets:
-                if (b.max_rating is None or b.max_rating >= player.rating) and (b.min_rating is None or player.rating > b.min_rating):
+                if b.contains(player.rating):
                     self.board_number = b.board_number
                     self.save()
 
@@ -612,10 +612,10 @@ class AlternateBucket(_BaseModel):
         unique_together = ('season', 'board_number')
 
     def contains(self, rating):
-        return (self.min_rating is None or rating >= self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
+        return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
 
     def __unicode__(self):
-        return "Board %d [%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
+        return "Board %d (%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
 
 def create_api_token():
     return get_random_string(length=32)

@@ -178,7 +178,6 @@ class TeamPairingTestCase(TestCase):
         pp2.result = '1/2-1/2'
         pp2.save()
 
-        tp.refresh_points()
         self.assertEqual(3, tp.white_points)
         self.assertEqual(1, tp.black_points)
 
@@ -187,7 +186,6 @@ class TeamPairingTestCase(TestCase):
         pp2.result = '0-1'
         pp2.save()
 
-        tp.refresh_points()
         self.assertEqual(2, tp.white_points)
         self.assertEqual(2, tp.black_points)
 
@@ -246,3 +244,61 @@ class RegistrationTestCase(TestCase):
 
         self.assertItemsEqual([sp], reg.other_seasons())
 
+class AlternateTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_alternate_update_board_number(self):
+        season = Season.objects.all()[0]
+        season.boards = 3
+        season.save()
+
+        player = Player.objects.all()[0]
+        sp = SeasonPlayer.objects.create(season=season, player=player)
+        alt = Alternate.objects.create(season_player=sp, board_number=2)
+
+        alt.update_board_number()
+        self.assertEqual(2, alt.board_number)
+
+        AlternateBucket.objects.create(season=season, board_number=1, max_rating=None, min_rating=2000)
+        AlternateBucket.objects.create(season=season, board_number=2, max_rating=2000, min_rating=1800)
+        AlternateBucket.objects.create(season=season, board_number=3, max_rating=1800, min_rating=None)
+
+        player.rating = None
+        alt.update_board_number()
+        self.assertEqual(2, alt.board_number)
+
+        player.rating = 2100
+        alt.update_board_number()
+        self.assertEqual(1, alt.board_number)
+
+        player.rating = 1900
+        alt.update_board_number()
+        self.assertEqual(2, alt.board_number)
+
+        player.rating = 1800
+        alt.update_board_number()
+        self.assertEqual(3, alt.board_number)
+
+        player.rating = 1700
+        alt.update_board_number()
+        self.assertEqual(3, alt.board_number)
+
+class AlternateAssignmentTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_alternateassignment_save(self):
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+
+        tp = TeamPairing.objects.create(white_team=team1, black_team=team2, round=Round.objects.all()[0], pairing_order=0)
+
+        pp1 = PlayerPairing.objects.create(white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
+        TeamPlayerPairing.objects.create(player_pairing=pp1, team_pairing=tp, board_number=1)
+
+        self.assertEqual('Player 1', pp1.white.lichess_username)
+
+        AlternateAssignment.objects.create(round=tp.round, team=team1, board_number=1, player=Player.objects.create(lichess_username='Test User'))
+        pp1.refresh_from_db()
+        self.assertEqual('Test User', pp1.white.lichess_username)
