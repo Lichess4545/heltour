@@ -39,6 +39,11 @@ ALLOWED_HOSTS = [
 
 # Application definition
 
+if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
+    HELTOUR_APP = 'api_worker'
+else:
+    HELTOUR_APP = 'tournament'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'heltour.%s' % HELTOUR_APP,
     'reversion',
     'bootstrap3',
     'ckeditor',
@@ -54,12 +60,6 @@ INSTALLED_APPS = [
     'cacheops',
     'django_comments'
 ]
-if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
-    INSTALLED_APPS += ['heltour.api_worker', ]
-    HELTOUR_APP = 'api_worker'
-else:
-    INSTALLED_APPS += ['heltour.tournament', ]
-    HELTOUR_APP = 'tournament'
 
 API_WORKER_HOST = 'http://localhost:8001'
 
