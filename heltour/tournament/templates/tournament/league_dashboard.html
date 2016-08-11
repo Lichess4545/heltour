@@ -61,6 +61,10 @@
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close Round {{ last_round.number }}</a>
 					<span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date:"m/d H:i" }}</span>
 				</div>
+				{% elif not season.is_completed %}
+				<div class="dashboard-season-action">
+					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close Season</a>
+				</div>
 				{% endif %}
 			</div>
 		</div>

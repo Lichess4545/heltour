@@ -4,7 +4,7 @@
 <form action="" method="post">
 	{% csrf_token %}
 	<div class="aligned">
-		{% if not form.round_to_close and not form.round_to_open %}
+		{% if not form.round_to_close and not form.round_to_open and not form.complete_season %}
 		<p>Nothing to do.</p>
 		{% endif %}
 		{% if form.round_to_close %}
@@ -14,6 +14,16 @@
 				{{ form.complete_round }}
 				<label for="{{ form.complete_round.id_for_label }}" class="vCheckboxLabel">
 					{{ form.complete_round.label }}
+				</label>
+			</div>
+		</div>
+		{% endif %}
+		{% if form.complete_season %}
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.complete_season }}
+				<label for="{{ form.complete_season.id_for_label }}" class="vCheckboxLabel">
+					{{ form.complete_season.label }}
 				</label>
 			</div>
 		</div>

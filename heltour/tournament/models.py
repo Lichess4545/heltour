@@ -70,6 +70,9 @@ class Season(_BaseModel):
         # TODO: Add validation to prevent changes after a certain point
         rounds_changed = self.pk is None or self.rounds != self.initial_rounds
         start_date_changed = self.pk is None or self.start_date != self.initial_start_date
+
+        if self.is_completed and self.registration_open:
+            self.registration_open = False
         super(Season, self).save(*args, **kwargs)
 
         if rounds_changed or start_date_changed:
