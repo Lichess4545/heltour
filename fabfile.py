@@ -12,6 +12,7 @@ from fabric.api import (
     run,
     get,
     settings,
+    shell_env,
 )
 from fabric import colors
 from fabric.contrib.console import confirm
@@ -143,8 +144,8 @@ def runserver():
 #-------------------------------------------------------------------------------
 def runapiworker():
     manage_py = project_relative("manage.py")
-    local("export HELTOUR_APP=API_WORKER")
-    local("python %s runserver 0.0.0.0:8001" % manage_py)
+    with shell_env(HELTOUR_APP="API_WORKER"):
+        local("python %s runserver 0.0.0.0:8001" % manage_py)
 
 #-------------------------------------------------------------------------------
 def letsencrypt(real_cert=False):
