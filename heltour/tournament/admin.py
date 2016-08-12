@@ -49,7 +49,7 @@ class LeagueAdmin(VersionAdmin):
             if form.is_valid():
                 try:
                     if league.competitor_type == 'team':
-                        spreadsheet.import_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'],
+                        spreadsheet.import_team_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'],
                                                   form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
                         self.message_user(request, "Season imported.")
                     elif league.competitor_type == 'individual':
