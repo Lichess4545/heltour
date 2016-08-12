@@ -51,7 +51,7 @@
 	background-color: #ffffff;
 }
 
-.well-body :last-child {
+.well-body > :last-child {
 	margin-bottom: 0;
 }
 

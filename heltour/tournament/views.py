@@ -64,6 +64,9 @@ def league_home(request, league_tag=None, season_id=None):
 
 def season_landing(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
+    if season.is_completed:
+        return completed_season_landing(request, league_tag, season_id)
+
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
@@ -89,6 +92,35 @@ def season_landing(request, league_tag=None, season_id=None):
         'tie_score': tie_score,
     }
     return render(request, 'tournament/season_landing.html', context)
+
+def completed_season_landing(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    default_season = _get_default_season(league_tag)
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+
+    round_numbers = list(range(1, season.rounds + 1))
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
+    tie_score = season.boards / 2.0
+
+    first_team = team_scores[0][1] if len(team_scores) > 0 else None
+    second_team = team_scores[1][1] if len(team_scores) > 1 else None
+    third_team = team_scores[2][1] if len(team_scores) > 2 else None
+
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_id': season_id,
+        'season': season,
+        'default_season': default_season,
+        'season_list': season_list,
+        'round_numbers': round_numbers,
+        'team_scores': team_scores,
+        'tie_score': tie_score,
+        'first_team': first_team,
+        'second_team': second_team,
+        'third_team': third_team,
+    }
+    return render(request, 'tournament/completed_season_landing.html', context)
 
 def pairings(request, league_tag=None, season_id=None, round_number=None, team_number=None):
     specified_round = round_number is not None

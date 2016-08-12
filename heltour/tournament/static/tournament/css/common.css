@@ -298,6 +298,79 @@ body {
 	color: #666;
 }
 
+.podium {
+	text-align: center;
+}
+
+.winners-team-name {
+	font-size: 22px;
+	font-weight: bold;
+	color: #666;
+	margin-top: 10px;
+}
+
+.winners-team-members {
+	list-style: none;
+	margin: 10px 0 0 0;
+	padding: 0;
+	
+	font-size: 16px;
+	font-weight: bold;
+	color: #666;
+}
+
+.podium .second-place,
+.podium .third-place {
+	margin-top: 20px;
+}
+
+.second-place .winners-trophy img {
+	height: 85px;
+}
+
+.second-place .winners-team-name {
+	font-size: 16px;
+}
+
+.second-place .winners-team-members {
+	font-size: 14px;
+}
+
+.third-place .winners-trophy img {
+	height: 65px;
+}
+
+.third-place .winners-team-name {
+	font-size: 15px;
+}
+
+.third-place .winners-team-members {
+	font-size: 14px;
+}
+
+@media (min-width: 769px) {
+	.podium {
+		display: flex;
+	}
+	.podium > div {
+		display: inline-block;
+		width: 33.33%;
+		margin: 0;
+	}
+	.podium .first-place {
+		order: 2;
+		margin-top: auto;
+	}
+	.podium .second-place {
+		order: 1;
+		margin-top: auto;
+	}
+	.podium .third-place {
+		order: 3;
+		margin-top: auto;
+	}
+}
+
 @media (max-width: 992px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;
