@@ -76,10 +76,9 @@
 						<th>TIME</th>{% if can_edit %}
 						<th></th>{% endif %}
 					</tr>
-					{% for team_player_pairing in pairing_list %}
-					{% with pairing=team_player_pairing.player_pairing %}
+					{% for pairing in pairing_list %}
 					<tr>
-						<td class="hidden-xs">{{ team_player_pairing.white_team_name }}</td>
+						<td class="hidden-xs">{{ pairing.white_team_name }}</td>
 						<td>
 							<div class="pairing-player{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
@@ -94,7 +93,7 @@
 								</a>
 							</div>
 						</td>
-						<td class="hidden-xs">{{ team_player_pairing.black_team_name }}</td>
+						<td class="hidden-xs">{{ pairing.black_team_name }}</td>
 						<td class="text-center text-nowrap">
 							{% if pairing.game_link %}
 							<a href="{{ pairing.game_link }}">
@@ -111,7 +110,6 @@
 					        </a>
 				        </th>{% endif %}
 					</tr>
-					{% endwith %}
 					{% endfor %}
 					{% endfor %}
 				</table>

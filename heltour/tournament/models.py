@@ -325,15 +325,13 @@ class TeamPairing(_BaseModel):
     def refresh_points(self):
         self.white_points = 0
         self.black_points = 0
-        for team_player_pairing in self.teamplayerpairing_set.all():
-            player_pairing = team_player_pairing.player_pairing
-
-            if team_player_pairing.board_number % 2 == 1:
-                self.white_points += (player_pairing.white_score() or 0) * 2
-                self.black_points += (player_pairing.black_score() or 0) * 2
+        for pairing in self.teamplayerpairing_set.all():
+            if pairing.board_number % 2 == 1:
+                self.white_points += (pairing.white_score() or 0) * 2
+                self.black_points += (pairing.black_score() or 0) * 2
             else:
-                self.white_points += (player_pairing.black_score() or 0) * 2
-                self.black_points += (player_pairing.white_score() or 0) * 2
+                self.white_points += (pairing.black_score() or 0) * 2
+                self.black_points += (pairing.white_score() or 0) * 2
 
     def white_points_display(self):
         return "%g" % (self.white_points / 2.0)
@@ -387,27 +385,16 @@ class PlayerPairing(_BaseModel):
             return 0.5
         return None
 
-    def save(self, *args, **kwargs):
-        result_changed = self.pk is None or self.result != self.initial_result
-        super(PlayerPairing, self).save(*args, **kwargs)
-        if result_changed and hasattr(self, 'teamplayerpairing'):
-            self.teamplayerpairing.team_pairing.refresh_points()
-            self.teamplayerpairing.team_pairing.save()
-
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
 #-------------------------------------------------------------------------------
-class TeamPlayerPairing(_BaseModel):
+class TeamPlayerPairing(PlayerPairing):
     team_pairing = models.ForeignKey(TeamPairing)
-    player_pairing = models.OneToOneField(PlayerPairing)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     class Meta:
         unique_together = ('team_pairing', 'board_number')
-
-    def __unicode__(self):
-        return "%s" % (self.player_pairing)
 
     def white_team(self):
         return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
@@ -416,16 +403,16 @@ class TeamPlayerPairing(_BaseModel):
         return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
 
     def white_team_player(self):
-        return self.player_pairing.white if self.board_number % 2 == 1 else self.player_pairing.black
+        return self.white if self.board_number % 2 == 1 else self.black
 
     def black_team_player(self):
-        return self.player_pairing.black if self.board_number % 2 == 1 else self.player_pairing.white
+        return self.black if self.board_number % 2 == 1 else self.white
 
     def white_team_score(self):
-        return self.player_pairing.white_score() if self.board_number % 2 == 1 else self.player_pairing.black_score()
+        return self.white_score() if self.board_number % 2 == 1 else self.black_score()
 
     def black_team_score(self):
-        return self.player_pairing.black_score() if self.board_number % 2 == 1 else self.player_pairing.white_score()
+        return self.black_score() if self.board_number % 2 == 1 else self.white_score()
 
     def white_team_name(self):
         return "%s" % self.white_team().name
@@ -440,20 +427,16 @@ class TeamPlayerPairing(_BaseModel):
         return "%d" % self.team_pairing.round.number
 
     def save(self, *args, **kwargs):
-        new_object = self.pk is None
+        result_changed = self.pk is None or self.result != self.initial_result
         super(TeamPlayerPairing, self).save(*args, **kwargs)
-        if new_object:
+        if result_changed:
             self.team_pairing.refresh_points()
             self.team_pairing.save()
 
 #-------------------------------------------------------------------------------
-class LonePlayerPairing(_BaseModel):
+class LonePlayerPairing(PlayerPairing):
     round = models.ForeignKey(Round)
-    player_pairing = models.OneToOneField(PlayerPairing)
     pairing_order = models.PositiveIntegerField()
-
-    def __unicode__(self):
-        return "%s" % (self.player_pairing)
 
 REGISTRATION_STATUS_OPTIONS = (
     ('pending', 'Pending'),
@@ -582,22 +565,22 @@ class AlternateAssignment(_BaseModel):
         # Find and update any current pairings
         white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
         if white_pairing is not None:
-            tpp = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
-            if tpp is not None:
+            pairing = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if pairing is not None:
                 if self.board_number % 2 == 1:
-                    tpp.player_pairing.white = self.player
+                    pairing.white = self.player
                 else:
-                    tpp.player_pairing.black = self.player
-                tpp.player_pairing.save()
+                    pairing.black = self.player
+                pairing.save()
         black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
         if black_pairing is not None:
-            tpp = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
-            if tpp is not None:
+            pairing = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            if pairing is not None:
                 if self.board_number % 2 == 1:
-                    tpp.player_pairing.black = self.player
+                    pairing.black = self.player
                 else:
-                    tpp.player_pairing.white = self.player
-                tpp.player_pairing.save()
+                    pairing.white = self.player
+                pairing.save()
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)

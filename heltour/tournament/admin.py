@@ -586,8 +586,8 @@ class PlayerPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.TeamPlayerPairing)
 class TeamPlayerPairingAdmin(VersionAdmin):
-    list_display = ('player_pairing', 'team_pairing', 'board_number')
-    search_fields = ('player_pairing__white__lichess_username', 'player_pairing__black__lichess_username',
+    list_display = ('__unicode__', 'team_pairing', 'board_number')
+    search_fields = ('white__lichess_username', 'black__lichess_username',
                      'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
@@ -595,7 +595,7 @@ class TeamPlayerPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.LonePlayerPairing)
 class LonePlayerPairingAdmin(VersionAdmin):
-    list_display = ('player_pairing', 'round')
+    list_display = ('__unicode__', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
     list_filter = ('round__season', 'round__number')
     change_form_template = 'tournament/admin/change_form_with_comments.html'

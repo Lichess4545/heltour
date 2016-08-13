@@ -13,11 +13,10 @@
 				<th>BLACK</th>
 				<th>TEAM</th>
 			</tr>
-			{% for team_player_pairing in pairing_list %}
-			{% with pairing=team_player_pairing.player_pairing %}
+			{% for pairing in pairing_list %}
 			<tr>
-				<td>{{ team_player_pairing.board_number }}</td>
-				<td>{{ team_player_pairing.white_team_name }}</td>
+				<td>{{ pairing.board_number }}</td>
+				<td>{{ pairing.white_team_name }}</td>
 				<td>
 					<div class="pairing-player">
 						<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
@@ -32,9 +31,8 @@
 						</a>
 					</div>
 				</td>
-				<td>{{ team_player_pairing.black_team_name }}</td>
+				<td>{{ pairing.black_team_name }}</td>
 			</tr>
-			{% endwith %}
 			{% endfor %}
 			{% endfor %}
 		</table>

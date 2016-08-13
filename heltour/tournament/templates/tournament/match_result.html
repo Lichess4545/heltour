@@ -39,10 +39,10 @@
 						<tr>
 							<td><a href="http://lichess.org/@/{{ pairing.white_team_player.lichess_username }}">{{ pairing.white_team_player }}</a></td>
 							<td class="cell-score {% resultclass 0.5 pairing.white_team_score pairing.black_team_score %}">
-								{% if pairing.white_team_score != None %}<a href="{{ pairing.player_pairing.game_link }}">{{ pairing.white_team_score }}</a>{% endif %}
+								{% if pairing.white_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.white_team_score }}</a>{% endif %}
 							</td>
 							<td class="cell-score {% resultclass 0.5 pairing.black_team_score pairing.white_team_score %}">
-								{% if pairing.black_team_score != None %}<a href="{{ pairing.player_pairing.game_link }}">{{ pairing.black_team_score }}</a>{% endif %}
+								{% if pairing.black_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.black_team_score }}</a>{% endif %}
 							</td>
 							<td><a href="http://lichess.org/@/{{ pairing.black_team_player.lichess_username }}">{{ pairing.black_team_player }}</a></td>
 						</tr>

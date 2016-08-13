@@ -21,5 +21,5 @@ class Migration(migrations.Migration):
             model_name='leaguedocument',
             name='tag',
             field=models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/'),
-        ),
+        )
     ]

@@ -47,11 +47,10 @@ def generate_pairings(round_, overwrite=False):
 
                 if board_number % 2 == 0:
                     white, black = black, white
-                player_pairing = PlayerPairing.objects.create(white=white_player, black=black_player)
-                TeamPlayerPairing.objects.create(player_pairing=player_pairing, team_pairing=team_pairing, board_number=board_number)
+                TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
 
 def delete_pairings(round_):
-    if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(player_pairing__result='').count():
+    if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(result='').count():
         raise PairingHasResultException()
     TeamPairing.objects.filter(round=round_).delete()
 

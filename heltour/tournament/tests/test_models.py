@@ -163,11 +163,8 @@ class TeamPairingTestCase(TestCase):
 
         tp = TeamPairing.objects.create(white_team=team1, black_team=team2, round=Round.objects.all()[0], pairing_order=0)
 
-        pp1 = PlayerPairing.objects.create(white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
-        TeamPlayerPairing.objects.create(player_pairing=pp1, team_pairing=tp, board_number=1)
-
-        pp2 = PlayerPairing.objects.create(white=team2.teammember_set.all()[1].player, black=team1.teammember_set.all()[1].player)
-        TeamPlayerPairing.objects.create(player_pairing=pp2, team_pairing=tp, board_number=2)
+        pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
+        pp2 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=2, white=team2.teammember_set.all()[1].player, black=team1.teammember_set.all()[1].player)
 
         tp.refresh_points()
         self.assertEqual(0, tp.white_points)
@@ -294,8 +291,7 @@ class AlternateAssignmentTestCase(TestCase):
 
         tp = TeamPairing.objects.create(white_team=team1, black_team=team2, round=Round.objects.all()[0], pairing_order=0)
 
-        pp1 = PlayerPairing.objects.create(white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
-        TeamPlayerPairing.objects.create(player_pairing=pp1, team_pairing=tp, board_number=1)
+        pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
 
         self.assertEqual('Player 1', pp1.white.lichess_username)
 

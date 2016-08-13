@@ -143,7 +143,7 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         current_team = None
     pairing_lists = [list(
                           team_pairing.teamplayerpairing_set.order_by('board_number')
-                                      .select_related('player_pairing__white', 'player_pairing__black')
+                                      .select_related('white', 'black')
                                       .nocache()
                     ) for team_pairing in team_pairings]
     unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False) \

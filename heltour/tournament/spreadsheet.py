@@ -189,8 +189,7 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
                 if round_.end_date is None or game_end_estimate > round_.end_date:
                     round_.end_date = game_end_estimate
                     round_.save()
-            pairing = PlayerPairing.objects.create(white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
-            TeamPlayerPairing.objects.create(player_pairing=pairing, team_pairing=team_pairing, board_number=k + 1)
+            pairing = TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=k + 1, white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
             pairings.append(pairing)
             pairing_rows.append(pairing_row)
             pairing_row += 1

@@ -43,22 +43,21 @@ def find_pairing(request):
     if len(pairings) > 1:
         return JsonResponse({'pairing': None, 'error': 'ambiguous'})
 
-    team_player_pairing = pairings[0]
-    player_pairing = team_player_pairing.player_pairing
+    pairing = pairings[0]
 
     return JsonResponse({'pairing': {
-        'season_id': team_player_pairing.team_pairing.round.season.id,
-        'white_team': team_player_pairing.white_team().name,
-        'white_team_number': team_player_pairing.white_team().number,
-        'black_team': team_player_pairing.black_team().name,
-        'black_team_number': team_player_pairing.black_team().number,
-        'white': player_pairing.white.lichess_username,
-        'white_rating': player_pairing.white.rating,
-        'black': player_pairing.black.lichess_username,
-        'black_rating': player_pairing.black.rating,
-        'game_link': player_pairing.game_link,
-        'result': player_pairing.result,
-        'datetime': player_pairing.scheduled_time,
+        'season_id': pairing.team_pairing.round.season.id,
+        'white_team': pairing.white_team().name,
+        'white_team_number': pairing.white_team().number,
+        'black_team': pairing.black_team().name,
+        'black_team_number': pairing.black_team().number,
+        'white': pairing.white.lichess_username,
+        'white_rating': pairing.white.rating,
+        'black': pairing.black.lichess_username,
+        'black_rating': pairing.black.rating,
+        'game_link': pairing.game_link,
+        'result': pairing.result,
+        'datetime': pairing.scheduled_time,
     }})
 
 @csrf_exempt
@@ -87,14 +86,13 @@ def update_pairing(request):
     if len(pairings) > 1:
         return JsonResponse({'updated': 0, 'error': 'ambiguous'})
 
-    team_player_pairing = pairings[0]
-    player_pairing = team_player_pairing.player_pairing
+    pairing = pairings[0]
 
     if game_link is not None:
-        player_pairing.game_link = game_link
+        pairing.game_link = game_link
     if result is not None:
-        player_pairing.result = result
-    player_pairing.save()
+        pairing.result = result
+    pairing.save()
 
     return JsonResponse({'updated': 1})
 
@@ -107,20 +105,20 @@ def _get_latest_round(season_id):
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
     if player is not None:
-        white_pairings = pairings.filter(player_pairing__white__lichess_username__iexact=player)
-        black_pairings = pairings.filter(player_pairing__black__lichess_username__iexact=player)
+        white_pairings = pairings.filter(white__lichess_username__iexact=player)
+        black_pairings = pairings.filter(black__lichess_username__iexact=player)
         pairings = white_pairings | black_pairings
     pairings_snapshot = pairings
     if white is not None:
-        pairings = pairings.filter(player_pairing__white__lichess_username__iexact=white)
+        pairings = pairings.filter(white__lichess_username__iexact=white)
     if black is not None:
-        pairings = pairings.filter(player_pairing__black__lichess_username__iexact=black)
+        pairings = pairings.filter(black__lichess_username__iexact=black)
     if color_fallback and len(pairings) == 0:
         pairings = pairings_snapshot
         if white is not None:
-            pairings = pairings.filter(player_pairing__black__lichess_username__iexact=white)
+            pairings = pairings.filter(black__lichess_username__iexact=white)
         if black is not None:
-            pairings = pairings.filter(player_pairing__white__lichess_username__iexact=black)
+            pairings = pairings.filter(white__lichess_username__iexact=black)
     return pairings
 
 @api_token_required
