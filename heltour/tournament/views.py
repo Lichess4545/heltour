@@ -9,6 +9,14 @@ import itertools
 from django.db.models.query import Prefetch
 from django.contrib.admin.views.decorators import staff_member_required
 
+def home(request):
+    leagues = League.objects.order_by('display_order')
+
+    context = {
+        'leagues': leagues,
+    }
+    return render(request, 'tournament/home.html', context)
+
 def league_home(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, allow_none=True)
     if league is None:

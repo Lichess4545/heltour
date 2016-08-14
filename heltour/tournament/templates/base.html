@@ -1,26 +1,7 @@
-{% with "5" as static_version %}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <title>{% block title %}{{ league.name }}{% endblock %}</title>
-    
-    {% load staticfiles %}
-    {% load tournament_extras %}
-    <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-    {% block common_css %}
-    <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
-    <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
-    {% with "tournament/css/theme-"|add:league.theme|add:".css" as theme_css %}
-    <link href="{% static theme_css %}?v={{ static_version }}" rel="stylesheet">
-    {% endwith %}
-    {% endblock %}
-    {% block css %}{% endblock %}
-</head>
+{% extends "empty_base.html" %}
+{% load staticfiles tournament_extras %}
 
-<body>
+{% block body %}
     <nav class="navbar navbar-default">
 	  <div class="container-fluid">
 	    <div class="navbar-header">
@@ -30,7 +11,7 @@
 	        <span class="icon-bar"></span>
 	        <span class="icon-bar"></span>
 	      </button>
-	      <a class="navbar-brand" href="{% leagueurl 'league_home' league_tag None %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
+	      <a class="navbar-brand" href="{% block home_link %}{% leagueurl 'league_home' league_tag None %}{% endblock %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
 	    </div>
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -60,18 +41,4 @@
     <div class="container-fluid" id="content">
         {% block content %}{% endblock %}
     </div>
-    
-    <footer class="footer">
-      <div class="container-fluid">
-        <p class="text-muted">This site is currently for PREVIEW ONLY.</p>
-      </div>
-    </footer>
-    
-    {% block common_js %}
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="{% static "lib/js/bootstrap.min.js" %}?v={{ static_version }}"></script>
-    <script src="{% static "tournament/js/common.js" %}"?v={{ static_version }}></script>
-    {% endblock %}
-    {% block js %}{% endblock %}
-</body>
-</html>{% endwith %}
+{% endblock %}

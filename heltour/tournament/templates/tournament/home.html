@@ -1,0 +1,18 @@
+{% extends "empty_base.html" %}
+{% load staticfiles tournament_extras %}
+
+{% block title %}Lichess Leagues{% endblock %}
+
+{% block body %}
+	<div id="home-container">
+		<div class="container" id="home-league-list">
+			<div class="row">
+				{% for l in leagues %}
+				<div class="col-sm-6 col-xs-12">
+					<a href="{% leagueurl 'league_home' l.tag None %}" class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</a>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+{% endblock %}
