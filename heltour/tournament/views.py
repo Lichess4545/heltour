@@ -18,10 +18,14 @@ def home(request):
     return render(request, 'tournament/home.html', context)
 
 def league_home(request, league_tag=None, season_id=None):
-    league = _get_league(league_tag, allow_none=True)
-    if league is None:
-        return render(request, 'tournament/no_leagues.html', {})
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        return team_league_home(request, league_tag, season_id)
+    else:
+        return lone_league_home(request, league_tag, season_id)
 
+def team_league_home(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
     other_leagues = League.objects.filter(is_active=True).exclude(pk=league.pk).order_by('display_order')
 
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
@@ -39,7 +43,7 @@ def league_home(request, league_tag=None, season_id=None):
             'can_edit_document': request.user.has_perm('tournament.change_document'),
             'other_leagues': other_leagues,
         }
-        return render(request, 'tournament/league_home.html', context)
+        return render(request, 'tournament/team_league_home.html', context)
 
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
@@ -72,12 +76,73 @@ def league_home(request, league_tag=None, season_id=None):
         'upcoming_games': upcoming_games,
         'other_leagues': other_leagues,
     }
-    return render(request, 'tournament/league_home.html', context)
+    return render(request, 'tournament/team_league_home.html', context)
+
+def lone_league_home(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    other_leagues = League.objects.filter(is_active=True).exclude(pk=league.pk).order_by('display_order')
+
+    rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
+    rules_doc_tag = rules_doc.tag if rules_doc is not None else None
+    intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
+
+    current_season = _get_default_season(league_tag, allow_none=True)
+    if current_season is None:
+        context = {
+            'league_tag': league_tag,
+            'league': league,
+            'season_id': season_id,
+            'rules_doc_tag': rules_doc_tag,
+            'intro_doc': intro_doc,
+            'can_edit_document': request.user.has_perm('tournament.change_document'),
+            'other_leagues': other_leagues,
+        }
+        return render(request, 'tournament/lone_league_home.html', context)
+
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
+    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
+
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
+
+    # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
+    # TODO: Convert game times to the user's local time (maybe in JS?)
+    current_game_time_min = timezone.now() - timedelta(hours=3)
+    current_game_time_max = timezone.now() + timedelta(minutes=5)
+    current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
+                                         .exclude(game_link='').order_by('scheduled_time')
+    upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
+    upcoming_game_time_max = timezone.now() + timedelta(hours=12)
+    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
+                                          .order_by('scheduled_time')
+
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_id': season_id,
+        'season': current_season,
+        'team_scores': team_scores,
+        'season_list': season_list,
+        'rules_doc_tag': rules_doc_tag,
+        'intro_doc': intro_doc,
+        'can_edit_document': request.user.has_perm('tournament.change_document'),
+        'registration_season': registration_season,
+        'current_games': current_games,
+        'upcoming_games': upcoming_games,
+        'other_leagues': other_leagues,
+    }
+    return render(request, 'tournament/lone_league_home.html', context)
 
 def season_landing(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        return team_season_landing(request, league_tag, season_id)
+    else:
+        return lone_season_landing(request, league_tag, season_id)
+
+def team_season_landing(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     if season.is_completed:
-        return completed_season_landing(request, league_tag, season_id)
+        return team_completed_season_landing(request, league_tag, season_id)
 
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
@@ -103,9 +168,40 @@ def season_landing(request, league_tag=None, season_id=None):
         'team_scores': team_scores,
         'tie_score': tie_score,
     }
-    return render(request, 'tournament/season_landing.html', context)
+    return render(request, 'tournament/team_season_landing.html', context)
 
-def completed_season_landing(request, league_tag=None, season_id=None):
+def lone_season_landing(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    if season.is_completed:
+        return lone_completed_season_landing(request, league_tag, season_id)
+
+    default_season = _get_default_season(league_tag)
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+
+    active_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
+                                .order_by('-number') \
+                                .first()
+    last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
+    last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
+    tie_score = season.boards
+
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_id': season_id,
+        'season': season,
+        'default_season': default_season,
+        'season_list': season_list,
+        'active_round': active_round,
+        'last_round': last_round,
+        'last_round_pairings': last_round_pairings,
+        'team_scores': team_scores,
+        'tie_score': tie_score,
+    }
+    return render(request, 'tournament/lone_season_landing.html', context)
+
+def team_completed_season_landing(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     default_season = _get_default_season(league_tag)
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
@@ -132,9 +228,45 @@ def completed_season_landing(request, league_tag=None, season_id=None):
         'second_team': second_team,
         'third_team': third_team,
     }
-    return render(request, 'tournament/completed_season_landing.html', context)
+    return render(request, 'tournament/team_completed_season_landing.html', context)
+
+def lone_completed_season_landing(request, league_tag=None, season_id=None):
+    season = _get_season(league_tag, season_id)
+    default_season = _get_default_season(league_tag)
+    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+
+    round_numbers = list(range(1, season.rounds + 1))
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
+    tie_score = season.boards / 2.0
+
+    first_team = team_scores[0][1] if len(team_scores) > 0 else None
+    second_team = team_scores[1][1] if len(team_scores) > 1 else None
+    third_team = team_scores[2][1] if len(team_scores) > 2 else None
+
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_id': season_id,
+        'season': season,
+        'default_season': default_season,
+        'season_list': season_list,
+        'round_numbers': round_numbers,
+        'team_scores': team_scores,
+        'tie_score': tie_score,
+        'first_team': first_team,
+        'second_team': second_team,
+        'third_team': third_team,
+    }
+    return render(request, 'tournament/lone_completed_season_landing.html', context)
 
 def pairings(request, league_tag=None, season_id=None, round_number=None, team_number=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        return team_pairings(request, league_tag, season_id, round_number, team_number)
+    else:
+        return lone_pairings(request, league_tag, season_id, round_number, team_number)
+
+def team_pairings(request, league_tag=None, season_id=None, round_number=None, team_number=None):
     specified_round = round_number is not None
     season = _get_season(league_tag, season_id)
     round_number_list = [round_.number for round_ in Round.objects.filter(season=season, publish_pairings=True).order_by('-number')]
@@ -176,7 +308,51 @@ def pairings(request, league_tag=None, season_id=None, round_number=None, team_n
         'specified_team': team_number is not None,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
-    return render(request, 'tournament/pairings.html', context)
+    return render(request, 'tournament/team_pairings.html', context)
+
+def lone_pairings(request, league_tag=None, season_id=None, round_number=None, team_number=None):
+    specified_round = round_number is not None
+    season = _get_season(league_tag, season_id)
+    round_number_list = [round_.number for round_ in Round.objects.filter(season=season, publish_pairings=True).order_by('-number')]
+    if round_number is None:
+        try:
+            round_number = round_number_list[0]
+        except IndexError:
+            pass
+    team_list = season.team_set.order_by('name')
+    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season) \
+                                       .order_by('pairing_order') \
+                                       .select_related('white_team', 'black_team') \
+                                       .nocache()
+    if team_number is not None:
+        current_team = get_object_or_404(team_list, number=team_number)
+        team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
+    else:
+        current_team = None
+    pairing_lists = [list(
+                          team_pairing.teamplayerpairing_set.order_by('board_number')
+                                      .select_related('white', 'black')
+                                      .nocache()
+                    ) for team_pairing in team_pairings]
+    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False) \
+                                                                         .select_related('player')
+                                                                         .nocache()}
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_id': season_id,
+        'season': season,
+        'round_number': round_number,
+        'round_number_list': round_number_list,
+        'current_team': current_team,
+        'team_list': team_list,
+        'pairing_lists': pairing_lists,
+        'unavailable_players': unavailable_players,
+        'specified_round': specified_round,
+        'specified_team': team_number is not None,
+        'can_edit': request.user.has_perm('tournament.change_pairing')
+    }
+    return render(request, 'tournament/lone_pairings.html', context)
 
 def register(request, league_tag=None, season_id=None):
     try:
@@ -250,9 +426,20 @@ def faq(request, league_tag=None, season_id=None):
     return render(request, 'tournament/document.html', context)
 
 def rosters(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type != 'team':
+        raise Http404
     season = _get_season(league_tag, season_id)
     if season is None:
-        return no_rosters_available(request, league_tag, season_id)
+        context = {
+            'league_tag': league_tag,
+            'league': league,
+            'season_id': season_id,
+            'season': season,
+            'can_edit': request.user.has_perm('tournament.edit_rosters'),
+        }
+        return render(request, 'tournament/team_rosters.html', context)
+
     teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
         Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
     ).nocache()
@@ -284,7 +471,7 @@ def rosters(request, league_tag=None, season_id=None):
 
     context = {
         'league_tag': league_tag,
-        'league': _get_league(league_tag),
+        'league': league,
         'season_id': season_id,
         'season': season,
         'teams': teams,
@@ -296,18 +483,16 @@ def rosters(request, league_tag=None, season_id=None):
         'red_card_players': red_card_players,
         'can_edit': request.user.has_perm('tournament.edit_rosters'),
     }
-    return render(request, 'tournament/rosters.html', context)
-
-def no_rosters_available(request, league_tag=None, season_id=None):
-    context = {
-        'league_tag': league_tag,
-        'league': _get_league(league_tag),
-        'season_id': season_id,
-        'season': _get_season(league_tag, season_id)
-    }
-    return render(request, 'tournament/no_rosters.html', context)
+    return render(request, 'tournament/team_rosters.html', context)
 
 def standings(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        return team_standings(request, league_tag, season_id)
+    else:
+        return lone_standings(request, league_tag, season_id)
+
+def team_standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
     round_numbers = list(range(1, season.rounds + 1))
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
@@ -321,21 +506,57 @@ def standings(request, league_tag=None, season_id=None):
         'team_scores': team_scores,
         'tie_score': tie_score
     }
-    return render(request, 'tournament/standings.html', context)
+    return render(request, 'tournament/team_standings.html', context)
 
-def crosstable(request, league_tag=None, season_id=None):
+def lone_standings(request, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
-    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
+    round_numbers = list(range(1, season.rounds + 1))
+    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
     tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_id': season_id,
         'season': season,
+        'round_numbers': round_numbers,
         'team_scores': team_scores,
         'tie_score': tie_score
     }
-    return render(request, 'tournament/crosstable.html', context)
+    return render(request, 'tournament/lone_standings.html', context)
+
+def crosstable(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type != 'team':
+        raise Http404
+    season = _get_season(league_tag, season_id)
+    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
+    tie_score = season.boards / 2.0
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_id': season_id,
+        'season': season,
+        'team_scores': team_scores,
+        'tie_score': tie_score
+    }
+    return render(request, 'tournament/team_crosstable.html', context)
+
+def wallchart(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        raise Http404
+    season = _get_season(league_tag, season_id)
+    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
+    tie_score = season.boards / 2.0
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_id': season_id,
+        'season': season,
+        'team_scores': team_scores,
+        'tie_score': tie_score
+    }
+    return render(request, 'tournament/lone_wallchart.html', context)
 
 def result(request, pairing_id, league_tag=None, season_id=None):
     season = _get_season(league_tag, season_id)
@@ -352,7 +573,7 @@ def result(request, pairing_id, league_tag=None, season_id=None):
         'round_number': team_pairing.round.number,
         'tie_score': tie_score
     }
-    return render(request, 'tournament/match_result.html', context)
+    return render(request, 'tournament/team_match_result.html', context)
 
 def _count_results(pairings, board_num=None):
     total = 0.0
@@ -379,6 +600,9 @@ def _count_results(pairings, board_num=None):
     return board_num, tuple(counts), percents, rating_delta / total
 
 def stats(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type != 'team':
+        raise Http404
     season = _get_season(league_tag, season_id)
 
     all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season) \
@@ -390,7 +614,7 @@ def stats(request, league_tag=None, season_id=None):
 
     context = {
         'league_tag': league_tag,
-        'league': _get_league(league_tag),
+        'league': league,
         'season_id': season_id,
         'season': season,
         'has_win_rate_stats': total_counts != (0, 0, 0, 0),
@@ -399,10 +623,18 @@ def stats(request, league_tag=None, season_id=None):
         'total_percents': total_percents,
         'boards': boards,
     }
-    return render(request, 'tournament/stats.html', context)
+    return render(request, 'tournament/team_stats.html', context)
 
 @staff_member_required
 def league_dashboard(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        return team_league_dashboard(request, league_tag, season_id)
+    else:
+        return lone_league_dashboard(request, league_tag, season_id)
+
+@staff_member_required
+def team_league_dashboard(request, league_tag=None, season_id=None):
     league = _get_league(league_tag, season_id)
     season = _get_season(league_tag, season_id, allow_none=True)
 
@@ -435,7 +667,43 @@ def league_dashboard(request, league_tag=None, season_id=None):
         'last_round': last_round,
         'next_round': next_round
     }
-    return render(request, 'tournament/league_dashboard.html', context)
+    return render(request, 'tournament/team_league_dashboard.html', context)
+
+@staff_member_required
+def lone_league_dashboard(request, league_tag=None, season_id=None):
+    league = _get_league(league_tag, season_id)
+    season = _get_season(league_tag, season_id, allow_none=True)
+
+    default_season = _get_default_season(league_tag, allow_none=True)
+    season_list = list(Season.objects.filter(league=league).order_by('-start_date', '-id'))
+    if default_season is not None:
+        season_list.remove(default_season)
+
+    pending_reg_count = len(Registration.objects.filter(season=season, status='pending'))
+
+    team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
+    alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+    season_players = set(sp.player for sp in SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
+    team_players = set(tm.player for tm in team_members)
+    alternate_players = set(alt.season_player.player for alt in alternates)
+    unassigned_player_count = len(season_players - team_players - alternate_players)
+
+    last_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False).order_by('number').first()
+    next_round = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number').first()
+
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_id': season_id,
+        'season': season,
+        'default_season': default_season,
+        'season_list': season_list,
+        'pending_reg_count': pending_reg_count,
+        'unassigned_player_count': unassigned_player_count,
+        'last_round': last_round,
+        'next_round': next_round
+    }
+    return render(request, 'tournament/lone_league_dashboard.html', context)
 
 def document(request, document_tag, league_tag=None, season_id=None):
     league_document = LeagueDocument.objects.get(league=_get_league(league_tag), tag=document_tag)

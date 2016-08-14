@@ -19,11 +19,19 @@
 	        {% if season %}
 	        <li class="{% block nav_season %}{% endblock %}"><a href="{% leagueurl 'season_landing' league_tag season_id %}">{{ season.name }}</a></li>
 	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% leagueurl 'faq' league_tag season_id %}">FAQ</a></li>
+	        {% if league.competitor_type == 'team' %}
 	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% leagueurl 'rosters' league_tag season_id %}">Rosters</a></li>
+	        {% endif %}
 	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% leagueurl 'standings' league_tag season_id %}">Standings</a></li>
+	        {% if league.competitor_type == 'team' %}
 	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% leagueurl 'crosstable' league_tag season_id %}">Crosstable</a></li>
+	        {% else %}
+	        <li class="{% block nav_wallchart %}{% endblock %}"><a href="{% leagueurl 'wallchart' league_tag season_id %}">Wallchart</a></li>
+	        {% endif %}
 	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% leagueurl 'pairings' league_tag season_id %}">Pairings</a></li>
+	        {% if league.competitor_type == 'team' %}
 	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% leagueurl 'stats' league_tag season_id %}">Stats</a></li>
+	        {% endif %}
 	        {% endif %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">

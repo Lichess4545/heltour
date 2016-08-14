@@ -24,6 +24,7 @@ season_urlpatterns = [
     url(r'^rosters/$', views.rosters, name='rosters'),
     url(r'^standings/$', views.standings, name='standings'),
     url(r'^crosstable/$', views.crosstable, name='crosstable'),
+    url(r'^wallchart/$', views.wallchart, name='wallchart'),
     url(r'^pairings/$', views.pairings, name='pairings'),
     url(r'^pairings/team/(?P<team_number>[0-9]+)/$', views.pairings, name='pairings_by_team'),
     url(r'^round/(?P<round_number>[0-9]+)/pairings/$', views.pairings, name='pairings_by_round'),
@@ -50,7 +51,7 @@ api_urlpatterns = [
 ]
 
 urlpatterns = [
-    url(r'^$', views.home),
+    url(r'^$', views.home, name='home'),
     url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
     url(r'^api/', include(api_urlpatterns, 'api')),
     url(r'^comments/', include('django_comments.urls')),
