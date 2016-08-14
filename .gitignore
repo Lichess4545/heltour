@@ -6,3 +6,4 @@ heltour/live_settings.py
 /static
 certs
 celerybeat-schedule
+*eclipse*
