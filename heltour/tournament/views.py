@@ -10,7 +10,7 @@ from django.db.models.query import Prefetch
 from django.contrib.admin.views.decorators import staff_member_required
 
 def home(request):
-    leagues = League.objects.order_by('display_order')
+    leagues = League.objects.filter(is_active=True).order_by('display_order')
 
     context = {
         'leagues': leagues,
@@ -22,7 +22,7 @@ def league_home(request, league_tag=None, season_id=None):
     if league is None:
         return render(request, 'tournament/no_leagues.html', {})
 
-    other_leagues = League.objects.order_by('display_order').exclude(pk=league.pk)
+    other_leagues = League.objects.filter(is_active=True).exclude(pk=league.pk).order_by('display_order')
 
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
     rules_doc_tag = rules_doc.tag if rules_doc is not None else None
