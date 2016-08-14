@@ -23,7 +23,7 @@
 					    <li role="separator" class="divider"></li>
 					    {% endif %}
 					    {% for s in season_list %}
-					    <li><a href="{% leagueurl 'league_dashboard' league_tag s.pk %}">{{ s.name }}</a></li>
+					    <li><a href="{% leagueurl 'league_dashboard' league_tag s.tag %}">{{ s.name }}</a></li>
 					    {% endfor %}
 				    </ul>
 				</div>

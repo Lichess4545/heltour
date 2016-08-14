@@ -99,6 +99,7 @@ class RejectRegistrationForm(forms.Form):
 class ImportSeasonForm(forms.Form):
     spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
     season_name = forms.CharField(label='Season name', max_length=255)
+    season_tag = forms.SlugField(label='Season tag')
     rosters_only = forms.BooleanField(required=False, label='Rosters only')
     exclude_live_pairings = forms.BooleanField(required=False, label='Exclude live pairings')
 

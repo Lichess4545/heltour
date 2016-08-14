@@ -4,10 +4,10 @@ from django.core.urlresolvers import reverse
 register = template.Library()
 
 @register.simple_tag
-def leagueurl(name, league_tag=None, season_id=None, *args, **kwargs):
-    if season_id is not None and season_id != '':
+def leagueurl(name, league_tag=None, season_tag=None, *args, **kwargs):
+    if season_tag is not None and season_tag != '':
         name = "by_season:" + name
-        args = [season_id] + list(args)
+        args = [season_tag] + list(args)
     if league_tag is not None and league_tag != '':
         name = "by_league:" + name
         args = [league_tag] + list(args)

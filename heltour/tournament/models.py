@@ -51,6 +51,7 @@ class League(_BaseModel):
 class Season(_BaseModel):
     league = models.ForeignKey(League)
     name = models.CharField(max_length=255)
+    tag = models.SlugField(help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField()
@@ -60,7 +61,7 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('league', 'name')
+        unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
             ('edit_rosters', 'Can edit rosters'),
         )

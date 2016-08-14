@@ -9,7 +9,7 @@ def createCommonLeagueData():
     board_count = 2
 
     league = League.objects.create(name='Test League', tag='testleague')
-    season = Season.objects.create(league=league, name='Test Season', rounds=round_count, boards=board_count)
+    season = Season.objects.create(league=league, name='Test Season', tag='testseason', rounds=round_count, boards=board_count)
 
     player_num = 1
     for n in range(1, team_count + 1):

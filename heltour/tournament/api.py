@@ -22,9 +22,9 @@ def api_token_required(view_func):
 @api_token_required
 def find_pairing(request):
     try:
-        season_id = request.GET.get('season', None)
-        if season_id is not None:
-            season_id = int(season_id)
+        season_tag = request.GET.get('season', None)
+        if season_tag is not None:
+            season_tag = int(season_tag)
         player = request.GET.get('player', None)
         white = request.GET.get('white', None)
         black = request.GET.get('black', None)
@@ -32,7 +32,7 @@ def find_pairing(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        round_ = _get_latest_round(season_id)
+        round_ = _get_latest_round(season_tag)
     except IndexError:
         return JsonResponse({'pairing': None, 'error': 'no_data'})
 
@@ -46,7 +46,7 @@ def find_pairing(request):
     pairing = pairings[0]
 
     return JsonResponse({'pairing': {
-        'season_id': pairing.team_pairing.round.season.id,
+        'season_tag': pairing.team_pairing.round.season.tag,
         'white_team': pairing.white_team().name,
         'white_team_number': pairing.white_team().number,
         'black_team': pairing.black_team().name,
@@ -64,9 +64,9 @@ def find_pairing(request):
 @api_token_required
 def update_pairing(request):
     try:
-        season_id = request.POST.get('season', None)
-        if season_id is not None:
-            season_id = int(season_id)
+        season_tag = request.POST.get('season', None)
+        if season_tag is not None:
+            season_tag = int(season_tag)
         white = request.POST.get('white', None)
         black = request.POST.get('black', None)
         game_link = request.POST.get('game_link', None)
@@ -75,7 +75,7 @@ def update_pairing(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        round_ = _get_latest_round(season_id)
+        round_ = _get_latest_round(season_tag)
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
 
@@ -96,11 +96,11 @@ def update_pairing(request):
 
     return JsonResponse({'updated': 1})
 
-def _get_latest_round(season_id):
-    if season_id is None:
+def _get_latest_round(season_tag):
+    if season_tag is None:
         return Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')[0]
     else:
-        return Round.objects.filter(season_id=season_id, publish_pairings=True, is_completed=False).order_by('-number')[0]
+        return Round.objects.filter(season_tag=season_tag, publish_pairings=True, is_completed=False).order_by('-number')[0]
 
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
     pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
@@ -125,9 +125,9 @@ def _get_pairings(round_, player=None, white=None, black=None, color_fallback=Fa
 def get_roster(request):
     try:
         league_tag = request.GET.get('league', None)
-        season_id = request.GET.get('season', None)
-        if season_id is not None:
-            season_id = int(season_id)
+        season_tag = request.GET.get('season', None)
+        if season_tag is not None:
+            season_tag = int(season_tag)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
@@ -135,20 +135,20 @@ def get_roster(request):
         seasons = Season.objects.order_by('-start_date', '-id')
         if league_tag is not None:
             seasons = seasons.filter(league__tag=league_tag)
-        if season_id is not None:
-            seasons = seasons.filter(pk=season_id)
+        if season_tag is not None:
+            seasons = seasons.filter(pk=season_tag)
         else:
             seasons = seasons.filter(is_active=True)
 
         season = seasons[0]
     except IndexError:
-        return JsonResponse({'season_id': None, 'players': None, 'teams': None, 'error': 'no_data'})
+        return JsonResponse({'season_tag': None, 'players': None, 'teams': None, 'error': 'no_data'})
 
     season_players = season.seasonplayer_set.all()
     teams = season.team_set.order_by('number').all()
 
     return JsonResponse({
-        'season_id': season.pk,
+        'season_tag': season.tag,
         'players': [{
             'username': season_player.player.lichess_username,
             'rating': season_player.player.rating
@@ -175,9 +175,9 @@ def get_roster(request):
 @api_token_required
 def assign_alternate(request):
     try:
-        season_id = request.POST.get('season', None)
-        if season_id is not None:
-            season_id = int(season_id)
+        season_tag = request.POST.get('season', None)
+        if season_tag is not None:
+            season_tag = int(season_tag)
         round_num = request.POST.get('round', None)
         if round_num is not None:
             round_num = int(round_num)
@@ -195,7 +195,7 @@ def assign_alternate(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_latest_round(season_id)
+        latest_round = _get_latest_round(season_tag)
         season = latest_round.season
         if round_num is None:
             round_ = latest_round
@@ -225,9 +225,9 @@ def assign_alternate(request):
 @api_token_required
 def set_availability(request):
     try:
-        season_id = request.POST.get('season', None)
-        if season_id is not None:
-            season_id = int(season_id)
+        season_tag = request.POST.get('season', None)
+        if season_tag is not None:
+            season_tag = int(season_tag)
         round_num = request.POST.get('round', None)
         if round_num is not None:
             round_num = int(round_num)
@@ -243,7 +243,7 @@ def set_availability(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_latest_round(season_id)
+        latest_round = _get_latest_round(season_tag)
         season = latest_round.season
         if round_num is None:
             round_ = latest_round

@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import transaction
 import re
 
-def import_team_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
+def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
@@ -47,7 +47,7 @@ def import_team_season(league, url, name, rosters_only=False, exclude_live_pairi
         board_count = board - 1
 
         # Create the season
-        season = Season.objects.create(league=league, name=name, rounds=round_count, boards=board_count)
+        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count)
 
         # Read the teams
         team_name_col = sheet_rosters[0].index('Teams')
@@ -206,7 +206,7 @@ def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col)
                 pairings[i].game_link = match.group(1)
                 pairings[i].save()
 
-def import_lonewolf_season(league, url, name, rosters_only=False, exclude_live_pairings=False):
+def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)

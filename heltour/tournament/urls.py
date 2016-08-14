@@ -37,7 +37,7 @@ season_urlpatterns = [
 league_urlpatterns = [
     url(r'^$', views.league_home, name='league_home'),
     url(r'^', include(season_urlpatterns)),
-    url(r'^season/(?P<season_id>[0-9]+)/', include(season_urlpatterns, 'by_season')),
+    url(r'^season/(?P<season_tag>[\w-]+)/', include(season_urlpatterns, 'by_season')),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.document, name='document'),
 ]
 

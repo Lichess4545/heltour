@@ -11,9 +11,9 @@ def createCommonLeagueData():
     board_count = 2
 
     league = League.objects.create(name='Team League', tag='team', competitor_type='team')
-    season = Season.objects.create(league=league, name='Team Season', rounds=round_count, boards=board_count)
+    season = Season.objects.create(league=league, name='Team Season', tag='team', rounds=round_count, boards=board_count)
     league2 = League.objects.create(name='Lone League', tag='lone')
-    season2 = Season.objects.create(league=league2, name='Lone Season', rounds=round_count, boards=board_count)
+    season2 = Season.objects.create(league=league2, name='Lone Season', tag='lone', rounds=round_count, boards=board_count)
 
     player_num = 1
     for n in range(1, team_count + 1):

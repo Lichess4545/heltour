@@ -41,7 +41,7 @@
 								{% elif score == None %}
 								<td class="cell-score"></td>
 								{% else %}
-								<td class="cell-score {% resultclass tie_score score %}"><a href="{% leagueurl 'result' league_tag season_id team_pairing_id %}">{{ score|floatformat }}</a></td>
+								<td class="cell-score {% resultclass tie_score score %}"><a href="{% leagueurl 'result' league_tag season_tag team_pairing_id %}">{{ score|floatformat }}</a></td>
 								{% endif %}
 								{% endfor %}
 								<td class="text-center">{{ team_score.match_points_display }}</td>

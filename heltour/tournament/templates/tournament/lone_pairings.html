@@ -22,8 +22,8 @@
 				  <ul class="dropdown-menu">
 				    {% for n in round_number_list %}
 				    <li>
-				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_id n current_team.number %}">Round {{ n }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league_tag season_id n %}">Round {{ n }}</a>
+				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag n current_team.number %}">Round {{ n }}</a>
+				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag n %}">Round {{ n }}</a>
 				    	{% endif %}
 			    	</li>
 				    {% endfor %}
@@ -38,15 +38,15 @@
 				  </button>
 				  <ul class="dropdown-menu">
 				    <li>
-					    {% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league_tag season_id round_number %}">All Teams</a>
-				    	{% else %}<a href="{% leagueurl 'pairings' league_tag season_id %}">All Teams</a>
+					    {% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag round_number %}">All Teams</a>
+				    	{% else %}<a href="{% leagueurl 'pairings' league_tag season_tag %}">All Teams</a>
 				    	{% endif %}
 				    </li>
 				    <li role="separator" class="divider"></li>
 				    {% for team in team_list %}
 				    <li>
-				    	{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_id round_number team.number %}">{{ team.name }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_team' league_tag season_id team.number %}">{{ team.name }}</a>
+				    	{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag round_number team.number %}">{{ team.name }}</a>
+				    	{% else %}<a href="{% leagueurl 'pairings_by_team' league_tag season_tag team.number %}">{{ team.name }}</a>
 				    	{% endif %}
 			    	</li>
 				    {% endfor %}
