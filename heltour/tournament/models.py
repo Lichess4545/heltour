@@ -54,7 +54,7 @@ class Season(_BaseModel):
     tag = models.SlugField(help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
-    boards = models.PositiveIntegerField()
+    boards = models.PositiveIntegerField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False)
@@ -169,17 +169,6 @@ class Round(_BaseModel):
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
 
-ROUND_CHANGE_OPTIONS = (
-    ('register', 'Register'),
-    ('withdraw', 'Withdraw'),
-    ('bye', 'Bye'),
-)
-
-#-------------------------------------------------------------------------------
-class RoundChange(_BaseModel):
-    round = models.ForeignKey(Round)
-    action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
-
 #-------------------------------------------------------------------------------
 class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
@@ -197,6 +186,18 @@ class Player(_BaseModel):
             return self.lichess_username
         else:
             return "%s (%d)" % (self.lichess_username, self.rating)
+
+ROUND_CHANGE_OPTIONS = (
+    ('register', 'Register'),
+    ('withdraw', 'Withdraw'),
+    ('half-point-bye', 'Half-Point Bye'),
+)
+
+#-------------------------------------------------------------------------------
+class RoundChange(_BaseModel):
+    round = models.ForeignKey(Round)
+    player = models.ForeignKey(Player)
+    action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
@@ -512,6 +513,49 @@ class SeasonPlayer(_BaseModel):
 
     def __unicode__(self):
         return "%s" % self.player
+
+#-------------------------------------------------------------------------------
+class LonePlayerScore(_BaseModel):
+    season_player = models.OneToOneField(SeasonPlayer)
+    points = models.PositiveIntegerField(default=0)
+    late_join_points = models.PositiveIntegerField(default=0)
+    tiebreak1 = models.PositiveIntegerField(default=0)
+    tiebreak2 = models.PositiveIntegerField(default=0)
+    tiebreak3 = models.PositiveIntegerField(default=0)
+    tiebreak4 = models.PositiveIntegerField(default=0)
+
+    def pairing_points_display(self):
+        return "%g" % ((self.points + self.late_join_points) / 2.0)
+
+    def final_standings_points_display(self):
+        return "%g" % (self.points / 2.0)
+
+    def late_join_points_display(self):
+        return "%g" % (self.late_join_points / 2.0)
+
+    def tiebreak1_display(self):
+        return "%g" % (self.tiebreak1 / 2.0)
+
+    def tiebreak2_display(self):
+        return "%g" % (self.tiebreak2 / 2.0)
+
+    def tiebreak3_display(self):
+        return "%g" % (self.tiebreak3 / 2.0)
+
+    def tiebreak4_display(self):
+        return "%g" % (self.tiebreak4 / 2.0)
+
+    def game_points_display(self):
+        return "%g" % (self.game_points / 2.0)
+
+    def pairing_cmp(self):
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
+
+    def final_standings_cmp(self):
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
+
+    def __unicode__(self):
+        return "%s" % (self.season_player)
 
 #-------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):

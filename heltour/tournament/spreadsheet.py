@@ -6,15 +6,19 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import transaction
 import re
+from gspread.exceptions import WorksheetNotFound
 
-def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
+def _open_doc(url):
     scope = ['https://spreadsheets.google.com/feeds']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
     try:
-        doc = gc.open_by_url(url)
+        return gc.open_by_url(url)
     except gspread.SpreadsheetNotFound:
         raise SpreadsheetNotFound
+
+def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
+    doc = _open_doc(url)
 
     with transaction.atomic():
 
@@ -151,6 +155,12 @@ def _parse_player_name(player_name):
         is_captain = False
     return player_name, is_captain
 
+def _parse_player_name_and_rating(player_name_and_rating):
+    match = re.match('(.*) \((\d+)\)', player_name_and_rating)
+    if match is None:
+        return None, None
+    return match.group(1), match.group(2)
+
 def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pairing_rows):
     white_col = sheet[header_row].index('WHITE')
     white_team_col = white_col - 1
@@ -207,13 +217,113 @@ def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col)
                 pairings[i].save()
 
 def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
-    scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
-    gc = gspread.authorize(credentials)
-    try:
-        doc = gc.open_by_url(url)
-    except gspread.SpreadsheetNotFound:
-        raise SpreadsheetNotFound
+    doc = _open_doc(url)
 
     with transaction.atomic():
-        pass
+
+        # Open the sheets
+        sheet_standings = _trim_cells(doc.worksheet('STANDINGS').get_all_values())
+        sheet_changes = _trim_cells(doc.worksheet('PLAYER CHANGES').get_all_values())
+        sheet_readme = _trim_cells(doc.worksheet('README').get_all_values())
+
+        # Read the round count
+        round_count = None
+        for row in sheet_readme:
+            for cell in row:
+                match = re.search('(\d+) round', cell)
+                if match is not None:
+                    round_count = int(match.group(1))
+
+        # Create the season
+        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count)
+
+        # Read the players and their scores
+        name_col = sheet_standings[0].index('Name')
+        rating_col = sheet_standings[0].index('Rtng')
+        points_col = sheet_standings[0].index('Tot')
+        ljp_col = sheet_standings[0].index('LjP')
+        tb1_col = sheet_standings[0].index('TBrk[M]')
+        tb2_col = sheet_standings[0].index('TBrk[S]')
+        tb3_col = sheet_standings[0].index('TBrk[C]')
+        tb4_col = sheet_standings[0].index('TBrk[O]')
+        row = 1
+        while row < len(sheet_standings):
+            name = sheet_standings[row][name_col]
+            if len(name) == 0:
+                break
+            rating = int(sheet_standings[row][rating_col])
+            player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
+                                                            defaults={'lichess_username': name, 'rating': rating})
+            season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
+            points = int(float(sheet_standings[row][points_col]) * 2)
+            ljp = int(float(sheet_standings[row][ljp_col]) * 2)
+            tb1 = int(float(sheet_standings[row][tb1_col]) * 2)
+            tb2 = int(float(sheet_standings[row][tb2_col]) * 2)
+            tb3 = int(float(sheet_standings[row][tb3_col]) * 2)
+            tb4 = int(float(sheet_standings[row][tb4_col]) * 2)
+
+            LonePlayerScore.objects.create(season_player=season_player, points=points, late_join_points=ljp, tiebreak1=tb1, tiebreak2=tb2, tiebreak3=tb3, tiebreak4=tb4)
+            row += 1
+
+        # Read the round changes
+        round_col = sheet_changes[0].index('round')
+        name_col = sheet_changes[0].index('username')
+        action_col = sheet_changes[0].index('action')
+        rating_col = sheet_changes[0].index('rating')
+        for row in range(1, len(sheet_changes)):
+            name = sheet_changes[row][name_col]
+            if len(name) == 0:
+                break
+            round_number = int(sheet_changes[row][round_col])
+            action = sheet_changes[row][action_col]
+            rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
+            player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
+                                                            defaults={'lichess_username': name, 'rating': rating})
+            RoundChange.objects.create(round=season.round_set.get(number=round_number), player=player, action=action)
+
+        # TODO: Infer missing round changes from the standings page
+        round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1) if ('Rd %d' % n) in sheet_standings[0]]
+
+        # Read the pairings
+        for round_ in season.round_set.all():
+            try:
+                worksheet = doc.worksheet('ROUND %d PAIRINGS' % round_.number)
+            except WorksheetNotFound:
+                continue
+            sheet = _trim_cells(worksheet.get_all_values())
+            pairings = []
+            pairing_rows = []
+
+            time_col = sheet[0].index('Game Scheduled (in GMT)')
+            white_col = sheet[0].index('White')
+            black_col = sheet[0].index('Black')
+            result_col = sheet[0].index('Result')
+            for row in range(1, len(sheet)):
+                white_player_name, white_player_rating = _parse_player_name_and_rating(sheet[row][white_col])
+                if white_player_name is None:
+                    continue
+                white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
+                black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
+                if black_player_name is None:
+                    continue
+                black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
+                result = sheet[row][result_col]
+                if result == u'\u2694':
+                    result = ''
+                time_str = sheet[row][time_col]
+                scheduled_time = None
+                if '/' in time_str:
+                    scheduled_time = datetime.strptime(time_str, '%m/%d %H:%M')
+                    scheduled_time = scheduled_time.replace(tzinfo=timezone.UTC())
+                    if round_.start_date is None or scheduled_time < round_.start_date:
+                        round_.start_date = scheduled_time
+                        round_.save()
+                    game_end_estimate = scheduled_time + timedelta(hours=3)
+                    if round_.end_date is None or game_end_estimate > round_.end_date:
+                        round_.end_date = game_end_estimate
+                        round_.save()
+                pairing = LonePlayerPairing.objects.create(round=round_, pairing_order=row, white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
+                pairings.append(pairing)
+                pairing_rows.append(row)
+            _update_pairing_game_links(worksheet, pairings, pairing_rows, result_col)
+
