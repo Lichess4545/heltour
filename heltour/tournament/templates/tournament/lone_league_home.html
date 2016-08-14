@@ -86,20 +86,6 @@
 			</div>
 		</div>
 		{% endif %}
-		{% if other_leagues %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Other Leagues</h3>
-			</div>
-		    <div class="well-body">
-		    	{% for l in other_leagues %}
-		    	<div class="league-link league-link-{{ l.theme }}">
-					<a href="{% leagueurl 'league_home' l.tag None %}" class="btn btn-default">{{ l.name }}</a>
-				</div>
-				{% endfor %}
-			</div>
-		</div>
-		{% endif %}
 	</div>
 	<div class="col-md-6 col-xs-12">
 		{% if team_scores %}
@@ -150,6 +136,20 @@
 					    {% endfor %}
 				    </ul>
 				</div>
+			</div>
+		</div>
+		{% endif %}
+		{% if other_leagues %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Other Leagues</h3>
+			</div>
+		    <div class="well-body">
+		    	{% for l in other_leagues %}
+		    	<div class="league-link league-link-{{ l.theme }}">
+					<a href="{% leagueurl 'league_home' l.tag None %}" class="btn btn-default">{{ l.name }}</a>
+				</div>
+				{% endfor %}
 			</div>
 		</div>
 		{% endif %}
