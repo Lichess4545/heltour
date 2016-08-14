@@ -14,6 +14,8 @@ def league_home(request, league_tag=None, season_id=None):
     if league is None:
         return render(request, 'tournament/no_leagues.html', {})
 
+    other_leagues = League.objects.order_by('display_order').exclude(pk=league.pk)
+
     rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
     rules_doc_tag = rules_doc.tag if rules_doc is not None else None
     intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
@@ -27,6 +29,7 @@ def league_home(request, league_tag=None, season_id=None):
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': request.user.has_perm('tournament.change_document'),
+            'other_leagues': other_leagues,
         }
         return render(request, 'tournament/league_home.html', context)
 
@@ -59,6 +62,7 @@ def league_home(request, league_tag=None, season_id=None):
         'registration_season': registration_season,
         'current_games': current_games,
         'upcoming_games': upcoming_games,
+        'other_leagues': other_leagues,
     }
     return render(request, 'tournament/league_home.html', context)
 

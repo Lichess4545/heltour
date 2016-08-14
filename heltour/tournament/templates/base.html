@@ -13,7 +13,9 @@
     {% block common_css %}
     <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
     <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
-    <link href="{% static "tournament/css/theme.css" %}?v={{ static_version }}" rel="stylesheet">
+    {% with "tournament/css/theme-"|add:league.theme|add:".css" as theme_css %}
+    <link href="{% static theme_css %}?v={{ static_version }}" rel="stylesheet">
+    {% endwith %}
     {% endblock %}
     {% block css %}{% endblock %}
 </head>
@@ -28,7 +30,7 @@
 	        <span class="icon-bar"></span>
 	        <span class="icon-bar"></span>
 	      </button>
-	      <a class="navbar-brand" href="/">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
+	      <a class="navbar-brand" href="{% leagueurl 'league_home' league_tag None %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
 	    </div>
 	
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">

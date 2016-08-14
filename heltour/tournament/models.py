@@ -21,6 +21,10 @@ class _BaseModel(models.Model):
     class Meta:
         abstract = True
 
+THEME_OPTIONS = (
+    ('blue', 'Blue'),
+    ('green', 'Green'),
+)
 COMPETITOR_TYPE_OPTIONS = (
     ('team', 'Team'),
     ('individual', 'Individual'),
@@ -33,6 +37,8 @@ PAIRING_TYPE_OPTIONS = (
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     tag = models.SlugField(unique=True, help_text='The league will be accessible at /{league_tag}/')
+    theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
+    display_order = models.PositiveIntegerField(default=0)
     competitor_type = models.CharField(max_length=32, choices=COMPETITOR_TYPE_OPTIONS)
     pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
     is_active = models.BooleanField(default=True)
