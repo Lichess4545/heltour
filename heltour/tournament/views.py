@@ -319,24 +319,10 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
             round_number = round_number_list[0]
         except IndexError:
             pass
-    team_list = season.team_set.order_by('name')
-    team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=season) \
+    pairings = LonePlayerPairing.objects.filter(round__number=round_number, round__season=season) \
                                        .order_by('pairing_order') \
-                                       .select_related('white_team', 'black_team') \
+                                       .select_related('white', 'black') \
                                        .nocache()
-    if team_number is not None:
-        current_team = get_object_or_404(team_list, number=team_number)
-        team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
-    else:
-        current_team = None
-    pairing_lists = [list(
-                          team_pairing.teamplayerpairing_set.order_by('board_number')
-                                      .select_related('white', 'black')
-                                      .nocache()
-                    ) for team_pairing in team_pairings]
-    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=season, round__number=round_number, is_available=False) \
-                                                                         .select_related('player')
-                                                                         .nocache()}
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -344,12 +330,8 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
         'season': season,
         'round_number': round_number,
         'round_number_list': round_number_list,
-        'current_team': current_team,
-        'team_list': team_list,
-        'pairing_lists': pairing_lists,
-        'unavailable_players': unavailable_players,
+        'pairings': pairings,
         'specified_round': specified_round,
-        'specified_team': team_number is not None,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/lone_pairings.html', context)

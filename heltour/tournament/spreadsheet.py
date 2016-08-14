@@ -327,3 +327,13 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 pairing_rows.append(row)
             _update_pairing_game_links(worksheet, pairings, pairing_rows, result_col)
 
+        # Set round states
+        last_round = None
+        for round_ in season.round_set.order_by('number'):
+            if round_.loneplayerpairing_set.count() > 0:
+                round_.publish_pairings = True
+                round_.save()
+                if last_round is not None:
+                    last_round.is_completed = True
+                    last_round.save()
+                last_round = round_

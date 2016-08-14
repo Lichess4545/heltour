@@ -30,70 +30,36 @@
 				  </ul>
 				</div>
 				{% endif %}
-				{% if team_list %}
-				<div class="dropdown inline round-switcher">
-				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-				    {% if current_team %}{{ current_team.name }}{% else %}All Teams{% endif %}
-				    <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu">
-				    <li>
-					    {% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag round_number %}">All Teams</a>
-				    	{% else %}<a href="{% leagueurl 'pairings' league_tag season_tag %}">All Teams</a>
-				    	{% endif %}
-				    </li>
-				    <li role="separator" class="divider"></li>
-				    {% for team in team_list %}
-				    <li>
-				    	{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag round_number team.number %}">{{ team.name }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_team' league_tag season_tag team.number %}">{{ team.name }}</a>
-				    	{% endif %}
-			    	</li>
-				    {% endfor %}
-				  </ul>
-				</div>
-				{% endif %}
 				
-				{% if pairing_lists %}
+				{% if pairings %}
 				<table class="table table-condensed-xs">
-					{% for pairing_list in pairing_lists %}
-					<tr class="header-row visible-xs">
-						<th colspan="5">TEAMS</th>
-					</tr>
-					<tr class="visible-xs">
-						<td colspan="5">
-							{{ pairing_list.0.white_team_name }} ({{ pairing_list.0.team_pairing.white_points_display }})<br/>
-							{{ pairing_list.0.black_team_name }} ({{ pairing_list.0.team_pairing.black_points_display }})
-						</td>
-					</tr>
-					<tr class="header-row">
-						<th class="hidden-xs">TEAM</th>
+					<thead>
+					<tr>
 						<th>WHITE</th>
 						<th>BLACK</th>
-						<th class="hidden-xs">TEAM</th>
 						<th class="text-center hidden-xs">RESULT</th>
 						<th class="text-center visible-xs">RS</th>
 						<th>TIME</th>{% if can_edit %}
 						<th></th>{% endif %}
 					</tr>
-					{% for pairing in pairing_list %}
+					</thead>
+					<tbody>
+					{% for pairing in pairings %}
 					<tr>
-						<td class="hidden-xs">{{ pairing.white_team_name }}</td>
 						<td>
-							<div class="pairing-player{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+							<div class="pairing-player">
 								<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
 								</a>
 							</div>
 						</td>
 						<td>
-							<div class="pairing-player{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+							<div class="pairing-player">
 								<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
 									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
 								</a>
 							</div>
 						</td>
-						<td class="hidden-xs">{{ pairing.black_team_name }}</td>
 						<td class="text-center text-nowrap">
 							{% if pairing.game_link %}
 							<a href="{{ pairing.game_link }}">
@@ -111,7 +77,7 @@
 				        </th>{% endif %}
 					</tr>
 					{% endfor %}
-					{% endfor %}
+					</tbody>
 				</table>
 				{% else %}
 				<p>No pairings available.</p>
