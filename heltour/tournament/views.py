@@ -493,16 +493,18 @@ def team_standings(request, league_tag=None, season_tag=None):
 def lone_standings(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
-    tie_score = season.boards / 2.0
+    if season.is_completed:
+        sort_key = lambda s: s.final_standings_sort_key()
+    else:
+        sort_key = lambda s: s.pairing_sort_key()
+    player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player__player').nocache(), key=sort_key, reverse=True), 1))
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_tag': season_tag,
         'season': season,
         'round_numbers': round_numbers,
-        'team_scores': team_scores,
-        'tie_score': tie_score
+        'player_scores': player_scores,
     }
     return render(request, 'tournament/lone_standings.html', context)
 

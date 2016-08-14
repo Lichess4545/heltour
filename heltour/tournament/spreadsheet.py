@@ -277,7 +277,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             round_number = int(sheet_changes[row][round_col])
             action = sheet_changes[row][action_col]
             rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
-            player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
+            player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
                                                             defaults={'lichess_username': name, 'rating': rating})
             RoundChange.objects.create(round=season.round_set.get(number=round_number), player=player, action=action)
 

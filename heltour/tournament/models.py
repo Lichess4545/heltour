@@ -525,13 +525,13 @@ class LonePlayerScore(_BaseModel):
     tiebreak4 = models.PositiveIntegerField(default=0)
 
     def pairing_points_display(self):
-        return "%g" % ((self.points + self.late_join_points) / 2.0)
+        return "%.1f" % ((self.points + self.late_join_points) / 2.0)
 
     def final_standings_points_display(self):
-        return "%g" % (self.points / 2.0)
+        return "%.1f" % (self.points / 2.0)
 
     def late_join_points_display(self):
-        return "%g" % (self.late_join_points / 2.0)
+        return "%.1f" % (self.late_join_points / 2.0)
 
     def tiebreak1_display(self):
         return "%g" % (self.tiebreak1 / 2.0)
@@ -545,13 +545,10 @@ class LonePlayerScore(_BaseModel):
     def tiebreak4_display(self):
         return "%g" % (self.tiebreak4 / 2.0)
 
-    def game_points_display(self):
-        return "%g" % (self.game_points / 2.0)
-
-    def pairing_cmp(self):
+    def pairing_sort_key(self):
         return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
 
-    def final_standings_cmp(self):
+    def final_standings_sort_key(self):
         return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
 
     def __unicode__(self):
