@@ -149,7 +149,7 @@ class Season(_BaseModel):
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, False)
                 else:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
-            last_round = round_.number
+            last_round = round_
 
         player_scores = LonePlayerScore.objects.filter(season_player__season=self)
         for score in player_scores:
@@ -161,51 +161,53 @@ class Season(_BaseModel):
                 score.tiebreak3 = 0
                 score.tiebreak4 = 0
             else:
-                score.points, _, cumul, _, _ = score_dict[(score.season_player.player_id, last_round)]
+                total, _, cumul, _, _ = score_dict[(score.season_player.player_id, last_round.number)]
+                score.points = total
 
                 # Tiebreak calculations
 
                 opponent_scores = []
                 opponent_cumuls = []
-                for round_number in range(1, last_round + 1):
+                for round_number in range(1, last_round.number + 1):
                     _, _, _, round_opponent, played = score_dict[(player_id, round_number)]
                     if played and round_opponent is not None:
-                        opponent_scores.append(score_dict[(round_opponent, last_round)][1])
-                        opponent_cumuls.append(score_dict[(round_opponent, last_round)][2])
+                        opponent_scores.append(score_dict[(round_opponent, last_round.number)][1])
+                        opponent_cumuls.append(score_dict[(round_opponent, last_round.number)][2])
                     else:
                         opponent_scores.append(0)
                 opponent_scores.sort()
 
-                # Modified Median
+                # TB1: Modified Median
                 median_scores = opponent_scores
-                skip = 2 if last_round >= 9 else 1
-                if score.points <= last_round:
+                skip = 2 if last_round.number >= 9 else 1
+                if score.points <= last_round.number:
                     median_scores = median_scores[:-skip]
-                if score.points >= last_round:
+                if score.points >= last_round.number:
                     median_scores = median_scores[skip:]
                 score.tiebreak1 = sum(median_scores)
 
-                # Solkoff
+                # TB2: Solkoff
                 score.tiebreak2 = sum(opponent_scores)
 
-                # Cumulative
+                # TB3: Cumulative
                 score.tiebreak3 = cumul
 
-                # Cumulative opponent
+                # TB4: Cumulative opponent
                 score.tiebreak4 = sum(opponent_cumuls)
 
             score.save()
 
     def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, played):
-        points, mm_points, cumul, _, _ = score_dict[(player_id, last_round)] if last_round is not None else (0, 0, 0, None, False)
-        points += score
-        cumul += points
+        total, mm_total, cumul, _, _ = score_dict[(player_id, last_round.number)] if last_round is not None else (0, 0, 0, None, False)
+        total += score
+        cumul += total
         if played:
-            mm_points += score
+            mm_total += score
         else:
-            mm_points += 1
+            # Special cases for unplayed games
+            mm_total += 1
             cumul -= score
-        score_dict[(player_id, round_.number)] = (points, mm_points, cumul, opponent, played)
+        score_dict[(player_id, round_.number)] = (total, mm_total, cumul, opponent, played)
 
     def is_started(self):
         return self.start_date is not None and self.start_date < timezone.now()
