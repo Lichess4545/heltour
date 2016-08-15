@@ -183,9 +183,8 @@ def lone_season_landing(request, league_tag=None, season_tag=None):
                                 .order_by('-number') \
                                 .first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
-    last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
-    tie_score = season.boards
+    last_round_pairings = last_round.loneplayerpairing_set.order_by('pairing_order')[:10] if last_round is not None else None
+    player_scores = _lone_player_scores(season, final=True)[:5]
 
     context = {
         'league_tag': league_tag,
@@ -197,8 +196,7 @@ def lone_season_landing(request, league_tag=None, season_tag=None):
         'active_round': active_round,
         'last_round': last_round,
         'last_round_pairings': last_round_pairings,
-        'team_scores': team_scores,
-        'tie_score': tie_score,
+        'player_scores': player_scores,
     }
     return render(request, 'tournament/lone_season_landing.html', context)
 
@@ -237,12 +235,11 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
     round_numbers = list(range(1, season.rounds + 1))
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
-    tie_score = season.boards / 2.0
+    player_scores = _lone_player_scores(season)
 
-    first_team = team_scores[0][1] if len(team_scores) > 0 else None
-    second_team = team_scores[1][1] if len(team_scores) > 1 else None
-    third_team = team_scores[2][1] if len(team_scores) > 2 else None
+    first_player = player_scores[0][1] if len(player_scores) > 0 else None
+    second_player = player_scores[1][1] if len(player_scores) > 1 else None
+    third_player = player_scores[2][1] if len(player_scores) > 2 else None
 
     context = {
         'league_tag': league_tag,
@@ -252,11 +249,10 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
         'default_season': default_season,
         'season_list': season_list,
         'round_numbers': round_numbers,
-        'team_scores': team_scores,
-        'tie_score': tie_score,
-        'first_team': first_team,
-        'second_team': second_team,
-        'third_team': third_team,
+        'player_scores': player_scores,
+        'first_player': first_player,
+        'second_player': second_player,
+        'third_player': third_player,
     }
     return render(request, 'tournament/lone_completed_season_landing.html', context)
 
@@ -494,7 +490,23 @@ def team_standings(request, league_tag=None, season_tag=None):
 def lone_standings(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
-    if season.is_completed:
+    player_scores = _lone_player_scores(season)
+
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_tag': season_tag,
+        'season': season,
+        'round_numbers': round_numbers,
+        'player_scores': player_scores,
+    }
+    return render(request, 'tournament/lone_standings.html', context)
+
+def _lone_player_scores(season, final=False):
+    # For efficiency, rather than having LonePlayerScore.round_scores() do independent
+    # calculations, we populate a few common data structures and use those as parameters.
+
+    if season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:
         sort_key = lambda s: s.pairing_sort_key()
@@ -515,15 +527,7 @@ def lone_standings(request, league_tag=None, season_tag=None):
     for rc in round_changes:
         round_changes_dict[(rc.round, rc.player)].append(rc)
 
-    context = {
-        'league_tag': league_tag,
-        'league': _get_league(league_tag),
-        'season_tag': season_tag,
-        'season': season,
-        'round_numbers': round_numbers,
-        'player_scores': [(ps[0], ps[1], ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict)) for ps in player_scores],
-    }
-    return render(request, 'tournament/lone_standings.html', context)
+    return [(ps[0], ps[1], ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict)) for ps in player_scores]
 
 def crosstable(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)

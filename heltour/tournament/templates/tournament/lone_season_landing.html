@@ -19,7 +19,7 @@
 			</div>
 		</div>
 		{% endif %}
-	    {% if team_scores %}
+	    {% if player_scores %}
 		<div class="well">
 			<div class="well-head">
 				<h3>Standings</h3>
@@ -29,18 +29,24 @@
 					<thead>
 						<tr>
 							<th></th>
-							<th>Team</th>
-							<th class="text-center">Match Points</th>
-							<th class="text-center">Game Points</th>
+							<th>Name</th>
+							<th class="text-center">Rtng</th>
+							<th class="text-center">Total</th>
+							<th class="text-center">TBrk[M]</th>
 						</tr>
 					</thead>
 					<tbody>
-						{% for number, team_score in team_scores %}
+						{% for number, player_score, round_scores in player_scores %}
 						<tr>
-							<td class="text-center cell-teamnumber">{{ number }}</td>
-							<td>{{ team_score.team.name }}</td>
-							<td class="text-center">{{ team_score.match_points_display }}</td>
-							<td class="text-center">{{ team_score.game_points_display }}</td>
+							<td class="text-center rank-value">{{ number }}</td>
+							<td>
+								<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+									{{ player_score.season_player.player.lichess_username }}
+								</a>
+							</td>
+							<td class="text-center">{{ player_score.season_player.player.rating }}</td>
+							<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+							<td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
 						</tr>
 						{% endfor %}
 					</tbody>
@@ -83,25 +89,29 @@
 					<thead>
 					</thead>
 					<tbody>
-						{% for team_pairing in last_round_pairings %}
+						{% for pairing in last_round_pairings %}
 						<tr>
-							<td class="cell-score {% if team_pairing.white_points > tie_score %}cell-win{% elif team_pairing.white_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
-								{{ team_pairing.white_points_display }}
+							<td class="cell-score {% if pairing.white_score == 1 %}cell-win{% elif pairing.white_score == 0 %}cell-loss{% elif pairing.white_score == 0.5 %}cell-tie{% endif %}">
+								{{ pairing.white_score }}
 							</td>
 							<td>
-								{{ team_pairing.white_team.name }}
+								<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
+								</a>
 							</td>
-							<td class="cell-score {% if team_pairing.black_points > tie_score %}cell-win{% elif team_pairing.black_points < tie_score %}cell-loss{% else %}cell-tie{% endif %}">
-								{{ team_pairing.black_points_display }}
+							<td class="cell-score {% if pairing.black_score == 1 %}cell-win{% elif pairing.black_score == 0 %}cell-loss{% elif pairing.black_score == 0.5 %}cell-tie{% endif %}">
+								{{ pairing.black_score }}
 							</td>
 							<td>
-								{{ team_pairing.black_team.name }}
+								<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
+								</a>
 							</td>
 						</tr>
 						{% endfor %}
 					</tbody>
 				</table>
-				<a href="{% leagueurl 'crosstable' league_tag season_tag %}" class="btn btn-default">All Results</a>
+				<a href="{% leagueurl 'wallchart' league_tag season_tag %}" class="btn btn-default">All Results</a>
 			</div>
 		</div>
 		{% endif %}
