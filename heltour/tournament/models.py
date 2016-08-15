@@ -199,11 +199,12 @@ class Season(_BaseModel):
     def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, played):
         points, mm_points, cumul, _, _ = score_dict[(player_id, last_round)] if last_round is not None else (0, 0, 0, None, False)
         points += score
+        cumul += points
         if played:
             mm_points += score
         else:
             mm_points += 1
-        cumul += points
+            cumul -= score
         score_dict[(player_id, round_.number)] = (points, mm_points, cumul, opponent, played)
 
     def is_started(self):
