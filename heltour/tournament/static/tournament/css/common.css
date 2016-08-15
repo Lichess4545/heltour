@@ -388,6 +388,10 @@ div.inline {
 	background-color: #225622;
 }
 
+#table-lone-standings .temporary-rank .rank-value {
+	color: #999;
+}
+
 @media (min-width: 769px) {
 	.podium {
 		display: flex;

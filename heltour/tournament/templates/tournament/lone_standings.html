@@ -15,7 +15,7 @@
 			<div class="well-body">
 				{% if player_scores %}
 				<div class="table-responsive">
-					<table class="table table-striped table-condensed-sm">
+					<table class="table table-striped table-condensed-sm" id="table-lone-standings">
 						<thead>
 							<tr>
 								<th></th>
@@ -35,8 +35,8 @@
 						</thead>
 						<tbody>
 							{% for number, player_score, round_scores in player_scores %}
-							<tr>
-								<td class="text-center{% if player_score.late_join_points > 0 %} text-muted{% endif %}">{{ number }}</td>
+							<tr{% if not season.is_completed and player_score.late_join_points > 0 %} class="temporary-rank"{% endif %}>
+								<td class="text-center rank-value">{{ number }}</td>
 								<td>
 									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
 										{{ player_score.season_player.player.lichess_username }}
@@ -46,13 +46,13 @@
 								{% for result_code, opponent_num in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}
-								<td class="text-center">{{ player_score.pairing_points_display }}</td>
-								<td class="text-center">{{ player_score.final_standings_points_display }}</td>
-								<td class="text-center">{{ player_score.late_join_points_display }}</td>
-								<td class="text-right">{{ player_score.tiebreak1_display }}</td>
-								<td class="text-right">{{ player_score.tiebreak2_display }}</td>
-								<td class="text-right">{{ player_score.tiebreak3_display }}</td>
-								<td class="text-right">{{ player_score.tiebreak4_display }}</td>
+								<td class="text-center rank-value">{{ player_score.pairing_points_display }}</td>
+								<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+								<td class="text-center rank-value">{{ player_score.late_join_points_display }}</td>
+								<td class="text-right rank-value">{{ player_score.tiebreak1_display }}</td>
+								<td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
+								<td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
+								<td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
 							</tr>
 							{% endfor %}
 						</tbody>
