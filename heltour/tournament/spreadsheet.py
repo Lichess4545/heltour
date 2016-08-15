@@ -305,6 +305,9 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 if white_player_name is None:
                     continue
                 white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
+                if sheet[row][black_col] == 'BYE':
+                    RoundChange.objects.get_or_create(round=round_, player=white_player, action='half-point-bye')
+                    continue
                 black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
                 if black_player_name is None:
                     continue
