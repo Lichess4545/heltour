@@ -466,7 +466,7 @@ class RoundAdmin(VersionAdmin):
             form = forms.ReviewPairingsForm()
 
         team_pairings = round_.teampairing_set.order_by('pairing_order')
-        pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number') for team_pairing in team_pairings]
+        pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number').nocache() for team_pairing in team_pairings]
 
         context = {
             'has_permission': True,

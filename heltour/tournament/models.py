@@ -419,7 +419,7 @@ class TeamPairing(_BaseModel):
     def refresh_points(self):
         self.white_points = 0
         self.black_points = 0
-        for pairing in self.teamplayerpairing_set.all():
+        for pairing in self.teamplayerpairing_set.all().nocache():
             if pairing.board_number % 2 == 1:
                 self.white_points += (pairing.white_score() or 0) * 2
                 self.black_points += (pairing.black_score() or 0) * 2
@@ -748,7 +748,7 @@ class AlternateAssignment(_BaseModel):
         # Find and update any current pairings
         white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
         if white_pairing is not None:
-            pairing = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            pairing = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).nocache().first()
             if pairing is not None:
                 if self.board_number % 2 == 1:
                     pairing.white = self.player
@@ -757,7 +757,7 @@ class AlternateAssignment(_BaseModel):
                 pairing.save()
         black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
         if black_pairing is not None:
-            pairing = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).first()
+            pairing = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).nocache().first()
             if pairing is not None:
                 if self.board_number % 2 == 1:
                     pairing.black = self.player

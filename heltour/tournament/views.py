@@ -183,7 +183,7 @@ def lone_season_landing(request, league_tag=None, season_tag=None):
                                 .order_by('-number') \
                                 .first()
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
-    last_round_pairings = last_round.loneplayerpairing_set.order_by('pairing_order')[:10] if last_round is not None else None
+    last_round_pairings = last_round.loneplayerpairing_set.order_by('pairing_order')[:10].nocache() if last_round is not None else None
     player_scores = _lone_player_scores(season, final=True)[:5]
 
     context = {
@@ -320,6 +320,8 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
                                        .order_by('pairing_order') \
                                        .select_related('white', 'black') \
                                        .nocache()
+
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -566,7 +568,7 @@ def wallchart(request, league_tag=None, season_tag=None):
 def result(request, pairing_id, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     team_pairing = get_object_or_404(TeamPairing, round__season=season, pk=pairing_id)
-    pairings = team_pairing.teamplayerpairing_set.order_by('board_number')
+    pairings = team_pairing.teamplayerpairing_set.order_by('board_number').nocache()
     tie_score = season.boards
     context = {
         'league_tag': league_tag,

@@ -103,7 +103,7 @@ def _get_latest_round(season_tag):
         return Round.objects.filter(season_tag=season_tag, publish_pairings=True, is_completed=False).order_by('-number')[0]
 
 def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
-    pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_)
+    pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache()
     if player is not None:
         white_pairings = pairings.filter(white__lichess_username__iexact=player)
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
