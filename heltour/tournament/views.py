@@ -8,6 +8,7 @@ from heltour.tournament.templatetags.tournament_extras import leagueurl
 import itertools
 from django.db.models.query import Prefetch
 from django.contrib.admin.views.decorators import staff_member_required
+from collections import defaultdict
 
 def home(request):
     leagues = League.objects.filter(is_active=True).order_by('display_order')
@@ -498,13 +499,29 @@ def lone_standings(request, league_tag=None, season_tag=None):
     else:
         sort_key = lambda s: s.pairing_sort_key()
     player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player__player').nocache(), key=sort_key, reverse=True), 1))
+    player_number_dict = {p.season_player.player: n for n, p in player_scores}
+
+    pairings = LonePlayerPairing.objects.filter(round__season=season).select_related('white', 'black').nocache()
+    white_pairings_dict = defaultdict(list)
+    black_pairings_dict = defaultdict(list)
+    for p in pairings:
+        if p.white is not None:
+            white_pairings_dict[p.white].append(p)
+        if p.black is not None:
+            black_pairings_dict[p.black].append(p)
+
+    round_changes = RoundChange.objects.filter(round__season=season).select_related('round', 'player').nocache()
+    round_changes_dict = defaultdict(list)
+    for rc in round_changes:
+        round_changes_dict[(rc.round, rc.player)].append(rc)
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_tag': season_tag,
         'season': season,
         'round_numbers': round_numbers,
-        'player_scores': player_scores,
+        'player_scores': [(ps[0], ps[1], ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict)) for ps in player_scores],
     }
     return render(request, 'tournament/lone_standings.html', context)
 

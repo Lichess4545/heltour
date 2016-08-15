@@ -527,13 +527,9 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = models.PositiveIntegerField(default=0)
     tiebreak4 = models.PositiveIntegerField(default=0)
 
-    def round_scores(self):
-        # TODO: Dedup calculations
-        player_scores = sorted(LonePlayerScore.objects.filter(season_player__season=self.season_player.season), key=lambda s: s.pairing_sort_key(), reverse=True)
-        player_numbers = {p.season_player.player: n for n, p in enumerate(player_scores, 1)}
-        white_pairings = LonePlayerPairing.objects.filter(round__season=self.season_player.season, white=self.season_player.player)
-        black_pairings = LonePlayerPairing.objects.filter(round__season=self.season_player.season, black=self.season_player.player)
-        round_changes = RoundChange.objects.filter(round__season=self.season_player.season, player=self.season_player.player)
+    def round_scores(self, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict):
+        white_pairings = white_pairings_dict.get(self.season_player.player, [])
+        black_pairings = black_pairings_dict.get(self.season_player.player, [])
         for round_ in Round.objects.filter(season=self.season_player.season).order_by('number'):
             if not round_.is_completed:
                 yield (None, None)
@@ -542,7 +538,8 @@ class LonePlayerScore(_BaseModel):
             opponent = None
             white_pairing = find(white_pairings, round_id=round_.id)
             black_pairing = find(black_pairings, round_id=round_.id)
-            bye = find(round_changes, round_id=round_.id, action='half-point-bye')
+            round_changes = round_changes_dict.get((round_, self.season_player.player), [])
+            bye = find(round_changes, action='half-point-bye')
             if white_pairing is not None and white_pairing.black is not None:
                 opponent = white_pairing.black
                 if white_pairing.game_link == '':
@@ -559,7 +556,7 @@ class LonePlayerScore(_BaseModel):
                 result_type = 'H'
             else:
                 result_type = 'U'
-            yield (result_type, player_numbers.get(opponent, 0))
+            yield (result_type, player_number_dict.get(opponent, 0))
 
     def pairing_points_display(self):
         return "%.1f" % ((self.points + self.late_join_points) / 2.0)

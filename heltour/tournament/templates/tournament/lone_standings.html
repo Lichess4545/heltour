@@ -34,7 +34,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{% for number, player_score in player_scores %}
+							{% for number, player_score, round_scores in player_scores %}
 							<tr>
 								<td class="text-center{% if player_score.late_join_points > 0 %} text-muted{% endif %}">{{ number }}</td>
 								<td>
@@ -43,7 +43,7 @@
 									</a>
 								</td>
 								<td class="text-center">{{ player_score.season_player.player.rating }}</td>
-								{% for result_code, opponent_num in player_score.round_scores %}
+								{% for result_code, opponent_num in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>{# TODO #}
 								{% endfor %}
 								<td class="text-center">{{ player_score.pairing_points_display }}</td>
