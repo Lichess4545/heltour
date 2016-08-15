@@ -9,10 +9,9 @@ from django.utils import timezone
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
-    it = iter(lst)
     for k, v in prop_values.items():
-        it = (obj for obj in it if getattr(obj, k) == v)
-    return next(it, None)
+        lst = [obj for obj in lst if getattr(obj, k) == v]
+    return next(iter(lst), None)
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -89,6 +88,12 @@ class Season(_BaseModel):
                 date = next_date
 
     def calculate_scores(self):
+        if self.league.competitor_type == 'team':
+            self._calculate_team_scores()
+        else:
+            self._calculate_lone_scores()
+
+    def _calculate_team_scores(self):
         # Note: The scores are calculated in a particular way to allow easy adding of new tiebreaks
         score_dict = {}
 
@@ -99,9 +104,9 @@ class Season(_BaseModel):
                 white_pairing = find(round_pairings, white_team_id=team.id)
                 black_pairing = find(round_pairings, black_team_id=team.id)
                 if white_pairing is not None:
-                    self._increment_score(score_dict, round_, last_round, team, white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
+                    self._increment_team_score(score_dict, round_, last_round, team, white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
                 elif black_pairing is not None:
-                    self._increment_score(score_dict, round_, last_round, team, black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
+                    self._increment_team_score(score_dict, round_, last_round, team, black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
                 else:
                     score_dict[(team, round_)] = score_dict[(team, last_round)][:3] + (0,) if last_round is not None else (0, 0, 0, 0)
             last_round = round_
@@ -116,7 +121,7 @@ class Season(_BaseModel):
                 score.match_count, score.match_points, score.game_points, _ = score_dict[(score.team, last_round)]
             score.save()
 
-    def _increment_score(self, score_dict, round_, last_round, team, opponent, points, opponent_points):
+    def _increment_team_score(self, score_dict, round_, last_round, team, opponent, points, opponent_points):
         match_count, match_points, game_points, _ = score_dict[(team, last_round)] if last_round is not None else (0, 0, 0, 0)
         match_count += 1
         game_points += points
@@ -125,6 +130,43 @@ class Season(_BaseModel):
         elif points == opponent_points:
             match_points += 1
         score_dict[(team, round_)] = (match_count, match_points, game_points, points)
+
+    def _calculate_lone_scores(self):
+        score_dict = {}
+        last_round = None
+        for round_ in self.round_set.filter(is_completed=True).order_by('number'):
+            pairings = round_.loneplayerpairing_set.all().nocache()
+            changes = RoundChange.objects.filter(round=round_)
+            for sp in SeasonPlayer.objects.filter(season=self):
+                white_pairing = find(pairings, white_id=sp.player_id)
+                black_pairing = find(pairings, black_id=sp.player_id)
+                bye = find(changes, player_id=sp.player_id, action='half-point-bye')
+                if white_pairing is not None:
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int(white_pairing.white_score() * 2), int(white_pairing.black_score() * 2))
+                elif black_pairing is not None:
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int(black_pairing.black_score() * 2), int(black_pairing.white_score() * 2))
+                elif bye is not None:
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, 0)
+                else:
+                    score_dict[(sp.player_id, round_.number)] = score_dict[(sp.player_id, last_round)] if last_round is not None else (0, 0, 0, 0, 0, None)
+            last_round = round_.number
+
+        player_scores = LonePlayerScore.objects.filter(season_player__season=self)
+        for score in player_scores:
+            if last_round is None:
+                score.points = 0
+                score.tiebreak1 = 0
+                score.tiebreak2 = 0
+                score.tiebreak3 = 0
+                score.tiebreak4 = 0
+            else:
+                score.points, score.tiebreak1, score.tiebreak2, score.tiebreak3, score.tiebreak4, _ = score_dict[(score.season_player.player_id, last_round)]
+            score.save()
+
+    def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, opponent_score):
+        points, tiebreak1, tiebreak2, tiebreak3, tiebreak4, _ = score_dict[(player_id, last_round)] if last_round is not None else (0, 0, 0, 0, 0, None)
+        points += score
+        score_dict[(player_id, round_.number)] = (points, tiebreak1, tiebreak2, tiebreak3, tiebreak4, opponent)
 
     def is_started(self):
         return self.start_date is not None and self.start_date < timezone.now()
@@ -399,6 +441,15 @@ class PlayerPairing(_BaseModel):
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
+    def save(self, *args, **kwargs):
+        result_changed = self.pk is None or self.result != self.initial_result
+        super(PlayerPairing, self).save(*args, **kwargs)
+        if hasattr(self, 'teamplayerpairing') and result_changed:
+            self.teamplayerpairing.team_pairing.refresh_points()
+            self.teamplayerpairing.team_pairing.save()
+        if hasattr(self, 'loneplayerpairing') and result_changed and self.loneplayerpairing.round.is_completed:
+            self.loneplayerpairing.round.season.calculate_scores()
+
 #-------------------------------------------------------------------------------
 class TeamPlayerPairing(PlayerPairing):
     team_pairing = models.ForeignKey(TeamPairing)
@@ -448,6 +499,12 @@ class TeamPlayerPairing(PlayerPairing):
 class LonePlayerPairing(PlayerPairing):
     round = models.ForeignKey(Round)
     pairing_order = models.PositiveIntegerField()
+
+    def save(self, *args, **kwargs):
+        result_changed = self.pk is None or self.result != self.initial_result
+        super(LonePlayerPairing, self).save(*args, **kwargs)
+        if result_changed and self.round.is_completed:
+            self.round.season.calculate_scores()
 
 REGISTRATION_STATUS_OPTIONS = (
     ('pending', 'Pending'),
