@@ -653,36 +653,55 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = models.PositiveIntegerField(default=0)
     tiebreak4 = models.PositiveIntegerField(default=0)
 
-    def round_scores(self, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict):
+    def round_scores(self, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current=False):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
         black_pairings = black_pairings_dict.get(self.season_player.player, [])
+        cumul_score = 0.0
         for round_ in Round.objects.filter(season=self.season_player.season).order_by('number'):
-            if not round_.is_completed:
+            if not round_.is_completed and (not include_current or not round_.publish_pairings):
                 yield (None, None)
                 continue
+
             result_type = None
             opponent = None
+            color = None
+
             white_pairing = find(white_pairings, round_id=round_.id)
             black_pairing = find(black_pairings, round_id=round_.id)
             round_changes = round_changes_dict.get((round_, self.season_player.player), [])
             bye = find(round_changes, action='half-point-bye')
+
             if white_pairing is not None and white_pairing.black is not None:
                 opponent = white_pairing.black
-                if white_pairing.game_played():
-                    result_type = 'W' if white_pairing.white_score() == 1.0 else 'D' if white_pairing.white_score() == 0.5 else 'L'
+                score = white_pairing.white_score()
+                if white_pairing.game_played() or score is None:
+                    # Normal result
+                    color = 'W'
+                    result_type = 'W' if score == 1.0 else 'D' if score == 0.5 else 'L' if score == 0.0 else ''
                 else:
-                    result_type = 'X' if white_pairing.white_score() == 1.0 else 'Z' if white_pairing.white_score() == 0.5 else 'F'
+                    # Special result
+                    result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
             elif black_pairing is not None and black_pairing.white is not None:
                 opponent = black_pairing.white
-                if black_pairing.game_played():
-                    result_type = 'W' if black_pairing.black_score() == 1.0 else 'D' if black_pairing.black_score() == 0.5 else 'L'
+                score = black_pairing.black_score()
+                if black_pairing.game_played() or score is None:
+                    # Normal result
+                    color = 'B'
+                    result_type = 'W' if score == 1.0 else 'D' if score == 0.5 else 'L' if score == 0.0 else ''
                 else:
-                    result_type = 'X' if black_pairing.black_score() == 1.0 else 'Z' if black_pairing.black_score() == 0.5 else 'F'
+                    # Special result
+                    result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
             elif bye is not None:
+                score = 0.5
                 result_type = 'H'
             else:
+                score = 0.0
                 result_type = 'U'
-            yield (result_type, player_number_dict.get(opponent, 0))
+
+            if score is not None:
+                cumul_score += score
+
+            yield (result_type, player_number_dict.get(opponent, 0), color, cumul_score)
 
     def pairing_points_display(self):
         return "%.1f" % ((self.points + self.late_join_points) / 2.0)

@@ -505,11 +505,13 @@ def lone_standings(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/lone_standings.html', context)
 
-def _lone_player_scores(season, final=False):
+def _lone_player_scores(season, final=False, sort_by_rating=False, include_current=False):
     # For efficiency, rather than having LonePlayerScore.round_scores() do independent
     # calculations, we populate a few common data structures and use those as parameters.
 
-    if season.is_completed or final:
+    if sort_by_rating:
+        sort_key = lambda s: s.season_player.player.rating
+    elif season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:
         sort_key = lambda s: s.pairing_sort_key()
@@ -530,7 +532,7 @@ def _lone_player_scores(season, final=False):
     for rc in round_changes:
         round_changes_dict[(rc.round, rc.player)].append(rc)
 
-    return [(ps[0], ps[1], ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict)) for ps in player_scores]
+    return [(ps[0], ps[1], list(ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current))) for ps in player_scores]
 
 def crosstable(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
@@ -550,19 +552,17 @@ def crosstable(request, league_tag=None, season_tag=None):
     return render(request, 'tournament/team_crosstable.html', context)
 
 def wallchart(request, league_tag=None, season_tag=None):
-    league = _get_league(league_tag)
-    if league.competitor_type == 'team':
-        raise Http404
     season = _get_season(league_tag, season_tag)
-    team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
-    tie_score = season.boards / 2.0
+    round_numbers = list(range(1, season.rounds + 1))
+    player_scores = _lone_player_scores(season, sort_by_rating=True, include_current=True)
+
     context = {
         'league_tag': league_tag,
-        'league': league,
+        'league': _get_league(league_tag),
         'season_tag': season_tag,
         'season': season,
-        'team_scores': team_scores,
-        'tie_score': tie_score
+        'round_numbers': round_numbers,
+        'player_scores': player_scores,
     }
     return render(request, 'tournament/lone_wallchart.html', context)
 

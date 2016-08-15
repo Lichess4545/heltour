@@ -15,38 +15,50 @@
 				</div>
 			</div>
 			<div class="well-body">
-				{% if team_scores %}
+				{% if player_scores %}
 				<div class="table-responsive">
-					<table class="table table-striped table-condensed-sm" id="table-crosstable">
+					<table class="table table-striped table-condensed-sm" id="table-lone-standings">
 						<thead>
 							<tr>
 								<th></th>
-								<th>Team</th>
-								{% for team_score in team_scores %}
-								<td class="cell-teamnumber cell-score">{{ team_score.team.number }}</td>
+								<th>Name/Rating</th>
+								{% for round_number in round_numbers %}
+								<th class="text-left">Rd {{ round_number }}</th>
 								{% endfor %}
-								<th class="text-center">Match Pts</th>
-								<th class="text-center">Game Pts</th>
-								<th class="text-center"># Matches</th>
+								<th class="text-center">Tot</th>
 							</tr>
 						</thead>
 						<tbody>
-							{% for team_score in team_scores %}
+							{% for number, player_score, round_scores in player_scores %}
 							<tr>
-								<td class="cell-teamnumber">{{ team_score.team.number }}</td>
-								<td>{{ team_score.team.name }}</td>
-								{% for number, score, team_pairing_id in team_score.cross_scores %}
-								{% if number == team_score.team.number %}
-								<td class="cell-score cell-cross">x</td>
-								{% elif score == None %}
-								<td class="cell-score"></td>
-								{% else %}
-								<td class="cell-score {% resultclass tie_score score %}"><a href="{% leagueurl 'result' league_tag season_tag team_pairing_id %}">{{ score|floatformat }}</a></td>
-								{% endif %}
+								<td class="text-center">{{ number }}</td>
+								<td>
+									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+										{{ player_score.season_player.player.lichess_username }}
+									</a>
+								</td>
+								{% for result_code, opponent_num, color, cumul_score in round_scores %}
+								<td class="text-left">
+									{% if result_code == 'H' %}
+									bye
+									{% else %}
+									{{ color|default_if_none:'--' }}{% if opponent_num %} {{ opponent_num }}{% else %}--{% endif %}
+									{% endif %}
+									</td>
 								{% endfor %}
-								<td class="text-center">{{ team_score.match_points_display }}</td>
-								<td class="text-center">{{ team_score.game_points_display }}</td>
-								<td class="text-center">{{ team_score.match_count }}</td>
+								<td class="text-center">{{ player_score.final_standings_points_display }}</td>
+							</tr>
+							<tr>
+								<td></td>
+								<td class="text-left">{{ player_score.season_player.player.rating }}</td>
+								{% for result_code, opponent_num, color, cumul_score in round_scores %}
+								<td class="text-left">
+									{% if result_code != '' %}
+									{% if result_code == 'U' or result_code == 'X' or result_code == 'F' or result_code == 'Z' %}{{ result_code }}{% endif %}{{ cumul_score }}
+									{% endif %}
+								</td>
+								{% endfor %}
+								<td class="text-center">{{ player_score.final_standings_points_display }}</td>
 							</tr>
 							{% endfor %}
 						</tbody>
