@@ -44,7 +44,7 @@
 								</td>
 								<td class="text-center">{{ player_score.season_player.player.rating }}</td>
 								{% for result_code, opponent_num in round_scores %}
-								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>{# TODO #}
+								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}
 								<td class="text-center">{{ player_score.pairing_points_display }}</td>
 								<td class="text-center">{{ player_score.final_standings_points_display }}</td>
