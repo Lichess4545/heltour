@@ -316,10 +316,11 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
             round_number = round_number_list[0]
         except IndexError:
             pass
-    pairings = LonePlayerPairing.objects.filter(round__number=round_number, round__season=season) \
+    pairings = enumerate(LonePlayerPairing.objects.filter(round__number=round_number, round__season=season) \
                                        .order_by('pairing_order') \
                                        .select_related('white', 'black') \
-                                       .nocache()
+                                       .nocache(),
+                         1)
 
 
     context = {

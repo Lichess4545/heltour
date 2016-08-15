@@ -6,7 +6,7 @@
 {% block nav_pairings %}active{% endblock %}
 
 {% block content %}
-<div class="row row-condensed-xs pairings-row">
+<div class="row row-condensed-xs lone-pairings-row">
 	<div class="col-md-12">
 		<div class="well">
 			<div class="well-head">
@@ -32,10 +32,13 @@
 				{% endif %}
 				
 				{% if pairings %}
-				<table class="table table-condensed-xs">
+				<table class="table table-striped table-condensed-xs" id="table-lone-pairings">
 					<thead>
 					<tr>
+						<th class="text-center hidden-xs">Bd</th>
+						<th class="text-center hidden-xs">#</th>
 						<th>WHITE</th>
+						<th class="text-center hidden-xs">#</th>
 						<th>BLACK</th>
 						<th class="text-center hidden-xs">RESULT</th>
 						<th class="text-center visible-xs">RS</th>
@@ -44,8 +47,10 @@
 					</tr>
 					</thead>
 					<tbody>
-					{% for pairing in pairings %}
+					{% for board_number, pairing in pairings %}
 					<tr>
+						<td class="text-center hidden-xs">{{ board_number }}</td>
+						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
 								<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
@@ -53,6 +58,7 @@
 								</a>
 							</div>
 						</td>
+						<td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
 								<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">

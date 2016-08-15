@@ -392,6 +392,15 @@ div.inline {
 	color: #999;
 }
 
+.lone-pairings-row {
+	max-width: 900px;
+}
+
+#table-lone-pairings tr > td:nth-child(2),
+#table-lone-pairings tr > td:nth-child(4) {
+	width: 30px;
+}
+
 @media (min-width: 769px) {
 	.podium {
 		display: flex;

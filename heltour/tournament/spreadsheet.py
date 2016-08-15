@@ -298,7 +298,9 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
 
             time_col = sheet[0].index('Game Scheduled (in GMT)')
             white_col = sheet[0].index('White')
+            white_rank_col = white_col - 1
             black_col = sheet[0].index('Black')
+            black_rank_col = black_col - 1
             result_col = sheet[0].index('Result')
             for row in range(1, len(sheet)):
                 white_player_name, white_player_rating = _parse_player_name_and_rating(sheet[row][white_col])
@@ -312,6 +314,14 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 if black_player_name is None:
                     continue
                 black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
+                try:
+                    white_rank = int(sheet[row][white_rank_col])
+                except ValueError:
+                    white_rank = None
+                try:
+                    black_rank = int(sheet[row][black_rank_col])
+                except ValueError:
+                    black_rank = None
                 result = sheet[row][result_col]
                 if result == u'\u2694':
                     result = ''
@@ -327,7 +337,8 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     if round_.end_date is None or game_end_estimate > round_.end_date:
                         round_.end_date = game_end_estimate
                         round_.save()
-                pairing = LonePlayerPairing.objects.create(round=round_, pairing_order=row, white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
+                pairing = LonePlayerPairing.objects.create(round=round_, pairing_order=row, white=white_player, white_rank=white_rank,
+                                                           black=black_player, black_rank=black_rank, result=result, scheduled_time=scheduled_time)
                 pairings.append(pairing)
                 pairing_rows.append(row)
             _update_pairing_game_links(worksheet, pairings, pairing_rows, result_col)

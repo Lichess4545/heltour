@@ -460,6 +460,8 @@ class PlayerPairing(_BaseModel):
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
         self.initial_result = self.result
+        self.initial_white = self.white
+        self.initial_black = self.black
 
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F' or self.result == 'FULL BYE' and self.white is not None:
@@ -487,12 +489,27 @@ class PlayerPairing(_BaseModel):
 
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
+        white_changed = self.pk is None or self.white != self.initial_white
+        black_changed = self.pk is None or self.black != self.initial_black
         super(PlayerPairing, self).save(*args, **kwargs)
         if hasattr(self, 'teamplayerpairing') and result_changed:
             self.teamplayerpairing.team_pairing.refresh_points()
             self.teamplayerpairing.team_pairing.save()
-        if hasattr(self, 'loneplayerpairing') and result_changed and self.loneplayerpairing.round.is_completed:
-            self.loneplayerpairing.round.season.calculate_scores()
+        if hasattr(self, 'loneplayerpairing'):
+            if result_changed and self.loneplayerpairing.round.is_completed:
+                self.loneplayerpairing.round.season.calculate_scores()
+            # If the players for a PlayerPairing in the current round are edited, then we can update the player ranks
+            if (white_changed or black_changed) and self.loneplayerpairing.round.publish_pairings and not self.loneplayerpairing.round.is_completed:
+                self.loneplayerpairing.refresh_ranks()
+                self.loneplayerpairing.save()
+            # If the players for a PlayerPairing in a previous round are edited, then the player ranks will be out of
+            # date but we can't recalculate them
+            if white_changed and self.loneplayerpairing.round.is_completed:
+                self.loneplayerpairing.white_rank = None
+                self.loneplayerpairing.save()
+            if black_changed and self.loneplayerpairing.round.is_completed:
+                self.loneplayerpairing.black_rank = None
+                self.loneplayerpairing.save()
 
 #-------------------------------------------------------------------------------
 class TeamPlayerPairing(PlayerPairing):
@@ -543,6 +560,14 @@ class TeamPlayerPairing(PlayerPairing):
 class LonePlayerPairing(PlayerPairing):
     round = models.ForeignKey(Round)
     pairing_order = models.PositiveIntegerField()
+    white_rank = models.PositiveIntegerField(blank=True, null=True)
+    black_rank = models.PositiveIntegerField(blank=True, null=True)
+
+    def refresh_ranks(self):
+        player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=self.round.season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
+        player_rank_dict = {p.season_player.player_id: n for n, p in player_scores}
+        self.white_rank = player_rank_dict.get(self.white_id, None)
+        self.black_rank = player_rank_dict.get(self.black_id, None)
 
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
