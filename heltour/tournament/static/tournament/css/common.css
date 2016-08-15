@@ -28,6 +28,10 @@ body {
 	color: #666666;
 }
 
+.btn-default {
+	min-width: 80px;
+}
+
 .input-mini {
   width: 60px;
 }
