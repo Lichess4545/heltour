@@ -199,6 +199,9 @@ class RoundChange(_BaseModel):
     player = models.ForeignKey(Player)
     action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
 
+    def __unicode__(self):
+        return "%s - %s - %s" % (self.round, self.player, self.action)
+
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
     season = models.ForeignKey(Season)
@@ -376,20 +379,20 @@ class PlayerPairing(_BaseModel):
         self.initial_result = self.result
 
     def white_score(self):
-        if self.result == '1-0':
+        if self.result == '1-0' or self.result == '1X-0F' or self.result == 'FULL BYE' and self.white is not None:
             return 1
-        elif self.result == '0-1':
+        elif self.result == '0-1' or self.result == '0F-1X' or self.result == '0F-0F' or self.result == 'WITHDRAW':
             return 0
-        elif self.result == '1/2-1/2':
+        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z' or self.result == 'BYE':
             return 0.5
         return None
 
     def black_score(self):
-        if self.result == '0-1':
+        if self.result == '0-1' or self.result == '0F-1X' or self.result == 'FULL BYE' and self.black is not None:
             return 1
-        elif self.result == '1-0':
+        elif self.result == '1-0' or self.result == '1X-0F' or self.result == '0F-0F' or self.result == 'WITHDRAW':
             return 0
-        elif self.result == '1/2-1/2':
+        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z' or self.result == 'BYE':
             return 0.5
         return None
 
@@ -524,6 +527,40 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = models.PositiveIntegerField(default=0)
     tiebreak4 = models.PositiveIntegerField(default=0)
 
+    def round_scores(self):
+        # TODO: Dedup calculations
+        player_scores = sorted(LonePlayerScore.objects.filter(season_player__season=self.season_player.season), key=lambda s: s.pairing_sort_key(), reverse=True)
+        player_numbers = {p.season_player.player: n for n, p in enumerate(player_scores, 1)}
+        white_pairings = LonePlayerPairing.objects.filter(round__season=self.season_player.season, white=self.season_player.player)
+        black_pairings = LonePlayerPairing.objects.filter(round__season=self.season_player.season, black=self.season_player.player)
+        round_changes = RoundChange.objects.filter(round__season=self.season_player.season, player=self.season_player.player)
+        for round_ in Round.objects.filter(season=self.season_player.season).order_by('number'):
+            if not round_.is_completed:
+                yield (None, None)
+                continue
+            result_type = None
+            opponent = None
+            white_pairing = find(white_pairings, round_id=round_.id)
+            black_pairing = find(black_pairings, round_id=round_.id)
+            bye = find(round_changes, round_id=round_.id, action='half-point-bye')
+            if white_pairing is not None and white_pairing.black is not None:
+                opponent = white_pairing.black
+                if white_pairing.game_link == '':
+                    result_type = 'X' if white_pairing.white_score() == 1.0 else 'Z' if white_pairing.white_score() == 0.5 else 'F'
+                else:
+                    result_type = 'W' if white_pairing.white_score() == 1.0 else 'D' if white_pairing.white_score() == 0.5 else 'L'
+            elif black_pairing is not None and black_pairing.white is not None:
+                opponent = black_pairing.white
+                if black_pairing.game_link == '':
+                    result_type = 'X' if black_pairing.black_score() == 1.0 else 'Z' if black_pairing.black_score() == 0.5 else 'F'
+                else:
+                    result_type = 'W' if black_pairing.black_score() == 1.0 else 'D' if black_pairing.black_score() == 0.5 else 'L'
+            elif bye is not None:
+                result_type = 'H'
+            else:
+                result_type = 'U'
+            yield (result_type, player_numbers.get(opponent, 0))
+
     def pairing_points_display(self):
         return "%.1f" % ((self.points + self.late_join_points) / 2.0)
 
@@ -546,10 +583,10 @@ class LonePlayerScore(_BaseModel):
         return "%g" % (self.tiebreak4 / 2.0)
 
     def pairing_sort_key(self):
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player.rating)
 
     def final_standings_sort_key(self):
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4)
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player.rating)
 
     def __unicode__(self):
         return "%s" % (self.season_player)

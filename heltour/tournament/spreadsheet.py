@@ -155,9 +155,11 @@ def _parse_player_name(player_name):
         is_captain = False
     return player_name, is_captain
 
-def _parse_player_name_and_rating(player_name_and_rating):
-    match = re.match('(.*) \((\d+)\)', player_name_and_rating)
+def _parse_player_name_and_rating(cell):
+    match = re.match('(.*) \((\d+)\)', cell)
     if match is None:
+        if len(cell) > 0 and cell != 'BYE' and cell != 'FULL BYE' and cell != 'WITHDRAW':
+            return cell, None
         return None, None
     return match.group(1), match.group(2)
 

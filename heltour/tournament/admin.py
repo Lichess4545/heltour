@@ -483,6 +483,9 @@ class RoundAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(models.RoundChange)
 class RoundChangeAdmin(VersionAdmin):
+    list_display = ('round', 'player', 'action')
+    search_fields = ('player__lichess_username',)
+    list_filter = ('round__season', 'round__number', 'action')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
