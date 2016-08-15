@@ -103,7 +103,7 @@ def lone_league_home(request, league_tag=None, season_tag=None):
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
 
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
+    player_scores = _lone_player_scores(current_season, final=True)[:5]
 
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
@@ -121,7 +121,7 @@ def lone_league_home(request, league_tag=None, season_tag=None):
         'league': league,
         'season_tag': season_tag,
         'season': current_season,
-        'team_scores': team_scores,
+        'player_scores': player_scores,
         'season_list': season_list,
         'rules_doc_tag': rules_doc_tag,
         'intro_doc': intro_doc,

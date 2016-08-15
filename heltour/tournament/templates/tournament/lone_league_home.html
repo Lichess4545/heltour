@@ -88,28 +88,34 @@
 		{% endif %}
 	</div>
 	<div class="col-md-6 col-xs-12">
-		{% if team_scores %}
+		{% if player_scores %}
 		<div class="well">
 			<div class="well-head">
-				<h3>{{ season.name }} Standings</h3>
+				<h3>Standings</h3>
 			</div>
-		    <div class="well-body">
+			<div class="well-body">
 				<table class="table table-striped">
 					<thead>
 						<tr>
 							<th></th>
-							<th>Team</th>
-							<th class="text-center">Match Points</th>
-							<th class="text-center">Game Points</th>
+							<th>Name</th>
+							<th class="text-center">Rtng</th>
+							<th class="text-center">Total</th>
+							<th class="text-center">TBrk[M]</th>
 						</tr>
 					</thead>
 					<tbody>
-						{% for number, team_score in team_scores %}
+						{% for number, player_score, round_scores in player_scores %}
 						<tr>
-							<td class="text-center cell-teamnumber">{{ number }}</td>
-							<td>{{ team_score.team.name }}</td>
-							<td class="text-center">{{ team_score.match_points_display }}</td>
-							<td class="text-center">{{ team_score.game_points_display }}</td>
+							<td class="text-center rank-value">{{ number }}</td>
+							<td>
+								<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+									{{ player_score.season_player.player.lichess_username }}
+								</a>
+							</td>
+							<td class="text-center">{{ player_score.season_player.player.rating }}</td>
+							<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+							<td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
 						</tr>
 						{% endfor %}
 					</tbody>
