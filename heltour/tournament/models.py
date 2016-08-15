@@ -634,8 +634,9 @@ class SeasonPlayer(_BaseModel):
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
-    games_missed = models.IntegerField(default=0)
+    games_missed = models.PositiveIntegerField(default=0)
     unresponsive = models.BooleanField(default=False)
+    seed_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         unique_together = ('season', 'player')

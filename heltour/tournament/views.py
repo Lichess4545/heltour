@@ -505,12 +505,12 @@ def lone_standings(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/lone_standings.html', context)
 
-def _lone_player_scores(season, final=False, sort_by_rating=False, include_current=False):
+def _lone_player_scores(season, final=False, sort_by_seed=False, include_current=False):
     # For efficiency, rather than having LonePlayerScore.round_scores() do independent
     # calculations, we populate a few common data structures and use those as parameters.
 
-    if sort_by_rating:
-        sort_key = lambda s: s.season_player.player.rating
+    if sort_by_seed:
+        sort_key = lambda s: s.season_player.seed_rating
     elif season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:
@@ -554,7 +554,7 @@ def crosstable(request, league_tag=None, season_tag=None):
 def wallchart(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
-    player_scores = _lone_player_scores(season, sort_by_rating=True, include_current=True)
+    player_scores = _lone_player_scores(season, sort_by_seed=True, include_current=True)
 
     context = {
         'league_tag': league_tag,

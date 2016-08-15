@@ -256,7 +256,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             rating = int(sheet_standings[row][rating_col])
             player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
                                                             defaults={'lichess_username': name, 'rating': rating})
-            season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
+            season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': rating})
             points = int(float(sheet_standings[row][points_col]) * 2)
             ljp = int(float(sheet_standings[row][ljp_col]) * 2)
             tb1 = int(float(sheet_standings[row][tb1_col]) * 2)
