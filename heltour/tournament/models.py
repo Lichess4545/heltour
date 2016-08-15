@@ -142,17 +142,18 @@ class Season(_BaseModel):
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(changes, player_id=sp.player_id, action='half-point-bye')
                 if white_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int(white_pairing.white_score() * 2), int(white_pairing.black_score() * 2))
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int(white_pairing.white_score() * 2), white_pairing.game_played())
                 elif black_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int(black_pairing.black_score() * 2), int(black_pairing.white_score() * 2))
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int(black_pairing.black_score() * 2), black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, 0)
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, False)
                 else:
-                    score_dict[(sp.player_id, round_.number)] = score_dict[(sp.player_id, last_round)] if last_round is not None else (0, 0, 0, 0, 0, None)
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
             last_round = round_.number
 
         player_scores = LonePlayerScore.objects.filter(season_player__season=self)
         for score in player_scores:
+            player_id = score.season_player.player_id
             if last_round is None:
                 score.points = 0
                 score.tiebreak1 = 0
@@ -160,13 +161,36 @@ class Season(_BaseModel):
                 score.tiebreak3 = 0
                 score.tiebreak4 = 0
             else:
-                score.points, score.tiebreak1, score.tiebreak2, score.tiebreak3, score.tiebreak4, _ = score_dict[(score.season_player.player_id, last_round)]
+                score.points, _, _, _ = score_dict[(score.season_player.player_id, last_round)]
+
+                # Tiebreaks
+
+                # Modified Median
+                opponent_scores = []
+                for round_number in range(1, last_round + 1):
+                    _, _, round_opponent, played = score_dict[(player_id, round_number)]
+                    if played and round_opponent is not None:
+                        opponent_scores.append(score_dict[(round_opponent, last_round)][1])
+                    else:
+                        opponent_scores.append(0)
+                opponent_scores.sort()
+                skip = 2 if last_round >= 9 else 1
+                if score.points <= last_round:
+                    opponent_scores = opponent_scores[:-skip]
+                if score.points >= last_round:
+                    opponent_scores = opponent_scores[skip:]
+                score.tiebreak1 = sum(opponent_scores)
+
             score.save()
 
-    def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, opponent_score):
-        points, tiebreak1, tiebreak2, tiebreak3, tiebreak4, _ = score_dict[(player_id, last_round)] if last_round is not None else (0, 0, 0, 0, 0, None)
+    def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, played):
+        points, mm_points, _, _ = score_dict[(player_id, last_round)] if last_round is not None else (0, 0, None, False)
         points += score
-        score_dict[(player_id, round_.number)] = (points, tiebreak1, tiebreak2, tiebreak3, tiebreak4, opponent)
+        if played:
+            mm_points += score
+        else:
+            mm_points += 1
+        score_dict[(player_id, round_.number)] = (points, mm_points, opponent, played)
 
     def is_started(self):
         return self.start_date is not None and self.start_date < timezone.now()
@@ -438,6 +462,9 @@ class PlayerPairing(_BaseModel):
             return 0.5
         return None
 
+    def game_played(self):
+        return self.result in ('1-0', '1/2-1/2', '0-1')
+
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
@@ -599,16 +626,16 @@ class LonePlayerScore(_BaseModel):
             bye = find(round_changes, action='half-point-bye')
             if white_pairing is not None and white_pairing.black is not None:
                 opponent = white_pairing.black
-                if white_pairing.game_link == '':
-                    result_type = 'X' if white_pairing.white_score() == 1.0 else 'Z' if white_pairing.white_score() == 0.5 else 'F'
-                else:
+                if white_pairing.game_played():
                     result_type = 'W' if white_pairing.white_score() == 1.0 else 'D' if white_pairing.white_score() == 0.5 else 'L'
+                else:
+                    result_type = 'X' if white_pairing.white_score() == 1.0 else 'Z' if white_pairing.white_score() == 0.5 else 'F'
             elif black_pairing is not None and black_pairing.white is not None:
                 opponent = black_pairing.white
-                if black_pairing.game_link == '':
-                    result_type = 'X' if black_pairing.black_score() == 1.0 else 'Z' if black_pairing.black_score() == 0.5 else 'F'
-                else:
+                if black_pairing.game_played():
                     result_type = 'W' if black_pairing.black_score() == 1.0 else 'D' if black_pairing.black_score() == 0.5 else 'L'
+                else:
+                    result_type = 'X' if black_pairing.black_score() == 1.0 else 'Z' if black_pairing.black_score() == 0.5 else 'F'
             elif bye is not None:
                 result_type = 'H'
             else:
