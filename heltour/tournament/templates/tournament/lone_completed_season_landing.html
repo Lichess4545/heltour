@@ -114,9 +114,9 @@
 						<tbody>
 							{% for number, player_score, round_scores in player_scores %}
 							{% with player_score.season_player.player as player %}
-							<tr class="{% if player in gold_players %}player-gold{% elif player in silver_players %}player-silver{% elif player in bronze_players %}player-bronze{% elif player in blue_players %}player-blue{% endif %}">
+							<tr>
 								<td class="text-center rank-value">{{ number }}</td>
-								<td>
+								<td class="{% if player in gold_players %}player-gold{% elif player in silver_players %}player-silver{% elif player in bronze_players %}player-bronze{% elif player in blue_players %}player-blue{% endif %}">
 									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
 										{{ player.lichess_username }}
 									</a>
