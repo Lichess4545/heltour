@@ -309,7 +309,7 @@ div.inline {
 	text-align: center;
 }
 
-.winners-team-name {
+.winners-name {
 	font-size: 22px;
 	font-weight: bold;
 	color: #666;
@@ -327,7 +327,8 @@ div.inline {
 }
 
 .podium .second-place,
-.podium .third-place {
+.podium .third-place,
+.podium .u1600-winner {
 	margin-top: 20px;
 }
 
@@ -335,7 +336,7 @@ div.inline {
 	height: 85px;
 }
 
-.second-place .winners-team-name {
+.second-place .winners-name {
 	font-size: 16px;
 }
 
@@ -347,12 +348,20 @@ div.inline {
 	height: 65px;
 }
 
-.third-place .winners-team-name {
+.third-place .winners-name {
 	font-size: 15px;
 }
 
 .third-place .winners-team-members {
 	font-size: 14px;
+}
+
+.u1600-winner .winners-trophy img {
+	height: 65px;
+}
+
+.u1600-winner .winners-name {
+	font-size: 15px;
 }
 
 #home-container {
@@ -425,6 +434,10 @@ div.inline {
 	.podium .third-place {
 		order: 3;
 		margin-top: auto;
+	}
+	.podium .u1600-winner {
+		order: 4;
+		margin: auto -2% 0 -7%;
 	}
 	#home-container {
 		align-items: center;

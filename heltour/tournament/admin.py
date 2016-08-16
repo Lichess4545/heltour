@@ -774,6 +774,20 @@ class PlayerAvailabilityAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(models.SeasonPrize)
+class SeasonPrizeAdmin(VersionAdmin):
+    list_display = ('season', 'rank', 'max_rating')
+    search_fields = ('season__name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
+@admin.register(models.SeasonPrizeWinner)
+class SeasonPrizeWinnerAdmin(VersionAdmin):
+    list_display = ('season_prize', 'player',)
+    search_fields = ('season_prize__name', 'player__lichess_username')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(models.ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)

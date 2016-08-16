@@ -10,8 +10,15 @@ from django.utils import timezone
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
     for k, v in prop_values.items():
-        lst = [obj for obj in lst if getattr(obj, k) == v]
+        lst = [obj for obj in lst if _getnestedattr(obj, k) == v]
     return next(iter(lst), None)
+
+def _getnestedattr(obj, k):
+    for k2 in k.split('__'):
+        if obj is None:
+            return None
+        obj = getattr(obj, k2)
+    return obj
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
@@ -73,7 +80,7 @@ class Season(_BaseModel):
 
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
-        new_obj = self.pk is not None
+        new_obj = self.pk is None
         rounds_changed = self.pk is None or self.rounds != self.initial_rounds
         start_date_changed = self.pk is None or self.start_date != self.initial_start_date
         is_completed_changed = self.pk is None or self.is_completed != self.initial_is_completed
@@ -885,8 +892,7 @@ class SeasonPrizeWinner(_BaseModel):
         unique_together = ('season_prize', 'player')
 
     def __unicode__(self):
-        if self.max_rating is not None:
-            return '%s - %s' % (self.season_prize, self.player)
+        return '%s - %s' % (self.season_prize, self.player)
 
 #-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):

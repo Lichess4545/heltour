@@ -241,6 +241,12 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
     second_player = player_scores[1][1] if len(player_scores) > 1 else None
     third_player = player_scores[2][1] if len(player_scores) > 2 else None
 
+    u1600_winner = SeasonPrizeWinner.objects.filter(season_prize__season=season, season_prize__max_rating=1600, season_prize__rank=1).first()
+    if u1600_winner is not None:
+        u1600_player = find([ps[1] for ps in player_scores], season_player__player=u1600_winner.player)
+    else:
+        u1600_player = None
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -253,6 +259,7 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
         'first_player': first_player,
         'second_player': second_player,
         'third_player': third_player,
+        'u1600_player': u1600_player,
     }
     return render(request, 'tournament/lone_completed_season_landing.html', context)
 

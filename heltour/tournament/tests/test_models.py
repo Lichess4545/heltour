@@ -8,8 +8,10 @@ def createCommonLeagueData():
     round_count = 3
     board_count = 2
 
-    league = League.objects.create(name='Test League', tag='testleague', competitor_type='team')
-    season = Season.objects.create(league=league, name='Test Season', tag='testseason', rounds=round_count, boards=board_count)
+    league = League.objects.create(name='Team League', tag='teamleague', competitor_type='team')
+    season = Season.objects.create(league=league, name='Test Season', tag='teamseason', rounds=round_count, boards=board_count)
+    league2 = League.objects.create(name='Lone League', tag='loneleague', competitor_type='lone')
+    season2 = Season.objects.create(league=league2, name='Test Season', tag='loneseason', rounds=round_count)
 
     player_num = 1
     for n in range(1, team_count + 1):
@@ -33,6 +35,17 @@ class SeasonTestCase(TestCase):
         season.save()
 
         self.assertEqual(6, season.round_set.count())
+
+    def test_season_save_prize_creation(self):
+        season = Season.objects.get(tag='teamseason')
+        self.assertEqual(1, season.seasonprize_set.filter(rank=1).count())
+        self.assertEqual(1, season.seasonprize_set.filter(rank=2).count())
+        self.assertEqual(1, season.seasonprize_set.filter(rank=3).count())
+
+        season2 = Season.objects.get(tag='loneseason')
+        self.assertEqual(2, season2.seasonprize_set.filter(rank=1).count())
+        self.assertEqual(1, season2.seasonprize_set.filter(rank=2).count())
+        self.assertEqual(1, season2.seasonprize_set.filter(rank=3).count())
 
     def test_season_save_round_date(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
@@ -117,12 +130,12 @@ class TeamScoreTestCase(TestCase):
         team2 = Team.objects.get(number=2)
         team3 = Team.objects.get(number=3)
 
-        round1 = Round.objects.get(number=1)
+        round1 = Round.objects.get(season__tag='teamseason', number=1)
         round1.is_completed = True
         round1.save()
         TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1, pairing_order=0, white_points=3)
 
-        round2 = Round.objects.get(number=2)
+        round2 = Round.objects.get(season__tag='teamseason', number=2)
         round2.is_completed = True
         round2.save()
         TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2, pairing_order=0, black_points=2)

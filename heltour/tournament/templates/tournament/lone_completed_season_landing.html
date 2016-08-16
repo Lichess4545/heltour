@@ -20,11 +20,9 @@
 							<div class="winners-trophy">
 								<img src="{% static 'tournament/img/trophy-1.png' %}"/>
 							</div>
-							<div class="winners-team-name">
+							<div class="winners-name">
 								{{ first_player.season_player.player.lichess_username }}
 							</div>
-							<ul class="winners-team-members">
-							</ul>
 							{% endif %}
 						</div>
 						<div class="second-place">
@@ -32,11 +30,9 @@
 							<div class="winners-trophy">
 								<img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
 							</div>
-							<div class="winners-team-name">
+							<div class="winners-name">
 								{{ second_player.season_player.player.lichess_username }}
 							</div>
-							<ul class="winners-team-members">
-							</ul>
 							{% endif %}
 						</div>
 						<div class="third-place">
@@ -44,11 +40,19 @@
 							<div class="winners-trophy">
 								<img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
 							</div>
-							<div class="winners-team-name">
+							<div class="winners-name">
 								{{ third_player.season_player.player.lichess_username }}
 							</div>
-							<ul class="winners-team-members">
-							</ul>
+							{% endif %}
+						</div>
+						<div class="u1600-winner">
+							{% if third_player %}
+							<div class="winners-trophy">
+								<img src="{% static 'tournament/img/blue-ribbon.png' %}"/>
+							</div>
+							<div class="winners-name">
+								{{ u1600_player.season_player.player.lichess_username }}
+							</div>
 							{% endif %}
 						</div>
 					</div>
@@ -116,7 +120,7 @@
 									</a>
 								</td>
 								<td class="text-center">{{ player_score.season_player.player.rating }}</td>
-								{% for result_code, opponent_num in round_scores %}
+								{% for result_code, opponent_num, _, _ in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}
 								<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
