@@ -484,12 +484,22 @@ class TeamPairing(_BaseModel):
     def __unicode__(self):
         return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
 
+RESULT_OPTIONS = (
+    ('1-0', '1-0'),
+    ('1/2-1/2', u'\u00BD-\u00BD'),
+    ('0-1', '0-1'),
+    ('1X-0F', '1X-0F'),
+    ('1/2Z-1/2Z', u'\u00BDZ-\u00BDZ'),
+    ('0F-1X', '0F-1X'),
+    ('0F-0F', '0F-0F'),
+)
+
 #-------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
     white = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_white")
     black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
 
-    result = models.CharField(max_length=16, blank=True)
+    result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True)
     scheduled_time = models.DateTimeField(blank=True, null=True)
 
@@ -500,20 +510,20 @@ class PlayerPairing(_BaseModel):
         self.initial_black_id = self.black_id
 
     def white_score(self):
-        if self.result == '1-0' or self.result == '1X-0F' or self.result == 'FULL BYE' and self.white is not None:
+        if self.result == '1-0' or self.result == '1X-0F':
             return 1
-        elif self.result == '0-1' or self.result == '0F-1X' or self.result == '0F-0F' or self.result == 'WITHDRAW':
+        elif self.result == '0-1' or self.result == '0F-1X' or self.result == '0F-0F':
             return 0
-        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z' or self.result == 'BYE':
+        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
             return 0.5
         return None
 
     def black_score(self):
-        if self.result == '0-1' or self.result == '0F-1X' or self.result == 'FULL BYE' and self.black is not None:
+        if self.result == '0-1' or self.result == '0F-1X':
             return 1
-        elif self.result == '1-0' or self.result == '1X-0F' or self.result == '0F-0F' or self.result == 'WITHDRAW':
+        elif self.result == '1-0' or self.result == '1X-0F' or self.result == '0F-0F':
             return 0
-        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z' or self.result == 'BYE':
+        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
             return 0.5
         return None
 
