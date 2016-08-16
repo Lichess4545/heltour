@@ -69,11 +69,14 @@ class Season(_BaseModel):
         super(Season, self).__init__(*args, **kwargs)
         self.initial_rounds = self.rounds
         self.initial_start_date = self.start_date
+        self.initial_is_completed = self.is_completed
 
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
+        new_obj = self.pk is not None
         rounds_changed = self.pk is None or self.rounds != self.initial_rounds
         start_date_changed = self.pk is None or self.start_date != self.initial_start_date
+        is_completed_changed = self.pk is None or self.is_completed != self.initial_is_completed
 
         if self.is_completed and self.registration_open:
             self.registration_open = False
@@ -86,6 +89,32 @@ class Season(_BaseModel):
                 next_date = date + timedelta(days=7) if date is not None else None
                 Round.objects.update_or_create(season=self, number=round_num, defaults={'start_date': date, 'end_date': next_date})
                 date = next_date
+
+        if new_obj:
+            # Create a default set of prizes. This may need to be modified in the future
+            SeasonPrize.objects.create(season=self, rank=1)
+            SeasonPrize.objects.create(season=self, rank=2)
+            SeasonPrize.objects.create(season=self, rank=3)
+            if self.league.competitor_type != 'team':
+                SeasonPrize.objects.create(season=self, max_rating=1600, rank=1)
+
+        if is_completed_changed and self.is_completed:
+            # Remove out of date prizes
+            SeasonPrizeWinner.objects.filter(season_prize__season=self).delete()
+            # Award prizes
+            if self.league.competitor_type == 'team':
+                team_scores = sorted(TeamScore.objects.filter(team__season=self).select_related('team').nocache(), reverse=True)
+                for prize in self.seasonprize_set.filter(max_rating=None):
+                    if prize.rank <= len(team_scores):
+                        # Award a prize to each team member
+                        for member in team_scores[prize.rank - 1].team.teammember_set.all():
+                            SeasonPrizeWinner.objects.create(season_prize=prize, player=member.player)
+            else:
+                player_scores = sorted(LonePlayerScore.objects.filter(season_player__season=self).select_related('season_player__player').nocache(), key=lambda s: s.final_standings_sort_key(), reverse=True)
+                for prize in self.seasonprize_set.all():
+                    eligible_players = [s.season_player.player for s in player_scores if prize.max_rating is None or s.season_player.seed_rating < prize.max_rating]
+                    if prize.rank <= len(eligible_players):
+                        SeasonPrizeWinner.objects.create(season_prize=prize, player=eligible_players[prize.rank - 1])
 
     def calculate_scores(self):
         if self.league.competitor_type == 'team':
@@ -831,6 +860,33 @@ class AlternateBucket(_BaseModel):
 
 def create_api_token():
     return get_random_string(length=32)
+
+#-------------------------------------------------------------------------------
+class SeasonPrize(_BaseModel):
+    season = models.ForeignKey(Season)
+    rank = models.PositiveIntegerField()
+    max_rating = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('season', 'rank', 'max_rating')
+
+    def __unicode__(self):
+        if self.max_rating is not None:
+            return '%s - U%d #%d' % (self.season, self.max_rating, self.rank)
+        else:
+            return '%s - #%d' % (self.season, self.rank)
+
+#-------------------------------------------------------------------------------
+class SeasonPrizeWinner(_BaseModel):
+    season_prize = models.ForeignKey(SeasonPrize)
+    player = models.ForeignKey(Player)
+
+    class Meta:
+        unique_together = ('season_prize', 'player')
+
+    def __unicode__(self):
+        if self.max_rating is not None:
+            return '%s - %s' % (self.season_prize, self.player)
 
 #-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):

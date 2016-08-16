@@ -552,13 +552,16 @@ def crosstable(request, league_tag=None, season_tag=None):
     return render(request, 'tournament/team_crosstable.html', context)
 
 def wallchart(request, league_tag=None, season_tag=None):
+    league = _get_league(league_tag)
+    if league.competitor_type == 'team':
+        raise Http404
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
     player_scores = _lone_player_scores(season, sort_by_seed=True, include_current=True)
 
     context = {
         'league_tag': league_tag,
-        'league': _get_league(league_tag),
+        'league': league,
         'season_tag': season_tag,
         'season': season,
         'round_numbers': round_numbers,
