@@ -247,6 +247,11 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
     else:
         u1600_player = None
 
+    gold_players = {first_player.season_player.player} if first_player is not None else {}
+    silver_players = {second_player.season_player.player} if first_player is not None else {}
+    bronze_players = {third_player.season_player.player} if first_player is not None else {}
+    blue_players = {u1600_player.season_player.player} if first_player is not None else {}
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -260,6 +265,10 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
         'second_player': second_player,
         'third_player': third_player,
         'u1600_player': u1600_player,
+        'gold_players': gold_players,
+        'silver_players': silver_players,
+        'bronze_players': bronze_players,
+        'blue_players': blue_players,
     }
     return render(request, 'tournament/lone_completed_season_landing.html', context)
 

@@ -414,6 +414,29 @@ div.inline {
 	width: 30px;
 }
 
+#table-lone-standings .player-gold {
+	background-color: #ffd700;
+}
+
+#table-lone-standings .player-silver {
+	background-color: #c0c0c0;
+}
+
+#table-lone-standings .player-bronze {
+	background-color: #cd7f32;
+}
+
+#table-lone-standings .player-blue {
+	background-color: #7bbcf2;
+}
+
+#table-lone-standings .player-gold a,
+#table-lone-standings .player-silver a,
+#table-lone-standings .player-bronze a,
+#table-lone-standings .player-blue a {
+	color: black;
+}
+
 @media (min-width: 769px) {
 	.podium {
 		display: flex;
