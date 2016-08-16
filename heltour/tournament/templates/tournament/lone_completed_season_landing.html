@@ -14,7 +14,7 @@
 			</div>
 			<div class="well-body">
 				<div class="row">
-					<div class="podium">
+					<div class="podium lone-podium">
 						<div class="first-place">
 							{% if first_player %}
 							<div class="winners-trophy">
@@ -51,6 +51,7 @@
 								<img src="{% static 'tournament/img/blue-ribbon.png' %}"/>
 							</div>
 							<div class="winners-name">
+								U1600<br/>
 								{{ u1600_player.season_player.player.lichess_username }}
 							</div>
 							{% endif %}

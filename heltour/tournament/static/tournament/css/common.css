@@ -427,6 +427,9 @@ div.inline {
 		order: 2;
 		margin-top: auto;
 	}
+	.lone-podium .first-place {
+		margin-bottom: -4px;
+	}
 	.podium .second-place {
 		order: 1;
 		margin-top: auto;
