@@ -10,6 +10,7 @@ from django.db.models.query import Prefetch
 from django.contrib.admin.views.decorators import staff_member_required
 from collections import defaultdict
 from decorators import cached_as, cached_view_as
+import re
 
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, RoundChange, SeasonPlayer,
@@ -493,12 +494,12 @@ def rosters(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_rosters.html', context)
 
-def standings(request, league_tag=None, season_tag=None):
+def standings(request, league_tag=None, season_tag=None, section=None):
     league = _get_league(league_tag)
     if league.competitor_type == 'team':
         return team_standings(request, league_tag, season_tag)
     else:
-        return lone_standings(request, league_tag, season_tag)
+        return lone_standings(request, league_tag, season_tag, section)
 
 @cached_view_as(TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def team_standings(request, league_tag=None, season_tag=None):
@@ -518,10 +519,20 @@ def team_standings(request, league_tag=None, season_tag=None):
     return render(request, 'tournament/team_standings.html', context)
 
 @cached_view_as(*common_lone_models, vary_request=lambda r: r.user.is_staff)
-def lone_standings(request, league_tag=None, season_tag=None):
+def lone_standings(request, league_tag=None, season_tag=None, section=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
     player_scores = _lone_player_scores(season)
+
+    if section is not None:
+        match = re.match(r'u(\d+)', section)
+        if match is not None:
+            max_rating = int(match.group(1))
+            player_scores = [ps for ps in player_scores if ps[1].season_player.seed_rating < max_rating]
+
+    player_sections = [('u%d' % sp.max_rating, 'U%d' % sp.max_rating) for sp in SeasonPrize.objects.filter(season=season).exclude(max_rating=None).order_by('max_rating')]
+    section_dict = {k: (k, v) for k, v in player_sections}
+    current_section = section_dict.get(section, None)
 
     context = {
         'league_tag': league_tag,
@@ -530,6 +541,8 @@ def lone_standings(request, league_tag=None, season_tag=None):
         'season': season,
         'round_numbers': round_numbers,
         'player_scores': player_scores,
+        'player_sections': player_sections,
+        'current_section': current_section
     }
     return render(request, 'tournament/lone_standings.html', context)
 

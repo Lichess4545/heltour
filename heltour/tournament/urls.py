@@ -23,6 +23,7 @@ season_urlpatterns = [
     url(r'^faq/$', views.faq, name='faq'),
     url(r'^rosters/$', views.rosters, name='rosters'),
     url(r'^standings/$', views.standings, name='standings'),
+    url(r'^standings/section/(?P<section>[\w-]+)/$', views.standings, name='standings_by_section'),
     url(r'^crosstable/$', views.crosstable, name='crosstable'),
     url(r'^wallchart/$', views.wallchart, name='wallchart'),
     url(r'^pairings/$', views.pairings, name='pairings'),
