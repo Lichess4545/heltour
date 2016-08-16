@@ -156,7 +156,7 @@ def _parse_player_name(player_name):
     return player_name, is_captain
 
 def _parse_player_name_and_rating(cell):
-    match = re.match('(.*) \((\d+)\)', cell)
+    match = re.match(r'([^\s]*)\s*\((\d+)\)', cell)
     if match is None:
         if len(cell) > 0 and cell != 'BYE' and cell != 'FULL BYE' and cell != 'WITHDRAW':
             return cell, None
@@ -224,8 +224,16 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
     with transaction.atomic():
 
         # Open the sheets
-        sheet_standings = _trim_cells(doc.worksheet('STANDINGS').get_all_values())
-        sheet_changes = _trim_cells(doc.worksheet('PLAYER CHANGES').get_all_values())
+        try:
+            sheet_standings = _trim_cells(doc.worksheet('STANDINGS').get_all_values())
+            season_complete = False
+        except WorksheetNotFound:
+            sheet_standings = _trim_cells(doc.worksheet('STANDINGS FINAL').get_all_values())
+            season_complete = True
+        try:
+            sheet_changes = _trim_cells(doc.worksheet('PLAYER CHANGES').get_all_values())
+        except WorksheetNotFound:
+            sheet_changes = None
         sheet_readme = _trim_cells(doc.worksheet('README').get_all_values())
 
         # Read the round count
@@ -243,7 +251,10 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
         name_col = sheet_standings[0].index('Name')
         rating_col = sheet_standings[0].index('Rtng')
         points_col = sheet_standings[0].index('Tot')
-        ljp_col = sheet_standings[0].index('LjP')
+        try:
+            ljp_col = sheet_standings[0].index('LjP')
+        except ValueError:
+            ljp_col = None
         tb1_col = sheet_standings[0].index('TBrk[M]')
         tb2_col = sheet_standings[0].index('TBrk[S]')
         tb3_col = sheet_standings[0].index('TBrk[C]')
@@ -258,7 +269,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                                                             defaults={'lichess_username': name, 'rating': rating})
             season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': rating})
             points = int(float(sheet_standings[row][points_col]) * 2)
-            ljp = int(float(sheet_standings[row][ljp_col]) * 2)
+            ljp = int(float(sheet_standings[row][ljp_col]) * 2) if ljp_col is not None else 0
             tb1 = int(float(sheet_standings[row][tb1_col]) * 2)
             tb2 = int(float(sheet_standings[row][tb2_col]) * 2)
             tb3 = int(float(sheet_standings[row][tb3_col]) * 2)
@@ -267,24 +278,28 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             LonePlayerScore.objects.create(season_player=season_player, points=points, late_join_points=ljp, tiebreak1=tb1, tiebreak2=tb2, tiebreak3=tb3, tiebreak4=tb4)
             row += 1
 
-        # Read the round changes
-        round_col = sheet_changes[0].index('round')
-        name_col = sheet_changes[0].index('username')
-        action_col = sheet_changes[0].index('action')
-        rating_col = sheet_changes[0].index('rating')
-        for row in range(1, len(sheet_changes)):
-            name = sheet_changes[row][name_col]
-            if len(name) == 0:
-                break
-            round_number = int(sheet_changes[row][round_col])
-            action = sheet_changes[row][action_col]
-            rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
-            player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
-                                                            defaults={'lichess_username': name, 'rating': rating})
-            RoundChange.objects.create(round=season.round_set.get(number=round_number), player=player, action=action)
+        if sheet_changes is not None:
+            # Read the round changes
+            round_col = sheet_changes[0].index('round')
+            name_col = sheet_changes[0].index('username')
+            action_col = sheet_changes[0].index('action')
+            rating_col = sheet_changes[0].index('rating')
+            for row in range(1, len(sheet_changes)):
+                name = sheet_changes[row][name_col]
+                if len(name) == 0:
+                    break
+                round_number = int(sheet_changes[row][round_col])
+                action = sheet_changes[row][action_col]
+                rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
+                player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
+                                                                defaults={'lichess_username': name, 'rating': rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': player.rating})
+                RoundChange.objects.create(round=season.round_set.get(number=round_number), player=player, action=action)
 
         # TODO: Infer missing round changes from the standings page
         round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1) if ('Rd %d' % n) in sheet_standings[0]]
+
+        # TODO: Fill missing pairings from the standings page
 
         # Read the pairings
         for round_ in season.round_set.all():
@@ -307,6 +322,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 if white_player_name is None:
                     continue
                 white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=white_player, defaults={'seed_rating': white_player.rating})
                 if sheet[row][black_col] == 'BYE':
                     RoundChange.objects.get_or_create(round=round_, player=white_player, action='half-point-bye')
                     continue
@@ -314,6 +330,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 if black_player_name is None:
                     continue
                 black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=black_player, defaults={'seed_rating': black_player.rating})
                 try:
                     white_rank = int(sheet[row][white_rank_col])
                 except ValueError:
@@ -348,8 +365,13 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
         for round_ in season.round_set.order_by('number'):
             if round_.loneplayerpairing_set.count() > 0:
                 round_.publish_pairings = True
+                round_.is_completed = season_complete
                 round_.save()
                 if last_round is not None:
                     last_round.is_completed = True
                     last_round.save()
                 last_round = round_
+
+        if season_complete:
+            season.is_completed = True
+            season.save()

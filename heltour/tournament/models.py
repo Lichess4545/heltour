@@ -178,9 +178,9 @@ class Season(_BaseModel):
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(changes, player_id=sp.player_id, action='half-point-bye')
                 if white_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int(white_pairing.white_score() * 2), white_pairing.game_played())
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int((white_pairing.white_score() or 0) * 2), white_pairing.game_played())
                 elif black_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int(black_pairing.black_score() * 2), black_pairing.game_played())
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int((black_pairing.black_score() or 0) * 2), black_pairing.game_played())
                 elif bye is not None:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, False)
                 else:
