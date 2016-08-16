@@ -548,7 +548,10 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     for rc in round_changes:
         round_changes_dict[(rc.round, rc.player)].append(rc)
 
-    return [(ps[0], ps[1], list(ps[1].round_scores(player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current))) for ps in player_scores]
+    rounds = Round.objects.filter(season=season).order_by('number')
+    # rounds = [round_ for round_ in Round.objects.filter(season=season).order_by('number') if round_.is_completed or (include_current and round_.publish_pairings)]
+
+    return [(ps[0], ps[1], list(ps[1].round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current))) for ps in player_scores]
 
 def crosstable(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)

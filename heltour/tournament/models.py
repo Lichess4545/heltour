@@ -690,13 +690,13 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = models.PositiveIntegerField(default=0)
     tiebreak4 = models.PositiveIntegerField(default=0)
 
-    def round_scores(self, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current=False):
+    def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current=False):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
         black_pairings = black_pairings_dict.get(self.season_player.player, [])
         cumul_score = 0.0
-        for round_ in Round.objects.filter(season=self.season_player.season).order_by('number'):
+        for round_ in rounds:
             if not round_.is_completed and (not include_current or not round_.publish_pairings):
-                yield (None, None)
+                yield (None, None, None, None)
                 continue
 
             result_type = None
