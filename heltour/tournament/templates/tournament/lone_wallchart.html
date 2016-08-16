@@ -53,7 +53,7 @@
 								<td class="text-left">{{ player_score.season_player.seed_rating }}</td>
 								{% for result_code, opponent_num, color, cumul_score in round_scores %}
 								<td class="text-left">
-									{% if result_code != '' %}
+									{% if result_code %}
 									{% if result_code == 'U' or result_code == 'X' or result_code == 'F' or result_code == 'Z' %}{{ result_code }}{% endif %}{{ cumul_score }}
 									{% endif %}
 								</td>
