@@ -496,8 +496,8 @@ class PlayerPairing(_BaseModel):
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
         self.initial_result = self.result
-        self.initial_white = self.white
-        self.initial_black = self.black
+        self.initial_white_id = self.white_id
+        self.initial_black_id = self.black_id
 
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F' or self.result == 'FULL BYE' and self.white is not None:
@@ -525,8 +525,8 @@ class PlayerPairing(_BaseModel):
 
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
-        white_changed = self.pk is None or self.white != self.initial_white
-        black_changed = self.pk is None or self.black != self.initial_black
+        white_changed = self.pk is None or self.white_id != self.initial_white_id
+        black_changed = self.pk is None or self.black_id != self.initial_black_id
         super(PlayerPairing, self).save(*args, **kwargs)
         if hasattr(self, 'teamplayerpairing') and result_changed:
             self.teamplayerpairing.team_pairing.refresh_points()
