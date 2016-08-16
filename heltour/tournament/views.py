@@ -9,6 +9,11 @@ import itertools
 from django.db.models.query import Prefetch
 from django.contrib.admin.views.decorators import staff_member_required
 from collections import defaultdict
+from decorators import cached_as, cached_view_as
+
+common_team_models = [League, Season, Round, Team]
+common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, RoundChange, SeasonPlayer,
+                      Player, SeasonPrize, SeasonPrizeWinner]
 
 def home(request):
     leagues = League.objects.filter(is_active=True).order_by('display_order')
@@ -171,6 +176,7 @@ def team_season_landing(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_season_landing.html', context)
 
+@cached_view_as(*common_lone_models, vary_request=lambda r: r.user.is_staff)
 def lone_season_landing(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     if season.is_completed:
@@ -279,6 +285,8 @@ def pairings(request, league_tag=None, season_tag=None, round_number=None, team_
     else:
         return lone_pairings(request, league_tag, season_tag, round_number, team_number)
 
+@cached_view_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, *common_team_models,
+                vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.change_pairing')))
 def team_pairings(request, league_tag=None, season_tag=None, round_number=None, team_number=None):
     specified_round = round_number is not None
     season = _get_season(league_tag, season_tag)
@@ -423,6 +431,8 @@ def faq(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/document.html', context)
 
+@cached_view_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models,
+                vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.edit_rosters')))
 def rosters(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     if league.competitor_type != 'team':
@@ -490,6 +500,7 @@ def standings(request, league_tag=None, season_tag=None):
     else:
         return lone_standings(request, league_tag, season_tag)
 
+@cached_view_as(TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def team_standings(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
@@ -506,6 +517,7 @@ def team_standings(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_standings.html', context)
 
+@cached_view_as(*common_lone_models, vary_request=lambda r: r.user.is_staff)
 def lone_standings(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
@@ -521,6 +533,7 @@ def lone_standings(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/lone_standings.html', context)
 
+@cached_as(LonePlayerScore, LonePlayerPairing, PlayerPairing, RoundChange, SeasonPlayer, Player)
 def _lone_player_scores(season, final=False, sort_by_seed=False, include_current=False):
     # For efficiency, rather than having LonePlayerScore.round_scores() do independent
     # calculations, we populate a few common data structures and use those as parameters.
@@ -553,6 +566,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
 
     return [(ps[0], ps[1], list(ps[1].round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current))) for ps in player_scores]
 
+@cached_view_as(TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def crosstable(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     if league.competitor_type != 'team':
@@ -570,6 +584,7 @@ def crosstable(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_crosstable.html', context)
 
+@cached_view_as(*common_lone_models, vary_request=lambda r: r.user.is_staff)
 def wallchart(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     if league.competitor_type == 'team':
