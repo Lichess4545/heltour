@@ -1,6 +1,7 @@
 from cacheops.query import cached_as, \
                            cached_view_as as _cacheops_cached_view_as, \
                            install_cacheops
+from heltour import settings
 
 # TODO: This should be run automatically by django. I have no idea why it isn't.
 install_cacheops()
@@ -13,6 +14,10 @@ def cached_view_as(*cva_args, **cva_kwargs):
     vary_request = cva_kwargs.pop('vary_request', None)
 
     def wrap(func):
+        if settings.DEBUG:
+            # Disable view caching during development
+            return func
+
         def proxy(request, vary_value, *proxy_args, **proxy_kwargs):
             return func(request, *proxy_args, **proxy_kwargs)
 
