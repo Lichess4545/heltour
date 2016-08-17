@@ -78,11 +78,8 @@ def _generate_lone_pairings(round_, overwrite=False):
         pairing_system = DutchLonePairingSystem()
         lone_pairings = pairing_system.create_lone_pairings(round_, season_players, previous_pairings)
 
-
-        player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=round_.season).select_related('season_player__player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
-        rank_dict = {p.season_player.player: n for n, p in player_scores}
-
         # Save the lone pairings
+        rank_dict = lone_player_pairing_rank_dict(round_.season)
         for lone_pairing in lone_pairings:
             lone_pairing.white_rank = rank_dict.get(lone_pairing.white, None)
             lone_pairing.black_rank = rank_dict.get(lone_pairing.black, None)

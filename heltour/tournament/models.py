@@ -610,10 +610,9 @@ class LonePlayerPairing(PlayerPairing):
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
     def refresh_ranks(self):
-        player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=self.round.season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
-        player_rank_dict = {p.season_player.player_id: n for n, p in player_scores}
-        self.white_rank = player_rank_dict.get(self.white_id, None)
-        self.black_rank = player_rank_dict.get(self.black_id, None)
+        rank_dict = lone_player_pairing_rank_dict(self.round.season)
+        self.white_rank = rank_dict.get(self.white_id, None)
+        self.black_rank = rank_dict.get(self.black_id, None)
 
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
@@ -782,6 +781,10 @@ class LonePlayerScore(_BaseModel):
 
     def __unicode__(self):
         return "%s" % (self.season_player)
+
+def lone_player_pairing_rank_dict(season):
+    player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
+    return {p.season_player.player_id: n for n, p in player_scores}
 
 #-------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):
