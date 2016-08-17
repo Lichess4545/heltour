@@ -313,7 +313,7 @@ ROUND_CHANGE_OPTIONS = (
 )
 
 #-------------------------------------------------------------------------------
-class LateRegisterRoundChange(_BaseModel):
+class PlayerLateRegistration(_BaseModel):
     round = models.ForeignKey(Round)
     player = models.ForeignKey(Player)
     retroactive_byes = models.PositiveIntegerField(default=0)
@@ -326,7 +326,7 @@ class LateRegisterRoundChange(_BaseModel):
         return "%s - %s" % (self.round, self.player)
 
 #-------------------------------------------------------------------------------
-class WithdrawRoundChange(_BaseModel):
+class PlayerWithdrawl(_BaseModel):
     round = models.ForeignKey(Round)
     player = models.ForeignKey(Player)
 

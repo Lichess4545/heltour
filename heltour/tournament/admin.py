@@ -481,16 +481,16 @@ class RoundAdmin(VersionAdmin):
         return render(request, 'tournament/admin/review_pairings.html', context)
 
 #-------------------------------------------------------------------------------
-@admin.register(models.LateRegisterRoundChange)
-class LateRegisterRoundChangeAdmin(VersionAdmin):
+@admin.register(models.PlayerLateRegistration)
+class PlayerLateRegistrationAdmin(VersionAdmin):
     list_display = ('__unicode__', 'retroactive_byes', 'late_join_points')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.WithdrawRoundChange)
-class WithdrawRoundChangeAdmin(VersionAdmin):
+@admin.register(models.PlayerWithdrawl)
+class PlayerWithdrawlAdmin(VersionAdmin):
     list_display = ('__unicode__',)
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')

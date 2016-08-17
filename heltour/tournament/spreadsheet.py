@@ -295,9 +295,9 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                                                                 defaults={'lichess_username': name, 'rating': rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': player.rating})
                 if action == 'register':
-                    LateRegisterRoundChange.objects.create(round=season.round_set.get(number=round_number), player=player)
+                    PlayerLateRegistration.objects.create(round=season.round_set.get(number=round_number), player=player)
                 elif action == 'withdraw':
-                    WithdrawRoundChange.objects.create(round=season.round_set.get(number=round_number), player=player)
+                    PlayerWithdrawl.objects.create(round=season.round_set.get(number=round_number), player=player)
                 elif action == 'half-point-bye':
                     PlayerBye.objects.create(round=season.round_set.get(number=round_number), player=player, type='half-point-bye')
 
