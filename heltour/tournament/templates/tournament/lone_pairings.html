@@ -83,6 +83,28 @@
 				        </th>{% endif %}
 					</tr>
 					{% endfor %}
+					{% for bye in byes %}
+					<tr>
+						<td class="hidden-xs"></td>
+						<td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
+						<td>
+							<div class="pairing-player">
+								<a href="http://lichess.org/@/{{ bye.player.lichess_username }}">
+									{{ bye.player.lichess_username }}{% if bye.player.rating %} <span class="visible-xs"></span> ({{ bye.player.rating }}){% endif %}
+								</a>
+							</div>
+						</td>
+						<td class="hidden-xs"></td>
+						<td>{% if bye.type == 'half-point-bye' %}BYE{% elif bye.type == 'full-point-bye' %}FULL BYE{% elif bye.type == 'zero-point-bye' %}ZERO BYE{% endif %}</td>
+						<td></td>
+						<td></td>{% if can_edit %}
+						<th>
+							<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-bye-{{ bye.pk }}" class="popup-link" title="Change selected bye">
+					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+					        </a>
+				        </th>{% endif %}
+					</tr>
+					{% endfor %}
 					</tbody>
 				</table>
 				{% else %}

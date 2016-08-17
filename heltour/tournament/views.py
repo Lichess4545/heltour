@@ -346,7 +346,10 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
                                        .select_related('white', 'black') \
                                        .nocache(),
                          1)
-
+    byes = PlayerBye.objects.filter(round__number=round_number, round__season=season) \
+                            .order_by('player_rank', 'player__lichess_username') \
+                            .select_related('player') \
+                            .nocache()
 
     context = {
         'league_tag': league_tag,
@@ -356,6 +359,7 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
         'round_number': round_number,
         'round_number_list': round_number_list,
         'pairings': pairings,
+        'byes': byes,
         'specified_round': specified_round,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }

@@ -328,22 +328,25 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     continue
                 white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=white_player, defaults={'seed_rating': white_player.rating})
+                try:
+                    white_rank = int(sheet[row][white_rank_col])
+                except ValueError:
+                    white_rank = None
+
                 if sheet[row][black_col] == 'BYE':
-                    PlayerBye.objects.get_or_create(round=round_, player=white_player, type='half-point-bye')
+                    PlayerBye.objects.update_or_create(round=round_, player=white_player, type='half-point-bye', defaults={'player_rank': white_rank})
                     continue
+
                 black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
                 if black_player_name is None:
                     continue
                 black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=black_player, defaults={'seed_rating': black_player.rating})
                 try:
-                    white_rank = int(sheet[row][white_rank_col])
-                except ValueError:
-                    white_rank = None
-                try:
                     black_rank = int(sheet[row][black_rank_col])
                 except ValueError:
                     black_rank = None
+
                 result = sheet[row][result_col]
                 if result == u'\u2694':
                     result = ''
