@@ -294,7 +294,12 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
                                                                 defaults={'lichess_username': name, 'rating': rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': player.rating})
-                RoundChange.objects.create(round=season.round_set.get(number=round_number), player=player, action=action)
+                if action == 'register':
+                    LateRegisterRoundChange.objects.create(round=season.round_set.get(number=round_number), player=player)
+                elif action == 'withdraw':
+                    WithdrawRoundChange.objects.create(round=season.round_set.get(number=round_number), player=player)
+                elif action == 'half-point-bye':
+                    PlayerBye.objects.create(round=season.round_set.get(number=round_number), player=player, type='half-point-bye')
 
         # TODO: Infer missing round changes from the standings page
         round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1) if ('Rd %d' % n) in sheet_standings[0]]
@@ -324,7 +329,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=white_player, defaults={'seed_rating': white_player.rating})
                 if sheet[row][black_col] == 'BYE':
-                    RoundChange.objects.get_or_create(round=round_, player=white_player, action='half-point-bye')
+                    PlayerBye.objects.get_or_create(round=round_, player=white_player, type='half-point-bye')
                     continue
                 black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
                 if black_player_name is None:

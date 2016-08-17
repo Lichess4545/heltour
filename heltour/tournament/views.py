@@ -13,7 +13,7 @@ from decorators import cached_as, cached_view_as
 import re
 
 common_team_models = [League, Season, Round, Team]
-common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, RoundChange, SeasonPlayer,
+common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
                       Player, SeasonPrize, SeasonPrizeWinner]
 
 def home(request):
@@ -546,7 +546,7 @@ def lone_standings(request, league_tag=None, season_tag=None, section=None):
     }
     return render(request, 'tournament/lone_standings.html', context)
 
-@cached_as(LonePlayerScore, LonePlayerPairing, PlayerPairing, RoundChange, SeasonPlayer, Player)
+@cached_as(LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer, Player)
 def _lone_player_scores(season, final=False, sort_by_seed=False, include_current=False):
     # For efficiency, rather than having LonePlayerScore.round_scores() do independent
     # calculations, we populate a few common data structures and use those as parameters.
@@ -569,15 +569,15 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
         if p.black is not None:
             black_pairings_dict[p.black].append(p)
 
-    round_changes = RoundChange.objects.filter(round__season=season).select_related('round', 'player').nocache()
-    round_changes_dict = defaultdict(list)
-    for rc in round_changes:
-        round_changes_dict[(rc.round, rc.player)].append(rc)
+    byes = PlayerBye.objects.filter(round__season=season).select_related('round', 'player').nocache()
+    byes_dict = defaultdict(list)
+    for bye in byes:
+        byes_dict[bye.player].append(bye)
 
     rounds = Round.objects.filter(season=season).order_by('number')
     # rounds = [round_ for round_ in Round.objects.filter(season=season).order_by('number') if round_.is_completed or (include_current and round_.publish_pairings)]
 
-    return [(ps[0], ps[1], list(ps[1].round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current))) for ps in player_scores]
+    return [(ps[0], ps[1], list(ps[1].round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current))) for ps in player_scores]
 
 @cached_view_as(TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def crosstable(request, league_tag=None, season_tag=None):

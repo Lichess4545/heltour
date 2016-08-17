@@ -172,17 +172,17 @@ class Season(_BaseModel):
         last_round = None
         for round_ in self.round_set.filter(is_completed=True).order_by('number'):
             pairings = round_.loneplayerpairing_set.all().nocache()
-            changes = RoundChange.objects.filter(round=round_)
+            byes = PlayerBye.objects.filter(round=round_)
             for sp in SeasonPlayer.objects.filter(season=self):
                 white_pairing = find(pairings, white_id=sp.player_id)
                 black_pairing = find(pairings, black_id=sp.player_id)
-                bye = find(changes, player_id=sp.player_id, action='half-point-bye')
+                bye = find(byes, player_id=sp.player_id)
                 if white_pairing is not None:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int((white_pairing.white_score() or 0) * 2), white_pairing.game_played())
                 elif black_pairing is not None:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int((black_pairing.black_score() or 0) * 2), black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 1, False)
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, bye.score(), False)
                 else:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
             last_round = round_
@@ -313,13 +313,55 @@ ROUND_CHANGE_OPTIONS = (
 )
 
 #-------------------------------------------------------------------------------
-class RoundChange(_BaseModel):
+class LateRegisterRoundChange(_BaseModel):
     round = models.ForeignKey(Round)
     player = models.ForeignKey(Player)
-    action = models.CharField(max_length=255, choices=ROUND_CHANGE_OPTIONS)
+    retroactive_byes = models.PositiveIntegerField(default=0)
+    late_join_points = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('round', 'player')
 
     def __unicode__(self):
-        return "%s - %s - %s" % (self.round, self.player, self.action)
+        return "%s - %s" % (self.round, self.player)
+
+#-------------------------------------------------------------------------------
+class WithdrawRoundChange(_BaseModel):
+    round = models.ForeignKey(Round)
+    player = models.ForeignKey(Player)
+
+    class Meta:
+        unique_together = ('round', 'player')
+
+    def __unicode__(self):
+        return "%s - %s" % (self.round, self.player)
+
+BYE_TYPE_OPTIONS = (
+    ('full-point-bye', 'Full-Point Bye'),
+    ('half-point-bye', 'Half-Point Bye'),
+    ('zero-point-bye', 'Zero-Point Bye'),
+)
+
+#-------------------------------------------------------------------------------
+class PlayerBye(_BaseModel):
+    round = models.ForeignKey(Round)
+    player = models.ForeignKey(Player)
+    type = models.CharField(max_length=31, choices=BYE_TYPE_OPTIONS)
+    player_rank = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('round', 'player')
+
+    def score(self):
+        if type == 'full-point-bye':
+            return 2
+        elif type == 'half-point-bye':
+            return 1
+        else:
+            return 0
+
+    def __unicode__(self):
+        return "%s - %s" % (self.round, self.player)
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
@@ -699,9 +741,10 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = models.PositiveIntegerField(default=0)
     tiebreak4 = models.PositiveIntegerField(default=0)
 
-    def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict, round_changes_dict, include_current=False):
+    def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current=False):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
         black_pairings = black_pairings_dict.get(self.season_player.player, [])
+        byes = byes_dict.get(self.season_player.player, [])
         cumul_score = 0.0
         for round_ in rounds:
             if not round_.is_completed and (not include_current or not round_.publish_pairings):
@@ -714,8 +757,7 @@ class LonePlayerScore(_BaseModel):
 
             white_pairing = find(white_pairings, round_id=round_.id)
             black_pairing = find(black_pairings, round_id=round_.id)
-            round_changes = round_changes_dict.get((round_, self.season_player.player), [])
-            bye = find(round_changes, action='half-point-bye')
+            bye = find(byes, round_id=round_.id)
 
             if white_pairing is not None and white_pairing.black is not None:
                 opponent = white_pairing.black
@@ -738,7 +780,7 @@ class LonePlayerScore(_BaseModel):
                     # Special result
                     result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
             elif bye is not None:
-                score = 0.5
+                score = bye.score() / 2.0
                 result_type = 'H'
             else:
                 score = 0.0
