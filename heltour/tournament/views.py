@@ -657,6 +657,7 @@ def _count_results(pairings, board_num=None):
     percents = (counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
     return board_num, tuple(counts), percents, rating_delta / total
 
+@cached_view_as(League, Season, Round, TeamPlayerPairing, PlayerPairing, vary_request=lambda r: r.user.is_staff)
 def stats(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     if league.competitor_type != 'team':
