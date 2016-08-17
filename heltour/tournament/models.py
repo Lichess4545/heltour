@@ -750,6 +750,9 @@ class LonePlayerScore(_BaseModel):
 
             yield (result_type, player_number_dict.get(opponent, 0), color, cumul_score)
 
+    def pairing_points(self):
+        return (self.points + self.late_join_points) / 2.0
+
     def pairing_points_display(self):
         return "%.1f" % ((self.points + self.late_join_points) / 2.0)
 

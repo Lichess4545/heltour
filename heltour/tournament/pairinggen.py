@@ -6,6 +6,12 @@ import subprocess
 import os
 
 def generate_pairings(round_, overwrite=False):
+    if round_.season.league.competitor_type == 'team':
+        _generate_team_pairings(round_, overwrite)
+    else:
+        _generate_lone_pairings(round_, overwrite)
+
+def _generate_team_pairings(round_, overwrite=False):
     with transaction.atomic():
         existing_pairings = TeamPairing.objects.filter(round=round_)
         if existing_pairings.count() > 0:
@@ -49,10 +55,42 @@ def generate_pairings(round_, overwrite=False):
                     white, black = black, white
                 TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
 
+def _generate_lone_pairings(round_, overwrite=False):
+    with transaction.atomic():
+        existing_pairings = LonePlayerPairing.objects.filter(round=round_)
+        if existing_pairings.count() > 0:
+            if overwrite:
+                delete_pairings(round_)
+            else:
+                raise PairingsExistException()
+
+        # Sort by seed rating
+        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True)
+        for sp in season_players:
+            if sp.seed_rating is None:
+                sp.seed_rating = sp.player.rating
+                sp.save()
+        season_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
+
+        previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
+
+        # Run the pairing algorithm
+        pairing_system = DutchLonePairingSystem()
+        lone_pairings = pairing_system.create_lone_pairings(round_, season_players, previous_pairings)
+
+        # Save the lone pairings
+        for lone_pairing in lone_pairings:
+            lone_pairing.save()
+
 def delete_pairings(round_):
-    if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(result='').count():
-        raise PairingHasResultException()
-    TeamPairing.objects.filter(round=round_).delete()
+    if round_.season.league.competitor_type == 'team':
+        if TeamPlayerPairing.objects.filter(team_pairing__round=round_).exclude(result='').count():
+            raise PairingHasResultException()
+        TeamPairing.objects.filter(round=round_).delete()
+    else:
+        if LonePlayerPairing.objects.filter(round=round_).exclude(result='').count():
+            raise PairingHasResultException()
+        LonePlayerPairing.objects.filter(round=round_).delete()
 
 class PairingsExistException(Exception):
     pass
@@ -95,6 +133,35 @@ class DutchTeamPairingSystem:
             if p.black_team == team:
                 yield JavafoPairing(p.white_team, 'black', 1.0 if p.black_points > p.white_points else 0.5 if p.white_points == p.black_points else 0)
 
+class DutchLonePairingSystem:
+    def create_lone_pairings(self, round_, season_players, previous_pairings):
+        # Note: Assumes season_players is sorted by seed and previous_pairings is sorted by round
+
+        players = [
+            JavafoPlayer(sp.player, sp.loneplayerscore.pairing_points(), list(self._process_pairings(sp, previous_pairings, round_.number))) for sp in season_players
+        ]
+        javafo = JavafoInstance(round_.season.rounds, players)
+        pairs = javafo.run()
+        # TODO: Read bye output
+        lone_pairings = []
+        for i in range(len(pairs)):
+            white = pairs[i][0]
+            black = pairs[i][1]
+            lone_pairings.append(LonePlayerPairing(white=white, black=black, round=round_, pairing_order=i + 1))
+        return lone_pairings
+
+    def _process_pairings(self, sp, pairings, current_round_number):
+        # TODO: Input byes as well
+        player_pairings = [p for p in pairings if p.white == sp.player or p.black == sp.player]
+        for n in range(1, current_round_number):
+            p = find(player_pairings, round__number=n)
+            if p is None:
+                yield JavafoPairing(None, None, None)
+            elif p.white == sp.player:
+                yield JavafoPairing(p.black, 'white', p.white_score(), forfeit=not p.game_played())
+            elif p.black == sp.player:
+                yield JavafoPairing(p.white, 'black', p.black_score(), forfeit=not p.game_played())
+
 class JavafoPlayer:
     def __init__(self, player, score, pairings):
         self.player = player
@@ -113,6 +180,7 @@ class JavafoPairingResult:
         self.white = white
         self.black = black
 
+# TODO: Verify for score >= 10
 class JavafoInstance:
     '''Interfaces with javafo.jar
 
@@ -135,7 +203,6 @@ class JavafoInstance:
         output_file_name = input_file.name + ".out.txt"
         try:
             # Write to input file
-            # TODO: Consider adding a seed rating field to teams/lone players for consistent pairings
             input_file.write('XXR %d\n' % self.total_round_count)
             for n, player in enumerate(self.players, 1):
                 line = '001  {0: >3}  {1:74.1f}     '.format(n, player.score)
@@ -143,11 +210,14 @@ class JavafoInstance:
                     opponent_num = next((num for num, player in enumerate(self.players, 1) if player.player == pairing.opponent), '0000')
                     color = 'w' if pairing.color == 'white' else 'b' if pairing.color == 'black' else '-'
                     if pairing.forfeit:
-                        score = '+' if pairing.score == 1 else '-' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
+                        score = '+' if pairing.score == 1 else '-' if pairing.score == 0 else '=' if pairing.score == 0.5 else ' '
                     else:
-                        score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else '-'
+                        score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else ' '
+                    if score == ' ':
+                        color = '-'
                     line += '{0: >6} {1} {2}'.format(opponent_num, color, score)
                 line += '\n'
+                print line
                 input_file.write(line)
             input_file.flush()
 
