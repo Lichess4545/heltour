@@ -104,7 +104,7 @@ def delete_pairings(round_):
         if LonePlayerPairing.objects.filter(round=round_).exclude(result='').count():
             raise PairingHasResultException()
         LonePlayerPairing.objects.filter(round=round_).delete()
-        PlayerBye.objects.filter(round=round_, type='full-point-bye').delete()
+        PlayerBye.objects.filter(round=round_, type='full-point-pairing-bye').delete()
 
 class PairingsExistException(Exception):
     pass
@@ -165,7 +165,7 @@ class DutchLonePairingSystem:
             white = pairs[i][0]
             black = pairs[i][1]
             if black is None:
-                byes.append(PlayerBye(player=white, round=round_, type='full-point-bye'))
+                byes.append(PlayerBye(player=white, round=round_, type='full-point-pairing-bye'))
             else:
                 lone_pairings.append(LonePlayerPairing(white=white, black=black, round=round_, pairing_order=i + 1))
         return lone_pairings, byes

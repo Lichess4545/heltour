@@ -339,6 +339,7 @@ class PlayerWithdrawl(_BaseModel):
         return "%s - %s" % (self.round, self.player)
 
 BYE_TYPE_OPTIONS = (
+    ('full-point-pairing-bye', 'Full-Point Bye (Pairing)'),
     ('full-point-bye', 'Full-Point Bye'),
     ('half-point-bye', 'Half-Point Bye'),
     ('zero-point-bye', 'Zero-Point Bye'),
@@ -355,7 +356,7 @@ class PlayerBye(_BaseModel):
         unique_together = ('round', 'player')
 
     def score(self):
-        if type == 'full-point-bye':
+        if type == 'full-point-bye' or type == 'pairing-bye':
             return 1
         elif type == 'half-point-bye':
             return 0.5

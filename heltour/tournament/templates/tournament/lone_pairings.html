@@ -95,7 +95,7 @@
 							</div>
 						</td>
 						<td class="hidden-xs"></td>
-						<td>{% if bye.type == 'half-point-bye' %}BYE{% elif bye.type == 'full-point-bye' %}FULL BYE{% elif bye.type == 'zero-point-bye' %}ZERO BYE{% endif %}</td>
+						<td>{% if bye.type == 'half-point-bye' %}BYE{% elif bye.type == 'full-point-bye' or bye.type == 'full-point-pairing-bye' %}FULL BYE{% elif bye.type == 'zero-point-bye' %}ZERO BYE{% endif %}</td>
 						<td></td>
 						<td></td>{% if can_edit %}
 						<th>
