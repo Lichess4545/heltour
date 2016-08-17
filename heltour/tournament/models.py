@@ -168,12 +168,13 @@ class Season(_BaseModel):
         score_dict[(team, round_)] = (match_count, match_points, game_points, points)
 
     def _calculate_lone_scores(self):
+        season_players = SeasonPlayer.objects.filter(season=self).select_related('loneplayerscore').nocache()
         score_dict = {}
         last_round = None
         for round_ in self.round_set.filter(is_completed=True).order_by('number'):
             pairings = round_.loneplayerpairing_set.all().nocache()
             byes = PlayerBye.objects.filter(round=round_)
-            for sp in SeasonPlayer.objects.filter(season=self):
+            for sp in season_players:
                 white_pairing = find(pairings, white_id=sp.player_id)
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(byes, player_id=sp.player_id)
@@ -182,12 +183,13 @@ class Season(_BaseModel):
                 elif black_pairing is not None:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int((black_pairing.black_score() or 0) * 2), black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, bye.score(), False)
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, int((bye.score()) * 2), False)
                 else:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
             last_round = round_
 
-        player_scores = LonePlayerScore.objects.filter(season_player__season=self)
+        player_scores = [sp.get_loneplayerscore() for sp in season_players]
+
         for score in player_scores:
             player_id = score.season_player.player_id
             if last_round is None:
@@ -354,9 +356,9 @@ class PlayerBye(_BaseModel):
 
     def score(self):
         if type == 'full-point-bye':
-            return 2
-        elif type == 'half-point-bye':
             return 1
+        elif type == 'half-point-bye':
+            return 0.5
         else:
             return 0
 
@@ -728,6 +730,12 @@ class SeasonPlayer(_BaseModel):
     class Meta:
         unique_together = ('season', 'player')
 
+    def get_loneplayerscore(self):
+        try:
+            return self.loneplayerscore
+        except LonePlayerScore.DoesNotExist:
+            return LonePlayerScore.objects.create(season_player=self)
+
     def __unicode__(self):
         return "%s" % self.player
 
@@ -780,7 +788,7 @@ class LonePlayerScore(_BaseModel):
                     # Special result
                     result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
             elif bye is not None:
-                score = bye.score() / 2.0
+                score = bye.score()
                 result_type = 'H'
             else:
                 score = 0.0

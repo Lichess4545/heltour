@@ -151,10 +151,10 @@ class SeasonAdmin(VersionAdmin):
         else:
             form = forms.RoundTransitionForm(round_to_close, round_to_open, season_to_close)
 
-        if round_to_close is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
+        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
             time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
             self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING)
-        elif round_to_open is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
             time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
 
@@ -465,20 +465,34 @@ class RoundAdmin(VersionAdmin):
         else:
             form = forms.ReviewPairingsForm()
 
-        team_pairings = round_.teampairing_set.order_by('pairing_order')
-        pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number').nocache() for team_pairing in team_pairings]
+        if round_.season.league.competitor_type == 'team':
+            team_pairings = round_.teampairing_set.order_by('pairing_order')
+            pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number').nocache() for team_pairing in team_pairings]
+            context = {
+                'has_permission': True,
+                'opts': self.model._meta,
+                'site_url': '/',
+                'original': round_,
+                'title': 'Review pairings',
+                'form': form,
+                'pairing_lists': pairing_lists
+            }
+            return render(request, 'tournament/admin/review_team_pairings.html', context)
+        else:
+            pairings = round_.loneplayerpairing_set.order_by('pairing_order')
+            byes = round_.playerbye_set.order_by('type', 'player_rank', 'player__lichess_username')
+            context = {
+                'has_permission': True,
+                'opts': self.model._meta,
+                'site_url': '/',
+                'original': round_,
+                'title': 'Review pairings',
+                'form': form,
+                'pairings': pairings,
+                'byes': byes,
+            }
+            return render(request, 'tournament/admin/review_lone_pairings.html', context)
 
-        context = {
-            'has_permission': True,
-            'opts': self.model._meta,
-            'site_url': '/',
-            'original': round_,
-            'title': 'Review pairings',
-            'form': form,
-            'pairing_lists': pairing_lists
-        }
-
-        return render(request, 'tournament/admin/review_pairings.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.PlayerLateRegistration)

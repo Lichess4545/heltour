@@ -347,7 +347,7 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
                                        .nocache(),
                          1)
     byes = PlayerBye.objects.filter(round__number=round_number, round__season=season) \
-                            .order_by('player_rank', 'player__lichess_username') \
+                            .order_by('type', 'player_rank', 'player__lichess_username') \
                             .select_related('player') \
                             .nocache()
 

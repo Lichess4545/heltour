@@ -65,25 +65,35 @@ def _generate_lone_pairings(round_, overwrite=False):
                 raise PairingsExistException()
 
         # Sort by seed rating
-        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True)
+        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True).select_related('player').nocache()
         for sp in season_players:
             if sp.seed_rating is None:
                 sp.seed_rating = sp.player.rating
                 sp.save()
         season_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
 
+        # Exclude players with byes
+        current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_)}
+        season_players = [sp for sp in season_players if sp.player not in current_byes]
+
         previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
+        previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
 
         # Run the pairing algorithm
         pairing_system = DutchLonePairingSystem()
-        lone_pairings = pairing_system.create_lone_pairings(round_, season_players, previous_pairings)
+        lone_pairings, byes = pairing_system.create_lone_pairings(round_, season_players, previous_pairings, previous_byes)
 
         # Save the lone pairings
         rank_dict = lone_player_pairing_rank_dict(round_.season)
         for lone_pairing in lone_pairings:
-            lone_pairing.white_rank = rank_dict.get(lone_pairing.white, None)
-            lone_pairing.black_rank = rank_dict.get(lone_pairing.black, None)
+            lone_pairing.white_rank = rank_dict.get(lone_pairing.white_id, None)
+            lone_pairing.black_rank = rank_dict.get(lone_pairing.black_id, None)
             lone_pairing.save()
+
+        # Save pairing byes and update player ranks for all byes
+        for bye in byes + list(PlayerBye.objects.filter(round=round_)):
+            bye.player_rank = rank_dict.get(bye.player_id, None)
+            bye.save()
 
 def delete_pairings(round_):
     if round_.season.league.competitor_type == 'team':
@@ -94,6 +104,7 @@ def delete_pairings(round_):
         if LonePlayerPairing.objects.filter(round=round_).exclude(result='').count():
             raise PairingHasResultException()
         LonePlayerPairing.objects.filter(round=round_).delete()
+        PlayerBye.objects.filter(round=round_, type='full-point-bye').delete()
 
 class PairingsExistException(Exception):
     pass
@@ -137,33 +148,49 @@ class DutchTeamPairingSystem:
                 yield JavafoPairing(p.white_team, 'black', 1.0 if p.black_points > p.white_points else 0.5 if p.white_points == p.black_points else 0)
 
 class DutchLonePairingSystem:
-    def create_lone_pairings(self, round_, season_players, previous_pairings):
-        # Note: Assumes season_players is sorted by seed and previous_pairings is sorted by round
+    def create_lone_pairings(self, round_, season_players, previous_pairings, previous_byes):
+        # Note: Assumes season_players is sorted by seed and previous_pairings/previous_byes are sorted by round
 
         players = [
-            JavafoPlayer(sp.player, sp.loneplayerscore.pairing_points(), list(self._process_pairings(sp, previous_pairings, round_.number))) for sp in season_players
+            JavafoPlayer(
+                         sp.player, sp.get_loneplayerscore().pairing_points(),
+                         list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points / 2.0))
+            ) for sp in season_players
         ]
         javafo = JavafoInstance(round_.season.rounds, players)
         pairs = javafo.run()
-        # TODO: Read bye output
         lone_pairings = []
+        byes = []
         for i in range(len(pairs)):
             white = pairs[i][0]
             black = pairs[i][1]
-            lone_pairings.append(LonePlayerPairing(white=white, black=black, round=round_, pairing_order=i + 1))
-        return lone_pairings
+            if black is None:
+                byes.append(PlayerBye(player=white, round=round_, type='full-point-bye'))
+            else:
+                lone_pairings.append(LonePlayerPairing(white=white, black=black, round=round_, pairing_order=i + 1))
+        return lone_pairings, byes
 
-    def _process_pairings(self, sp, pairings, current_round_number):
-        # TODO: Input byes as well
+    def _process_pairings(self, sp, pairings, byes, current_round_number, bonus_score):
         player_pairings = [p for p in pairings if p.white == sp.player or p.black == sp.player]
+        player_byes = [b for b in byes if b.player == sp.player]
         for n in range(1, current_round_number):
             p = find(player_pairings, round__number=n)
-            if p is None:
-                yield JavafoPairing(None, None, None)
-            elif p.white == sp.player:
-                yield JavafoPairing(p.black, 'white', p.white_score(), forfeit=not p.game_played())
-            elif p.black == sp.player:
-                yield JavafoPairing(p.white, 'black', p.black_score(), forfeit=not p.game_played())
+            b = find(player_byes, round__number=n)
+            if p is not None:
+                if p.white == sp.player:
+                    yield JavafoPairing(p.black, 'white', p.white_score(), forfeit=not p.game_played())
+                else:
+                    yield JavafoPairing(p.white, 'black', p.black_score(), forfeit=not p.game_played())
+            elif b is not None:
+                yield JavafoPairing(None, None, b.score(), forfeit=True)
+            elif bonus_score >= 1:
+                yield JavafoPairing(None, None, 1, forfeit=True)
+                bonus_score -= 1
+            elif bonus_score == 0.5:
+                yield JavafoPairing(None, None, 0.5, forfeit=True)
+                bonus_score = 0
+            else:
+                yield JavafoPairing(None, None, None, forfeit=True)
 
 class JavafoPlayer:
     def __init__(self, player, score, pairings):
@@ -251,5 +278,9 @@ class JavafoInstance:
             pair_count = int(output_file.readline())
             pairs = []
             for _ in range(pair_count):
-                pairs.append([self.players[int(n) - 1].player for n in output_file.readline().split(' ')])
+                w, b = output_file.readline().split(' ')
+                if int(b) == 0:
+                    pairs.append([self.players[int(w) - 1].player, None])
+                else:
+                    pairs.append([self.players[int(w) - 1].player, self.players[int(b) - 1].player])
             return pairs

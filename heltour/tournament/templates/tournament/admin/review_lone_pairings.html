@@ -1,0 +1,61 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load staticfiles tournament_extras %}
+
+{% block content %}
+<form action="" method="post">
+	{% csrf_token %}
+	<table id="table-pairings">
+		<thead>
+			<tr>
+				<th>BD</th>
+				<th>#</th>
+				<th>WHITE</th>
+				<th>#</th>
+				<th>BLACK</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for pairing in pairings %}
+			<tr>
+				<td>{{ pairing.pairing_order }}</td>
+				<td>{{ pairing.white_rank|default_if_none:'' }}</td>
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+				<td>{{ pairing.black_rank|default_if_none:'' }}</td>
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+			</tr>
+			{% endfor %}
+			{% for bye in byes %}
+			<tr>
+				<td></td>
+				<td>{{ bye.player_rank|default_if_none:'' }}</td>
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ bye.player.lichess_username }}">
+							{{ bye.player.lichess_username }}{% if bye.player.rating %} ({{ bye.player.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+				<td></td>
+				<td>{{ bye.get_type_display }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	<div class="submit-row">
+		<input class="default" value="Publish" name="publish" type="submit">
+		<input value="Delete" name="delete" type="submit">
+	</div>
+</form>
+{% endblock %}
