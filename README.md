@@ -1,5 +1,5 @@
 # heltour
-Swiss system pairings generator for chess tournaments.
+League management software for the Lichess4545 league.
 
 
 # install
