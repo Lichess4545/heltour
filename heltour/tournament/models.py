@@ -378,6 +378,12 @@ class Team(_BaseModel):
     class Meta:
         unique_together = (('season', 'number'), ('season', 'name'))
 
+    def get_teamscore(self):
+        try:
+            return self.teamscore
+        except TeamScore.DoesNotExist:
+            return TeamScore.objects.create(team=self)
+
     def boards(self):
         team_members = self.teammember_set.all()
         return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
@@ -429,6 +435,9 @@ class TeamScore(_BaseModel):
 
     def game_points_display(self):
         return "%g" % (self.game_points / 2.0)
+
+    def pairing_sort_key(self):
+        return (self.match_points, self.game_points, self.team.seed_rating)
 
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()

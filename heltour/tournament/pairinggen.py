@@ -20,13 +20,13 @@ def _generate_team_pairings(round_, overwrite=False):
             else:
                 raise PairingsExistException()
 
-        # Sort by seed rating
-        teams = Team.objects.filter(season=round_.season, is_active=True)
+        # Sort by seed rating/score
+        teams = Team.objects.filter(season=round_.season, is_active=True).select_related('teamscore').nocache()
         for team in teams:
             if team.seed_rating is None:
                 team.seed_rating = team.average_rating()
                 team.save()
-        teams = sorted(teams, key=lambda team: team.seed_rating, reverse=True)
+        teams = sorted(teams, key=lambda team: team.get_teamscore().pairing_sort_key(), reverse=True)
 
         previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
 
@@ -64,13 +64,13 @@ def _generate_lone_pairings(round_, overwrite=False):
             else:
                 raise PairingsExistException()
 
-        # Sort by seed rating
-        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True).select_related('player').nocache()
+        # Sort by seed rating/score
+        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True).select_related('player', 'loneplayerscore').nocache()
         for sp in season_players:
             if sp.seed_rating is None:
                 sp.seed_rating = sp.player.rating
                 sp.save()
-        season_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
+        season_players = sorted(season_players, key=lambda sp: sp.get_loneplayerscore().pairing_sort_key(), reverse=True)
 
         # Exclude players with byes
         current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_)}
