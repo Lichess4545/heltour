@@ -401,7 +401,7 @@ class PlayerBye(_BaseModel):
             return 0
 
     def __unicode__(self):
-        return "%s - %s" % (self.round, self.player)
+        return "%s - %s" % (self.player, self.get_type_display())
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):

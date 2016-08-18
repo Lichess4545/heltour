@@ -77,16 +77,16 @@
 							{% endif %}
 						</td>
 						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
-						<th>
+						<td>
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 					        </a>
-				        </th>
-						<th>
+				        </td>
+						<td>
 							<a href="{% url 'admin:tournament_playerpairing_delete' pairing.pk %}?_popup=1" id="delete-pairing-{{ pairing.pk }}" class="popup-link" title="Delete selected pairing">
 					            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 					        </a>
-				        </th>{% endif %}
+				        </td>{% endif %}
 					</tr>
 					{% endfor %}
 					{% for bye in byes %}
@@ -104,16 +104,16 @@
 						<td>{% if bye.type == 'half-point-bye' %}BYE{% elif bye.type == 'full-point-bye' or bye.type == 'full-point-pairing-bye' %}FULL BYE{% elif bye.type == 'zero-point-bye' %}ZERO BYE{% endif %}</td>
 						<td></td>
 						<td></td>{% if can_edit %}
-						<th>
+						<td>
 							<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-bye-{{ bye.pk }}" class="popup-link" title="Change selected bye">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 					        </a>
-				        </th>
-						<th>
+				        </td>
+						<td>
 							<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-bye-{{ bye.pk }}" class="popup-link" title="Delete selected bye">
 					            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 					        </a>
-				        </th>{% endif %}
+				        </td>{% endif %}
 					</tr>
 					{% endfor %}
 					</tbody>

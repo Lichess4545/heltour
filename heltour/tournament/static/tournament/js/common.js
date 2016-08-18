@@ -1,3 +1,4 @@
+$ = $ || django.jQuery;
 $(function() {
 	$('.popup-link').click(function() {
 		var name = this.id;

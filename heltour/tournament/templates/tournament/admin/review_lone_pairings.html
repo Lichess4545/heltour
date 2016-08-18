@@ -1,6 +1,13 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 {% load staticfiles tournament_extras %}
 
+{% block extrahead %}{{ block.super }}
+<script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+<script type="text/javascript" src="{% static 'tournament/js/common.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 <form action="" method="post">
 	{% csrf_token %}
@@ -12,6 +19,8 @@
 				<th>WHITE</th>
 				<th>#</th>
 				<th>BLACK</th>
+				<th></th>
+				<th></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -34,6 +43,16 @@
 						</a>
 					</div>
 				</td>
+				<td>
+					<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+				<td>
+					<a href="{% url 'admin:tournament_playerpairing_delete' pairing.pk %}?_popup=1" id="delete-pairing-{{ pairing.pk }}" class="popup-link" title="Delete selected pairing">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+			        </a>
+		        </td>
 			</tr>
 			{% endfor %}
 			{% for bye in byes %}
@@ -49,10 +68,30 @@
 				</td>
 				<td></td>
 				<td>{{ bye.get_type_display }}</td>
+				<td>
+					<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-bye-{{ bye.pk }}" class="popup-link" title="Change selected bye">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+				<td>
+					<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-bye-{{ bye.pk }}" class="popup-link" title="Delete selected bye">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+			        </a>
+		        </td>
 			</tr>
 			{% endfor %}
 		</tbody>
 	</table>
+	<div>
+	<a href="{% url 'admin:tournament_loneplayerpairing_add' %}?_popup=1&round={{ round_.pk }}&pairing_order={{ next_pairing_order }}" id="add-pairing" class="create-link popup-link" title="Add pairing">
+        <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Pairing
+    </a>
+    </div>
+    <div>
+	<a href="{% url 'admin:tournament_playerbye_add' %}?_popup=1&round={{ round_.pk }}" id="add-bye" class="create-link popup-link" title="Add bye">
+        <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Bye
+    </a>
+    </div>
 	<div class="submit-row">
 		<input class="default" value="Publish" name="publish" type="submit">
 		<input value="Delete" name="delete" type="submit">

@@ -481,6 +481,9 @@ class RoundAdmin(VersionAdmin):
         else:
             pairings = round_.loneplayerpairing_set.order_by('pairing_order')
             byes = round_.playerbye_set.order_by('type', 'player_rank', 'player__lichess_username')
+            next_pairing_order = 0
+            for p in pairings:
+                next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
             context = {
                 'has_permission': True,
                 'opts': self.model._meta,
@@ -490,6 +493,8 @@ class RoundAdmin(VersionAdmin):
                 'form': form,
                 'pairings': pairings,
                 'byes': byes,
+                'round_': round_,
+                'next_pairing_order': next_pairing_order,
             }
             return render(request, 'tournament/admin/review_lone_pairings.html', context)
 
