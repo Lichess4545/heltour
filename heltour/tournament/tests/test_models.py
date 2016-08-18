@@ -189,6 +189,7 @@ class TeamPairingTestCase(TestCase):
         pp1.save()
         pp2.result = '1/2-1/2'
         pp2.save()
+        tp.refresh_from_db()
 
         self.assertEqual(1.5, tp.white_points)
         self.assertEqual(0.5, tp.black_points)
@@ -197,6 +198,7 @@ class TeamPairingTestCase(TestCase):
         pp1.save()
         pp2.result = '0-1'
         pp2.save()
+        tp.refresh_from_db()
 
         self.assertEqual(1.0, tp.white_points)
         self.assertEqual(1.0, tp.black_points)
