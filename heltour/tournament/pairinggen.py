@@ -92,13 +92,12 @@ def _generate_lone_pairings(round_, overwrite=False):
         # Save the lone pairings
         rank_dict = lone_player_pairing_rank_dict(round_.season)
         for lone_pairing in lone_pairings:
-            lone_pairing.white_rank = rank_dict.get(lone_pairing.white_id, None)
-            lone_pairing.black_rank = rank_dict.get(lone_pairing.black_id, None)
+            lone_pairing.refresh_ranks(rank_dict)
             lone_pairing.save()
 
         # Save pairing byes and update player ranks for all byes
         for bye in byes + list(PlayerBye.objects.filter(round=round_)):
-            bye.player_rank = rank_dict.get(bye.player_id, None)
+            bye.refresh_rank(rank_dict)
             bye.save()
 
 def delete_pairings(round_):

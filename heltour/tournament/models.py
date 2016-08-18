@@ -392,6 +392,16 @@ class PlayerBye(_BaseModel):
     class Meta:
         unique_together = ('round', 'player')
 
+    def __init__(self, *args, **kwargs):
+        super(PlayerBye, self).__init__(*args, **kwargs)
+        self.initial_round = self.round
+        self.initial_player = self.player
+
+    def refresh_rank(self, rank_dict=None):
+        if rank_dict == None:
+            rank_dict = lone_player_pairing_rank_dict(self.round.season)
+        self.player_rank = rank_dict.get(self.player_id, None)
+
     def score(self):
         if type == 'full-point-bye' or type == 'pairing-bye':
             return 1
@@ -402,6 +412,16 @@ class PlayerBye(_BaseModel):
 
     def __unicode__(self):
         return "%s - %s" % (self.player, self.get_type_display())
+
+    def save(self, *args, **kwargs):
+        round_changed = self.pk is None or self.round != self.initial_round
+        player_changed = self.pk is None or self.player != self.initial_player
+        if (round_changed or player_changed) and self.round.publish_pairings:
+            if not self.round.is_completed:
+                self.refresh_rank()
+            else:
+                self.player_rank = None
+        super(PlayerBye, self).save(*args, **kwargs)
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
@@ -646,7 +666,7 @@ class PlayerPairing(_BaseModel):
             if result_changed and lpp.round.is_completed:
                 lpp.round.season.calculate_scores()
             # If the players for a PlayerPairing in the current round are edited, then we can update the player ranks
-            if (white_changed or black_changed) and not lpp.round.is_completed:
+            if (white_changed or black_changed) and lpp.round.publish_pairings and not lpp.round.is_completed:
                 lpp.refresh_ranks()
                 lpp.save()
             # If the players for a PlayerPairing in a previous round are edited, then the player ranks will be out of
@@ -703,8 +723,9 @@ class LonePlayerPairing(PlayerPairing):
     white_rank = models.PositiveIntegerField(blank=True, null=True)
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
-    def refresh_ranks(self):
-        rank_dict = lone_player_pairing_rank_dict(self.round.season)
+    def refresh_ranks(self, rank_dict=None):
+        if rank_dict == None:
+            rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
 

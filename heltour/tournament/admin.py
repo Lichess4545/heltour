@@ -452,8 +452,17 @@ class RoundAdmin(VersionAdmin):
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
                 if 'publish' in form.data:
-                    round_.publish_pairings = True
-                    round_.save()
+                    with transaction.atomic():
+                        round_.publish_pairings = True
+                        round_.save()
+                        # Update ranks in case of manual edits
+                        rank_dict = models.lone_player_pairing_rank_dict(round_.season)
+                        for lpp in round_.loneplayerpairing_set.all().nocache():
+                            lpp.refresh_ranks(rank_dict)
+                            lpp.save()
+                        for bye in round_.playerbye_set.all():
+                            bye.refresh_rank(rank_dict)
+                            bye.save()
                     self.message_user(request, 'Pairings published.', messages.INFO)
                 elif 'delete' in form.data:
                     try:
