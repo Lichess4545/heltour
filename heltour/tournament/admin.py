@@ -796,6 +796,14 @@ class SeasonPlayerAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(models.LonePlayerScore)
+class LonePlayerScoreAdmin(VersionAdmin):
+    list_display = ('season_player', 'points', 'late_join_points')
+    search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
+    list_filter = ('season_player__season',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(models.PlayerAvailability)
 class PlayerAvailabilityAdmin(VersionAdmin):
     list_display = ('player', 'round', 'is_available')
