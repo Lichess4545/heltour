@@ -210,7 +210,8 @@ JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
 # Testing overrides
 import sys
-if 'test' in sys.argv:
+TESTING = 'test' in sys.argv
+if TESTING:
     CACHEOPS = {}
 
 # Host-based settings overrides.
