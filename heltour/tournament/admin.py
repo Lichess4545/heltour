@@ -504,16 +504,37 @@ class RoundAdmin(VersionAdmin):
                 player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
             duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
 
-            def pairing_has_error(pairing):
-                return request.user.is_staff and (pairing.white in duplicate_players or pairing.black in duplicate_players or \
-                                                  pairing.white == None or pairing.black == None)
+            active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=round_.season, is_active=True)}
 
-            def bye_has_error(bye):
-                return request.user.is_staff and bye.player in duplicate_players
+            def pairing_error(pairing):
+                if not request.user.is_staff:
+                    return None
+                if pairing.white == None or pairing.black == None:
+                    return 'Missing player'
+                if pairing.white in duplicate_players:
+                    return 'Duplicate player: %s' % pairing.white.lichess_username
+                if pairing.black in duplicate_players:
+                    return 'Duplicate player: %s' % pairing.black.lichess_username
+                if not round_.is_completed and pairing.white not in active_players:
+                    return 'Inactive player: %s' % pairing.white.lichess_username
+                if not round_.is_completed and pairing.black not in active_players:
+                    return 'Inactive player: %s' % pairing.black.lichess_username
+                return None
+
+            def bye_error(bye):
+                if bye.player.lichess_username == 'Semanka':
+                    print 'TEST', bye.player in active_players
+                if not request.user.is_staff:
+                    return None
+                if bye.player in duplicate_players:
+                    return 'Duplicate player: %s' % bye.player.lichess_username
+                if not round_.is_completed and bye.player not in active_players:
+                    return 'Inactive player: %s' % bye.player.lichess_username
+                return None
 
             # Add errors
-            pairings = [(p, pairing_has_error(p)) for p in pairings]
-            byes = [(b, bye_has_error(b)) for b in byes]
+            pairings = [(p, pairing_error(p)) for p in pairings]
+            byes = [(b, bye_error(b)) for b in byes]
 
             context = {
                 'has_permission': True,
