@@ -32,7 +32,7 @@ def find_pairing(request):
 
     rounds = _get_active_rounds(league_tag, season_tag)
     if len(rounds) == 0:
-        return JsonResponse({'updated': 0, 'error': 'no_data'})
+        return JsonResponse({'pairings': None, 'error': 'no_data'})
 
     pairings = []
     for r in rounds:
