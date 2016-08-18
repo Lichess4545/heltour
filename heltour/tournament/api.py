@@ -22,51 +22,68 @@ def api_token_required(view_func):
 @api_token_required
 def find_pairing(request):
     try:
+        league_tag = request.GET.get('league', None)
         season_tag = request.GET.get('season', None)
-        if season_tag is not None:
-            season_tag = int(season_tag)
         player = request.GET.get('player', None)
         white = request.GET.get('white', None)
         black = request.GET.get('black', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    try:
-        round_ = _get_latest_round(season_tag)
-    except IndexError:
-        return JsonResponse({'pairing': None, 'error': 'no_data'})
+    rounds = _get_active_rounds(league_tag, season_tag)
+    if len(rounds) == 0:
+        return JsonResponse({'updated': 0, 'error': 'no_data'})
 
-    pairings = _get_pairings(round_, player, white, black, True)
+    pairings = []
+    for r in rounds:
+        print r, pairings
+        pairings += list(_get_pairings(r, player, white, black))
 
     if len(pairings) == 0:
-        return JsonResponse({'pairing': None, 'error': 'not_found'})
-    if len(pairings) > 1:
-        return JsonResponse({'pairing': None, 'error': 'ambiguous'})
+        # Try alternate colors
+        for r in rounds:
+            pairings += list(_get_pairings(r, player, black, white))
 
-    pairing = pairings[0]
+    return JsonResponse({'pairings': [_export_pairing(p) for p in pairings]})
 
-    return JsonResponse({'pairing': {
-        'season_tag': pairing.team_pairing.round.season.tag,
-        'white_team': pairing.white_team().name,
-        'white_team_number': pairing.white_team().number,
-        'black_team': pairing.black_team().name,
-        'black_team_number': pairing.black_team().number,
-        'white': pairing.white.lichess_username,
-        'white_rating': pairing.white.rating,
-        'black': pairing.black.lichess_username,
-        'black_rating': pairing.black.rating,
-        'game_link': pairing.game_link,
-        'result': pairing.result,
-        'datetime': pairing.scheduled_time,
-    }})
+def _export_pairing(p):
+    if hasattr(p, 'teamplayerpairing'):
+        return {
+            'league': p.team_pairing.round.season.league.tag,
+            'season': p.team_pairing.round.season.tag,
+            'round': p.team_pairing.round.number,
+            'white_team': p.white_team().name,
+            'white_team_number': p.white_team().number,
+            'black_team': p.black_team().name,
+            'black_team_number': p.black_team().number,
+            'white': p.white.lichess_username,
+            'white_rating': p.white.rating,
+            'black': p.black.lichess_username,
+            'black_rating': p.black.rating,
+            'game_link': p.game_link,
+            'result': p.result,
+            'datetime': p.scheduled_time,
+        }
+    else:
+        return {
+            'league': p.round.season.league.tag,
+            'season': p.round.season.tag,
+            'round': p.round.number,
+            'white': p.white.lichess_username,
+            'white_rating': p.white.rating,
+            'black': p.black.lichess_username,
+            'black_rating': p.black.rating,
+            'game_link': p.game_link,
+            'result': p.result,
+            'datetime': p.scheduled_time,
+        }
 
 @csrf_exempt
 @api_token_required
 def update_pairing(request):
     try:
+        league_tag = request.POST.get('league', None)
         season_tag = request.POST.get('season', None)
-        if season_tag is not None:
-            season_tag = int(season_tag)
         white = request.POST.get('white', None)
         black = request.POST.get('black', None)
         game_link = request.POST.get('game_link', None)
@@ -74,12 +91,13 @@ def update_pairing(request):
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    try:
-        round_ = _get_latest_round(season_tag)
-    except IndexError:
+    rounds = _get_active_rounds(league_tag, season_tag)
+    if len(rounds) == 0:
         return JsonResponse({'updated': 0, 'error': 'no_data'})
 
-    pairings = _get_pairings(round_, None, white, black, False)
+    pairings = []
+    for r in rounds:
+        pairings += _get_pairings(r, None, white, black)
 
     if len(pairings) == 0:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
@@ -96,30 +114,29 @@ def update_pairing(request):
 
     return JsonResponse({'updated': 1})
 
-def _get_latest_round(season_tag):
-    if season_tag is None:
-        return Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')[0]
-    else:
-        return Round.objects.filter(season_tag=season_tag, publish_pairings=True, is_completed=False).order_by('-number')[0]
+def _get_active_rounds(league_tag, season_tag):
+    rounds = Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
+    if league_tag is not None:
+        rounds = rounds.filter(season__league__tag=league_tag)
+    if season_tag is not None:
+        rounds = rounds.filter(season__tag=season_tag)
+    return rounds
 
-def _get_pairings(round_, player=None, white=None, black=None, color_fallback=False):
-    pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache()
+def _get_pairings(round_, player=None, white=None, black=None):
+    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black)
+    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black)
+    return pairings
+
+def _filter_pairings(pairings, player=None, white=None, black=None):
     if player is not None:
         white_pairings = pairings.filter(white__lichess_username__iexact=player)
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
         pairings = white_pairings | black_pairings
-    pairings_snapshot = pairings
     if white is not None:
         pairings = pairings.filter(white__lichess_username__iexact=white)
     if black is not None:
         pairings = pairings.filter(black__lichess_username__iexact=black)
-    if color_fallback and len(pairings) == 0:
-        pairings = pairings_snapshot
-        if white is not None:
-            pairings = pairings.filter(black__lichess_username__iexact=white)
-        if black is not None:
-            pairings = pairings.filter(white__lichess_username__iexact=black)
-    return pairings
+    return list(pairings)
 
 @api_token_required
 def get_roster(request):
@@ -175,9 +192,8 @@ def get_roster(request):
 @api_token_required
 def assign_alternate(request):
     try:
+        league_tag = request.POST.get('league', None)
         season_tag = request.POST.get('season', None)
-        if season_tag is not None:
-            season_tag = int(season_tag)
         round_num = request.POST.get('round', None)
         if round_num is not None:
             round_num = int(round_num)
@@ -195,7 +211,7 @@ def assign_alternate(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_latest_round(season_tag)
+        latest_round = _get_active_rounds(league_tag, season_tag)[0]
         season = latest_round.season
         if round_num is None:
             round_ = latest_round
@@ -225,9 +241,8 @@ def assign_alternate(request):
 @api_token_required
 def set_availability(request):
     try:
+        league_tag = request.POST.get('league', None)
         season_tag = request.POST.get('season', None)
-        if season_tag is not None:
-            season_tag = int(season_tag)
         round_num = request.POST.get('round', None)
         if round_num is not None:
             round_num = int(round_num)
@@ -243,7 +258,7 @@ def set_availability(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_latest_round(season_tag)
+        latest_round = _get_active_rounds(league_tag, season_tag)[0]
         season = latest_round.season
         if round_num is None:
             round_ = latest_round
