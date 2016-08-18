@@ -20,6 +20,7 @@ def _getnestedattr(obj, k):
         obj = getattr(obj, k2)
     return obj
 
+# Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
     def from_db_value(self, value, expression, connection, context):
         return value / 2.0
