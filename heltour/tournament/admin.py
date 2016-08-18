@@ -500,6 +500,7 @@ class PlayerLateRegistrationAdmin(VersionAdmin):
     list_display = ('__unicode__', 'retroactive_byes', 'late_join_points')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
+    raw_id_fields = ('round', 'player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -508,6 +509,7 @@ class PlayerWithdrawlAdmin(VersionAdmin):
     list_display = ('__unicode__',)
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
+    raw_id_fields = ('round', 'player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -516,6 +518,7 @@ class PlayerByeAdmin(VersionAdmin):
     list_display = ('__unicode__', 'type')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
+    raw_id_fields = ('round', 'player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -543,6 +546,7 @@ class TeamMemberInline(admin.TabularInline):
     model = models.TeamMember
     extra = 0
     ordering = ('board_number',)
+    raw_id_fields = ('player',)
 
 #-------------------------------------------------------------------------------
 @admin.register(models.Team)
@@ -568,6 +572,7 @@ class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
+    raw_id_fields = ('player',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -576,6 +581,7 @@ class TeamScoreAdmin(VersionAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
     list_filter = ('team__season',)
+    raw_id_fields = ('team',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -584,6 +590,7 @@ class AlternateAdmin(VersionAdmin):
     list_display = ('__unicode__', 'board_number')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
+    raw_id_fields = ('season_player',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -592,12 +599,13 @@ class AlternateAssignmentAdmin(VersionAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
+    raw_id_fields = ('round', 'team', 'player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(models.AlternateBucket)
 class AlternateBucketAdmin(VersionAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__unicode__', 'season')
     search_fields = ()
     list_filter = ('season', 'board_number')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
@@ -608,6 +616,7 @@ class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
+    raw_id_fields = ('white_team', 'black_team', 'round')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -615,6 +624,7 @@ class TeamPairingAdmin(VersionAdmin):
 class PlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
+    raw_id_fields = ('white', 'black')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -624,6 +634,7 @@ class TeamPlayerPairingAdmin(VersionAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username',
                      'team_pairing__white_team__name', 'team_pairing__black_team__name')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
+    raw_id_fields = ('white', 'black', 'team_pairing')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -632,6 +643,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
     list_filter = ('round__season', 'round__number')
+    raw_id_fields = ('white', 'black', 'round')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -793,6 +805,7 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season',)
+    raw_id_fields = ('player',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -801,6 +814,7 @@ class LonePlayerScoreAdmin(VersionAdmin):
     list_display = ('season_player', 'points', 'late_join_points')
     search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
     list_filter = ('season_player__season',)
+    raw_id_fields = ('season_player',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -809,6 +823,7 @@ class PlayerAvailabilityAdmin(VersionAdmin):
     list_display = ('player', 'round', 'is_available')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
+    raw_id_fields = ('player', 'round')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -823,6 +838,7 @@ class SeasonPrizeAdmin(VersionAdmin):
 class SeasonPrizeWinnerAdmin(VersionAdmin):
     list_display = ('season_prize', 'player',)
     search_fields = ('season_prize__name', 'player__lichess_username')
+    raw_id_fields = ('season_prize', 'player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
