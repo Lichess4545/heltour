@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.crypto import get_random_string
 from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
@@ -324,6 +324,28 @@ class PlayerLateRegistration(_BaseModel):
     class Meta:
         unique_together = ('round', 'player')
 
+    def perform_registration(self):
+        with transaction.atomic():
+            # Set the SeasonPlayer as active
+            sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
+            sp.is_active = True
+            sp.save()
+
+            # Create any retroactive byes (but don't overwrite existing byes/pairings)
+            rounds = self.round.season.round_set.all()
+            for i in range(self.retroactive_byes):
+                round_number = self.round.number - i - 1
+                round_ = find(rounds, number=round_number)
+                pairings = round_.loneplayerpairing_set.filter(white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
+                byes = round_.playerbye_set.filter(player=self.player)
+                if pairings.count() == 0 and byes.count() == 0:
+                    PlayerBye.objects.create(round=round_, player=self.player, type='half-point-bye')
+
+            # Set the late-join points
+            score = sp.get_loneplayerscore()
+            score.late_join_points = self.late_join_points
+            score.save()
+
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
 
@@ -334,6 +356,13 @@ class PlayerWithdrawl(_BaseModel):
 
     class Meta:
         unique_together = ('round', 'player')
+
+    def perform_withdrawl(self):
+        with transaction.atomic():
+            # Set the SeasonPlayer as inactive
+            sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
+            sp.is_active = False
+            sp.save()
 
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)

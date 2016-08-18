@@ -64,6 +64,12 @@ def _generate_lone_pairings(round_, overwrite=False):
             else:
                 raise PairingsExistException()
 
+        # Perform any registrations and withdrawls
+        for reg in round_.playerlateregistration_set.all():
+            reg.perform_registration()
+        for wd in round_.playerwithdrawl_set.all():
+            wd.perform_withdrawl()
+
         # Sort by seed rating/score
         season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True).select_related('player', 'loneplayerscore').nocache()
         for sp in season_players:
