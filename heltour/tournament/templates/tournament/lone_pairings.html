@@ -16,7 +16,7 @@
 				{% if round_number_list %}
 				<div class="dropdown inline round-switcher">
 				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-				    Round {{ round_number }}
+				    Round {{ round_.number }}
 				    <span class="caret"></span>
 				  </button>
 				  <ul class="dropdown-menu">
@@ -43,6 +43,7 @@
 						<th class="text-center hidden-xs">RESULT</th>
 						<th class="text-center visible-xs">RS</th>
 						<th>TIME</th>{% if can_edit %}
+						<th></th>
 						<th></th>{% endif %}
 					</tr>
 					</thead>
@@ -80,6 +81,11 @@
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 					        </a>
+				        </th>
+						<th>
+							<a href="{% url 'admin:tournament_playerpairing_delete' pairing.pk %}?_popup=1" id="delete-pairing-{{ pairing.pk }}" class="popup-link" title="Delete selected pairing">
+					            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+					        </a>
 				        </th>{% endif %}
 					</tr>
 					{% endfor %}
@@ -102,11 +108,24 @@
 							<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-bye-{{ bye.pk }}" class="popup-link" title="Change selected bye">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 					        </a>
+				        </th>
+						<th>
+							<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-bye-{{ bye.pk }}" class="popup-link" title="Delete selected bye">
+					            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+					        </a>
 				        </th>{% endif %}
 					</tr>
 					{% endfor %}
 					</tbody>
 				</table>
+				{% if can_edit %}
+				<a href="{% url 'admin:tournament_loneplayerpairing_add' %}?_popup=1&round={{ round_.pk }}&pairing_order={{ next_pairing_order }}" id="add-pairing" class="btn btn-default btn-create popup-link" title="Add pairing">
+		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Pairing
+		        </a>
+				<a href="{% url 'admin:tournament_playerbye_add' %}?_popup=1&round={{ round_.pk }}" id="add-bye" class="btn btn-default btn-create popup-link" title="Add bye">
+		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Bye
+		        </a>
+				{% endif %}
 				{% else %}
 				<p>No pairings available.</p>
 				{% endif %}

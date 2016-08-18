@@ -15,9 +15,11 @@ $(function() {
 		return false;
 	})
 	
-	function dismissChangeRelatedObjectPopup(win, objId) {
+	function dismissRelatedObjectPopup(win, objId) {
         win.close();
         location.reload();
     }
-	window.dismissChangeRelatedObjectPopup = dismissChangeRelatedObjectPopup;
+	window.dismissAddRelatedObjectPopup = dismissRelatedObjectPopup;
+	window.dismissChangeRelatedObjectPopup = dismissRelatedObjectPopup;
+	window.dismissDeleteRelatedObjectPopup = dismissRelatedObjectPopup;
 });

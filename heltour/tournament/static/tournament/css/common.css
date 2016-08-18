@@ -32,6 +32,10 @@ body {
 	min-width: 80px;
 }
 
+.btn-create {
+	min-width: 0px;
+}
+
 .input-mini {
   width: 60px;
 }

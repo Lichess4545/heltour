@@ -337,26 +337,25 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
             round_number = round_number_list[0]
         except IndexError:
             pass
-    pairings = enumerate(LonePlayerPairing.objects.filter(round__number=round_number, round__season=season) \
-                                       .order_by('pairing_order') \
-                                       .select_related('white', 'black') \
-                                       .nocache(),
-                         1)
-    byes = PlayerBye.objects.filter(round__number=round_number, round__season=season) \
-                            .order_by('type', 'player_rank', 'player__lichess_username') \
-                            .select_related('player') \
-                            .nocache()
+    round_ = Round.objects.filter(number=round_number, season=season).first()
+    pairings = list(enumerate(LonePlayerPairing.objects.filter(round=round_).order_by('pairing_order').select_related('white', 'black').nocache(), 1))
+    byes = PlayerBye.objects.filter(round=round_).order_by('type', 'player_rank', 'player__lichess_username').select_related('player').nocache()
+
+    next_pairing_order = 0
+    for _, p in pairings:
+        next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
 
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
         'season_tag': season_tag,
         'season': season,
-        'round_number': round_number,
+        'round_': round_,
         'round_number_list': round_number_list,
         'pairings': pairings,
         'byes': byes,
         'specified_round': specified_round,
+        'next_pairing_order': next_pairing_order,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/lone_pairings.html', context)
