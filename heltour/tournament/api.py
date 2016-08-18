@@ -4,6 +4,7 @@ import re
 import json
 from models import *
 from django.utils.html import strip_tags
+from django.utils.dateparse import parse_datetime
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
@@ -88,6 +89,9 @@ def update_pairing(request):
         black = request.POST.get('black', None)
         game_link = request.POST.get('game_link', None)
         result = request.POST.get('result', None)
+        datetime = request.POST.get('datetime', None)
+        if datetime is not None:
+            datetime = parse_datetime(datetime)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
@@ -110,6 +114,8 @@ def update_pairing(request):
         pairing.game_link = game_link
     if result is not None:
         pairing.result = result
+    if datetime is not None:
+        pairing.scheduled_time = datetime
     pairing.save()
 
     return JsonResponse({'updated': 1})
