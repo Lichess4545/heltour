@@ -20,6 +20,13 @@ def _getnestedattr(obj, k):
         obj = getattr(obj, k2)
     return obj
 
+class ScoreField(models.PositiveIntegerField):
+    def from_db_value(self, value, expression, connection, context):
+        return value / 2.0
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        return int(value * 2)
+
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
@@ -179,11 +186,11 @@ class Season(_BaseModel):
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(byes, player_id=sp.player_id)
                 if white_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, int((white_pairing.white_score() or 0) * 2), white_pairing.game_played())
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
                 elif black_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, int((black_pairing.black_score() or 0) * 2), black_pairing.game_played())
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, black_pairing.black_score() or 0, black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, int((bye.score()) * 2), False)
+                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, bye.score(), False)
                 else:
                     self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
             last_round = round_
@@ -457,13 +464,13 @@ class TeamScore(_BaseModel):
     team = models.OneToOneField(Team)
     match_count = models.PositiveIntegerField(default=0)
     match_points = models.PositiveIntegerField(default=0)
-    game_points = models.PositiveIntegerField(default=0)
+    game_points = ScoreField(default=0)
 
     def match_points_display(self):
         return str(self.match_points)
 
     def game_points_display(self):
-        return "%g" % (self.game_points / 2.0)
+        return "%g" % self.game_points
 
     def pairing_sort_key(self):
         return (self.match_points, self.game_points, self.team.seed_rating)
@@ -479,9 +486,9 @@ class TeamScore(_BaseModel):
             white_pairing = find(white_pairings, round_id=round_.id)
             black_pairing = find(black_pairings, round_id=round_.id)
             if white_pairing is not None:
-                points = white_pairing.white_points / 2.0
+                points = white_pairing.white_points
             if black_pairing is not None:
-                points = black_pairing.black_points / 2.0
+                points = black_pairing.black_points
             yield points
 
     def cross_scores(self):
@@ -494,10 +501,10 @@ class TeamScore(_BaseModel):
             points = None
             id = None
             if white_pairing is not None and white_pairing.round.is_completed:
-                points = white_pairing.white_points / 2.0
+                points = white_pairing.white_points
                 id = white_pairing.pk
             if black_pairing is not None and black_pairing.round.is_completed:
-                points = black_pairing.black_points / 2.0
+                points = black_pairing.black_points
                 id = black_pairing.pk
             yield other_team.number, points, id
 
@@ -518,8 +525,8 @@ class TeamPairing(_BaseModel):
     round = models.ForeignKey(Round)
     pairing_order = models.PositiveIntegerField()
 
-    white_points = models.PositiveIntegerField(default=0)
-    black_points = models.PositiveIntegerField(default=0)
+    white_points = ScoreField(default=0)
+    black_points = ScoreField(default=0)
 
     class Meta:
         unique_together = ('white_team', 'black_team', 'round')
@@ -540,17 +547,17 @@ class TeamPairing(_BaseModel):
         self.black_points = 0
         for pairing in self.teamplayerpairing_set.all().nocache():
             if pairing.board_number % 2 == 1:
-                self.white_points += (pairing.white_score() or 0) * 2
-                self.black_points += (pairing.black_score() or 0) * 2
+                self.white_points += pairing.white_score() or 0
+                self.black_points += pairing.black_score() or 0
             else:
-                self.white_points += (pairing.black_score() or 0) * 2
-                self.black_points += (pairing.white_score() or 0) * 2
+                self.white_points += pairing.black_score() or 0
+                self.black_points += pairing.white_score() or 0
 
     def white_points_display(self):
-        return "%g" % (self.white_points / 2.0)
+        return "%g" % self.white_points
 
     def black_points_display(self):
-        return "%g" % (self.black_points / 2.0)
+        return "%g" % self.black_points
 
     def season_name(self):
         return "%s" % self.round.season.name
@@ -781,12 +788,12 @@ class SeasonPlayer(_BaseModel):
 #-------------------------------------------------------------------------------
 class LonePlayerScore(_BaseModel):
     season_player = models.OneToOneField(SeasonPlayer)
-    points = models.PositiveIntegerField(default=0)
-    late_join_points = models.PositiveIntegerField(default=0)
-    tiebreak1 = models.PositiveIntegerField(default=0)
-    tiebreak2 = models.PositiveIntegerField(default=0)
-    tiebreak3 = models.PositiveIntegerField(default=0)
-    tiebreak4 = models.PositiveIntegerField(default=0)
+    points = ScoreField(default=0)
+    late_join_points = ScoreField(default=0)
+    tiebreak1 = ScoreField(default=0)
+    tiebreak2 = ScoreField(default=0)
+    tiebreak3 = ScoreField(default=0)
+    tiebreak4 = ScoreField(default=0)
 
     def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current=False):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
@@ -812,25 +819,25 @@ class LonePlayerScore(_BaseModel):
                 if white_pairing.game_played() or score is None:
                     # Normal result
                     color = 'W'
-                    result_type = 'W' if score == 1.0 else 'D' if score == 0.5 else 'L' if score == 0.0 else ''
+                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else ''
                 else:
                     # Special result
-                    result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
+                    result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
             elif black_pairing is not None and black_pairing.white is not None:
                 opponent = black_pairing.white
                 score = black_pairing.black_score()
                 if black_pairing.game_played() or score is None:
                     # Normal result
                     color = 'B'
-                    result_type = 'W' if score == 1.0 else 'D' if score == 0.5 else 'L' if score == 0.0 else ''
+                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else ''
                 else:
                     # Special result
-                    result_type = 'X' if score == 1.0 else 'Z' if score == 0.5 else 'F' if score == 0.0 else ''
+                    result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
             elif bye is not None:
                 score = bye.score()
                 result_type = 'H'
             else:
-                score = 0.0
+                score = 0
                 result_type = 'U'
 
             if score is not None:
@@ -839,28 +846,28 @@ class LonePlayerScore(_BaseModel):
             yield (result_type, player_number_dict.get(opponent, 0), color, cumul_score)
 
     def pairing_points(self):
-        return (self.points + self.late_join_points) / 2.0
+        return self.points + self.late_join_points
 
     def pairing_points_display(self):
-        return "%.1f" % ((self.points + self.late_join_points) / 2.0)
+        return "%.1f" % (self.points + self.late_join_points)
 
     def final_standings_points_display(self):
-        return "%.1f" % (self.points / 2.0)
+        return "%.1f" % self.points
 
     def late_join_points_display(self):
-        return "%.1f" % (self.late_join_points / 2.0)
+        return "%.1f" % self.late_join_points
 
     def tiebreak1_display(self):
-        return "%g" % (self.tiebreak1 / 2.0)
+        return "%g" % self.tiebreak1
 
     def tiebreak2_display(self):
-        return "%g" % (self.tiebreak2 / 2.0)
+        return "%g" % self.tiebreak2
 
     def tiebreak3_display(self):
-        return "%g" % (self.tiebreak3 / 2.0)
+        return "%g" % self.tiebreak3
 
     def tiebreak4_display(self):
-        return "%g" % (self.tiebreak4 / 2.0)
+        return "%g" % self.tiebreak4
 
     def pairing_sort_key(self):
         return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player.rating)

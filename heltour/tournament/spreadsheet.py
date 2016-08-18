@@ -268,12 +268,12 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
                                                             defaults={'lichess_username': name, 'rating': rating})
             season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': rating})
-            points = int(float(sheet_standings[row][points_col]) * 2)
-            ljp = int(float(sheet_standings[row][ljp_col]) * 2) if ljp_col is not None else 0
-            tb1 = int(float(sheet_standings[row][tb1_col]) * 2)
-            tb2 = int(float(sheet_standings[row][tb2_col]) * 2)
-            tb3 = int(float(sheet_standings[row][tb3_col]) * 2)
-            tb4 = int(float(sheet_standings[row][tb4_col]) * 2)
+            points = float(sheet_standings[row][points_col])
+            ljp = float(sheet_standings[row][ljp_col]) if ljp_col is not None else 0
+            tb1 = float(sheet_standings[row][tb1_col])
+            tb2 = float(sheet_standings[row][tb2_col])
+            tb3 = float(sheet_standings[row][tb3_col])
+            tb4 = float(sheet_standings[row][tb4_col])
 
             LonePlayerScore.objects.create(season_player=season_player, points=points, late_join_points=ljp, tiebreak1=tb1, tiebreak2=tb2, tiebreak3=tb3, tiebreak4=tb4)
             row += 1

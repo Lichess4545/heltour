@@ -160,7 +160,7 @@ class DutchLonePairingSystem:
         players = [
             JavafoPlayer(
                          sp.player, sp.get_loneplayerscore().pairing_points(),
-                         list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points / 2.0))
+                         list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points))
             ) for sp in season_players
         ]
         javafo = JavafoInstance(round_.season.rounds, players)

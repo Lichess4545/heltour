@@ -81,15 +81,15 @@ class SeasonTestCase(TestCase):
             scores = list(TeamScore.objects.order_by('team__number'))
             return [(s.match_count, s.match_points, s.game_points) for s in scores]
 
-        self.assertItemsEqual([(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)], score_matrix())
+        self.assertItemsEqual([(0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0)], score_matrix())
 
-        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=4, black_points=2)
-        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=3, black_points=3)
-        self.assertItemsEqual([(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)], score_matrix())
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=2.0, black_points=1.0)
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=1.5, black_points=1.5)
+        self.assertItemsEqual([(0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0)], score_matrix())
 
         rounds[0].is_completed = True
         rounds[0].save()
-        self.assertItemsEqual([(1, 2, 4), (1, 0, 2), (1, 1, 3), (1, 1, 3)], score_matrix())
+        self.assertItemsEqual([(1, 2, 2.0), (1, 0, 1.0), (1, 1, 1.5), (1, 1, 1.5)], score_matrix())
 
 class TeamTestCase(TestCase):
     def setUp(self):
@@ -133,12 +133,12 @@ class TeamScoreTestCase(TestCase):
         round1 = Round.objects.get(season__tag='teamseason', number=1)
         round1.is_completed = True
         round1.save()
-        TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1, pairing_order=0, white_points=3)
+        TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1, pairing_order=0, white_points=1.5)
 
         round2 = Round.objects.get(season__tag='teamseason', number=2)
         round2.is_completed = True
         round2.save()
-        TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2, pairing_order=0, black_points=2)
+        TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2, pairing_order=0, black_points=1.0)
 
     def test_teamscore_round_scores(self):
         teamscore = TeamScore.objects.get(team__number=1)
@@ -163,7 +163,7 @@ class TeamScoreTestCase(TestCase):
         self.assertGreater(ts1, ts2)
 
         ts2.match_points = 2
-        ts2.game_points = 1
+        ts2.game_points = 1.0
         self.assertLess(ts1, ts2)
 
 class TeamPairingTestCase(TestCase):
@@ -180,24 +180,24 @@ class TeamPairingTestCase(TestCase):
         pp2 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=2, white=team2.teammember_set.all()[1].player, black=team1.teammember_set.all()[1].player)
 
         tp.refresh_points()
-        self.assertEqual(0, tp.white_points)
-        self.assertEqual(0, tp.black_points)
+        self.assertEqual(0.0, tp.white_points)
+        self.assertEqual(0.0, tp.black_points)
 
         pp1.result = '1-0'
         pp1.save()
         pp2.result = '1/2-1/2'
         pp2.save()
 
-        self.assertEqual(3, tp.white_points)
-        self.assertEqual(1, tp.black_points)
+        self.assertEqual(1.5, tp.white_points)
+        self.assertEqual(0.5, tp.black_points)
 
         pp1.result = '0-1'
         pp1.save()
         pp2.result = '0-1'
         pp2.save()
 
-        self.assertEqual(2, tp.white_points)
-        self.assertEqual(2, tp.black_points)
+        self.assertEqual(1.0, tp.white_points)
+        self.assertEqual(1.0, tp.black_points)
 
 class PlayerPairingTestCase(TestCase):
     def setUp(self):
@@ -213,16 +213,16 @@ class PlayerPairingTestCase(TestCase):
         self.assertEqual(None, pp.black_score())
 
         pp.result = '1-0'
-        self.assertEqual(1, pp.white_score())
-        self.assertEqual(0, pp.black_score())
+        self.assertEqual(1.0, pp.white_score())
+        self.assertEqual(0.0, pp.black_score())
 
         pp.result = '1/2-1/2'
         self.assertEqual(0.5, pp.white_score())
         self.assertEqual(0.5, pp.black_score())
 
         pp.result = '0-1'
-        self.assertEqual(0, pp.white_score())
-        self.assertEqual(1, pp.black_score())
+        self.assertEqual(0.0, pp.white_score())
+        self.assertEqual(1.0, pp.black_score())
 
 class RegistrationTestCase(TestCase):
     def setUp(self):

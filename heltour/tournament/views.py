@@ -160,7 +160,7 @@ def team_season_landing(request, league_tag=None, season_tag=None):
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
-    tie_score = season.boards
+    tie_score = season.boards / 2.0
 
     context = {
         'league_tag': league_tag,
@@ -624,7 +624,7 @@ def result(request, pairing_id, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     team_pairing = get_object_or_404(TeamPairing, round__season=season, pk=pairing_id)
     pairings = team_pairing.teamplayerpairing_set.order_by('board_number').nocache()
-    tie_score = season.boards
+    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
