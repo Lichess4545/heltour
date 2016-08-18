@@ -135,6 +135,10 @@ div.inline {
 	background-color: #c9daf8;
 }
 
+.row-error, .table > tbody > tr.row-error {
+	background-color: #fffcab;
+}
+
 .document-content {
 	padding: 5px;
 }

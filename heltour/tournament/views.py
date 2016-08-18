@@ -345,6 +345,26 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
     for _, p in pairings:
         next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
 
+    # Find duplicate players
+    player_refcounts = {}
+    for _, p in pairings:
+        player_refcounts[p.white] = player_refcounts.get(p.white, 0) + 1
+        player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
+    for b in byes:
+        player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
+    duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
+
+    def pairing_has_error(pairing):
+        return request.user.is_staff and (pairing.white in duplicate_players or pairing.black in duplicate_players or \
+                                          pairing.white == None or pairing.black == None)
+
+    def bye_has_error(bye):
+        return request.user.is_staff and bye.player in duplicate_players
+
+    # Add errors
+    pairings = [(n, p, pairing_has_error(p)) for n, p in pairings]
+    byes = [(b, bye_has_error(b)) for b in byes]
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -356,6 +376,7 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
         'byes': byes,
         'specified_round': specified_round,
         'next_pairing_order': next_pairing_order,
+        'duplicate_players': duplicate_players,
         'can_edit': request.user.has_perm('tournament.change_pairing')
     }
     return render(request, 'tournament/lone_pairings.html', context)

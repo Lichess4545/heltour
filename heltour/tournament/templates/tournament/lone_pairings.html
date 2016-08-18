@@ -48,8 +48,8 @@
 					</tr>
 					</thead>
 					<tbody>
-					{% for board_number, pairing in pairings %}
-					<tr>
+					{% for board_number, pairing, has_error in pairings %}
+					<tr{% if has_error %} class="row-error"{% endif %}>
 						<td class="text-center hidden-xs">{{ board_number }}</td>
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
@@ -89,8 +89,8 @@
 				        </td>{% endif %}
 					</tr>
 					{% endfor %}
-					{% for bye in byes %}
-					<tr>
+					{% for bye, has_error in byes %}
+					<tr{% if has_error %} class="row-error"{% endif %}>
 						<td class="hidden-xs"></td>
 						<td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
 						<td>
