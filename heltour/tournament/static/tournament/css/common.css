@@ -416,26 +416,26 @@ div.inline {
 	width: 30px;
 }
 
-#table-lone-standings .player-gold {
+.player-gold {
 	background-color: #ffd700;
 }
 
-#table-lone-standings .player-silver {
+.player-silver {
 	background-color: #c0c0c0;
 }
 
-#table-lone-standings .player-bronze {
+.player-bronze {
 	background-color: #cd7f32;
 }
 
-#table-lone-standings .player-blue {
+.player-blue {
 	background-color: #7bbcf2;
 }
 
-#table-lone-standings .player-gold a,
-#table-lone-standings .player-silver a,
-#table-lone-standings .player-bronze a,
-#table-lone-standings .player-blue a {
+.player-gold a,
+.player-silver a,
+.player-bronze a,
+.player-blue a {
 	color: black;
 }
 

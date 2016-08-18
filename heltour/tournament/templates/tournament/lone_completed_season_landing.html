@@ -116,7 +116,7 @@
 							{% with player_score.season_player.player as player %}
 							<tr>
 								<td class="text-center rank-value">{{ number }}</td>
-								<td class="{% if player in gold_players %}player-gold{% elif player in silver_players %}player-silver{% elif player in bronze_players %}player-bronze{% elif player in blue_players %}player-blue{% endif %}">
+								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
 									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
 										{{ player.lichess_username }}
 									</a>

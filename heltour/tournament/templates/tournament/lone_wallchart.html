@@ -32,7 +32,7 @@
 							{% for number, player_score, round_scores in player_scores %}
 							<tr>
 								<td class="text-center">{{ number }}</td>
-								<td>
+								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
 									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
 										{{ player_score.season_player.player.lichess_username }}
 									</a>

@@ -25,6 +25,13 @@ def resultclass(score, opp_score):
         print score, opp_score
         return 'cell-tie'
 
+@register.simple_tag
+def highlightclass(highlights, player):
+    for name, players in highlights:
+        if player in players:
+            return 'player-%s' % name
+    return ''
+
 @register.filter
 def format_result(result):
     if result is None:

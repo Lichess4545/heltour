@@ -250,10 +250,8 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
     else:
         u1600_player = None
 
-    gold_players = {first_player.season_player.player} if first_player is not None else {}
-    silver_players = {second_player.season_player.player} if second_player is not None else {}
-    bronze_players = {third_player.season_player.player} if third_player is not None else {}
-    blue_players = {u1600_player.season_player.player} if u1600_player is not None else {}
+    prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=season)
+    player_highlights = _get_player_highlights(prize_winners)
 
     context = {
         'league_tag': league_tag,
@@ -268,10 +266,7 @@ def lone_completed_season_landing(request, league_tag=None, season_tag=None):
         'second_player': second_player,
         'third_player': third_player,
         'u1600_player': u1600_player,
-        'gold_players': gold_players,
-        'silver_players': silver_players,
-        'bronze_players': bronze_players,
-        'blue_players': blue_players,
+        'player_highlights': player_highlights,
     }
     return render(request, 'tournament/lone_completed_season_landing.html', context)
 
@@ -552,6 +547,12 @@ def lone_standings(request, league_tag=None, season_tag=None, section=None):
     section_dict = {k: (k, v) for k, v in player_sections}
     current_section = section_dict.get(section, None)
 
+    if season.is_completed:
+        prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=season)
+    else:
+        prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season__league=season.league)
+    player_highlights = _get_player_highlights(prize_winners)
+
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -560,9 +561,18 @@ def lone_standings(request, league_tag=None, season_tag=None, section=None):
         'round_numbers': round_numbers,
         'player_scores': player_scores,
         'player_sections': player_sections,
-        'current_section': current_section
+        'current_section': current_section,
+        'player_highlights': player_highlights,
     }
     return render(request, 'tournament/lone_standings.html', context)
+
+def _get_player_highlights(prize_winners):
+    return [
+        ('gold', {pw.player for pw in prize_winners.filter(season_prize__rank=1, season_prize__max_rating=None)}),
+        ('silver', {pw.player for pw in prize_winners.filter(season_prize__rank=2, season_prize__max_rating=None)}),
+        ('bronze', {pw.player for pw in prize_winners.filter(season_prize__rank=3, season_prize__max_rating=None)}),
+        ('blue', {pw.player for pw in prize_winners.filter(season_prize__rank=1).exclude(season_prize__max_rating=None)})
+    ]
 
 @cached_as(LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer, Player)
 def _lone_player_scores(season, final=False, sort_by_seed=False, include_current=False):
@@ -622,6 +632,12 @@ def wallchart(request, league_tag=None, season_tag=None):
     round_numbers = list(range(1, season.rounds + 1))
     player_scores = _lone_player_scores(season, sort_by_seed=True, include_current=True)
 
+    if season.is_completed:
+        prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=season)
+    else:
+        prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season__league=season.league)
+    player_highlights = _get_player_highlights(prize_winners)
+
     context = {
         'league_tag': league_tag,
         'league': league,
@@ -629,6 +645,7 @@ def wallchart(request, league_tag=None, season_tag=None):
         'season': season,
         'round_numbers': round_numbers,
         'player_scores': player_scores,
+        'player_highlights': player_highlights,
     }
     return render(request, 'tournament/lone_wallchart.html', context)
 
