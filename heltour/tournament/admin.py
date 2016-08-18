@@ -479,7 +479,7 @@ class RoundAdmin(VersionAdmin):
             }
             return render(request, 'tournament/admin/review_team_pairings.html', context)
         else:
-            pairings = round_.loneplayerpairing_set.order_by('pairing_order')
+            pairings = round_.loneplayerpairing_set.order_by('pairing_order').nocache()
             byes = round_.playerbye_set.order_by('type', 'player_rank', 'player__lichess_username')
             next_pairing_order = 0
             for p in pairings:
