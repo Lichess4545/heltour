@@ -120,8 +120,8 @@
 								<td>{{ team_score.team.name }}</td>
 								<td class="text-center">{{ team_score.match_points_display }}</td>
 								<td class="text-center">{{ team_score.game_points_display }}</td>
-								{% for round_score in team_score.round_scores %}
-								<td class="text-center {% resultclass tie_score round_score %}">{{ round_score|floatformat }}</td>
+								{% for score, opp_score in team_score.round_scores %}
+								<td class="text-center {% resultclass score opp_score %}">{{ score|floatformat }}</td>
 								{% endfor %}
 							</tr>
 							{% endfor %}

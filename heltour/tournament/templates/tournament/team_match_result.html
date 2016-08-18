@@ -22,8 +22,8 @@
 					<tbody>
 						<tr>
 							<td>{{ team_pairing.white_team_name }}</td>
-							<td class="{% resultclass tie_score team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_points_display }}</td>
-							<td class="{% resultclass tie_score team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_points_display }}</td>
+							<td class="{% resultclass team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_points_display }}</td>
+							<td class="{% resultclass team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_points_display }}</td>
 							<td>{{ team_pairing.black_team_name }}</td>
 						</tr>
 					</tbody>
@@ -38,10 +38,10 @@
 						{% for pairing in pairings %}
 						<tr>
 							<td><a href="http://lichess.org/@/{{ pairing.white_team_player.lichess_username }}">{{ pairing.white_team_player }}</a></td>
-							<td class="cell-score {% resultclass 0.5 pairing.white_team_score pairing.black_team_score %}">
+							<td class="cell-score {% resultclass pairing.white_team_score pairing.black_team_score %}">
 								{% if pairing.white_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.white_team_score }}</a>{% endif %}
 							</td>
-							<td class="cell-score {% resultclass 0.5 pairing.black_team_score pairing.white_team_score %}">
+							<td class="cell-score {% resultclass pairing.black_team_score pairing.white_team_score %}">
 								{% if pairing.black_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.black_team_score }}</a>{% endif %}
 							</td>
 							<td><a href="http://lichess.org/@/{{ pairing.black_team_player.lichess_username }}">{{ pairing.black_team_player }}</a></td>

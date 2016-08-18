@@ -14,17 +14,16 @@ def leagueurl(name, league_tag=None, season_tag=None, *args, **kwargs):
     return reverse(name, args=args, kwargs=kwargs)
 
 @register.simple_tag
-def resultclass(tie_score, my_score, other_score=None):
-    # If other_score is specified, assume the match may be incomplete and only display results that are clinched
-    if my_score is None:
+def resultclass(score, opp_score):
+    if score is None or score == '' or opp_score is None or opp_score == '':
         return ''
-    elif my_score > tie_score:
+    elif score > opp_score:
         return 'cell-win'
-    elif other_score is None and my_score < tie_score or other_score is not None and other_score > tie_score:
+    elif score < opp_score:
         return 'cell-loss'
-    elif my_score == tie_score and (other_score is None or other_score == tie_score):
+    else:
+        print score, opp_score
         return 'cell-tie'
-    return ''
 
 @register.filter
 def format_result(result):

@@ -160,7 +160,6 @@ def team_season_landing(request, league_tag=None, season_tag=None):
     last_round = Round.objects.filter(season=season, is_completed=True).order_by('-number').first()
     last_round_pairings = last_round.teampairing_set.all() if last_round is not None else None
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season), reverse=True)[:5], 1))
-    tie_score = season.boards / 2.0
 
     context = {
         'league_tag': league_tag,
@@ -173,7 +172,6 @@ def team_season_landing(request, league_tag=None, season_tag=None):
         'last_round': last_round,
         'last_round_pairings': last_round_pairings,
         'team_scores': team_scores,
-        'tie_score': tie_score,
     }
     return render(request, 'tournament/team_season_landing.html', context)
 
@@ -214,7 +212,6 @@ def team_completed_season_landing(request, league_tag=None, season_tag=None):
 
     round_numbers = list(range(1, season.rounds + 1))
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
-    tie_score = season.boards / 2.0
 
     first_team = team_scores[0][1] if len(team_scores) > 0 else None
     second_team = team_scores[1][1] if len(team_scores) > 1 else None
@@ -229,7 +226,6 @@ def team_completed_season_landing(request, league_tag=None, season_tag=None):
         'season_list': season_list,
         'round_numbers': round_numbers,
         'team_scores': team_scores,
-        'tie_score': tie_score,
         'first_team': first_team,
         'second_team': second_team,
         'third_team': third_team,
@@ -510,7 +506,6 @@ def team_standings(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     round_numbers = list(range(1, season.rounds + 1))
     team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=season).select_related('team').nocache(), reverse=True), 1))
-    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -518,7 +513,6 @@ def team_standings(request, league_tag=None, season_tag=None):
         'season': season,
         'round_numbers': round_numbers,
         'team_scores': team_scores,
-        'tie_score': tie_score
     }
     return render(request, 'tournament/team_standings.html', context)
 
@@ -590,14 +584,12 @@ def crosstable(request, league_tag=None, season_tag=None):
         raise Http404
     season = _get_season(league_tag, season_tag)
     team_scores = TeamScore.objects.filter(team__season=season).order_by('team__number').select_related('team').nocache()
-    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'league': league,
         'season_tag': season_tag,
         'season': season,
         'team_scores': team_scores,
-        'tie_score': tie_score
     }
     return render(request, 'tournament/team_crosstable.html', context)
 
@@ -624,7 +616,6 @@ def result(request, pairing_id, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     team_pairing = get_object_or_404(TeamPairing, round__season=season, pk=pairing_id)
     pairings = team_pairing.teamplayerpairing_set.order_by('board_number').nocache()
-    tie_score = season.boards / 2.0
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
@@ -633,7 +624,6 @@ def result(request, pairing_id, league_tag=None, season_tag=None):
         'team_pairing': team_pairing,
         'pairings': pairings,
         'round_number': team_pairing.round.number,
-        'tie_score': tie_score
     }
     return render(request, 'tournament/team_match_result.html', context)
 
