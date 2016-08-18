@@ -448,7 +448,7 @@ def faq(request, league_tag=None, season_tag=None):
     return render(request, 'tournament/document.html', context)
 
 @cached_view_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models,
-                vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.edit_rosters')))
+                vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.manage_players')))
 def rosters(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     if league.competitor_type != 'team':
@@ -460,7 +460,7 @@ def rosters(request, league_tag=None, season_tag=None):
             'league': league,
             'season_tag': season_tag,
             'season': season,
-            'can_edit': request.user.has_perm('tournament.edit_rosters'),
+            'can_edit': request.user.has_perm('tournament.manage_players'),
         }
         return render(request, 'tournament/team_rosters.html', context)
 
@@ -505,7 +505,7 @@ def rosters(request, league_tag=None, season_tag=None):
         'unresponsive_players': unresponsive_players,
         'yellow_card_players': yellow_card_players,
         'red_card_players': red_card_players,
-        'can_edit': request.user.has_perm('tournament.edit_rosters'),
+        'can_edit': request.user.has_perm('tournament.manage_players'),
     }
     return render(request, 'tournament/team_rosters.html', context)
 

@@ -14,7 +14,7 @@
 					<h3>Rosters</h3>
 				</div>{% if can_edit %}
 				<div class="inline document-edit">
-					<a href="{% url 'admin:edit_rosters' season.pk %}" id="edit-rosters" title="Edit rosters">
+					<a href="{% url 'admin:manage_players' season.pk %}" id="edit-rosters" title="Edit rosters">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 			        </a>
 		        </div>{% endif %}

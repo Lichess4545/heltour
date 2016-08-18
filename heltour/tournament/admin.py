@@ -82,17 +82,17 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'edit_rosters', 'round_transition']
+    actions = ['update_board_order_by_rating', 'manage_players', 'round_transition']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/edit_rosters/$',
-                permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.edit_rosters_view)),
-                name='edit_rosters'),
+            url(r'^(?P<object_id>[0-9]+)/manage_players/$',
+                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.manage_players_view)),
+                name='manage_players'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
-                permission_required('tournament.edit_rosters')(self.admin_site.admin_view(self.player_info_view)),
+                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.player_info_view)),
                 name='edit_rosters_player_info'),
             url(r'^(?P<object_id>[0-9]+)/round_transition/$',
                 permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)),
@@ -237,11 +237,11 @@ class SeasonAdmin(VersionAdmin):
         for alt in Alternate.objects.filter(season_player__season=season):
             alt.update_board_number()
 
-    def edit_rosters(self, request, queryset):
+    def manage_players(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Rosters can only be edited one season at a time.', messages.ERROR)
+            self.message_user(request, 'Players can only be managed one season at a time.', messages.ERROR)
             return
-        return redirect('admin:edit_rosters', object_id=queryset[0].pk)
+        return redirect('admin:manage_players', object_id=queryset[0].pk)
 
     def player_info_view(self, request, object_id, player_name):
         season = Season.objects.get(pk=object_id)
@@ -255,7 +255,7 @@ class SeasonAdmin(VersionAdmin):
 
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
-    def edit_rosters_view(self, request, object_id):
+    def manage_players_view(self, request, object_id):
         season = Season.objects.get(pk=object_id)
         teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 

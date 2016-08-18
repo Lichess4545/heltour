@@ -77,7 +77,7 @@ class Season(_BaseModel):
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
-            ('edit_rosters', 'Can edit rosters'),
+            ('manage_players', 'Can manage players'),
         )
 
     def __init__(self, *args, **kwargs):
