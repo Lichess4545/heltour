@@ -92,19 +92,19 @@ div.inline {
 	border: 1px solid black;
 }
 
-#table-crosstable .cell-score a {
-	display: block;
-	width: 100%;
-	height: 100%;
-	color: rgb(51, 51, 51);
-}
-
 #table-crosstable .cell-score, #table-crosstable .cell-teamnumber {
 	width: 37px;
 	min-width: 30px;
 	padding-left: 4px;
 	padding-right: 4px;
 	text-align: center;
+}
+
+.cell-score a {
+	display: block;
+	width: 100%;
+	height: 100%;
+	color: rgb(51, 51, 51);
 }
 
 .cell-teamnumber {
@@ -220,12 +220,6 @@ div.inline {
 
 #table-match-result a {
 	color: rgb(51, 51, 51);
-}
-
-#table-match-result .cell-score a {
-	display: block;
-	width: 100%;
-	height: 100%;
 }
 
 #well-register {

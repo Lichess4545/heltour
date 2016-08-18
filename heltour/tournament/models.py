@@ -481,19 +481,22 @@ class TeamScore(_BaseModel):
         black_pairings = self.team.pairings_as_black.all()
         for round_ in Round.objects.filter(season_id=self.team.season_id).order_by('number'):
             if round_ is None or not round_.is_completed:
-                yield None, None
+                yield None, None, None
                 continue
             points = None
             opp_points = None
+            pk = None
             white_pairing = find(white_pairings, round_id=round_.id)
             black_pairing = find(black_pairings, round_id=round_.id)
             if white_pairing is not None:
                 points = white_pairing.white_points
                 opp_points = white_pairing.black_points
+                pk = white_pairing.pk
             if black_pairing is not None:
                 points = black_pairing.black_points
                 opp_points = black_pairing.white_points
-            yield points, opp_points
+                pk = black_pairing.pk
+            yield points, opp_points, pk
 
     def cross_scores(self):
         other_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
@@ -504,16 +507,16 @@ class TeamScore(_BaseModel):
             black_pairing = find(black_pairings, white_team_id=other_team.pk)
             points = None
             opp_points = None
-            id = None
+            pk = None
             if white_pairing is not None and white_pairing.round.is_completed:
                 points = white_pairing.white_points
                 opp_points = white_pairing.black_points
-                id = white_pairing.pk
+                pk = white_pairing.pk
             if black_pairing is not None and black_pairing.round.is_completed:
                 points = black_pairing.black_points
                 opp_points = black_pairing.white_points
-                id = black_pairing.pk
-            yield other_team.number, points, opp_points, id
+                pk = black_pairing.pk
+            yield other_team.number, points, opp_points, pk
 
     def __unicode__(self):
         return "%s" % (self.team)

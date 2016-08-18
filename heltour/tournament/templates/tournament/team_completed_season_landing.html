@@ -120,8 +120,10 @@
 								<td>{{ team_score.team.name }}</td>
 								<td class="text-center">{{ team_score.match_points_display }}</td>
 								<td class="text-center">{{ team_score.game_points_display }}</td>
-								{% for score, opp_score in team_score.round_scores %}
-								<td class="text-center {% resultclass score opp_score %}">{{ score|floatformat }}</td>
+								{% for score, opp_score, team_pairing_id in team_score.round_scores %}
+								<td class="text-center {% resultclass score opp_score %}">
+									{% if team_pairing_id %}<a href="{% leagueurl 'result' league_tag season_tag team_pairing_id %}">{{ score|floatformat }}</a>{% endif %}
+								</td>
 								{% endfor %}
 							</tr>
 							{% endfor %}

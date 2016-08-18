@@ -142,8 +142,10 @@ class TeamScoreTestCase(TestCase):
 
     def test_teamscore_round_scores(self):
         teamscore = TeamScore.objects.get(team__number=1)
+        pairing1 = TeamPairing.objects.get(round__number=1)
+        pairing2 = TeamPairing.objects.get(round__number=2)
 
-        self.assertItemsEqual([(1.5, 0.5), (1.0, 1.0), (None, None)], teamscore.round_scores())
+        self.assertItemsEqual([(1.5, 0.5, pairing1.pk), (1.0, 1.0, pairing2.pk), (None, None, None)], teamscore.round_scores())
 
     def test_teamscore_cross_scores(self):
         teamscore = TeamScore.objects.get(team__number=1)
