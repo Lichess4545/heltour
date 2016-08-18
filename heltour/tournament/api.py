@@ -143,8 +143,6 @@ def get_roster(request):
     try:
         league_tag = request.GET.get('league', None)
         season_tag = request.GET.get('season', None)
-        if season_tag is not None:
-            season_tag = int(season_tag)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
@@ -153,7 +151,7 @@ def get_roster(request):
         if league_tag is not None:
             seasons = seasons.filter(league__tag=league_tag)
         if season_tag is not None:
-            seasons = seasons.filter(pk=season_tag)
+            seasons = seasons.filter(tag=season_tag)
         else:
             seasons = seasons.filter(is_active=True)
 
@@ -165,7 +163,8 @@ def get_roster(request):
     teams = season.team_set.order_by('number').all()
 
     return JsonResponse({
-        'season_tag': season.tag,
+        'league': season.league.tag,
+        'season': season.tag,
         'players': [{
             'username': season_player.player.lichess_username,
             'rating': season_player.player.rating
