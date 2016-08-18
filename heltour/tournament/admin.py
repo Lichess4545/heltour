@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import models, lichessapi, slackapi, views, forms
+from heltour.tournament import lichessapi, slackapi, views, forms
+from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect
@@ -24,7 +25,7 @@ from django.contrib.sites.models import Site
 admin.site.unregister(Site)
 
 #-------------------------------------------------------------------------------
-@admin.register(models.League)
+@admin.register(League)
 class LeagueAdmin(VersionAdmin):
     actions = ['import_season']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
@@ -42,7 +43,7 @@ class LeagueAdmin(VersionAdmin):
         return redirect('admin:import_season', object_id=queryset[0].pk)
 
     def import_season_view(self, request, object_id):
-        league = models.League.objects.get(pk=object_id)
+        league = League.objects.get(pk=object_id)
 
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
@@ -76,7 +77,7 @@ class LeagueAdmin(VersionAdmin):
         return render(request, 'tournament/admin/import_season.html', context)
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Season)
+@admin.register(Season)
 class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
@@ -106,7 +107,7 @@ class SeasonAdmin(VersionAdmin):
         return redirect('admin:round_transition', object_id=queryset[0].pk)
 
     def round_transition_view(self, request, object_id):
-        season = models.Season.objects.get(pk=object_id)
+        season = Season.objects.get(pk=object_id)
 
         round_to_close = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
         round_to_open = season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
@@ -159,7 +160,7 @@ class SeasonAdmin(VersionAdmin):
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
 
         if round_to_close is not None:
-            incomplete_pairings = models.PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
+            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
             if len(incomplete_pairings) > 0:
                 self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
 
@@ -204,12 +205,12 @@ class SeasonAdmin(VersionAdmin):
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
                 m = members[i]
-                models.TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                TeamMember.objects.update_or_create(team=team, board_number=board_number, \
                                                            defaults={ 'player': m.player, 'is_captain': m.is_captain,
                                                                       'is_vice_captain': m.is_vice_captain })
 
         # Update alternate buckets
-        members_by_board = [models.TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
+        members_by_board = [TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
         ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
         # Exclude highest/lowest values if possible (to avoid outliers skewing the average)
         average_by_board = [sum(r_list[1:-1]) / (len(r_list) - 2) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
@@ -229,11 +230,11 @@ class SeasonAdmin(VersionAdmin):
             else:
                 boundaries.append((left + right) / 2)
         for board_num in range(1, season.boards + 1):
-            models.AlternateBucket.objects.update_or_create(season=season, board_number=board_num,
+            AlternateBucket.objects.update_or_create(season=season, board_number=board_num,
                                                             defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
 
         # Assign alternates to buckets
-        for alt in models.Alternate.objects.filter(season_player__season=season):
+        for alt in Alternate.objects.filter(season_player__season=season):
             alt.update_board_number()
 
     def edit_rosters(self, request, queryset):
@@ -243,8 +244,8 @@ class SeasonAdmin(VersionAdmin):
         return redirect('admin:edit_rosters', object_id=queryset[0].pk)
 
     def player_info_view(self, request, object_id, player_name):
-        season = models.Season.objects.get(pk=object_id)
-        season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username=player_name)
+        season = Season.objects.get(pk=object_id)
+        season_player = SeasonPlayer.objects.get(season=season, player__lichess_username=player_name)
 
         context = {
             'season_player': season_player,
@@ -255,8 +256,8 @@ class SeasonAdmin(VersionAdmin):
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
     def edit_rosters_view(self, request, object_id):
-        season = models.Season.objects.get(pk=object_id)
-        teams_locked = bool(models.Round.objects.filter(season=season, publish_pairings=True).count())
+        season = Season.objects.get(pk=object_id)
+        teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         if request.method == 'POST':
             form = forms.EditRostersForm(request.POST)
@@ -268,25 +269,25 @@ class SeasonAdmin(VersionAdmin):
                     try:
                         if change['action'] == 'change-member':
                             team_num = change['team_number']
-                            team = models.Team.objects.get(season=season, number=team_num)
+                            team = Team.objects.get(season=season, number=team_num)
 
                             board_num = change['board_number']
                             player_info = change['player']
 
-                            teammember = models.TeamMember.objects.filter(team=team, board_number=board_num).first()
+                            teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
                             if teammember == None:
-                                teammember = models.TeamMember(team=team, board_number=board_num)
+                                teammember = TeamMember(team=team, board_number=board_num)
                             if player_info is None:
                                 teammember.delete()
                             else:
-                                teammember.player = models.Player.objects.get(lichess_username=player_info['name'])
+                                teammember.player = Player.objects.get(lichess_username=player_info['name'])
                                 teammember.is_captain = player_info['is_captain']
                                 teammember.is_vice_captain = player_info['is_vice_captain']
                                 teammember.save()
 
                         if change['action'] == 'change-team' and not teams_locked:
                             team_num = change['team_number']
-                            team = models.Team.objects.get(season=season, number=team_num)
+                            team = Team.objects.get(season=season, number=team_num)
 
                             team_name = change['team_name']
                             team.name = team_name
@@ -294,23 +295,23 @@ class SeasonAdmin(VersionAdmin):
 
                         if change['action'] == 'create-team' and not teams_locked:
                             model = change['model']
-                            team = models.Team.objects.create(season=season, number=model['number'], name=model['name'])
+                            team = Team.objects.create(season=season, number=model['number'], name=model['name'])
 
                             for board_num, player_info in enumerate(model['boards'], 1):
                                 if player_info is not None:
-                                    player = models.Player.objects.get(lichess_username=player_info['name'])
+                                    player = Player.objects.get(lichess_username=player_info['name'])
                                     is_captain = player_info['is_captain']
-                                    models.TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
+                                    TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
 
                         if change['action'] == 'create-alternate':
                             board_num = change['board_number']
-                            season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                            models.Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
+                            season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                            Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
 
                         if change['action'] == 'delete-alternate':
                             board_num = change['board_number']
-                            season_player = models.SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                            alt = models.Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
+                            season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                            alt = Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
                             if alt is not None:
                                 alt.delete()
 
@@ -327,25 +328,25 @@ class SeasonAdmin(VersionAdmin):
             form = forms.EditRostersForm()
 
         board_numbers = list(range(1, season.boards + 1))
-        teams = models.Team.objects.filter(season=season).order_by('number').prefetch_related(
-            Prefetch('teammember_set', queryset=models.TeamMember.objects.select_related('player'))
+        teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
+            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
         ).nocache()
-        team_members = models.TeamMember.objects.filter(team__season=season).select_related('player').nocache()
-        alternates = models.Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+        team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
+        alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
         alternates_by_board = [(n, sorted(
                                           alternates.filter(board_number=n).select_related('season_player__registration').nocache(),
                                           key=lambda alt: alt.priority_date()
                                          )) for n in board_numbers]
 
-        season_players = set(sp.player for sp in models.SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
+        season_players = set(sp.player for sp in SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache())
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
 
-        alternate_buckets = list(models.AlternateBucket.objects.filter(season=season))
+        alternate_buckets = list(AlternateBucket.objects.filter(season=season))
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p:-p.rating))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
-            unassigned_by_board = [(n, [p for p in unassigned_players if models.find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
+            unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
             sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p:-p.rating))
@@ -387,7 +388,7 @@ class SeasonAdmin(VersionAdmin):
 
         return render(request, 'tournament/admin/edit_rosters.html', context)
 
-@admin.register(models.Round)
+@admin.register(Round)
 class RoundAdmin(VersionAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings']
@@ -412,7 +413,7 @@ class RoundAdmin(VersionAdmin):
         return redirect('admin:generate_pairings', object_id=queryset[0].pk)
 
     def generate_pairings_view(self, request, object_id):
-        round_ = models.Round.objects.get(pk=object_id)
+        round_ = Round.objects.get(pk=object_id)
 
         if request.method == 'POST':
             form = forms.GeneratePairingsForm(request.POST)
@@ -446,7 +447,7 @@ class RoundAdmin(VersionAdmin):
         return render(request, 'tournament/admin/generate_pairings.html', context)
 
     def review_pairings_view(self, request, object_id):
-        round_ = models.Round.objects.get(pk=object_id)
+        round_ = Round.objects.get(pk=object_id)
 
         if request.method == 'POST':
             form = forms.ReviewPairingsForm(request.POST)
@@ -456,7 +457,7 @@ class RoundAdmin(VersionAdmin):
                         round_.publish_pairings = True
                         round_.save()
                         # Update ranks in case of manual edits
-                        rank_dict = models.lone_player_pairing_rank_dict(round_.season)
+                        rank_dict = lone_player_pairing_rank_dict(round_.season)
                         for lpp in round_.loneplayerpairing_set.all().nocache():
                             lpp.refresh_ranks(rank_dict)
                             lpp.save()
@@ -509,7 +510,7 @@ class RoundAdmin(VersionAdmin):
 
 
 #-------------------------------------------------------------------------------
-@admin.register(models.PlayerLateRegistration)
+@admin.register(PlayerLateRegistration)
 class PlayerLateRegistrationAdmin(VersionAdmin):
     list_display = ('__unicode__', 'retroactive_byes', 'late_join_points')
     search_fields = ('player__lichess_username',)
@@ -518,7 +519,7 @@ class PlayerLateRegistrationAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.PlayerWithdrawl)
+@admin.register(PlayerWithdrawl)
 class PlayerWithdrawlAdmin(VersionAdmin):
     list_display = ('__unicode__',)
     search_fields = ('player__lichess_username',)
@@ -527,7 +528,7 @@ class PlayerWithdrawlAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.PlayerBye)
+@admin.register(PlayerBye)
 class PlayerByeAdmin(VersionAdmin):
     list_display = ('__unicode__', 'type')
     search_fields = ('player__lichess_username',)
@@ -536,7 +537,7 @@ class PlayerByeAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Player)
+@admin.register(Player)
 class PlayerAdmin(VersionAdmin):
     search_fields = ('lichess_username',)
     list_filter = ('is_active',)
@@ -557,13 +558,13 @@ class PlayerAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 class TeamMemberInline(admin.TabularInline):
-    model = models.TeamMember
+    model = TeamMember
     extra = 0
     ordering = ('board_number',)
     raw_id_fields = ('player',)
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Team)
+@admin.register(Team)
 class TeamAdmin(VersionAdmin):
     list_display = ('name', 'season')
     search_fields = ('name',)
@@ -581,7 +582,7 @@ class TeamAdmin(VersionAdmin):
         self.message_user(request, 'Board order updated', messages.INFO)
 
 #-------------------------------------------------------------------------------
-@admin.register(models.TeamMember)
+@admin.register(TeamMember)
 class TeamMemberAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
@@ -590,7 +591,7 @@ class TeamMemberAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.TeamScore)
+@admin.register(TeamScore)
 class TeamScoreAdmin(VersionAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
@@ -599,7 +600,7 @@ class TeamScoreAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Alternate)
+@admin.register(Alternate)
 class AlternateAdmin(VersionAdmin):
     list_display = ('__unicode__', 'board_number')
     search_fields = ('season_player__player__lichess_username',)
@@ -608,7 +609,7 @@ class AlternateAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.AlternateAssignment)
+@admin.register(AlternateAssignment)
 class AlternateAssignmentAdmin(VersionAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
@@ -617,7 +618,7 @@ class AlternateAssignmentAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.AlternateBucket)
+@admin.register(AlternateBucket)
 class AlternateBucketAdmin(VersionAdmin):
     list_display = ('__unicode__', 'season')
     search_fields = ()
@@ -625,7 +626,7 @@ class AlternateBucketAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.TeamPairing)
+@admin.register(TeamPairing)
 class TeamPairingAdmin(VersionAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
@@ -634,7 +635,7 @@ class TeamPairingAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.PlayerPairing)
+@admin.register(PlayerPairing)
 class PlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
@@ -642,7 +643,7 @@ class PlayerPairingAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.TeamPlayerPairing)
+@admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'team_pairing', 'board_number')
     search_fields = ('white__lichess_username', 'black__lichess_username',
@@ -652,7 +653,7 @@ class TeamPlayerPairingAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.LonePlayerPairing)
+@admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'round')
     search_fields = ('white__lichess_username', 'black__lichess_username')
@@ -661,7 +662,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Registration)
+@admin.register(Registration)
 class RegistrationAdmin(VersionAdmin):
     list_display = ('lichess_username', 'email', 'status', 'season')
     search_fields = ('lichess_username', 'season')
@@ -680,7 +681,7 @@ class RegistrationAdmin(VersionAdmin):
         return my_urls + urls
 
     def review_registration(self, request, object_id):
-        reg = models.Registration.objects.get(pk=object_id)
+        reg = Registration.objects.get(pk=object_id)
 
         if request.method == 'POST':
             form = forms.ReviewRegistrationForm(request.POST)
@@ -706,7 +707,7 @@ class RegistrationAdmin(VersionAdmin):
         return render(request, 'tournament/admin/review_registration.html', context)
 
     def approve_registration(self, request, object_id):
-        reg = models.Registration.objects.get(pk=object_id)
+        reg = Registration.objects.get(pk=object_id)
 
         if reg.status != 'pending':
             return redirect('admin:tournament_registration_change', object_id)
@@ -717,11 +718,11 @@ class RegistrationAdmin(VersionAdmin):
                 if 'confirm' in form.data:
                     with transaction.atomic():
                         # Add or update the player in the DB
-                        player, _ = models.Player.objects.update_or_create(
+                        player, _ = Player.objects.update_or_create(
                             lichess_username__iexact=reg.lichess_username,
                             defaults={'lichess_username': reg.lichess_username, 'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
                         )
-                        models.SeasonPlayer.objects.update_or_create(
+                        SeasonPlayer.objects.update_or_create(
                             player=player,
                             season=reg.season,
                             defaults={'registration': reg, 'is_active': True}
@@ -757,9 +758,9 @@ class RegistrationAdmin(VersionAdmin):
 
                         for week_number in reg.weeks_unavailable.split(','):
                             if week_number != '':
-                                round_ = models.Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                                round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
                                 if round_ is not None:
-                                    models.PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                                    PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
 
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
@@ -780,7 +781,7 @@ class RegistrationAdmin(VersionAdmin):
         return render(request, 'tournament/admin/approve_registration.html', context)
 
     def reject_registration(self, request, object_id):
-        reg = models.Registration.objects.get(pk=object_id)
+        reg = Registration.objects.get(pk=object_id)
 
         if reg.status != 'pending':
             return redirect('admin:tournament_registration_change', object_id)
@@ -814,7 +815,7 @@ class RegistrationAdmin(VersionAdmin):
     change_view = review_registration
 
 #-------------------------------------------------------------------------------
-@admin.register(models.SeasonPlayer)
+@admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
@@ -823,7 +824,7 @@ class SeasonPlayerAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.LonePlayerScore)
+@admin.register(LonePlayerScore)
 class LonePlayerScoreAdmin(VersionAdmin):
     list_display = ('season_player', 'points', 'late_join_points')
     search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
@@ -832,7 +833,7 @@ class LonePlayerScoreAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.PlayerAvailability)
+@admin.register(PlayerAvailability)
 class PlayerAvailabilityAdmin(VersionAdmin):
     list_display = ('player', 'round', 'is_available')
     search_fields = ('player__lichess_username',)
@@ -841,14 +842,14 @@ class PlayerAvailabilityAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.SeasonPrize)
+@admin.register(SeasonPrize)
 class SeasonPrizeAdmin(VersionAdmin):
     list_display = ('season', 'rank', 'max_rating')
     search_fields = ('season__name',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.SeasonPrizeWinner)
+@admin.register(SeasonPrizeWinner)
 class SeasonPrizeWinnerAdmin(VersionAdmin):
     list_display = ('season_prize', 'player',)
     search_fields = ('season_prize__name', 'player__lichess_username')
@@ -856,21 +857,21 @@ class SeasonPrizeWinnerAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.ApiKey)
+@admin.register(ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.Document)
+@admin.register(Document)
 class DocumentAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
-@admin.register(models.LeagueDocument)
+@admin.register(LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
     list_display = ('document', 'league', 'tag', 'type')
     search_fields = ('league__name', 'tag', 'document__name')
