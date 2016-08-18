@@ -24,8 +24,8 @@
 			</tr>
 		</thead>
 		<tbody>
-			{% for pairing in pairings %}
-			<tr>
+			{% for pairing, has_error in pairings %}
+			<tr{% if has_error %} class="row-error"{% endif %}>
 				<td>{{ pairing.pairing_order }}</td>
 				<td>{{ pairing.white_rank|default_if_none:'' }}</td>
 				<td>
@@ -55,8 +55,8 @@
 		        </td>
 			</tr>
 			{% endfor %}
-			{% for bye in byes %}
-			<tr>
+			{% for bye, has_error in byes %}
+			<tr{% if has_error %} class="row-error"{% endif %}>
 				<td></td>
 				<td>{{ bye.player_rank|default_if_none:'' }}</td>
 				<td>

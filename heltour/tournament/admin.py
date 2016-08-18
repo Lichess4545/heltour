@@ -494,6 +494,27 @@ class RoundAdmin(VersionAdmin):
             next_pairing_order = 0
             for p in pairings:
                 next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
+
+            # Find duplicate players
+            player_refcounts = {}
+            for p in pairings:
+                player_refcounts[p.white] = player_refcounts.get(p.white, 0) + 1
+                player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
+            for b in byes:
+                player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
+            duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
+
+            def pairing_has_error(pairing):
+                return request.user.is_staff and (pairing.white in duplicate_players or pairing.black in duplicate_players or \
+                                                  pairing.white == None or pairing.black == None)
+
+            def bye_has_error(bye):
+                return request.user.is_staff and bye.player in duplicate_players
+
+            # Add errors
+            pairings = [(p, pairing_has_error(p)) for p in pairings]
+            byes = [(b, bye_has_error(b)) for b in byes]
+
             context = {
                 'has_permission': True,
                 'opts': self.model._meta,

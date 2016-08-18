@@ -338,16 +338,16 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
         except IndexError:
             pass
     round_ = Round.objects.filter(number=round_number, season=season).first()
-    pairings = list(enumerate(LonePlayerPairing.objects.filter(round=round_).order_by('pairing_order').select_related('white', 'black').nocache(), 1))
+    pairings = LonePlayerPairing.objects.filter(round=round_).order_by('pairing_order').select_related('white', 'black').nocache()
     byes = PlayerBye.objects.filter(round=round_).order_by('type', 'player_rank', 'player__lichess_username').select_related('player').nocache()
 
     next_pairing_order = 0
-    for _, p in pairings:
+    for p in pairings:
         next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
 
     # Find duplicate players
     player_refcounts = {}
-    for _, p in pairings:
+    for p in pairings:
         player_refcounts[p.white] = player_refcounts.get(p.white, 0) + 1
         player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
     for b in byes:
@@ -362,7 +362,7 @@ def lone_pairings(request, league_tag=None, season_tag=None, round_number=None, 
         return request.user.is_staff and bye.player in duplicate_players
 
     # Add errors
-    pairings = [(n, p, pairing_has_error(p)) for n, p in pairings]
+    pairings = [(p, pairing_has_error(p)) for p in pairings]
     byes = [(b, bye_has_error(b)) for b in byes]
 
     context = {

@@ -48,9 +48,9 @@
 					</tr>
 					</thead>
 					<tbody>
-					{% for board_number, pairing, has_error in pairings %}
+					{% for pairing, has_error in pairings %}
 					<tr{% if has_error %} class="row-error"{% endif %}>
-						<td class="text-center hidden-xs">{{ board_number }}</td>
+						<td class="text-center hidden-xs">{{ pairing.pairing_order }}</td>
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
