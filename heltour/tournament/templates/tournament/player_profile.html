@@ -76,8 +76,8 @@
 							{% else %}<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">{{ pairing.white }}</a> - {{ pairing.black }}{% endif %}
 						</td>
 						<td class="text-center">
-							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result }}</a>
-							{% else %}{{ pairing.result }}{% endif %}
+							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | format_result }}</a>
+							{% else %}{{ pairing.result | format_result }}{% endif %}
 						</td>
 					</tr>
 					{% endfor %}
