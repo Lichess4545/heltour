@@ -337,7 +337,7 @@ class PlayerLateRegistration(_BaseModel):
     round = models.ForeignKey(Round)
     player = models.ForeignKey(Player)
     retroactive_byes = models.PositiveIntegerField(default=0)
-    late_join_points = models.PositiveIntegerField(default=0)
+    late_join_points = ScoreField(default=0)
 
     class Meta:
         unique_together = ('round', 'player')
