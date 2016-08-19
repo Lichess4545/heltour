@@ -189,6 +189,14 @@ BOOTSTRAP3 = {
     'set_placeholder': False
 }
 
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'width': 930,
+        'height': 300,
+    },
+}
+
 LOGIN_URL = '/admin/login/'
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
