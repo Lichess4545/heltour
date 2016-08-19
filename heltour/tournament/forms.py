@@ -113,7 +113,7 @@ class EditRostersForm(forms.Form):
     changes = forms.CharField(widget=forms.HiddenInput)
 
 class RoundTransitionForm(forms.Form):
-    def __init__(self, round_to_close, round_to_open, season_to_close, *args, **kwargs):
+    def __init__(self, is_team_league, round_to_close, round_to_open, season_to_close, *args, **kwargs):
         super(RoundTransitionForm, self).__init__(*args, **kwargs)
 
         if round_to_close is not None:
@@ -124,6 +124,7 @@ class RoundTransitionForm(forms.Form):
             self.fields['complete_season'] = forms.BooleanField(initial=True, required=False, label='Set %s as completed' % season_to_close.name)
 
         if round_to_open is not None:
-            self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
+            if is_team_league:
+                self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
             self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)
             self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number, widget=forms.HiddenInput)

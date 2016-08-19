@@ -115,7 +115,7 @@ class SeasonAdmin(VersionAdmin):
         season_to_close = season if not season.is_completed and round_to_open is None and (round_to_close is None or round_to_close.number == season.rounds) else None
 
         if request.method == 'POST':
-            form = forms.RoundTransitionForm(round_to_close, round_to_open, season_to_close, request.POST)
+            form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close, request.POST)
             if form.is_valid():
                 with transaction.atomic():
                     if 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number:
@@ -129,7 +129,7 @@ class SeasonAdmin(VersionAdmin):
                         season_to_close.save()
                         self.message_user(request, '%s set as completed.' % season_to_close.name, messages.INFO)
                     if 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number:
-                        if form.cleaned_data['update_board_order']:
+                        if 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']:
                             try:
                                 self.do_update_board_order(season)
                                 self.message_user(request, 'Board order updated.', messages.INFO)
@@ -150,7 +150,7 @@ class SeasonAdmin(VersionAdmin):
                                 self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
                     return redirect('admin:tournament_season_changelist')
         else:
-            form = forms.RoundTransitionForm(round_to_close, round_to_open, season_to_close)
+            form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close)
 
         if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
             time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
@@ -197,6 +197,9 @@ class SeasonAdmin(VersionAdmin):
             self.message_user(request, 'Error updating board order.', messages.ERROR)
 
     def do_update_board_order(self, season):
+        if season.league.competitor_type != 'team':
+            return
+
         # Update board order in teams
         for team in season.team_set.all():
             members = list(team.teammember_set.all())

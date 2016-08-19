@@ -30,6 +30,7 @@
 		{% endif %}
 		{% if form.round_to_open %}
 		{{ form.round_to_open }}
+		{% if form.update_board_order %}
 		<div class="form-row">
 			<div class="checkbox-row">
 				{{ form.update_board_order }}
@@ -38,6 +39,7 @@
 				</label>
 			</div>
 		</div>
+		{% endif %}
 		<div class="form-row">
 			<div class="checkbox-row">
 				{{ form.generate_pairings }}
