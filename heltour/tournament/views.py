@@ -826,6 +826,91 @@ def document(request, document_tag, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/document.html', context)
 
+def player_profile(request, username, league_tag=None, season_tag=None):
+    season = _get_season(league_tag, season_tag, allow_none=True)
+    player = get_object_or_404(Player, lichess_username__iexact=username)
+    
+    def game_count(season):
+        if season.league.competitor_type == 'team':
+            return (TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)).count()
+        else:
+            return (LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)).count()
+    
+    def team_name(season):
+        if season.league.competitor_type == 'team':
+            team_member = player.teammember_set.filter(team__season=season).first()
+            if team_member is not None:
+                return team_member.team.name 
+        return None
+        
+    other_season_leagues = [(l, [(sp.season, game_count(sp.season), team_name(sp.season)) for sp in player.seasonplayer_set.filter(season__league=l).exclude(season=season)]) \
+                     for l in League.objects.order_by('display_order')]
+    other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
+    
+    season_player = SeasonPlayer.objects.filter(season=season, player=player).first()
+    
+    if season is None:
+        games = None
+    elif season.league.competitor_type == 'team':
+        pairings = TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)
+        games = [(p.team_pairing.round, p) for p in pairings.exclude(result='').order_by('team_pairing__round__number').nocache()]
+    else:
+        pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
+        games = [(p.round, p) for p in pairings.exclude(result='').order_by('round__number').nocache()]
+    
+    team_member = TeamMember.objects.filter(team__season=season, player=player).first()
+    alternate = Alternate.objects.filter(season_player=season_player).first()
+    
+    schedule = []
+    for round_ in season.round_set.filter(is_completed=False).order_by('number'):
+        if season.league.competitor_type == 'team':
+            pairing = pairings.filter(team_pairing__round=round_).first()
+        else:
+            pairing = pairings.filter(round=round_).first()
+        if pairing is not None:
+            if pairing.result != '':
+                continue
+            schedule.append((round_, pairing, None, None))
+            continue
+        if season.league.competitor_type == 'team':
+            assignment = AlternateAssignment.objects.filter(round=round_, player=player).first()
+            if assignment is not None and (team_member is None or team_member.team != assignment.team):
+                schedule.append((round_, None, 'Scheduled', assignment.team))
+                continue
+            if season_player is None or not season_player.is_active:
+                continue
+            availability = PlayerAvailability.objects.filter(round=round_, player=player).first()
+            if availability is not None and not availability.is_available:
+                schedule.append((round_, None, 'Unavailable', None))
+                continue
+            if team_member is not None:
+                schedule.append((round_, None, 'Scheduled', None))
+                continue
+            schedule.append((round_, None, 'Available', None))
+        else:
+            bye = PlayerBye.objects.filter(round=round_, player=player).first()
+            if bye is not None:
+                schedule.append((round_, None, bye.get_type_display(), None))
+                continue
+            if season_player is None or not season_player.is_active:
+                continue
+            schedule.append((round_, None, 'Scheduled', None))
+    
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_tag': season_tag,
+        'season': season,
+        'player': player,
+        'other_season_leagues': other_season_leagues,
+        'season_player': season_player,
+        'games': games,
+        'team_member': team_member,
+        'alternate': alternate,
+        'schedule': schedule,
+    }
+    return render(request, 'tournament/player_profile.html', context)
+
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
         return _get_default_league(allow_none)

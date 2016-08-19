@@ -80,6 +80,19 @@ div.inline {
 	background-color: rgb(249, 249, 249)
 }
 
+.player-profile-row {
+	max-width: 1200px;
+}
+
+.player-profile-section {
+	margin-bottom: 10px;
+}
+
+.player-profile-section table td {
+	padding-right: 10px;
+	white-space: nowrap;
+}
+
 #table-rosters thead>tr>th {
 	white-space: nowrap;
 }

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load tournament_extras %}
+
+{% block title %}{{ player.lichess_username }} {% if season %}- {{ season.name }}{% endif %} - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="row row-condensed-xs player-profile-row">
+	<div class="col-md-5 col-xs-12">
+		<div class="well">
+			<div class="well-head">
+				<h3>{{ player.lichess_username }}</h3>
+			</div>
+			<div class="well-body">
+				<div>Classical rating: {{ player.rating }}</div>
+				<div><a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a></div>
+			</div>
+		</div>
+		<div class="well">
+			<div class="well-head">
+				<h3>Contact</h3>
+			</div>
+			<div class="well-body">
+				<div><a href="https://lichess4545.slack.com/messages/@{{ player.lichess_username }}/">Message {{ player.lichess_username }} on Slack</a></div>
+				<div><a href="https://lichess.org/inbox/new?user={{ player.lichess_username }}">Message {{ player.lichess_username }} on Lichess</a></div>
+			</div>
+		</div>
+		{% if other_season_leagues %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Other Seasons</h3>
+			</div>
+			<div class="well-body">
+				{% for other_season_league, other_seasons in other_season_leagues %}
+				<div class="player-profile-section">
+					<strong>{{ other_season_league.name }}</strong>
+					{% for other_season, game_count, team_name in other_seasons %}
+					<div>
+						<a href="{% leagueurl 'player_profile' other_season_league.tag other_season.tag player.lichess_username %}">{{ other_season.name }}</a>:
+						{{ game_count }} game{% if game_count != 1 %}s{% endif %} {% if team_name %} for {{ team_name }}{% endif %}
+					</div>
+				</div>
+				{% endfor %}
+				{% endfor %}
+			</div>
+		</div>
+		{% endif %}
+	</div>
+	<div class="col-md-6 col-xs-12">
+		{% if season %}
+		<div class="well">
+			<div class="well-head">
+				<h3>{{ season.name }}</h3>
+			</div>
+			<div class="well-body">
+				{% if season_player %}
+				{% if team_member %}
+				<div class="player-profile-section">
+					<strong>{{ team_member.team.name }}</strong>
+					<div>Board {{ team_member.board_number }}</div>
+				</div>
+				{% elif alternate %}
+				<div class="player-profile-section">
+					<strong>Alternate</strong>
+					<div>Board {{ alternate.board_number }}</div>
+				</div>
+				{% endif %}
+				{% if games %}
+				<div class="player-profile-section">
+					<strong>Games</strong>
+					<table>
+					{% for round_, pairing in games %}
+					<tr>
+						<td>Round {{ round_.number }}:</td>
+						<td>
+							{% if pairing.white == player %}{{ pairing.white }} - <a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black.lichess_username %}">{{ pairing.black }}</a>
+							{% else %}<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">{{ pairing.white }}</a> - {{ pairing.black }}{% endif %}
+						</td>
+						<td class="text-center">
+							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result }}</a>
+							{% else %}{{ pairing.result }}{% endif %}
+						</td>
+					</tr>
+					{% endfor %}
+					</table>
+				</div>
+				{% endif %}
+				{% if schedule %}
+				<div class="player-profile-section">
+					<strong>Schedule</strong>
+					<table>
+					{% for round_, pairing, status, team in schedule %}
+					<tr>
+						<td>Round {{ round_.number }}:</td>
+						{% if pairing %}
+						<td>
+							{% if pairing.white == player %}{{ pairing.white }} - <a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black.lichess_username %}">{{ pairing.black }}</a>
+							{% else %}<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">{{ pairing.white }}</a> - {{ pairing.black }}{% endif %}
+						</td>
+						{% else %}
+						<td>
+							{{ status }}
+						</td>
+						{% endif %}
+						{% if pairing and pairing.scheduled_time %}
+						<td>
+							{{ pairing.scheduled_time | date:"m/d H:i" }}
+						</td>
+						{% else %}
+						<td class="text-muted">
+							{{ round_.start_date | date:"m/d" }} - {{ round_.end_date | date:"m/d" }}
+						</td>
+						{% endif %}
+					</tr>
+					{% if team %}
+					<tr>
+						<td></td>
+						<td colspan="2">
+							for {{ team.name }}
+						</td>
+					</tr>
+					{% endif %}
+					{% endfor %}
+					</table>
+				</div>
+				{% endif %}
+				{% else %}
+				{{ player.lichess_username }} is not a participant in {{ season.name }}.
+				{% endif %}
+			</div>
+		</div>
+		{% endif %}
+	</div>
+</div>
+{% endblock %}
