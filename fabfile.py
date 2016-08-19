@@ -110,6 +110,8 @@ def deploy():
             run("/var/www/heltour.lakin.ca/current/sysadmin/update-requirements.sh")
         if confirm(colors.red("Would you like to run the migrations?")):
             run("/var/www/heltour.lakin.ca/current/sysadmin/migrate.sh")
+        if confirm(colors.red("Would you like to invalidate the caches?")):
+            run("/var/www/heltour.lakin.ca/current/sysadmin/invalidate.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour restart")
