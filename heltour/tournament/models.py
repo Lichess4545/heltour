@@ -6,7 +6,7 @@ from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
-from django import forms
+from django import forms as django_forms
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -34,9 +34,9 @@ class ScoreField(models.PositiveIntegerField):
         return float(value)
 
     def formfield(self, **kwargs):
-        defaults = {'widget': forms.TextInput(attrs={'class': 'vIntegerField'})}
+        defaults = {'widget': django_forms.TextInput(attrs={'class': 'vIntegerField'}), 'initial': self.default}
         defaults.update(kwargs)
-        return forms.FloatField(**defaults)
+        return django_forms.FloatField(**defaults)
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
