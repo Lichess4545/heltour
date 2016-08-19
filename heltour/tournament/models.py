@@ -410,8 +410,9 @@ class PlayerBye(_BaseModel):
 
     def __init__(self, *args, **kwargs):
         super(PlayerBye, self).__init__(*args, **kwargs)
-        self.initial_round = self.round
-        self.initial_player = self.player
+        self.initial_round_id = self.round_id
+        self.initial_player_id = self.player_id
+        self.initial_type = self.type
 
     def refresh_rank(self, rank_dict=None):
         if rank_dict == None:
@@ -419,9 +420,9 @@ class PlayerBye(_BaseModel):
         self.player_rank = rank_dict.get(self.player_id, None)
 
     def score(self):
-        if type == 'full-point-bye' or type == 'pairing-bye':
+        if self.type == 'full-point-bye' or self.type == 'full-point-pairing-bye':
             return 1
-        elif type == 'half-point-bye':
+        elif self.type == 'half-point-bye':
             return 0.5
         else:
             return 0
@@ -430,14 +431,17 @@ class PlayerBye(_BaseModel):
         return "%s - %s" % (self.player, self.get_type_display())
 
     def save(self, *args, **kwargs):
-        round_changed = self.pk is None or self.round != self.initial_round
-        player_changed = self.pk is None or self.player != self.initial_player
+        round_changed = self.pk is None or self.round_id != self.initial_round_id
+        player_changed = self.pk is None or self.player_id != self.initial_player_id
+        type_changed = self.pk is None or self.type != self.initial_type
         if (round_changed or player_changed) and self.round.publish_pairings:
             if not self.round.is_completed:
                 self.refresh_rank()
             else:
                 self.player_rank = None
         super(PlayerBye, self).save(*args, **kwargs)
+        if (round_changed or player_changed or type_changed) and self.round.is_completed:
+            self.round.season.calculate_scores()
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
