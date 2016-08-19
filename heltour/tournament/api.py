@@ -106,6 +106,13 @@ def update_pairing(request):
     for r in rounds:
         pairings += _get_pairings(r, None, white, black)
 
+    reversed = False 
+    if len(pairings) == 0:
+        # Try alternate colors
+        reversed = True
+        for r in rounds:
+            pairings += list(_get_pairings(r, None, black, white))
+    
     if len(pairings) == 0:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
     if len(pairings) > 1:
@@ -121,7 +128,7 @@ def update_pairing(request):
         pairing.scheduled_time = datetime
     pairing.save()
 
-    return JsonResponse({'updated': 1})
+    return JsonResponse({'updated': 1, 'reversed': reversed})
 
 def _get_active_rounds(league_tag, season_tag):
     rounds = Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
