@@ -255,7 +255,6 @@ class JavafoInstance:
                         color = '-'
                     line += '{0: >6} {1} {2}'.format(opponent_num, color, score)
                 line += '\n'
-                print line
                 input_file.write(line)
             input_file.flush()
 
