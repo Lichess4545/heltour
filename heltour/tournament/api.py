@@ -5,12 +5,13 @@ import json
 from models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
+from django.views.decorators.http import require_GET, require_POST
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
 # where "abc123" is the secret token of an API key in the database
 
-def api_token_required(view_func):
+def require_api_token(view_func):
     def _wrapped_view_func(request, *args, **kwargs):
         if not 'HTTP_AUTHORIZATION' in request.META:
             return HttpResponse('Unauthorized', status=401)
@@ -20,7 +21,8 @@ def api_token_required(view_func):
         return view_func(request, *args, **kwargs)
     return _wrapped_view_func
 
-@api_token_required
+@require_GET
+@require_api_token
 def find_pairing(request):
     try:
         league_tag = request.GET.get('league', None)
@@ -80,7 +82,8 @@ def _export_pairing(p):
         }
 
 @csrf_exempt
-@api_token_required
+@require_POST
+@require_api_token
 def update_pairing(request):
     try:
         league_tag = request.POST.get('league', None)
@@ -144,7 +147,8 @@ def _filter_pairings(pairings, player=None, white=None, black=None):
         pairings = pairings.filter(black__lichess_username__iexact=black)
     return list(pairings)
 
-@api_token_required
+@require_GET
+@require_api_token
 def get_roster(request):
     try:
         league_tag = request.GET.get('league', None)
@@ -194,7 +198,8 @@ def get_roster(request):
     })
 
 @csrf_exempt
-@api_token_required
+@require_POST
+@require_api_token
 def assign_alternate(request):
     try:
         league_tag = request.POST.get('league', None)
@@ -243,7 +248,8 @@ def assign_alternate(request):
     return JsonResponse({'updated': 1})
 
 @csrf_exempt
-@api_token_required
+@require_POST
+@require_api_token
 def set_availability(request):
     try:
         league_tag = request.POST.get('league', None)
@@ -283,7 +289,8 @@ def set_availability(request):
 
     return JsonResponse({'updated': 1})
 
-@api_token_required
+@require_GET
+@require_api_token
 def league_document(request):
     try:
         league_tag = request.GET.get('league', None)
