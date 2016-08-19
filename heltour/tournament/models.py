@@ -25,12 +25,18 @@ def _getnestedattr(obj, k):
 class ScoreField(models.PositiveIntegerField):
 
     def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return None
         return value / 2.0
 
     def get_db_prep_value(self, value, connection, prepared=False):
+        if value is None:
+            return None
         return int(value * 2)
 
     def to_python(self, value):
+        if value is None or value == '':
+            return None
         return float(value)
 
     def formfield(self, **kwargs):
