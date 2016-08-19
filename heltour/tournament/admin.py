@@ -770,13 +770,16 @@ class RegistrationAdmin(VersionAdmin):
         else:
             form = forms.ReviewRegistrationForm()
 
+        is_team = reg.season.league.competitor_type == 'team'
+        
         context = {
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
             'original': reg,
             'title': 'Review registration',
-            'form': form
+            'form': form,
+            'is_team': is_team
         }
 
         return render(request, 'tournament/admin/review_registration.html', context)
@@ -802,11 +805,40 @@ class RegistrationAdmin(VersionAdmin):
                             season=reg.season,
                             defaults={'registration': reg, 'is_active': True}
                         )
+                        
+                        if reg.season.league.competitor_type == 'team':
+                            # Set availability
+                            for week_number in reg.weeks_unavailable.split(','):
+                                if week_number != '':
+                                    round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                                    if round_ is not None:
+                                        PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                            
+                            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
+                            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
+                            msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+                        else:
+                            # Create byes
+                            for week_number in reg.weeks_unavailable.split(','):
+                                if week_number != '':
+                                    round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                                    if round_ is not None and not round_.publish_pairings:
+                                        PlayerBye.objects.update_or_create(player=player, round=round_, defaults={'type': 'half-point-bye'})
+                            
+                            if Round.objects.filter(season=reg.season, publish_pairings=True).count() > 0: 
+                                # Late registration
+                                next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+                                if next_round is not None:
+                                    PlayerLateRegistration.objects.create(round=next_round, player=player,
+                                                                          retroactive_byes=form.cleaned_data['retroactive_byes'],
+                                                                          late_join_points=form.cleaned_data['late_join_points'])
+                            
+                            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
+                            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
+                            msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
+                        
                         if form.cleaned_data['send_confirm_email']:
                             try:
-                                subject = render_to_string('tournament/emails/registration_approved_subject.txt', {'reg': reg})
-                                msg_plain = render_to_string('tournament/emails/registration_approved.txt', {'reg': reg})
-                                msg_html = render_to_string('tournament/emails/registration_approved.html', {'reg': reg})
                                 send_mail(
                                     subject,
                                     msg_plain,
@@ -817,6 +849,7 @@ class RegistrationAdmin(VersionAdmin):
                                 self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
                             except SMTPException:
                                 self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
+                        
                         if form.cleaned_data['invite_to_slack']:
                             try:
                                 slackapi.invite_user(reg.email)
@@ -825,32 +858,29 @@ class RegistrationAdmin(VersionAdmin):
                                 self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
                             except slackapi.AlreadyInvited:
                                 self.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
-
+                                
                         reg.status = 'approved'
                         reg.status_changed_by = request.user.username
                         reg.status_changed_date = timezone.now()
                         reg.save()
-
-                        for week_number in reg.weeks_unavailable.split(','):
-                            if week_number != '':
-                                round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
-                                if round_ is not None:
-                                    PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
-
+                        
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect('admin:tournament_registration_changelist')
                 else:
                     return redirect('admin:tournament_registration_change', object_id)
         else:
             form = forms.ApproveRegistrationForm(registration=reg)
-
+            
+        next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+        
         context = {
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
             'original': reg,
             'title': 'Confirm approval',
-            'form': form
+            'form': form,
+            'next_round': next_round
         }
 
         return render(request, 'tournament/admin/approve_registration.html', context)

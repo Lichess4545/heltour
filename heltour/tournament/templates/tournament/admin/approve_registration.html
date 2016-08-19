@@ -37,6 +37,10 @@
 	
 	<div class="actions">
 	    <div class="action-checkbox">
+			The player <span class="text-username">{{ original.lichess_username }}</span> will be registered for Round {{ next_round.number }}.
+		</div>
+		
+	    <div class="action-checkbox">
 			{{ form.invite_to_slack }}
 	    	<label for="{{ form.invite_to_slack.id_for_label }}">Invite <span class="text-email">{{ original.email }}</span> to Slack</label>
 		</div>
@@ -45,6 +49,18 @@
 			{{ form.send_confirm_email }}
 	    	<label for="{{ form.send_confirm_email.id_for_label }}">Send a confirmation email to <span class="text-email">{{ original.email }}</span></label>
 		</div>
+		
+		{% if form.late_join_points %}
+	    <div class="action-checkbox">
+	    	<label for="{{ form.retroactive_byes.id_for_label }}">Retroactive byes:</label>
+			{{ form.retroactive_byes }}
+		</div>
+		
+	    <div class="action-checkbox">
+	    	<label for="{{ form.late_join_points.id_for_label }}">Late-join-points:</label>
+			{{ form.late_join_points }}
+		</div>
+		{% endif %}
 	</div>
 	
 	<div class="submit-row">

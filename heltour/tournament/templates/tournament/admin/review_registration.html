@@ -61,30 +61,36 @@
 		    {{ original.already_in_slack_group|yesno:'Yes,No' }}
 		</div>
 		
+		{% if is_team %}
 		<div class="form-row">
 			<label>Previous season alternate:</label>
 		    {{ original.get_previous_season_alternate_display }}
 		</div>
+		{% endif %}
 		
 		<div class="form-row">
 			<label>Can commit to 1 long game per week:</label>
 		    <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
 		</div>
 		
+		{% if is_team %}
 		<div class="form-row">
 			<label>Friends for pairing:</label>
 		    {{ original.friends }}
 		</div>
+		{% endif %}
 		
 		<div class="form-row">
 			<label>Agreed to rules:</label>
 		    <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
 		</div>
 		
+		{% if is_team %}
 		<div class="form-row">
 			<label>Alternate preference:</label>
 		    {{ original.get_alternate_preference_display }}
 		</div>
+		{% endif %}
 		
 		<div class="form-row">
 			<label>Weeks unavailable:</label>

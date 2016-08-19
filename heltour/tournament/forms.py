@@ -98,6 +98,10 @@ class ApproveRegistrationForm(forms.Form):
         super(ApproveRegistrationForm, self).__init__(*args, **kwargs)
 
         self.fields['invite_to_slack'].initial = not reg.already_in_slack_group
+        
+        if reg.season.league.competitor_type != 'team' and reg.season.round_set.filter(publish_pairings=True).count() > 0:
+            self.fields['retroactive_byes'] = forms.IntegerField(initial=0)
+            self.fields['late_join_points'] = forms.FloatField(initial=0)
 
 class RejectRegistrationForm(forms.Form):
 
