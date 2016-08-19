@@ -64,6 +64,15 @@ class RegistrationForm(forms.ModelForm):
                                                                 help_text=_(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'),
                                                                 choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
+        
+        if self.season.league.competitor_type != 'team':
+            # Modifications for lonewolf
+            del self.fields['alternate_preference']
+            del self.fields['previous_season_alternate']
+            del self.fields['friends']
+            self.fields['can_commit'].label = _(u'Are you able to commit to 1 long time control game (30|30 currently) of classical chess on Lichess.org per week?')
+            self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the LoneWolf League?')
+            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://docs.google.com/document/d/105gEd79MdUVIt4pW_T_BsX-TvSyNB1lvNJ9p73k9gFo/edit">Rules Document</a>')
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
