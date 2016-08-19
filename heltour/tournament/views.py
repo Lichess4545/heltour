@@ -277,8 +277,8 @@ def pairings(request, league_tag=None, season_tag=None, round_number=None, team_
     else:
         return lone_pairings(request, league_tag, season_tag, round_number, team_number)
 
-@cached_view_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, *common_team_models,
-                vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.change_pairing')))
+@cached_view_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, TeamPlayerPairing,
+                PlayerPairing, *common_team_models, vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.change_pairing')))
 def team_pairings(request, league_tag=None, season_tag=None, round_number=None, team_number=None):
     specified_round = round_number is not None
     season = _get_season(league_tag, season_tag)
