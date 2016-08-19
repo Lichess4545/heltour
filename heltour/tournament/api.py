@@ -35,7 +35,7 @@ def find_pairing(request):
 
     rounds = _get_active_rounds(league_tag, season_tag)
     if len(rounds) == 0:
-        return JsonResponse({'pairings': None, 'error': 'no_data'})
+        return JsonResponse({'pairings': None, 'error': 'no_matching_rounds'})
 
     pairings = []
     for r in rounds:
@@ -100,7 +100,7 @@ def update_pairing(request):
 
     rounds = _get_active_rounds(league_tag, season_tag)
     if len(rounds) == 0:
-        return JsonResponse({'updated': 0, 'error': 'no_data'})
+        return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
     pairings = []
     for r in rounds:
@@ -174,7 +174,7 @@ def get_roster(request):
 
         season = seasons[0]
     except IndexError:
-        return JsonResponse({'season_tag': None, 'players': None, 'teams': None, 'error': 'no_data'})
+        return JsonResponse({'season_tag': None, 'players': None, 'teams': None, 'error': 'no_matching_rounds'})
 
     season_players = season.seasonplayer_set.all()
     teams = season.team_set.order_by('number').all()
@@ -237,7 +237,7 @@ def assign_alternate(request):
         team = season.team_set.filter(number=team_num)[0]
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
-        return JsonResponse({'updated': 0, 'error': 'no_data'})
+        return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
     if player is None:
         return JsonResponse({'updated': 0, 'error': 'player_not_found'})
@@ -284,7 +284,7 @@ def set_availability(request):
             round_ = season.round_set.filter(number=round_num)[0]
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
-        return JsonResponse({'updated': 0, 'error': 'no_data'})
+        return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
     if player is None:
         return JsonResponse({'updated': 0, 'error': 'player_not_found'})
