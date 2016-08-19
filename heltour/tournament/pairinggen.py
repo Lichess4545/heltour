@@ -63,6 +63,9 @@ def _generate_lone_pairings(round_, overwrite=False):
                 delete_pairings(round_)
             else:
                 raise PairingsExistException()
+        else:
+            # Always overwrite pairing byes
+            PlayerBye.objects.filter(round=round_, type='full-point-pairing-bye').delete()
 
         # Perform any registrations and withdrawls
         for reg in round_.playerlateregistration_set.all():
