@@ -442,6 +442,12 @@ class PlayerBye(_BaseModel):
         super(PlayerBye, self).save(*args, **kwargs)
         if (round_changed or player_changed or type_changed) and self.round.is_completed:
             self.round.season.calculate_scores()
+            
+    def delete(self, *args, **kwargs):
+        round_ = self.round
+        super(PlayerBye, self).delete(*args, **kwargs)
+        if round_.is_completed:
+            round_.season.calculate_scores()
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
@@ -697,6 +703,22 @@ class PlayerPairing(_BaseModel):
             if black_changed and lpp.round.is_completed:
                 lpp.black_rank = None
                 lpp.save()
+
+    def delete(self, *args, **kwargs):
+        team_pairing = None
+        round_ = None
+        if hasattr(self, 'teamplayerpairing'):
+            team_pairing = self.teamplayerpairing.team_pairing
+        if hasattr(self, 'loneplayerpairing'):
+            lpp = LonePlayerPairing.objects.nocache().get(pk=self.loneplayerpairing.pk)
+            if lpp.round.is_completed:
+                round_ = lpp.round
+        super(PlayerPairing, self).delete(*args, **kwargs)
+        if team_pairing is not None:
+            self.teamplayerpairing.team_pairing.refresh_points()
+            self.teamplayerpairing.team_pairing.save()
+        if round_ is not None:
+            round_.season.calculate_scores()
 
 #-------------------------------------------------------------------------------
 class TeamPlayerPairing(PlayerPairing):
