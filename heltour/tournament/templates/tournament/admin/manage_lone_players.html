@@ -1,0 +1,167 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load staticfiles tournament_extras %}
+
+{% block extrahead %}{{ block.super }}
+<script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+<script type="text/javascript" src="{% static 'tournament/js/common.js' %}"></script>
+{% endblock %}
+
+{% block title %}Manage players{{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inline">
+	<h1>Manage players</h1>
+	<table>
+		<thead>
+			<tr>
+				<th colspan="6">Active players</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+			{% for season_player in active_players %}
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ season_player.player.lichess_username }}">
+							{{ season_player.player.lichess_username }}{% if season_player.player.rating %} ({{ season_player.player.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+				<td>
+					<a href="{% url 'admin:tournament_seasonplayer_change' season_player.pk %}?_popup=1" id="change-seasonplayer-{{ season_player.pk }}" class="popup-link" title="Change selected season player">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+	        {% if forloop.counter|divisibleby:3 %}
+	        </tr>
+	        <tr>
+	        {% endif %}
+			{% endfor %}
+			</tr>
+		</tbody>
+		<thead>
+			<tr>
+				<th colspan="6">Inactive players</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+			{% for season_player in inactive_players %}
+				<td>
+					<div class="pairing-player">
+						<a href="http://lichess.org/@/{{ season_player.player.lichess_username }}">
+							{{ season_player.player.lichess_username }}{% if season_player.player.rating %} ({{ season_player.player.rating }}){% endif %}
+						</a>
+					</div>
+				</td>
+				<td>
+					<a href="{% url 'admin:tournament_seasonplayer_change' season_player.pk %}?_popup=1" id="change-seasonplayer-{{ season_player.pk }}" class="popup-link" title="Change selected season player">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+	        {% if forloop.counter|divisibleby:3 %}
+	        </tr>
+	        <tr>
+	        {% endif %}
+			{% endfor %}
+			</tr>
+		</tbody>
+	</table>
+	<a href="{% url 'admin:tournament_seasonplayer_add' %}?_popup=1&season={{ original.pk }}" id="add-seasonplayer" class="create-link popup-link" title="Add season player">
+        <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Season Player
+    </a>
+</div>
+<div class="inline" id="scheduled-actions">
+	<h1>Scheduled actions</h1>
+	<table>
+		{% for round_, regs, wds, byes in round_data %}
+		<thead>
+			<tr>
+				<th colspan="6">Round {{ round_.number }}</th>
+			</tr>
+			<tr>
+				<th>Action</th>
+				<th>Player</th>
+				<th colspan="4">Details</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for reg in regs %}
+			<tr>
+				<td>Register</td>
+				<td>{{ reg.player }}</td>
+				<td>Byes: {{ reg.retroactive_byes }}</td>
+				<td>LjP: {{ reg.late_join_points }}</td>
+				<td>
+					<a href="{% url 'admin:tournament_playerlateregistration_change' reg.pk %}?_popup=1" id="change-playerlateregistration-{{ reg.pk }}" class="popup-link" title="Change selected player late registration">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+				<td>
+					<a href="{% url 'admin:tournament_playerlateregistration_delete' reg.pk %}?_popup=1" id="delete-playerlateregistration-{{ reg.pk }}" class="popup-link" title="Delete selected player late registration">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+			        </a>
+		        </td>
+			</tr>
+			{% endfor %}
+			{% for wd in wds %}
+			<tr>
+				<td>Withdraw</td>
+				<td>{{ wd.player }}</td>
+				<td></td>
+				<td></td>
+				<td>
+					<a href="{% url 'admin:tournament_playerwithdrawl_change' wd.pk %}?_popup=1" id="change-tournament_playerwithdrawl_change-{{ wd.pk }}" class="popup-link" title="Change selected player withdrawl">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+				<td>
+					<a href="{% url 'admin:tournament_playerwithdrawl_delete' wd.pk %}?_popup=1" id="delete-tournament_playerwithdrawl_delete-{{ wd.pk }}" class="popup-link" title="Delete selected player withdrawl">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+			        </a>
+		        </td>
+			</tr>
+			{% endfor %}
+			{% for bye in byes %}
+			<tr>
+				<td>Bye</td>
+				<td>{{ bye.player }}</td>
+				<td colspan="2">{{ bye.get_type_display }}</td>
+				<td>
+					<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-playerbye-{{ bye.pk }}" class="popup-link" title="Change selected player bye">
+			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+			        </a>
+		        </td>
+				<td>
+					<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-playerbye-{{ bye.pk }}" class="popup-link" title="Delete selected player bye">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
+			        </a>
+		        </td>
+			</tr>
+			{% endfor %}
+			<tr>
+				<td colspan="6">
+					<a href="{% url 'admin:tournament_playerlateregistration_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerlateregistration" class="inline-create-link popup-link" title="Add player late registration">
+			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Register
+			        </a>
+					<a href="{% url 'admin:tournament_playerwithdrawl_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerwithdrawl" class="inline-create-link popup-link" title="Add player withdrawl">
+			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
+			        </a>
+					<a href="{% url 'admin:tournament_playerbye_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerbye" class="inline-create-link popup-link" title="Add player bye">
+			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Bye
+			        </a>
+				</td>
+			</tr>
+		</tbody>
+		{% endfor %}
+	</table>
+</div>
+
+<div class="submit-row">
+	<form action="{% url 'admin:tournament_season_changelist' %}"> 
+		<input class="default" value="Done" type="submit">
+	</form>
+</div>
+{% endblock %}

@@ -49,6 +49,24 @@
 	margin-bottom: 10px;
 }
 
+.inline-create-link {
+	margin-right: 10px;
+}
+
 .row-error {
 	background-color: #fffcab;
+}
+
+.inline {
+	display: inline-block;
+	vertical-align: top;
+}
+
+#scheduled-actions {
+	margin-left: 40px;
+}
+
+#scheduled-actions table tbody tr td:nth-child(1),
+#scheduled-actions table tbody tr td:nth-child(2) {
+	padding-right: 20px;
 }

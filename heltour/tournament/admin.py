@@ -260,6 +260,13 @@ class SeasonAdmin(VersionAdmin):
 
     def manage_players_view(self, request, object_id):
         season = Season.objects.get(pk=object_id)
+        if season.league.competitor_type == 'team':
+            return self.team_manage_players_view(request, object_id)
+        else:
+            return self.lone_manage_players_view(request, object_id)
+
+    def team_manage_players_view(self, request, object_id):
+        season = Season.objects.get(pk=object_id)
         teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         if request.method == 'POST':
@@ -390,6 +397,29 @@ class SeasonAdmin(VersionAdmin):
         }
 
         return render(request, 'tournament/admin/edit_rosters.html', context)
+
+    def lone_manage_players_view(self, request, object_id):
+        season = Season.objects.get(pk=object_id)
+
+        active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
+        inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
+
+        rounds = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number')
+        round_data = [(r, r.playerlateregistration_set.order_by('player__lichess_username'), r.playerwithdrawl_set.order_by('player__lichess_username'),
+                  r.playerbye_set.order_by('player__lichess_username')) for r in rounds]
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': '',
+            'active_players': active_players,
+            'inactive_players': inactive_players,
+            'round_data': round_data,
+        }
+
+        return render(request, 'tournament/admin/manage_lone_players.html', context)
 
 @admin.register(Round)
 class RoundAdmin(VersionAdmin):
