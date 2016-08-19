@@ -57,7 +57,7 @@
 							<tr{% if not season.is_completed and player_score.late_join_points > 0 %} class="temporary-rank"{% endif %}>
 								<td class="text-center rank-value">{{ number }}</td>
 								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+									<a href="{% leagueurl 'player_profile' league_tag season_tag player_score.season_player.player.lichess_username %}">
 										{{ player_score.season_player.player.lichess_username }}
 									</a>
 								</td>

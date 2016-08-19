@@ -117,7 +117,7 @@
 							<tr>
 								<td class="text-center rank-value">{{ number }}</td>
 								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+									<a href="{% leagueurl 'player_profile' league_tag season_tag player_score.season_player.player.lichess_username %}">
 										{{ player.lichess_username }}
 									</a>
 								</td>

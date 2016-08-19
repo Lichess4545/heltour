@@ -40,7 +40,7 @@
 						<tr>
 							<td class="text-center rank-value">{{ number }}</td>
 							<td>
-								<a href="http://lichess.org/@/{{ player_score.season_player.player.lichess_username }}">
+								<a href="{% leagueurl 'player_profile' league_tag season_tag player_score.season_player.player.lichess_username %}">
 									{{ player_score.season_player.player.lichess_username }}
 								</a>
 							</td>
@@ -95,7 +95,7 @@
 								{{ pairing.white_score }}
 							</td>
 							<td>
-								<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
 								</a>
 							</td>
@@ -103,7 +103,7 @@
 								{{ pairing.black_score }}
 							</td>
 							<td>
-								<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
 								</a>
 							</td>

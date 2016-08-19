@@ -19,14 +19,14 @@
 				<td>{{ pairing.white_team_name }}</td>
 				<td>
 					<div class="pairing-player">
-						<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.white.lichess_username %}">
 							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
 						</a>
 					</div>
 				</td>
 				<td>
 					<div class="pairing-player">
-						<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.black.lichess_username %}">
 							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
 						</a>
 					</div>

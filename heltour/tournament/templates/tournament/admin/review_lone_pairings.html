@@ -30,7 +30,7 @@
 				<td>{{ pairing.white_rank|default_if_none:'' }}</td>
 				<td>
 					<div class="pairing-player">
-						<a href="http://lichess.org/@/{{ pairing.white.lichess_username }}">
+						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.white.lichess_username %}">
 							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
 						</a>
 					</div>
@@ -38,7 +38,7 @@
 				<td>{{ pairing.black_rank|default_if_none:'' }}</td>
 				<td>
 					<div class="pairing-player">
-						<a href="http://lichess.org/@/{{ pairing.black.lichess_username }}">
+						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.black.lichess_username %}">
 							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
 						</a>
 					</div>
@@ -61,7 +61,7 @@
 				<td>{{ bye.player_rank|default_if_none:'' }}</td>
 				<td>
 					<div class="pairing-player">
-						<a href="http://lichess.org/@/{{ bye.player.lichess_username }}">
+						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag bye.player.lichess_username %}">
 							{{ bye.player.lichess_username }}{% if bye.player.rating %} ({{ bye.player.rating }}){% endif %}
 						</a>
 					</div>
