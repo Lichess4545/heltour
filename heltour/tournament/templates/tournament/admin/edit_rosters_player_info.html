@@ -10,7 +10,10 @@
 <tr><td>Alt Pref:</td><td>{{ reg.get_alternate_preference_display }}</td></tr>
 {% endif %} 
 <tr><td>Missed games:</td><td>{{ season_player.games_missed }}</td></tr>
-{% render_comments_list for player %}
+{% get_comment_list for player as comments %}
+{% if comments %}
+<tr><td>{% render_comment_list for player %}</td></tr>
+{% endif %}
 <tr><td colspan="2"><input type="checkbox" class="captain-checkbox" id="captain" /><label for="captain">Captain</label></div></td></tr>
 <tr><td colspan="2"><input type="checkbox" class="vice-captain-checkbox" id="vice-captain" /><label for="vice-captain">Vice captain</label></td></tr>
 </table>
