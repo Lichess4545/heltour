@@ -154,6 +154,7 @@ div.inline {
 
 .document-content {
 	padding: 5px;
+	line-height: 180%;
 }
 
 .document-edit {

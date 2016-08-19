@@ -11,7 +11,7 @@ $(function() {
 	$('.large-popup-link').click(function() {
 		var name = this.id;
 		var href = this.href;
-		var win = window.open(href, name, 'height=650,width=900,resizable=yes,scrollbars=yes');
+		var win = window.open(href, name, 'height=700,width=1000,resizable=yes,scrollbars=yes');
 		win.focus();
 		return false;
 	})
