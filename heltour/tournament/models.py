@@ -6,6 +6,7 @@ from ckeditor.fields import RichTextField
 from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
+from django import forms
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -22,11 +23,20 @@ def _getnestedattr(obj, k):
 
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
+
     def from_db_value(self, value, expression, connection, context):
         return value / 2.0
 
     def get_db_prep_value(self, value, connection, prepared=False):
         return int(value * 2)
+
+    def to_python(self, value):
+        return float(value)
+
+    def formfield(self, **kwargs):
+        defaults = {'widget': forms.TextInput(attrs={'class': 'vIntegerField'})}
+        defaults.update(kwargs)
+        return forms.FloatField(**defaults)
 
 #-------------------------------------------------------------------------------
 class _BaseModel(models.Model):
