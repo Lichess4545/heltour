@@ -55,59 +55,61 @@
 			<div class="well-body">
 				{% if has_win_rate_stats %}
 				<h4>Win Rate</h4>
-				<div id="result-chart-div" style="height: 400px;"></div>
-				<table class="table" id="table-result-stats">
-					<tr class="header-row">
-						<th>&nbsp;</th>
-						<th>White Win</th>
-						<th>Draw</th>
-						<th>Black Win</th>
-						<th>Differential</th>
-						<th>White Rating+</th>
-					</tr>
-					<tr>
-						<td>Count - All</td>
-						<td>{{ total_counts.0 }}</td>
-						<td>{{ total_counts.1 }}</td>
-						<td>{{ total_counts.2 }}</td>
-						<td>{{ total_counts.3 }}</td>
-						<td>{{ total_rating_delta|floatformat:2 }}</td>
-					</tr>
-					<tr>
-						<td>Percent - All</td>
-						<td>{{ total_percents.0|percent:2 }}</td>
-						<td>{{ total_percents.1|percent:2 }}</td>
-						<td>{{ total_percents.2|percent:2 }}</td>
-						<td>{{ total_percents.3|percent:2 }}</td>
-						<td>&nbsp;</td>
-					</tr>
-					{% for board_number, board_counts, board_percents, rating_delta in boards %}
-					<tr class="header-row">
-						<th>&nbsp;</th>
-						<th>White Win</th>
-						<th>Draw</th>
-						<th>Black Win</th>
-						<th>Differential</th>
-						<th>White Rating+</th>
-					</tr>
-					<tr>
-						<td>Count - B{{ board_number }}</td>
-						<td>{{ board_counts.0 }}</td>
-						<td>{{ board_counts.1 }}</td>
-						<td>{{ board_counts.2 }}</td>
-						<td>{{ board_counts.3 }}</td>
-						<td>{{ rating_delta|floatformat:2 }}</td>
-					</tr>
-					<tr>
-						<td>Percent - B{{ board_number }}</td>
-						<td>{{ board_percents.0|percent:2 }}</td>
-						<td>{{ board_percents.1|percent:2 }}</td>
-						<td>{{ board_percents.2|percent:2 }}</td>
-						<td>{{ board_percents.3|percent:2 }}</td>
-						<td>&nbsp;</td>
-					</tr>
-					{% endfor %}
-				</table>
+				<div class="table-responsive">
+					<div id="result-chart-div" style="height: 400px;"></div>
+					<table class="table table-condensed-xs" id="table-result-stats">
+						<tr class="header-row">
+							<th>&nbsp;</th>
+							<th>White Win</th>
+							<th>Draw</th>
+							<th>Black Win</th>
+							<th>Differential</th>
+							<th>White Rating+</th>
+						</tr>
+						<tr>
+							<td>Count - All</td>
+							<td>{{ total_counts.0 }}</td>
+							<td>{{ total_counts.1 }}</td>
+							<td>{{ total_counts.2 }}</td>
+							<td>{{ total_counts.3 }}</td>
+							<td>{{ total_rating_delta|floatformat:2 }}</td>
+						</tr>
+						<tr>
+							<td>Percent - All</td>
+							<td>{{ total_percents.0|percent:2 }}</td>
+							<td>{{ total_percents.1|percent:2 }}</td>
+							<td>{{ total_percents.2|percent:2 }}</td>
+							<td>{{ total_percents.3|percent:2 }}</td>
+							<td>&nbsp;</td>
+						</tr>
+						{% for board_number, board_counts, board_percents, rating_delta in boards %}
+						<tr class="header-row">
+							<th>&nbsp;</th>
+							<th>White Win</th>
+							<th>Draw</th>
+							<th>Black Win</th>
+							<th>Differential</th>
+							<th>White Rating+</th>
+						</tr>
+						<tr>
+							<td>Count - B{{ board_number }}</td>
+							<td>{{ board_counts.0 }}</td>
+							<td>{{ board_counts.1 }}</td>
+							<td>{{ board_counts.2 }}</td>
+							<td>{{ board_counts.3 }}</td>
+							<td>{{ rating_delta|floatformat:2 }}</td>
+						</tr>
+						<tr>
+							<td>Percent - B{{ board_number }}</td>
+							<td>{{ board_percents.0|percent:2 }}</td>
+							<td>{{ board_percents.1|percent:2 }}</td>
+							<td>{{ board_percents.2|percent:2 }}</td>
+							<td>{{ board_percents.3|percent:2 }}</td>
+							<td>&nbsp;</td>
+						</tr>
+						{% endfor %}
+					</table>
+				</div>
 				{% else %}
 				<p>No stats available.</p>
 				{% endif %}

@@ -551,4 +551,8 @@ div.inline {
 	.document-content ul ul, .document-content ol ol {
 		padding-left: 30px;
 	}
+	
+	#table-result-stats {
+		table-layout: auto;
+	}
 }

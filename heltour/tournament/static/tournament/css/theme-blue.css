@@ -76,7 +76,7 @@
 	.row-condensed-xs .well {
 		border-radius: 0;
 	}
-	.row-condensed-xs .well .table-condensed-xs {
+	.row-condensed-xs .well-body > .table-condensed-xs {
 		margin-left: -15px;
 		min-width: calc(100% + 30px);
 	}
