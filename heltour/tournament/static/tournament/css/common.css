@@ -555,4 +555,8 @@ div.inline {
 	#table-result-stats {
 		table-layout: auto;
 	}
+	
+	.round-switcher:first-child {
+		margin-left: -5px;
+	}
 }
