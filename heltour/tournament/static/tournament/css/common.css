@@ -540,4 +540,11 @@ div.inline {
 	#home-league-list {
 		max-width: 350px;
 	}
+
+	.document-content ul, .document-content ol {
+		padding-left: 15px;
+	}
+	.document-content ul ul, .document-content ol ol {
+		padding-left: 30px;
+	}
 }
