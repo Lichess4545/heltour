@@ -193,6 +193,7 @@ class Season(_BaseModel):
 
     def _calculate_lone_scores(self):
         season_players = SeasonPlayer.objects.filter(season=self).select_related('loneplayerscore').nocache()
+        seed_rating_dict = {sp.player_id: sp.seed_rating for sp in season_players}
         score_dict = {}
         last_round = None
         for round_ in self.round_set.filter(is_completed=True).order_by('number'):
@@ -203,13 +204,13 @@ class Season(_BaseModel):
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(byes, player_id=sp.player_id)
                 if white_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
+                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
                 elif black_pairing is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, black_pairing.white_id, black_pairing.black_score() or 0, black_pairing.game_played())
+                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, black_pairing.white_id, black_pairing.black_score() or 0, black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, bye.score(), False)
+                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, None, bye.score(), False)
                 else:
-                    self._increment_lone_score(score_dict, round_, last_round, sp.player_id, None, 0, False)
+                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, None, 0, False)
             last_round = round_
 
         player_scores = [sp.get_loneplayerscore() for sp in season_players]
@@ -223,7 +224,7 @@ class Season(_BaseModel):
                 score.tiebreak3 = 0
                 score.tiebreak4 = 0
             else:
-                total, _, cumul, _, _ = score_dict[(score.season_player.player_id, last_round.number)]
+                total, _, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(score.season_player.player_id, last_round.number)]
                 score.points = total
 
                 # Tiebreak calculations
@@ -231,7 +232,7 @@ class Season(_BaseModel):
                 opponent_scores = []
                 opponent_cumuls = []
                 for round_number in range(1, last_round.number + 1):
-                    _, _, _, round_opponent, played = score_dict[(player_id, round_number)]
+                    _, _, _, _, _, _, round_opponent, played = score_dict[(player_id, round_number)]
                     if played and round_opponent is not None:
                         opponent_scores.append(score_dict[(round_opponent, last_round.number)][1])
                         opponent_cumuls.append(score_dict[(round_opponent, last_round.number)][2])
@@ -257,19 +258,36 @@ class Season(_BaseModel):
                 # TB4: Cumulative opponent
                 score.tiebreak4 = sum(opponent_cumuls)
 
+                # Performance rating
+                print player_id, perf_n, perf_total_rating, perf_score
+                if perf_n >= 5:
+                    average_opp_rating = int(round(perf_total_rating / float(perf_n)))
+                    # Turn the score into a number from 0-100 (0 = 0%, 100 = 100%)
+                    lookup_index = max(min(int(round(100.0 * perf_score / perf_n)), 100), 0)
+                    # Use that number to get a rating difference from the FIDE lookup table
+                    dp = fide_dp_lookup[lookup_index]
+                    score.perf_rating = average_opp_rating + dp
+                else:
+                    score.perf_rating = None
+
             score.save()
 
-    def _increment_lone_score(self, score_dict, round_, last_round, player_id, opponent, score, played):
-        total, mm_total, cumul, _, _ = score_dict[(player_id, last_round.number)] if last_round is not None else (0, 0, 0, None, False)
+    def _increment_lone_score(self, score_dict, seed_rating_dict, round_, last_round, player_id, opponent, score, played):
+        total, mm_total, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(player_id, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, False)
         total += score
         cumul += total
         if played:
             mm_total += score
+            opp_rating = seed_rating_dict.get(opponent, None)
+            if opp_rating is not None:
+                perf_total_rating += opp_rating
+                perf_score += score
+                perf_n += 1
         else:
             # Special cases for unplayed games
             mm_total += 1
             cumul -= score
-        score_dict[(player_id, round_.number)] = (total, mm_total, cumul, opponent, played)
+        score_dict[(player_id, round_.number)] = (total, mm_total, cumul, perf_total_rating, perf_score, perf_n, opponent, played)
 
     def is_started(self):
         return self.start_date is not None and self.start_date < timezone.now()
@@ -285,6 +303,14 @@ class Season(_BaseModel):
 
     def __unicode__(self):
         return self.name
+
+# From https://www.fide.com/component/handbook/?id=174&view=article
+# Used for performance rating calculations
+fide_dp_lookup = [-800, -677, -589, -538, -501, -470, -444, -422, -401, -383, -366, -351, -336, -322, -309, -296, -284, -273, -262, -251,
+                   - 240, -230, -220, -211, -202, -193, -184, -175, -166, -158, -149, -141, -133, -125, -117, -110, -102, -95, -87, -80, -72,
+                   - 65, -57, -50, -43, -36, -29, -21, -14, -7, 0, 7, 14, 21, 29, 36, 43, 50, 57, 65, 72, 80, 87, 95, 102, 110, 117, 125, 133,
+                   141, 149, 158, 166, 175, 184, 193, 202, 211, 220, 230, 240, 251, 262, 273, 284, 296, 309, 322, 336, 351, 366, 383, 401,
+                   422, 444, 470, 501, 538, 589, 677, 800]
 
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
@@ -856,6 +882,8 @@ class LonePlayerScore(_BaseModel):
     tiebreak3 = ScoreField(default=0)
     tiebreak4 = ScoreField(default=0)
 
+    perf_rating = models.PositiveIntegerField(blank=True, null=True)
+
     def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current=False):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
         black_pairings = black_pairings_dict.get(self.season_player.player, [])
@@ -880,7 +908,7 @@ class LonePlayerScore(_BaseModel):
                 if white_pairing.game_played() or score is None:
                     # Normal result
                     color = 'W'
-                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else ''
+                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else 'F'
                 else:
                     # Special result
                     result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
@@ -890,7 +918,7 @@ class LonePlayerScore(_BaseModel):
                 if black_pairing.game_played() or score is None:
                     # Normal result
                     color = 'B'
-                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else ''
+                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else 'F'
                 else:
                     # Special result
                     result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''

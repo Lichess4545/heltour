@@ -50,6 +50,7 @@
 								<th class="text-right">TBrk[S]</th>
 								<th class="text-right">TBrk[C]</th>
 								<th class="text-right">TBrk[O]</th>
+								<th class="text-center">Perf</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -63,7 +64,7 @@
 								</td>
 								<td class="text-center">{{ player_score.season_player.player.rating }}</td>
 								{% for result_code, opponent_num, _, _ in round_scores %}
-								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
+								<td>{{ result_code|default_if_none:'' }}{% if opponent_num and result_code %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}
 								<td class="text-center rank-value">{{ player_score.pairing_points_display }}</td>
 								<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
@@ -72,6 +73,7 @@
 								<td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
 								<td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
 								<td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
+								<td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
 							</tr>
 							{% endfor %}
 						</tbody>
