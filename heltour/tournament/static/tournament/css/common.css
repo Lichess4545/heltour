@@ -84,6 +84,10 @@ div.inline {
 	max-width: 1200px;
 }
 
+.player-profile-row .well-body {
+	overflow: auto;
+}
+
 .player-profile-section {
 	margin-bottom: 10px;
 }
@@ -204,6 +208,10 @@ div.inline {
 	table-layout: fixed;
 }
 
+.table-round-results > tbody > tr > td {
+	vertical-align: middle;
+}
+
 .table-round-results .cell-score {
 	width: 40px;
 	text-align: center;
@@ -219,6 +227,10 @@ div.inline {
 
 .table-round-results > tbody > tr > td:last-child {
 	border-right: 1px solid #ddd;
+}
+
+.table-partial-standings > tbody > tr > td {
+	vertical-align: middle;
 }
 
 #table-match-result {
@@ -546,9 +558,6 @@ div.inline {
 	}
 
 	.document-content ul, .document-content ol {
-		padding-left: 15px;
-	}
-	.document-content ul ul, .document-content ol ol {
 		padding-left: 30px;
 	}
 	
