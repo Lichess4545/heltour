@@ -22,8 +22,8 @@
 					<tbody>
 						<tr>
 							<td>{{ team_pairing.white_team_name }}</td>
-							<td class="{% resultclass team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_points_display }}</td>
-							<td class="{% resultclass team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_points_display }}</td>
+							<td class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">{{ team_pairing.white_points_display }}</td>
+							<td class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">{{ team_pairing.black_points_display }}</td>
 							<td>{{ team_pairing.black_team_name }}</td>
 						</tr>
 					</tbody>

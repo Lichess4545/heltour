@@ -117,6 +117,10 @@ div.inline {
 	text-align: center;
 }
 
+.table .cell-score {
+	vertical-align: middle;
+}
+
 .cell-score a {
 	display: block;
 	width: 100%;
