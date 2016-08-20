@@ -61,10 +61,10 @@ class RegistrationForm(forms.ModelForm):
                                                            choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         # TODO: This rules link should be specified in the league object.
         self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the 45|45 League?'),
-                                                                help_text=_(u'<a target="_blank" href="https://docs.google.com/document/d/1nRzexE_dNmqc-XiE48JxkVeW3oZjAPqUAmYltVPEbrU/edit">Rules Document</a>'),
+                                                                help_text=_(u'<a target="_blank" href="https://www.lichess4545.com/team4545/document/rules/">Rules Document</a>'),
                                                                 choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
-        
+
         if self.season.league.competitor_type != 'team':
             # Modifications for lonewolf
             del self.fields['alternate_preference']
@@ -72,7 +72,7 @@ class RegistrationForm(forms.ModelForm):
             del self.fields['friends']
             self.fields['can_commit'].label = _(u'Are you able to commit to 1 long time control game (30|30 currently) of classical chess on Lichess.org per week?')
             self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the LoneWolf League?')
-            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://docs.google.com/document/d/105gEd79MdUVIt4pW_T_BsX-TvSyNB1lvNJ9p73k9gFo/edit">Rules Document</a>')
+            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/lonewolf/document/rules/">Rules Document</a>')
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
@@ -98,7 +98,7 @@ class ApproveRegistrationForm(forms.Form):
         super(ApproveRegistrationForm, self).__init__(*args, **kwargs)
 
         self.fields['invite_to_slack'].initial = not reg.already_in_slack_group
-        
+
         if reg.season.league.competitor_type != 'team' and reg.season.round_set.filter(publish_pairings=True).count() > 0:
             self.fields['retroactive_byes'] = forms.IntegerField(initial=0)
             self.fields['late_join_points'] = forms.FloatField(initial=0)
