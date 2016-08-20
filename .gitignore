@@ -4,6 +4,7 @@ heltour/live_settings.py
 .project
 .pydevproject
 /static
+/media
 certs
 celerybeat-schedule
 *eclipse*

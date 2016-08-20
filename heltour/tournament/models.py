@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models, transaction
 from django.utils.crypto import get_random_string
-from ckeditor.fields import RichTextField
+from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
@@ -442,7 +442,7 @@ class PlayerBye(_BaseModel):
         super(PlayerBye, self).save(*args, **kwargs)
         if (round_changed or player_changed or type_changed) and self.round.is_completed:
             self.round.season.calculate_scores()
-            
+
     def delete(self, *args, **kwargs):
         round_ = self.round
         super(PlayerBye, self).delete(*args, **kwargs)
@@ -1078,7 +1078,7 @@ class ApiKey(_BaseModel):
 #-------------------------------------------------------------------------------
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
-    content = RichTextField()
+    content = RichTextUploadingField()
 
     def __unicode__(self):
         return self.name

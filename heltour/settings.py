@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'reversion',
     'bootstrap3',
     'ckeditor',
+    'ckeditor_uploader',
     'debug_toolbar',
     'cacheops',
     'django_comments'
@@ -196,6 +197,10 @@ CKEDITOR_CONFIGS = {
         'height': 300,
     },
 }
+CKEDITOR_UPLOAD_PATH = "uploads/"
+MEDIA_ROOT = 'media'
+MEDIA_URL = '/media/'
+CKEDITOR_ALLOW_NONIMAGE_FILES = False
 
 LOGIN_URL = '/admin/login/'
 
