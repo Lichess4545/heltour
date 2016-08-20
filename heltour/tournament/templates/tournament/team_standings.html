@@ -10,7 +10,7 @@
 	<div class="col-md-12">
 		<div class="well">
 			<div class="well-head">
-				<h3>Standings</h3>
+				<h3>{% if season.is_completed %}Final {% endif %}Standings</h3>
 			</div>
 			<div class="well-body">
 				{% if team_scores %}

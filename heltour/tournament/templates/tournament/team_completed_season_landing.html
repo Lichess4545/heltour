@@ -95,7 +95,7 @@
 	    {% if team_scores %}
 		<div class="well">
 			<div class="well-head">
-				<h3>Standings</h3>
+				<h3>Final Standings</h3>
 			</div>
 			<div class="well-body">
 				<div class="table-responsive">
@@ -121,7 +121,7 @@
 								<td class="text-center">{{ team_score.match_points_display }}</td>
 								<td class="text-center">{{ team_score.game_points_display }}</td>
 								{% for score, opp_score, team_pairing_id in team_score.round_scores %}
-								<td class="text-center {% resultclass score opp_score %}">
+								<td class="text-center cell-score {% resultclass score opp_score %}">
 									{% if team_pairing_id %}<a href="{% leagueurl 'result' league_tag season_tag team_pairing_id %}">{{ score|floatformat }}</a>{% endif %}
 								</td>
 								{% endfor %}
