@@ -109,7 +109,16 @@ def lone_league_home(request, league_tag=None, season_tag=None):
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
 
-    player_scores = _lone_player_scores(current_season, final=True)[:5]
+    player_scores = _lone_player_scores(current_season, final=True)
+
+    if current_season.is_completed:
+        prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=current_season)
+        player_highlights = _get_player_highlights(prize_winners)
+        winning_players = {pw.player for pw in prize_winners}
+        player_scores = [s for s in player_scores if s[1].season_player.player in winning_players]
+    else:
+        player_highlights = []
+        player_scores = player_scores[:5]
 
     # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
     # TODO: Convert game times to the user's local time (maybe in JS?)
@@ -136,6 +145,7 @@ def lone_league_home(request, league_tag=None, season_tag=None):
         'current_games': current_games,
         'upcoming_games': upcoming_games,
         'other_leagues': other_leagues,
+        'player_highlights': player_highlights,
     }
     return render(request, 'tournament/lone_league_home.html', context)
 
