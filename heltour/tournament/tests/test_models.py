@@ -18,7 +18,7 @@ def createCommonLeagueData():
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player %d' % player_num)
+            player = Player.objects.create(lichess_username='Player%d' % player_num)
             sp = SeasonPlayer.objects.create(season=season2, player=player)
             LonePlayerScore.objects.create(season_player=sp)
             player_num += 1
@@ -204,11 +204,11 @@ class TeamPairingTestCase(TestCase):
 
         self.assertEqual(1, tp.white_points)
         self.assertEqual(1, tp.black_points)
-        
+
         pp1.delete()
         pp2.delete()
         tp.refresh_from_db()
-        
+
         self.assertEqual(0, tp.white_points)
         self.assertEqual(0, tp.black_points)
 
@@ -223,25 +223,25 @@ class LonePlayerPairingTestCase(TestCase):
         sp2 = season.seasonplayer_set.all()[1]
         score1 = sp1.loneplayerscore
         score2 = sp2.loneplayerscore
-        
+
         round1.is_completed = True
         round1.save()
         self.assertEqual(0, score1.points)
         self.assertEqual(0, score2.points)
-        
+
         pairing = LonePlayerPairing.objects.create(round=round1, white=sp1.player, black=sp2.player, pairing_order=1, result='1/2-1/2')
         score1.refresh_from_db()
         score2.refresh_from_db()
         self.assertEqual(0.5, score1.points)
         self.assertEqual(0.5, score2.points)
-        
-        pairing.result='1-0'
+
+        pairing.result = '1-0'
         pairing.save()
         score1.refresh_from_db()
         score2.refresh_from_db()
         self.assertEqual(1, score1.points)
         self.assertEqual(0, score2.points)
-        
+
         pairing.delete()
         score1.refresh_from_db()
         score2.refresh_from_db()
@@ -253,18 +253,18 @@ class LonePlayerPairingTestCase(TestCase):
         round1 = season.round_set.get(number=1)
         round2 = season.round_set.get(number=2)
         sps = season.seasonplayer_set.all()
-        
+
         round1.is_completed = True
         round1.save()
         round2.is_completed = True
         round2.save()
-        
+
         pairing1 = LonePlayerPairing.objects.create(round=round1, white=sps[0].player, black=sps[1].player, pairing_order=1, result='1-0')
         pairing2 = LonePlayerPairing.objects.create(round=round2, white=sps[1].player, black=sps[0].player, pairing_order=1, result='1/2-1/2')
         pairing2.refresh_ranks()
         self.assertEqual(2, pairing2.white_rank)
         self.assertEqual(1, pairing2.black_rank)
-        
+
         pairing1.result = '0-1'
         pairing1.save()
         pairing2.refresh_ranks()
@@ -378,12 +378,12 @@ class AlternateAssignmentTestCase(TestCase):
 
         pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
 
-        self.assertEqual('Player 1', pp1.white.lichess_username)
+        self.assertEqual('Player1', pp1.white.lichess_username)
 
         AlternateAssignment.objects.create(round=tp.round, team=team1, board_number=1, player=Player.objects.create(lichess_username='Test User'))
         pp1.refresh_from_db()
         self.assertEqual('Test User', pp1.white.lichess_username)
-        
+
 class PlayerByeTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
@@ -393,30 +393,30 @@ class PlayerByeTestCase(TestCase):
         round1 = season.round_set.get(number=1)
         sp = season.seasonplayer_set.all()[0]
         score = sp.loneplayerscore
-        
+
         round1.is_completed = True
         round1.save()
         self.assertEqual(0, score.points)
-        
+
         bye = PlayerBye.objects.create(round=round1, player=sp.player, type='half-point-bye')
         score.refresh_from_db()
         self.assertEqual(0.5, score.points)
-        
+
         bye.type = 'full-point-bye'
         bye.save()
         score.refresh_from_db()
         self.assertEqual(1, score.points)
-        
+
         bye.type = 'zero-point-bye'
         bye.save()
         score.refresh_from_db()
         self.assertEqual(0, score.points)
-        
+
         bye.type = 'full-point-pairing-bye'
         bye.save()
         score.refresh_from_db()
         self.assertEqual(1, score.points)
-        
+
         bye.delete()
         score.refresh_from_db()
         self.assertEqual(0, score.points)
@@ -426,15 +426,15 @@ class PlayerByeTestCase(TestCase):
         round1 = season.round_set.get(number=1)
         sp1 = season.seasonplayer_set.all()[0]
         sp2 = season.seasonplayer_set.all()[1]
-        
+
         round1.is_completed = True
         round1.save()
-        
+
         bye1 = PlayerBye.objects.create(round=round1, player=sp1.player, type='half-point-bye')
         bye2 = PlayerBye.objects.create(round=round1, player=sp2.player, type='full-point-bye')
-        
+
         bye1.refresh_rank()
         self.assertEqual(2, bye1.player_rank)
-        
+
         bye2.refresh_rank()
         self.assertEqual(1, bye2.player_rank)

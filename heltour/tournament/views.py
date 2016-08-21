@@ -631,7 +631,10 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     rounds = Round.objects.filter(season=season).order_by('number')
     # rounds = [round_ for round_ in Round.objects.filter(season=season).order_by('number') if round_.is_completed or (include_current and round_.publish_pairings)]
 
-    return [(ps[0], ps[1], list(ps[1].round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current))) for ps in player_scores]
+    def round_scores(player_score):
+        return list(player_score.round_scores(rounds, player_number_dict, white_pairings_dict, black_pairings_dict, byes_dict, include_current))
+
+    return [(n, ps, round_scores(ps)) for n, ps in player_scores]
 
 @cached_view_as(TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def crosstable(request, league_tag=None, season_tag=None):
@@ -690,30 +693,6 @@ def result(request, pairing_id, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_match_result.html', context)
 
-def _count_results(pairings, board_num=None):
-    total = 0.0
-    counts = [0, 0, 0, 0]
-    rating_delta = 0
-    for p in pairings:
-        if p.game_link == '' or p.result == '':
-            # Don't count forfeits etc
-            continue
-        total += 1
-        if p.white.rating is not None and p.black.rating is not None:
-            rating_delta += p.white.rating - p.black.rating
-        if p.result == '1-0':
-            counts[0] += 1
-            counts[3] += 1
-        elif p.result == '0-1':
-            counts[2] += 1
-            counts[3] -= 1
-        elif p.result == '1/2-1/2':
-            counts[1] += 1
-    if total == 0:
-        return board_num, tuple(counts), (0, 0, 0, 0), 0.0
-    percents = (counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
-    return board_num, tuple(counts), percents, rating_delta / total
-
 @cached_view_as(League, Season, Round, TeamPlayerPairing, PlayerPairing, vary_request=lambda r: r.user.is_staff)
 def stats(request, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
@@ -725,8 +704,34 @@ def stats(request, league_tag=None, season_tag=None):
                                         .select_related('teamplayerpairing', 'white', 'black') \
                                         .nocache()
 
-    _, total_counts, total_percents, total_rating_delta = _count_results(all_pairings)
-    boards = [_count_results(filter(lambda p: p.teamplayerpairing.board_number == n, all_pairings), n) for n in season.board_number_list()]
+    def count_results(board_num=None):
+        total = 0.0
+        counts = [0, 0, 0, 0]
+        rating_delta = 0
+        for p in all_pairings:
+            if board_num is not None and p.teamplayerpairing.board_number != board_num:
+                continue
+            if p.game_link == '' or p.result == '':
+                # Don't count forfeits etc
+                continue
+            total += 1
+            if p.white.rating is not None and p.black.rating is not None:
+                rating_delta += p.white.rating - p.black.rating
+            if p.result == '1-0':
+                counts[0] += 1
+                counts[3] += 1
+            elif p.result == '0-1':
+                counts[2] += 1
+                counts[3] -= 1
+            elif p.result == '1/2-1/2':
+                counts[1] += 1
+        if total == 0:
+            return board_num, tuple(counts), (0, 0, 0, 0), 0.0
+        percents = (counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
+        return board_num, tuple(counts), percents, rating_delta / total
+
+    _, total_counts, total_percents, total_rating_delta = count_results()
+    boards = [count_results(board_num=n) for n in season.board_number_list()]
 
     context = {
         'league_tag': league_tag,

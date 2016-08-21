@@ -259,7 +259,6 @@ class Season(_BaseModel):
                 score.tiebreak4 = sum(opponent_cumuls)
 
                 # Performance rating
-                print player_id, perf_n, perf_total_rating, perf_score
                 if perf_n >= 5:
                     average_opp_rating = int(round(perf_total_rating / float(perf_n)))
                     # Turn the score into a number from 0-100 (0 = 0%, 100 = 100%)
@@ -345,12 +344,15 @@ class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
-    lichess_username = models.CharField(max_length=255)
+    lichess_username = models.CharField(max_length=255, validators=[RegexValidator('^[\w-]+$')])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
     is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['lichess_username']
 
     def __unicode__(self):
         if self.rating is None:

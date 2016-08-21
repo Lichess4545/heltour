@@ -20,7 +20,7 @@ def createCommonLeagueData():
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player %d' % player_num)
+            player = Player.objects.create(lichess_username='Player%d' % player_num)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
 
