@@ -121,6 +121,10 @@ div.inline {
 	text-align: center;
 }
 
+.table > tbody > tr > td {
+	vertical-align: middle;
+}
+
 .table .cell-score {
 	vertical-align: middle;
 }
@@ -208,10 +212,6 @@ div.inline {
 	table-layout: fixed;
 }
 
-.table-round-results > tbody > tr > td {
-	vertical-align: middle;
-}
-
 .table-round-results .cell-score {
 	width: 40px;
 	text-align: center;
@@ -227,10 +227,6 @@ div.inline {
 
 .table-round-results > tbody > tr > td:last-child {
 	border-right: 1px solid #ddd;
-}
-
-.table-partial-standings > tbody > tr > td {
-	vertical-align: middle;
 }
 
 #table-match-result {
