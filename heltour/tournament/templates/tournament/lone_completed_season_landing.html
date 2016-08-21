@@ -109,6 +109,7 @@
 								<th class="text-right">TBrk[S]</th>
 								<th class="text-right">TBrk[C]</th>
 								<th class="text-right">TBrk[O]</th>
+								<th class="text-center">Perf</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -130,6 +131,7 @@
 								<td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
 								<td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
 								<td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
+								<td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
 							</tr>
 							{% endwith %}
 							{% endfor %}
