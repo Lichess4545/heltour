@@ -429,6 +429,10 @@ div.inline {
 	background-color: #225622;
 }
 
+#table-lone-standings thead th {
+	white-space: nowrap;
+}
+
 #table-lone-standings .temporary-rank .rank-value {
 	color: #999;
 }
