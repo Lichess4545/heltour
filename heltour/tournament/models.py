@@ -7,7 +7,7 @@ from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
 from django import forms as django_forms
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -165,24 +165,33 @@ class Season(_BaseModel):
                 white_pairing = find(round_pairings, white_team_id=team.id)
                 black_pairing = find(round_pairings, black_team_id=team.id)
 
-                def increment_score(opponent, round_points, opponent_points):
-                    match_count, match_points, game_points, _ = score_dict[(team, last_round)] if last_round is not None else (0, 0, 0, 0)
-                    if opponent is not None:
+                def increment_score(round_opponent, round_points, round_opponent_points, round_wins):
+                    match_count, match_points, game_points, games_won, _, _, _, _ = score_dict[(team.pk, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, 0)
+                    round_match_points = 0
+                    if round_opponent is not None:
                         match_count += 1
+                        if round_points > round_opponent_points:
+                            round_match_points = 2
+                        elif round_points == round_opponent_points:
+                            round_match_points = 1
+                        match_points += round_match_points
                         game_points += round_points
-                        if round_points > opponent_points:
-                            match_points += 2
-                        elif round_points == opponent_points:
-                            match_points += 1
-                    score_dict[(team, round_)] = _TeamScoreState(match_count, match_points, game_points, round_points)
+                        games_won += round_wins
+                    score_dict[(team.pk, round_.number)] = _TeamScoreState(match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points)
 
                 if white_pairing is not None:
-                    increment_score(white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
+                    increment_score(white_pairing.black_team_id, white_pairing.white_points, white_pairing.black_points, white_pairing.white_wins)
                 elif black_pairing is not None:
-                    increment_score(black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
+                    increment_score(black_pairing.white_team_id, black_pairing.black_points, black_pairing.white_points, black_pairing.black_wins)
                 else:
-                    increment_score(None, 0, 0)
+                    increment_score(None, 0, 0, 0)
             last_round = round_
+
+        # Precalculate groups of tied teams for the tiebreaks
+        tied_team_map = defaultdict(set)
+        for team in Team.objects.filter(season=self):
+            score_state = score_dict[(team.pk, last_round.number)]
+            tied_team_map[(score_state.match_points, score_state.game_points)].add(team.pk)
 
         team_scores = TeamScore.objects.filter(team__season=self)
         for score in team_scores:
@@ -190,8 +199,30 @@ class Season(_BaseModel):
                 score.match_count = 0
                 score.match_points = 0
                 score.game_points = 0
+                score.head_to_head = 0
+                score.games_won = 0
+                score.sb_score = 0
             else:
-                score.match_count, score.match_points, score.game_points, _ = score_dict[(score.team, last_round)]
+                score_state = score_dict[(score.team_id, last_round.number)]
+                score.match_count = score_state.match_count
+                score.match_points = score_state.match_points
+                score.game_points = score_state.game_points
+                score.games_won = score_state.games_won
+
+                # Tiebreak calculations
+                tied_team_set = tied_team_map[(score_state.match_points, score_state.game_points)]
+                score.head_to_head = 0
+                score.sb_score = 0
+                for round_number in range(1, last_round.number + 1):
+                    round_state = score_dict[(score.team_id, round_number)]
+                    opponent = round_state.round_opponent
+                    if opponent is not None:
+                        if round_state.round_match_points == 2:
+                            score.sb_score += score_dict[(round_state.round_opponent, last_round.number)].match_points
+                        elif round_state.round_match_points == 1:
+                            score.sb_score += score_dict[(round_state.round_opponent, last_round.number)].match_points / 2.0
+                        if opponent in tied_team_set:
+                            score.head_to_head += round_state.match_points
             score.save()
 
     def _calculate_lone_scores(self):
@@ -253,10 +284,10 @@ class Season(_BaseModel):
                 opponent_scores = []
                 opponent_cumuls = []
                 for round_number in range(1, last_round.number + 1):
-                    _, _, _, _, _, _, round_opponent, played = score_dict[(player_id, round_number)]
-                    if played and round_opponent is not None:
-                        opponent_scores.append(score_dict[(round_opponent, last_round.number)][1])
-                        opponent_cumuls.append(score_dict[(round_opponent, last_round.number)][2])
+                    round_state = score_dict[(player_id, round_number)]
+                    if round_state.round_played and round_state.round_opponent is not None:
+                        opponent_scores.append(score_dict[(round_state.round_opponent, last_round.number)][1])
+                        opponent_cumuls.append(score_dict[(round_state.round_opponent, last_round.number)][2])
                     else:
                         opponent_scores.append(0)
                 opponent_scores.sort()
@@ -307,7 +338,7 @@ class Season(_BaseModel):
     def __unicode__(self):
         return self.name
 
-_TeamScoreState = namedtuple('_TeamScoreState', 'match_count, match_points, game_points, round_points')
+_TeamScoreState = namedtuple('_TeamScoreState', 'match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
 _LoneScoreState = namedtuple('_LoneScoreState', 'total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played')
 
 # From https://www.fide.com/component/handbook/?id=174&view=article
@@ -548,6 +579,10 @@ class TeamScore(_BaseModel):
     match_points = models.PositiveIntegerField(default=0)
     game_points = ScoreField(default=0)
 
+    head_to_head = models.PositiveIntegerField(default=0)
+    games_won = models.PositiveIntegerField(default=0)
+    sb_score = ScoreField(default=0)
+
     def match_points_display(self):
         return str(self.match_points)
 
@@ -617,7 +652,9 @@ class TeamPairing(_BaseModel):
     pairing_order = models.PositiveIntegerField()
 
     white_points = ScoreField(default=0)
+    white_wins = models.PositiveIntegerField(default=0)
     black_points = ScoreField(default=0)
+    black_wins = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('white_team', 'black_team', 'round')
@@ -636,13 +673,23 @@ class TeamPairing(_BaseModel):
     def refresh_points(self):
         self.white_points = 0
         self.black_points = 0
+        self.white_wins = 0
+        self.black_wins = 0
         for pairing in self.teamplayerpairing_set.all().nocache():
             if pairing.board_number % 2 == 1:
                 self.white_points += pairing.white_score() or 0
                 self.black_points += pairing.black_score() or 0
+                if pairing.white_score() == 1:
+                    self.white_wins += 1
+                if pairing.black_score() == 1:
+                    self.black_wins += 1
             else:
                 self.white_points += pairing.black_score() or 0
                 self.black_points += pairing.white_score() or 0
+                if pairing.black_score() == 1:
+                    self.white_wins += 1
+                if pairing.white_score() == 1:
+                    self.black_wins += 1
 
     def white_points_display(self):
         return "%g" % self.white_points

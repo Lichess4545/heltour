@@ -82,17 +82,17 @@ class SeasonTestCase(TestCase):
 
         def score_matrix():
             scores = list(TeamScore.objects.order_by('team__number'))
-            return [(s.match_count, s.match_points, s.game_points) for s in scores]
+            return [(s.match_count, s.match_points, s.game_points, s.head_to_head, s.games_won, s.sb_score) for s in scores]
 
-        self.assertItemsEqual([(0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0)], score_matrix())
+        self.assertItemsEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
 
-        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=2.0, black_points=1.0)
-        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=1.5, black_points=1.5)
-        self.assertItemsEqual([(0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0), (0, 0, 0.0)], score_matrix())
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=2.0, white_wins=2, black_points=1.0, black_wins=1)
+        TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=1.5, white_wins=1, black_points=1.5, black_wins=1)
+        self.assertItemsEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
 
         rounds[0].is_completed = True
         rounds[0].save()
-        self.assertItemsEqual([(1, 2, 2.0), (1, 0, 1.0), (1, 1, 1.5), (1, 1, 1.5)], score_matrix())
+        self.assertItemsEqual([(1, 2, 2, 0, 2, 0), (1, 0, 1, 0, 1, 0), (1, 1, 1.5, 1, 1, 0.5), (1, 1, 1.5, 1, 1, 0.5)], score_matrix())
 
     def test_season_calculate_lone_scores(self):
         season = Season.objects.get(tag='loneseason')
@@ -216,6 +216,8 @@ class TeamPairingTestCase(TestCase):
         tp.refresh_points()
         self.assertEqual(0, tp.white_points)
         self.assertEqual(0, tp.black_points)
+        self.assertEqual(0, tp.white_wins)
+        self.assertEqual(0, tp.black_wins)
 
         pp1.result = '1-0'
         pp1.save()
@@ -225,6 +227,8 @@ class TeamPairingTestCase(TestCase):
 
         self.assertEqual(1.5, tp.white_points)
         self.assertEqual(0.5, tp.black_points)
+        self.assertEqual(1, tp.white_wins)
+        self.assertEqual(0, tp.black_wins)
 
         pp1.result = '0-1'
         pp1.save()
@@ -234,6 +238,8 @@ class TeamPairingTestCase(TestCase):
 
         self.assertEqual(1, tp.white_points)
         self.assertEqual(1, tp.black_points)
+        self.assertEqual(1, tp.white_wins)
+        self.assertEqual(1, tp.black_wins)
 
         pp1.delete()
         pp2.delete()
@@ -241,6 +247,8 @@ class TeamPairingTestCase(TestCase):
 
         self.assertEqual(0, tp.white_points)
         self.assertEqual(0, tp.black_points)
+        self.assertEqual(0, tp.white_wins)
+        self.assertEqual(0, tp.black_wins)
 
 class LonePlayerPairingTestCase(TestCase):
     def setUp(self):
