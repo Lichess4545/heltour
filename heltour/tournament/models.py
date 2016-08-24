@@ -7,6 +7,7 @@ from django.core.validators import RegexValidator
 from datetime import timedelta
 from django.utils import timezone
 from django import forms as django_forms
+from collections import namedtuple
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -163,12 +164,24 @@ class Season(_BaseModel):
             for team in Team.objects.filter(season=self):
                 white_pairing = find(round_pairings, white_team_id=team.id)
                 black_pairing = find(round_pairings, black_team_id=team.id)
+
+                def increment_score(opponent, round_points, opponent_points):
+                    match_count, match_points, game_points, _ = score_dict[(team, last_round)] if last_round is not None else (0, 0, 0, 0)
+                    if opponent is not None:
+                        match_count += 1
+                        game_points += round_points
+                        if round_points > opponent_points:
+                            match_points += 2
+                        elif round_points == opponent_points:
+                            match_points += 1
+                    score_dict[(team, round_)] = _TeamScoreState(match_count, match_points, game_points, round_points)
+
                 if white_pairing is not None:
-                    self._increment_team_score(score_dict, round_, last_round, team, white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
+                    increment_score(white_pairing.black_team, white_pairing.white_points, white_pairing.black_points)
                 elif black_pairing is not None:
-                    self._increment_team_score(score_dict, round_, last_round, team, black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
+                    increment_score(black_pairing.white_team, black_pairing.black_points, black_pairing.white_points)
                 else:
-                    score_dict[(team, round_)] = score_dict[(team, last_round)][:3] + (0,) if last_round is not None else (0, 0, 0, 0)
+                    increment_score(None, 0, 0)
             last_round = round_
 
         team_scores = TeamScore.objects.filter(team__season=self)
@@ -180,16 +193,6 @@ class Season(_BaseModel):
             else:
                 score.match_count, score.match_points, score.game_points, _ = score_dict[(score.team, last_round)]
             score.save()
-
-    def _increment_team_score(self, score_dict, round_, last_round, team, opponent, points, opponent_points):
-        match_count, match_points, game_points, _ = score_dict[(team, last_round)] if last_round is not None else (0, 0, 0, 0)
-        match_count += 1
-        game_points += points
-        if points > opponent_points:
-            match_points += 2
-        elif points == opponent_points:
-            match_points += 1
-        score_dict[(team, round_)] = (match_count, match_points, game_points, points)
 
     def _calculate_lone_scores(self):
         season_players = SeasonPlayer.objects.filter(season=self).select_related('loneplayerscore').nocache()
@@ -203,14 +206,32 @@ class Season(_BaseModel):
                 white_pairing = find(pairings, white_id=sp.player_id)
                 black_pairing = find(pairings, black_id=sp.player_id)
                 bye = find(byes, player_id=sp.player_id)
+
+                def increment_score(round_opponent, round_score, round_played):
+                    total, mm_total, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(sp.player_id, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, False)
+                    total += round_score
+                    cumul += total
+                    if round_played:
+                        mm_total += round_score
+                        opp_rating = seed_rating_dict.get(round_opponent, None)
+                        if opp_rating is not None:
+                            perf_total_rating += opp_rating
+                            perf_score += round_score
+                            perf_n += 1
+                    else:
+                        # Special cases for unplayed games
+                        mm_total += 1
+                        cumul -= round_score
+                    score_dict[(sp.player_id, round_.number)] = _LoneScoreState(total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played)
+
                 if white_pairing is not None:
-                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
+                    increment_score(white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
                 elif black_pairing is not None:
-                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, black_pairing.white_id, black_pairing.black_score() or 0, black_pairing.game_played())
+                    increment_score(black_pairing.white_id, black_pairing.black_score() or 0, black_pairing.game_played())
                 elif bye is not None:
-                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, None, bye.score(), False)
+                    increment_score(None, bye.score(), False)
                 else:
-                    self._increment_lone_score(score_dict, seed_rating_dict, round_, last_round, sp.player_id, None, 0, False)
+                    increment_score(None, 0, False)
             last_round = round_
 
         player_scores = [sp.get_loneplayerscore() for sp in season_players]
@@ -224,8 +245,8 @@ class Season(_BaseModel):
                 score.tiebreak3 = 0
                 score.tiebreak4 = 0
             else:
-                total, _, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(score.season_player.player_id, last_round.number)]
-                score.points = total
+                score_state = score_dict[(score.season_player.player_id, last_round.number)]
+                score.points = score_state.total
 
                 # Tiebreak calculations
 
@@ -253,16 +274,16 @@ class Season(_BaseModel):
                 score.tiebreak2 = sum(opponent_scores)
 
                 # TB3: Cumulative
-                score.tiebreak3 = cumul
+                score.tiebreak3 = score_state.cumul
 
                 # TB4: Cumulative opponent
                 score.tiebreak4 = sum(opponent_cumuls)
 
                 # Performance rating
-                if perf_n >= 5:
-                    average_opp_rating = int(round(perf_total_rating / float(perf_n)))
+                if score_state.perf_n >= 5:
+                    average_opp_rating = int(round(score_state.perf_total_rating / float(score_state.perf_n)))
                     # Turn the score into a number from 0-100 (0 = 0%, 100 = 100%)
-                    lookup_index = max(min(int(round(100.0 * perf_score / perf_n)), 100), 0)
+                    lookup_index = max(min(int(round(100.0 * score_state.perf_score / score_state.perf_n)), 100), 0)
                     # Use that number to get a rating difference from the FIDE lookup table
                     dp = fide_dp_lookup[lookup_index]
                     score.perf_rating = average_opp_rating + dp
@@ -270,23 +291,6 @@ class Season(_BaseModel):
                     score.perf_rating = None
 
             score.save()
-
-    def _increment_lone_score(self, score_dict, seed_rating_dict, round_, last_round, player_id, opponent, score, played):
-        total, mm_total, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(player_id, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, False)
-        total += score
-        cumul += total
-        if played:
-            mm_total += score
-            opp_rating = seed_rating_dict.get(opponent, None)
-            if opp_rating is not None:
-                perf_total_rating += opp_rating
-                perf_score += score
-                perf_n += 1
-        else:
-            # Special cases for unplayed games
-            mm_total += 1
-            cumul -= score
-        score_dict[(player_id, round_.number)] = (total, mm_total, cumul, perf_total_rating, perf_score, perf_n, opponent, played)
 
     def is_started(self):
         return self.start_date is not None and self.start_date < timezone.now()
@@ -302,6 +306,9 @@ class Season(_BaseModel):
 
     def __unicode__(self):
         return self.name
+
+_TeamScoreState = namedtuple('_TeamScoreState', 'match_count, match_points, game_points, round_points')
+_LoneScoreState = namedtuple('_LoneScoreState', 'total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played')
 
 # From https://www.fide.com/component/handbook/?id=174&view=article
 # Used for performance rating calculations
