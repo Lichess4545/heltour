@@ -75,9 +75,10 @@ class SeasonTestCase(TestCase):
 
         self.assertItemsEqual([1, 2, 3, 4], season.board_number_list())
 
-    def test_season_calculate_scores(self):
-        rounds = list(Round.objects.order_by('number'))
-        teams = list(Team.objects.order_by('number'))
+    def test_season_calculate_team_scores(self):
+        season = Season.objects.get(tag='teamseason')
+        rounds = list(season.round_set.order_by('number'))
+        teams = list(season.team_set.order_by('number'))
 
         def score_matrix():
             scores = list(TeamScore.objects.order_by('team__number'))
@@ -92,6 +93,35 @@ class SeasonTestCase(TestCase):
         rounds[0].is_completed = True
         rounds[0].save()
         self.assertItemsEqual([(1, 2, 2.0), (1, 0, 1.0), (1, 1, 1.5), (1, 1, 1.5)], score_matrix())
+
+    def test_season_calculate_lone_scores(self):
+        season = Season.objects.get(tag='loneseason')
+        rounds = list(season.round_set.order_by('number'))
+        season_players = list(season.seasonplayer_set.order_by('player__lichess_username'))[:4]
+        players = [sp.player for sp in season_players]
+
+        def score_matrix():
+            scores = [sp.loneplayerscore for sp in season_players]
+            for s in scores:
+                s.refresh_from_db()
+            return [(s.points, s.tiebreak1, s.tiebreak2, s.tiebreak3, s.tiebreak4) for s in scores]
+
+        self.assertItemsEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
+
+        LonePlayerPairing.objects.create(round=rounds[0], pairing_order=0, white=players[0], black=players[1], result='1-0')
+        LonePlayerPairing.objects.create(round=rounds[0], pairing_order=0, white=players[2], black=players[3], result='1/2-1/2')
+        self.assertItemsEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
+
+        rounds[0].is_completed = True
+        rounds[0].save()
+        self.assertItemsEqual([(1, 0, 0, 1, 0), (0, 0, 1, 0, 1), (0.5, 0, 0.5, 0.5, 0.5), (0.5, 0, 0.5, 0.5, 0.5)], score_matrix())
+
+        LonePlayerPairing.objects.create(round=rounds[1], pairing_order=0, white=players[2], black=players[0], result='0-1')
+        LonePlayerPairing.objects.create(round=rounds[1], pairing_order=0, white=players[3], black=players[1], result='1/2-1/2')
+
+        rounds[1].is_completed = True
+        rounds[1].save()
+        self.assertItemsEqual([(2, 0, 1, 3, 1.5), (0.5, 1, 3, 0.5, 4.5), (0.5, 1, 3, 1, 4.5), (1, 0.5, 1, 1.5, 1.5)], score_matrix())
 
 class TeamTestCase(TestCase):
     def setUp(self):
