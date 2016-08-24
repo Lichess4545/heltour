@@ -101,15 +101,12 @@ class SeasonAdmin(VersionAdmin):
         return my_urls + urls
 
     def recalculate_scores(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(request, 'Scores can only be recalculated one season at a time.', messages.ERROR)
-            return
-        season = queryset[0]
-        if season.league.competitor_type == 'team':
-            for team_pairing in TeamPairing.objects.filter(round__season=season):
-                team_pairing.refresh_points()
-                team_pairing.save()
-        season.calculate_scores()
+        for season in queryset:
+            if season.league.competitor_type == 'team':
+                for team_pairing in TeamPairing.objects.filter(round__season=season):
+                    team_pairing.refresh_points()
+                    team_pairing.save()
+            season.calculate_scores()
         self.message_user(request, 'Scores recalculated.', messages.INFO)
 
     def round_transition(self, request, queryset):
