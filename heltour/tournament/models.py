@@ -638,11 +638,8 @@ class TeamScore(_BaseModel):
         return "%s" % (self.team)
 
     def __cmp__(self, other):
-        result = self.match_points - other.match_points
-        if result != 0:
-            return result
-        result = self.game_points - other.game_points
-        return result
+        return cmp((self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score),
+                   (other.match_points, other.game_points, other.head_to_head, other.games_won, other.sb_score))
 
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
