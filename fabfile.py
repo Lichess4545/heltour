@@ -105,6 +105,7 @@ def deploylive():
             )(
                 exclude=['env', 'data', 'lichess4545@lichess4545.com']
             )
+        run("echo \"/var/www/www.lichess4545.com/current/\" > /var/www/www.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
             run("/var/www/www.lichess4545.com/current/sysadmin/update-requirements-live.sh")
@@ -134,6 +135,7 @@ def deploystaging():
             )(
                 exclude=['env', 'data', 'lichess4545@lichess4545.com']
             )
+        run("echo \"/var/www/staging.lichess4545.com/current/\" > /var/www/staging.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
             run("/var/www/staging.lichess4545.com/current/sysadmin/update-requirements-staging.sh")

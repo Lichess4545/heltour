@@ -17,6 +17,7 @@ if os.path.exists(activate_this):
 
 from django.core.wsgi import get_wsgi_application
 
+os.environ.setdefault("HELTOUR_ENV", "LIVE")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.settings")
 
 application = get_wsgi_application()
