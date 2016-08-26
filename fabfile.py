@@ -58,7 +58,7 @@ PYTHON_VERSION = "python{0}.{1}".format(*sys.version_info)
 PROJECT_NAME = 'heltour'
 PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
-LIVE_BACKUP_SCRIPT_PATH = "/var/www/heltour.lakin.ca/current/sysadmin/backup.sh"
+LIVE_BACKUP_SCRIPT_PATH = "/var/www/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
         'live': ['lichess4545@lichess4545.com'],
     }
@@ -166,7 +166,7 @@ def latestdb():
         print "Usage: fab -R [dev|live] latestdb"
         return
 
-    LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour.lakin.ca-sql/latest.sql.bz2"
+    LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour-sql/hourly/latest.sql.bz2"
     strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
 
 #-------------------------------------------------------------------------------
