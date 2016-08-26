@@ -398,7 +398,7 @@ div.inline {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	margin-bottom: 50px;
+	margin: 30px 0 80px 0;
 }
 
 #home-league-list {
@@ -408,6 +408,7 @@ div.inline {
 .league-homelink {
 	display: block;
 	height: 80px;
+	width: 320px;
 	line-height: 80px;
 	color: white;
 	font-size: 24px;

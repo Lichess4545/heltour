@@ -5,6 +5,6 @@ if 'HELTOUR_ENV' in os.environ and os.environ['HELTOUR_ENV'] == 'STAGING':
     STAGING = True
 elif 'HELTOUR_ENV' in os.environ and os.environ['HELTOUR_ENV'] == 'LIVE':
     from live_settings import *
-    STAGING = True
+    STAGING = False
 else:
     raise Exception('HELTOUR_ENV environment variable not set (should be set in wsgi.py)')
