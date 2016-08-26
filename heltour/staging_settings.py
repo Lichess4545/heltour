@@ -29,11 +29,8 @@ SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'www.lichess4545.tv',
-    'lichess4545.tv',
-    'www.lichess4545.com',
-    'lichess4545.com',
-    'heltour.lakin.ca',
+    'staging.lichess4545.tv',
+    'staging.lichess4545.com',
 ]
 
 
@@ -106,8 +103,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'HOST': 'localhost',
-        'NAME': 'heltour_lichess4545',
-        'USER': 'heltour_lichess4545',
+        'NAME': 'heltour_lichess4545_staging',
+        'USER': 'heltour_lichess4545_staging',
         'PASSWORD': 'sown shuts combiner chattels',
     }
 }
@@ -154,12 +151,12 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
 
 # Celery (tasks)
 
-BROKER_URL = 'redis://localhost:6379/1'
+BROKER_URL = 'redis://localhost:6379/2'
 
 CELERYBEAT_SCHEDULE = {
     'update-ratings': {
         'task': 'heltour.tournament.tasks.update_player_ratings',
-        'schedule': timedelta(minutes=30),
+        'schedule': timedelta(minutes=240),
         'args': ()
     },
 }
@@ -172,7 +169,7 @@ CELERY_TIMEZONE = 'UTC'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
+        "LOCATION": "redis://127.0.0.1:6379/2",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -210,7 +207,7 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 CACHEOPS_REDIS = {
     'host': 'localhost',
     'port': 6379,
-    'db': 1,
+    'db': 2,
 }
 CACHEOPS_DEGRADE_ON_FAILURE = True
 CACHEOPS = {
@@ -239,8 +236,8 @@ except ImportError:
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os
 import json
-if os.path.exists("/etc/heltour/production.json"):
-    overrides = json.loads(open("/etc/heltour/production.json", "r").read())
+if os.path.exists("/etc/heltour/staging.json"):
+    overrides = json.loads(open("/etc/heltour/staging.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
     ADMINS = overrides.get("ADMINS", locals().get('ADMINS'))
     EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))
