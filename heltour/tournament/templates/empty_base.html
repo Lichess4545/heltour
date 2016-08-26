@@ -25,7 +25,7 @@
     
     <footer class="footer">
       <div class="container-fluid">
-        <p class="text-muted">This site is currently for PREVIEW ONLY.</p>
+        {% if STAGING %}<p style="color: #c00;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>{% else %}<p class="text-muted">This site is currently for PREVIEW ONLY.</p>{% endif %}
       </div>
     </footer>
     
