@@ -334,4 +334,4 @@ if __name__ == "__main__":
     if DEBUG: print "hourly"
     remove_backups(hourly_backups, hourly_cutoff(5*24))
 
-    print parse_backups(test_hourly_backups, date_format=hourly_format)
+    #print parse_backups(test_hourly_backups, date_format=hourly_format)
