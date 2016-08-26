@@ -189,7 +189,7 @@ def letsencrypt(real_cert=False):
         domain,
         "www.{0}".format(domain),
         domain2,
-        "www.{0}".format(domain2)
+        "www.{0}".format(domain2),
         domain3,
     ]
     country = "CA"
