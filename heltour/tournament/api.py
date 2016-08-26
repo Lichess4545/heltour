@@ -30,6 +30,11 @@ def find_pairing(request):
         player = request.GET.get('player', None)
         white = request.GET.get('white', None)
         black = request.GET.get('black', None)
+        scheduled = request.GET.get('scheduled', None)
+        if scheduled == 'true':
+            scheduled = True
+        elif scheduled == 'false':
+            scheduled = False
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
@@ -40,12 +45,12 @@ def find_pairing(request):
     pairings = []
     for r in rounds:
         print r, pairings
-        pairings += list(_get_pairings(r, player, white, black))
+        pairings += list(_get_pairings(r, player, white, black, scheduled))
 
     if len(pairings) == 0:
         # Try alternate colors
         for r in rounds:
-            pairings += list(_get_pairings(r, player, black, white))
+            pairings += list(_get_pairings(r, player, black, white, scheduled))
 
     return JsonResponse({'pairings': [_export_pairing(p) for p in pairings]})
 
@@ -138,12 +143,12 @@ def _get_active_rounds(league_tag, season_tag):
         rounds = rounds.filter(season__tag=season_tag)
     return rounds
 
-def _get_pairings(round_, player=None, white=None, black=None):
-    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black)
-    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black)
+def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
+    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black, scheduled)
+    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black, scheduled)
     return pairings
 
-def _filter_pairings(pairings, player=None, white=None, black=None):
+def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
     if player is not None:
         white_pairings = pairings.filter(white__lichess_username__iexact=player)
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
@@ -152,6 +157,10 @@ def _filter_pairings(pairings, player=None, white=None, black=None):
         pairings = pairings.filter(white__lichess_username__iexact=white)
     if black is not None:
         pairings = pairings.filter(black__lichess_username__iexact=black)
+    if scheduled == True:
+        pairings = pairings.exclude(result='', scheduled_time=None)
+    if scheduled == False:
+        pairings = pairings.filter(result='', scheduled_time=None)
     return list(pairings)
 
 @require_GET
