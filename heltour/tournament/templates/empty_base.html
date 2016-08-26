@@ -21,11 +21,18 @@
 </head>
 
 <body>
+    {% if STAGING %}
+    <header style="background-color: #c00; height: 30px; text-align: center;">
+      <div class="container-fluid">
+        <p style="color: #fff; margin: 5px 0;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
+      </div>
+    </header>
+    {% endif %}
     {% block body %}{% endblock %}
     
     <footer class="footer">
       <div class="container-fluid">
-        {% if STAGING %}<p style="color: #c00;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>{% else %}<p class="text-muted">This site is currently for PREVIEW ONLY.</p>{% endif %}
+        <p class="text-muted">This site is currently for PREVIEW ONLY.</p>
       </div>
     </footer>
     
