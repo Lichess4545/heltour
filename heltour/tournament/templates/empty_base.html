@@ -29,12 +29,13 @@
     </header>
     {% endif %}
     {% block body %}{% endblock %}
-    
+    {% if league %}
     <footer class="footer">
       <div class="container-fluid">
-        <p class="text-muted">This site is currently for PREVIEW ONLY.</p>
+        <p class="text-muted">{{ league.name }} &middot; <a href="{% url 'home' %}">Change</a></p>
       </div>
     </footer>
+    {% endif %}
     
     {% block common_js %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
