@@ -169,7 +169,8 @@ class SeasonAdmin(VersionAdmin):
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
 
         if round_to_close is not None:
-            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
+            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close) | \
+                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close)
             if len(incomplete_pairings) > 0:
                 self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
 
