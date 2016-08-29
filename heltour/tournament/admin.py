@@ -19,6 +19,7 @@ from heltour import settings
 from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -1000,6 +1001,11 @@ class DocumentAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
-    list_display = ('document', 'league', 'tag', 'type')
+    list_display = ('document', 'league', 'tag', 'type', 'url')
     search_fields = ('league__name', 'tag', 'document__name')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+    def url(self, obj):
+        _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
+        return '<a href="%s">%s</a>' % (_url, _url)
+    url.allow_tags = True
