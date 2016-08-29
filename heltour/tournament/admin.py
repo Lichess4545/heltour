@@ -1009,3 +1009,15 @@ class LeagueDocumentAdmin(VersionAdmin):
         _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
         return '<a href="%s">%s</a>' % (_url, _url)
     url.allow_tags = True
+
+#-------------------------------------------------------------------------------
+@admin.register(SeasonDocument)
+class SeasonDocumentAdmin(VersionAdmin):
+    list_display = ('document', 'season', 'tag', 'type', 'url')
+    search_fields = ('season__name', 'tag', 'document__name')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+    def url(self, obj):
+        _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
+        return '<a href="%s">%s</a>' % (_url, _url)
+    url.allow_tags = True

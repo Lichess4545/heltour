@@ -1183,3 +1183,20 @@ class LeagueDocument(_BaseModel):
 
     def __unicode__(self):
         return self.document.name
+
+SEASON_DOCUMENT_TYPES = (
+    ('links', 'Links'),
+)
+
+#-------------------------------------------------------------------------------
+class SeasonDocument(_BaseModel):
+    season = models.ForeignKey(Season)
+    document = models.ForeignKey(Document)
+    tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
+    type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
+
+    class Meta:
+        unique_together = ('season', 'tag')
+
+    def __unicode__(self):
+        return self.document.name
