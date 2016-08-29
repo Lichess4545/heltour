@@ -82,7 +82,7 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'manage_players', 'round_transition']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'manage_players', 'round_transition']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
@@ -108,6 +108,18 @@ class SeasonAdmin(VersionAdmin):
                     team_pairing.save()
             season.calculate_scores()
         self.message_user(request, 'Scores recalculated.', messages.INFO)
+
+    def verify_data(self, request, queryset):
+        for season in queryset:
+            # Ensure SeasonPlayer objects exist for all paired players
+            if season.league.competitor_type == 'team':
+                pairings = TeamPlayerPairing.objects.filter(team_pairing__round__season=season)
+            else:
+                pairings = LonePlayerPairing.objects.filter(round__season=season)
+            for p in pairings:
+                SeasonPlayer.objects.get_or_create(season=season, player=p.white)
+                SeasonPlayer.objects.get_or_create(season=season, player=p.black)
+        self.message_user(request, 'Data verified.', messages.INFO)
 
     def round_transition(self, request, queryset):
         if queryset.count() > 1:
