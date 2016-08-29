@@ -153,6 +153,7 @@ def season_landing(request, league_tag=None, season_tag=None):
     else:
         return lone_season_landing(request, league_tag, season_tag)
 
+@cached_view_as(SeasonDocument, Document, TeamScore, TeamPairing, *common_team_models, vary_request=lambda r: r.user.is_staff)
 def team_season_landing(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     if season.is_completed:
@@ -186,7 +187,7 @@ def team_season_landing(request, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/team_season_landing.html', context)
 
-@cached_view_as(*common_lone_models, vary_request=lambda r: r.user.is_staff)
+@cached_view_as(SeasonDocument, Document, *common_lone_models, vary_request=lambda r: r.user.is_staff)
 def lone_season_landing(request, league_tag=None, season_tag=None):
     season = _get_season(league_tag, season_tag)
     if season.is_completed:
