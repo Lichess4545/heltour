@@ -68,7 +68,7 @@
 				<div class="player-profile-section">
 					<strong>Games</strong>
 					<table>
-					{% for round_, pairing in games %}
+					{% for round_, pairing, team in games %}
 					<tr>
 						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
 						<td>

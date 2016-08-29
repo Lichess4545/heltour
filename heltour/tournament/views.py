@@ -844,9 +844,9 @@ def player_profile(request, username, league_tag=None, season_tag=None):
 
     def game_count(season):
         if season.league.competitor_type == 'team':
-            return (TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)).count()
+            return (TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)).filter(team_pairing__round__season=season).count()
         else:
-            return (LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)).count()
+            return (LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)).filter(round__season=season).count()
 
     def team_name(season):
         if season.league.competitor_type == 'team':
@@ -865,10 +865,10 @@ def player_profile(request, username, league_tag=None, season_tag=None):
         games = None
     elif season.league.competitor_type == 'team':
         pairings = TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)
-        games = [(p.team_pairing.round, p) for p in pairings.filter(team_pairing__round__season=season).exclude(result='').order_by('team_pairing__round__number').nocache()]
+        games = [(p.team_pairing.round, p, p.white_team() if p.white == player else p.black_team()) for p in pairings.filter(team_pairing__round__season=season).exclude(result='').order_by('team_pairing__round__number').nocache()]
     else:
         pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
-        games = [(p.round, p) for p in pairings.filter(round__season=season).exclude(result='').order_by('round__number').nocache()]
+        games = [(p.round, p, None) for p in pairings.filter(round__season=season).exclude(result='').order_by('round__number').nocache()]
 
     team_member = TeamMember.objects.filter(team__season=season, player=player).first()
     alternate = Alternate.objects.filter(season_player=season_player).first()
