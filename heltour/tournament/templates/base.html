@@ -13,7 +13,7 @@
 	      </button>
 	      <a class="navbar-brand" href="{% block home_link %}{% leagueurl 'league_home' league_tag None %}{% endblock %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
 	    </div>
-	
+
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
 	        {% if season %}
@@ -32,6 +32,7 @@
 	        {% if league.competitor_type == 'team' %}
 	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% leagueurl 'stats' league_tag season_tag %}">Stats</a></li>
 	        {% endif %}
+          <li class="{% block nav_tv %}{% endblock %}"><a href="{% leagueurl 'tv' league_tag season_tag %}">TV</a></li>
 	        {% endif %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">

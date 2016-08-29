@@ -217,7 +217,7 @@ CACHEOPS = {
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/freefal/Downloads/client_id.json'
 SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 

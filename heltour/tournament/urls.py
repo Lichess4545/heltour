@@ -36,6 +36,7 @@ season_urlpatterns = [
     url(r'^result/(?P<pairing_id>[0-9]+)/$', views.result, name='result'),
     url(r'^dashboard/$', views.league_dashboard, name='league_dashboard'),
     url(r'^player/(?P<username>[\w-]+)/$', views.player_profile, name='player_profile'),
+    url(r'^tv/$', views.tv, name='tv'),
 ]
 
 league_urlpatterns = [
