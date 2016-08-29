@@ -827,7 +827,7 @@ def lone_league_dashboard(request, league_tag=None, season_tag=None):
     return render(request, 'tournament/lone_league_dashboard.html', context)
 
 def document(request, document_tag, league_tag=None, season_tag=None):
-    league_document = LeagueDocument.objects.get(league=_get_league(league_tag), tag=document_tag)
+    league_document = get_object_or_404(LeagueDocument, league=_get_league(league_tag), tag=document_tag)
     context = {
         'league_tag': league_tag,
         'league': _get_league(league_tag),
