@@ -169,6 +169,10 @@ div.inline {
 	line-height: 180%;
 }
 
+.document-content > :last-child {
+	margin-bottom: 0;
+}
+
 .document-edit {
 	position: relative;
 	top: -7px;
