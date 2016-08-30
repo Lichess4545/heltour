@@ -962,22 +962,7 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     league = _get_league(league_tag)
     other_leagues = League.objects.filter(is_active=True).exclude(pk=league.pk).order_by('display_order')
 
-    rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
-    rules_doc_tag = rules_doc.tag if rules_doc is not None else None
-    intro_doc = LeagueDocument.objects.filter(league=league, type='intro').first()
-
     current_season = _get_default_season(league_tag, allow_none=True)
-    if current_season is None:
-        context = {
-            'league_tag': league_tag,
-            'league': league,
-            'season_tag': season_tag,
-            'rules_doc_tag': rules_doc_tag,
-            'intro_doc': intro_doc,
-            'can_edit_document': request.user.has_perm('tournament.change_document'),
-            'other_leagues': other_leagues,
-        }
-        return render(request, 'tournament/team_league_home.html', context)
 
     season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
     registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
@@ -991,14 +976,13 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
                                          .exclude(game_link='').order_by('scheduled_time')
 
-    # For Testing...
-    current_games = ['6ZIEIEtk'];
-    # End Testing code
+    current_game_ids = [];
+    for pairing in current_games:
+        current_game_ids.append(pairing.game_link.split('/')[-1])
 
-    upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
-    upcoming_game_time_max = timezone.now() + timedelta(hours=12)
-    upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
-                                          .order_by('scheduled_time')
+    # For Testing...
+    current_game_ids = ['86Wbsyjw', 'ZWnh5bw4', 'yDv5dwjq', 'OSVGLUGJ', 'RlTJSTiZ', 'KzE4p1MI'];
+    # End Testing code
 
     context = {
         'league_tag': league_tag,
@@ -1007,12 +991,9 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
         'season': current_season,
         'team_scores': team_scores,
         'season_list': season_list,
-        'rules_doc_tag': rules_doc_tag,
-        'intro_doc': intro_doc,
         'can_edit_document': request.user.has_perm('tournament.change_document'),
         'registration_season': registration_season,
-        'current_games': current_games,
-        'upcoming_games': upcoming_games,
+        'current_game_ids': current_game_ids,
         'other_leagues': other_leagues,
     }
     return render(request, 'tournament/team_tv.html', context)

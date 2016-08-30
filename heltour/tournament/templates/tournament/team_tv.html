@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load tournament_extras %}
 
-{% block title %}Stats - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block title %}Games in Play - {{ season.name }} - {{ league.name }}{% endblock %}
 
 {% block nav_tv %}active{% endblock %}
 {% load staticfiles tournament_extras %}
@@ -46,9 +46,7 @@
       pingNow();
       while(queue.length > 0) {
         let message = queue.pop();
-        console.log(ws);
         ws.send(message);
-        console.log(message);
       }
     }
 
@@ -58,11 +56,12 @@
     }
 
     ws.onmessage = function (e) {
-      console.log(e);
       const m = JSON.parse(e.data);
 
       if(m.t === 'fen') {
         let ground = chessGrounds[m.d.id];
+        console.log(m.d);
+        m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
         ground.set(m.d);
       }
       else if(m.t === 'n') {
@@ -74,10 +73,9 @@
   run();
 
   function newBoard(gameId) {
-    var ground;
-    var chess = new Chess();
+    let chess = new Chess();
 
-    ground = Chessground(document.getElementById('ground7'), {
+    let ground = Chessground(document.getElementById('ground_' + gameId), {
       viewOnly: true,
       turnColor: 'white',
       animation: {
@@ -107,11 +105,11 @@
       dataType:'jsonp',
       jsonp:'callback',
       success: function(data) {
+        console.log(data);
         let a = {};
         a.fen = data.fens[data.fens.length-1];
         ground.set(a);
         const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
-        console.log(data);
         $('#label_' + gameId).html(label);
       }
     });
@@ -122,7 +120,6 @@
     })
     send(ws, message);
 
-    setInterval(function() { console.log(ws.readyState)}, 1000);
   };
 </script>
 {% endblock %}
@@ -135,10 +132,10 @@
 				<h3>Games in Play</h3>
 			</div>
 			<div class="well-body">
-        {% for game_id in current_games %}
+        {% for game_id in current_game_ids %}
           <a href="http://en.lichess.org/{{ game_id }}">
             <section>
-                <div class="chessground small wood cburnett" id="ground7">
+                <div class="chessground small wood cburnett" id="ground_{{ game_id }}">
                   <script>
                     newBoard('{{ game_id }}');
                   </script>
