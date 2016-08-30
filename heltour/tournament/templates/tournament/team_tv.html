@@ -93,7 +93,7 @@
         }
       },
       drawable: {
-        enabled: true
+        enabled: false
       }
     });
 
@@ -112,7 +112,7 @@
         ground.set(a);
         const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
         console.log(data);
-        $('#label_2c3PpJKT').html(label);
+        $('#label_' + gameId).html(label);
       }
     });
 
@@ -135,16 +135,19 @@
 				<h3>Games in Play</h3>
 			</div>
 			<div class="well-body">
-        <section>
-            <div class="chessground small wood cburnett" id="ground7">
-              <script>
-                newBoard('2c3PpJKT');
-              </script>
-            </div>
-            <div id="label_2c3PpJKT" class="gameLabel">
-
-            </div>
-        </section>
+        {% for game_id in current_games %}
+          <a href="http://en.lichess.org/{{ game_id }}">
+            <section>
+                <div class="chessground small wood cburnett" id="ground7">
+                  <script>
+                    newBoard('{{ game_id }}');
+                  </script>
+                </div>
+                <div id="label_{{ game_id }}" class="gameLabel">
+                </div>
+            </section>
+          </a>
+        {% endfor %}
 			</div>
 		</div>
 	</div>

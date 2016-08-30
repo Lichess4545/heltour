@@ -955,7 +955,8 @@ def tv(request, league_tag=None, season_tag=None, round_number=None):
     if league.competitor_type == 'team':
         return team_tv(request, league_tag, season_tag, round_number)
     else:
-        return lone_tv(request, league_tag, season_tag, round_number)
+#TODO: Write lone_tv
+        return team_tv(request, league_tag, season_tag, round_number)
 
 def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     league = _get_league(league_tag)
@@ -989,6 +990,11 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
                                          .exclude(game_link='').order_by('scheduled_time')
+
+    # For Testing...
+    current_games = ['6ZIEIEtk'];
+    # End Testing code
+
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
@@ -1010,75 +1016,3 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
         'other_leagues': other_leagues,
     }
     return render(request, 'tournament/team_tv.html', context)
-
-def lone_tv(request, league_tag=None, season_tag=None, round_number=None):
-    specified_round = round_number is not None
-    season = _get_season(league_tag, season_tag)
-    round_number_list = [round_.number for round_ in Round.objects.filter(season=season, publish_pairings=True).order_by('-number')]
-    if round_number is None:
-        try:
-            round_number = round_number_list[0]
-        except IndexError:
-            pass
-    round_ = Round.objects.filter(number=round_number, season=season).first()
-    pairings = LonePlayerPairing.objects.filter(round=round_).order_by('pairing_order').select_related('white', 'black').nocache()
-    byes = PlayerBye.objects.filter(round=round_).order_by('type', 'player_rank', 'player__lichess_username').select_related('player').nocache()
-
-    next_pairing_order = 0
-    for p in pairings:
-        next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
-
-    # Find duplicate players
-    player_refcounts = {}
-    for p in pairings:
-        player_refcounts[p.white] = player_refcounts.get(p.white, 0) + 1
-        player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
-    for b in byes:
-        player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
-    duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
-
-    active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=season, is_active=True)}
-
-    def pairing_error(pairing):
-        if not request.user.is_staff:
-            return None
-        if pairing.white == None or pairing.black == None:
-            return 'Missing player'
-        if pairing.white in duplicate_players:
-            return 'Duplicate player: %s' % pairing.white.lichess_username
-        if pairing.black in duplicate_players:
-            return 'Duplicate player: %s' % pairing.black.lichess_username
-        if not round_.is_completed and pairing.white not in active_players:
-            return 'Inactive player: %s' % pairing.white.lichess_username
-        if not round_.is_completed and pairing.black not in active_players:
-            return 'Inactive player: %s' % pairing.black.lichess_username
-        return None
-
-    def bye_error(bye):
-        if not request.user.is_staff:
-            return None
-        if bye.player in duplicate_players:
-            return 'Duplicate player: %s' % bye.player.lichess_username
-        if not round_.is_completed and bye.player not in active_players:
-            return 'Inactive player: %s' % bye.player.lichess_username
-        return None
-
-    # Add errors
-    pairings = [(p, pairing_error(p)) for p in pairings]
-    byes = [(b, bye_error(b)) for b in byes]
-
-    context = {
-        'league_tag': league_tag,
-        'league': _get_league(league_tag),
-        'season_tag': season_tag,
-        'season': season,
-        'round_': round_,
-        'round_number_list': round_number_list,
-        'pairings': pairings,
-        'byes': byes,
-        'specified_round': specified_round,
-        'next_pairing_order': next_pairing_order,
-        'duplicate_players': duplicate_players,
-        'can_edit': request.user.has_perm('tournament.change_pairing')
-    }
-    return render(request, 'tournament/lone_pairings.html', context)

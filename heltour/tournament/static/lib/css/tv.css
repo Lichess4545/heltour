@@ -1,12 +1,14 @@
 .gameLabel {
   margin-top: 15px;
+  color: white;
+  text-align: center;
 }
 
 section {
   display: inline-block;
   margin: 0 5px 20px 0;
   background: #404040;
-  padding: 5px;
+  padding: 15px 15px 5px 15px;
   border-radius: 2px;
 }
 section p {
@@ -41,4 +43,8 @@ section p {
 }
 .cg-board svg image {
   opacity: 0.5;
+}
+
+.cg-board-wrap coords {
+  color: white;
 }
