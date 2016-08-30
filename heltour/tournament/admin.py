@@ -362,7 +362,7 @@ class SeasonAdmin(VersionAdmin):
 
         board_numbers = list(range(1, season.boards + 1))
         teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
-            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
+            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player').nocache())
         ).nocache()
         team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
