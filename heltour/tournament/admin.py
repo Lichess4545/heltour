@@ -226,7 +226,7 @@ class SeasonAdmin(VersionAdmin):
         # Update board order in teams
         for team in season.team_set.all():
             members = list(team.teammember_set.all())
-            members.sort(key=lambda m:-m.player.rating)
+            members.sort(key=lambda m: m.player.rating, reverse=True)
             occupied_boards = [m.board_number for m in members]
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
@@ -355,7 +355,7 @@ class SeasonAdmin(VersionAdmin):
                     self.message_user(request, 'Some changes could not be saved.', messages.WARNING)
 
                 if 'save_continue' in form.data:
-                    return redirect('admin:edit_rosters', object_id)
+                    return redirect('admin:manage_players', object_id)
                 return redirect('admin:tournament_season_changelist')
         else:
             form = forms.EditRostersForm()
@@ -376,13 +376,13 @@ class SeasonAdmin(VersionAdmin):
         alternate_players = set(alt.season_player.player for alt in alternates)
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
-        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p:-p.rating))
+        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating, reverse=True))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
             unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
-            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p:-p.rating))
+            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: p.rating, reverse=True))
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:

@@ -1114,6 +1114,8 @@ class AlternateBucket(_BaseModel):
         unique_together = ('season', 'board_number')
 
     def contains(self, rating):
+        if rating is None:
+            return self.min_rating is None
         return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
 
     def __unicode__(self):
