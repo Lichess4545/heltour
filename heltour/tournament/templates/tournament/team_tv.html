@@ -108,12 +108,14 @@
         let a = {};
         a.fen = data.fens[data.fens.length-1];
 
-        let chess = new Chess();
-        data.moves.split(' ').forEach(chess.move);
-        let history = chess.history({verbose: true});
-        let lastMoveObj = history[history.length-1];
-        a.lastMove = [lastMoveObj.from, lastMoveObj.to];
-
+        if(data.moves) {
+          let chess = new Chess();
+          data.moves.split(' ').forEach(chess.move);
+          let history = chess.history({verbose: true});
+          let lastMoveObj = history[history.length-1];
+          a.lastMove = [lastMoveObj.from, lastMoveObj.to];
+        }
+        
         ground.set(a);
         const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
         $('#label_' + gameId).html(label);

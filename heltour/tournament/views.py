@@ -955,22 +955,12 @@ def tv(request, league_tag=None, season_tag=None, round_number=None):
     if league.competitor_type == 'team':
         return team_tv(request, league_tag, season_tag, round_number)
     else:
-#TODO: Write lone_tv
         return team_tv(request, league_tag, season_tag, round_number)
 
 def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     league = _get_league(league_tag)
-    other_leagues = League.objects.filter(is_active=True).exclude(pk=league.pk).order_by('display_order')
-
     current_season = _get_default_season(league_tag, allow_none=True)
 
-    season_list = Season.objects.filter(league=_get_league(league_tag)).order_by('-start_date', '-id').exclude(pk=current_season.pk)
-    registration_season = Season.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
-
-    team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=current_season), reverse=True)[:5], 1))
-
-    # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
-    # TODO: Convert game times to the user's local time (maybe in JS?)
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
@@ -981,6 +971,9 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
             return game.game_link
         link = game.game_link.split("#")[0] # Remove the move anchor
         parts = game.game_link.rsplit("/")
+        if (parts[-1] == 'white' or parts[-1] == 'black'):
+            parts.pop();
+
         if len(parts) > 4:
             return None # no idea what link this is.
         else:
@@ -995,11 +988,6 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
         'league': league,
         'season_tag': season_tag,
         'season': current_season,
-        'team_scores': team_scores,
-        'season_list': season_list,
-        'can_edit_document': request.user.has_perm('tournament.change_document'),
-        'registration_season': registration_season,
         'current_game_ids': current_game_ids,
-        'other_leagues': other_leagues,
     }
     return render(request, 'tournament/team_tv.html', context)
