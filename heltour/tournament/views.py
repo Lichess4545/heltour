@@ -952,13 +952,6 @@ def _get_default_season(league_tag, allow_none=False):
 
 def tv(request, league_tag=None, season_tag=None, round_number=None):
     league = _get_league(league_tag)
-    if league.competitor_type == 'team':
-        return team_tv(request, league_tag, season_tag, round_number)
-    else:
-        return team_tv(request, league_tag, season_tag, round_number)
-
-def team_tv(request, league_tag=None, season_tag=None, round_number=None):
-    league = _get_league(league_tag)
     current_season = _get_default_season(league_tag, allow_none=True)
 
     current_game_time_min = timezone.now() - timedelta(hours=3)
@@ -990,4 +983,4 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
         'season': current_season,
         'current_game_ids': current_game_ids,
     }
-    return render(request, 'tournament/team_tv.html', context)
+    return render(request, 'tournament/tv.html', context)

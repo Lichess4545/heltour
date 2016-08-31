@@ -1,10 +1,9 @@
 {% extends "base.html" %}
-{% load tournament_extras %}
+{% load staticfiles tournament_extras %}
 
 {% block title %}Games in Play - {{ season.name }} - {{ league.name }}{% endblock %}
 
 {% block nav_tv %}active{% endblock %}
-{% load staticfiles tournament_extras %}
 
 {% block css %}
 <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
@@ -51,7 +50,6 @@
     }
 
     ws.onerror = function (error) {
-      console.log('error');
       console.log(error);
     }
 
@@ -115,7 +113,7 @@
           let lastMoveObj = history[history.length-1];
           a.lastMove = [lastMoveObj.from, lastMoveObj.to];
         }
-        
+
         ground.set(a);
         const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
         $('#label_' + gameId).html(label);
