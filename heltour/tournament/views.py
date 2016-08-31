@@ -996,3 +996,38 @@ def _get_default_season(league_tag, allow_none=False):
     if not allow_none and season is None:
         raise Http404
     return season
+
+def tv(request, league_tag=None, season_tag=None, round_number=None):
+    league = _get_league(league_tag)
+    current_season = _get_default_season(league_tag, allow_none=True)
+
+    current_game_time_min = timezone.now() - timedelta(hours=3)
+    current_game_time_max = timezone.now() + timedelta(minutes=5)
+    current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
+                                         .exclude(game_link='').order_by('scheduled_time')
+
+    def game_id(game):
+        if not game.game_link:
+            return game.game_link
+        link = game.game_link.split("#")[0] # Remove the move anchor
+        parts = game.game_link.rsplit("/")
+        if (parts[-1] == 'white' or parts[-1] == 'black'):
+            parts.pop();
+
+        if len(parts) > 4:
+            return None # no idea what link this is.
+        else:
+            return parts[3]
+
+    current_game_ids = [];
+    for pairing in current_games:
+        current_game_ids.append(game_id(pairing));
+
+    context = {
+        'league_tag': league_tag,
+        'league': league,
+        'season_tag': season_tag,
+        'season': current_season,
+        'current_game_ids': current_game_ids,
+    }
+    return render(request, 'tournament/tv.html', context)
