@@ -1,6 +1,16 @@
 {% extends "empty_base.html" %}
 {% load staticfiles tournament_extras %}
 
+{% block iconpath %}{% spaceless %}
+{% if league.theme == 'blue' %}
+{% static 'tournament/img/all-for-one-favicon.png' %}
+{% elif league.theme == 'green' %}
+{% static 'tournament/img/wolf-head-favicon.png' %}
+{% else %}
+{{ block.super }}
+{% endif %}
+{% endspaceless %}{% endblock %}
+
 {% block body %}
     <nav class="navbar navbar-default">
 	  <div class="container-fluid">

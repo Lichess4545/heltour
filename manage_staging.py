@@ -3,8 +3,8 @@ import os
 import sys
 
 if __name__ == "__main__":
-    os.environ.setdefault("HELTOUR_ENV", "LIVE")
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.settings")
+    os.environ.setdefault("HELTOUR_ENV", "STAGING")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.staging_settings")
 
     from django.core.management import execute_from_command_line
 

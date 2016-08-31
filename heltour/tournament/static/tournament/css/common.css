@@ -22,7 +22,7 @@ body {
 	background-color: #e9e9e9;
 }
 
-.footer .text-muted {
+.footer p {
 	text-align: center;
 	margin: 15px 0;
 	color: #666666;
@@ -167,6 +167,10 @@ div.inline {
 .document-content {
 	padding: 5px;
 	line-height: 180%;
+}
+
+.document-content > :last-child {
+	margin-bottom: 0;
 }
 
 .document-edit {
@@ -398,7 +402,7 @@ div.inline {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	margin-bottom: 50px;
+	margin: 30px 0 80px 0;
 }
 
 #home-league-list {
@@ -407,8 +411,9 @@ div.inline {
 
 .league-homelink {
 	display: block;
-	height: 80px;
-	line-height: 80px;
+	height: 70px;
+	width: 320px;
+	line-height: 70px;
 	color: white;
 	font-size: 24px;
 	text-align: center;
@@ -422,10 +427,20 @@ div.inline {
 }
 
 .league-homelink-blue {
+	padding-left: 60px;
+	background: url(/static/tournament/img/all-for-one.png);
+	background-position: 5px 0px;
+	background-repeat: no-repeat;
+	background-size: 70px 70px;
 	background-color: #245164;
 }
 
 .league-homelink-green {
+	padding-left: 65px;
+	background: url(/static/tournament/img/wolf-head.png);
+	background-position: 15px 0px;
+	background-repeat: no-repeat;
+	background-size: 70px 70px;
 	background-color: #225622;
 }
 

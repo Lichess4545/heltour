@@ -183,8 +183,10 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
         for k in range(season.boards):
             white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
             white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+            SeasonPlayer.objects.get_or_create(season=season, player=white_player)
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
             black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+            SeasonPlayer.objects.get_or_create(season=season, player=black_player)
             result = sheet[pairing_row][result_col]
             if result == u'\u2694':
                 result = ''

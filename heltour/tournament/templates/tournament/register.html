@@ -1,16 +1,19 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras %}
 
-{% block title %}Registration - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block title %}Registration - {{ registration_season.name }} - {{ league.name }}{% endblock %}
 
 {% block content %}
 <div class="row row-condensed-xs">
 	<div class="col-md-12">
 		<div class="well" id="well-register">
 			<div class="well-head">
-				<h3>{{ registration_season.name }} Registration ({{ registration_season.start_date|date_or_q }} - {{ registration_season.end_date|date_or_q }})</h3>
+				<h3>{{ registration_season.name }} Registration</h3>
 			</div>
 			<div class="well-body">
+				{% if registration_season.start_date %}
+				<p>The season {% if registration_season.is_started %}started{% else %}starts{% endif %} {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
+				{% endif %}
 				<form action="" method="post">
 				    {% csrf_token %}
 				    {% bootstrap_form form %}

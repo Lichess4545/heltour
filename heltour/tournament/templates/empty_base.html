@@ -1,4 +1,4 @@
-{% with "13" as static_version %}<!DOCTYPE html>
+{% with "15" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -9,7 +9,7 @@
 
     {% load staticfiles tournament_extras %}
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-    <link rel="shortcut icon" type="image/png" href="{% static 'tournament/img/favicon.png' %}"/>
+    <link rel="shortcut icon" type="image/png" href="{% block iconpath %}{% static 'tournament/img/favicon.png' %}{% endblock %}?v={{ static_version }}"/>
     {% block common_css %}
     <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
     <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
@@ -22,14 +22,23 @@
 </head>
 
 <body>
+    {% if STAGING %}
+    <header style="background-color: #c00; height: 30px; text-align: center;">
+      <div class="container-fluid">
+        <p style="color: #fff; margin: 5px 0;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
+      </div>
+    </header>
+    {% endif %}
     {% block body %}{% endblock %}
 
+    {% if league %}
     <footer class="footer">
       <div class="container-fluid">
-        <p class="text-muted">This site is currently for PREVIEW ONLY.</p>
+        <p class="text-muted">{{ league.name }} &middot; <a href="{% url 'home' %}">Change</a></p>
       </div>
     </footer>
-
+    {% endif %}
+    
     {% block common_js %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="{% static "lib/js/bootstrap.min.js" %}?v={{ static_version }}"></script>

@@ -38,8 +38,8 @@
 						<a href="{% leagueurl 'player_profile' other_season_league.tag other_season.tag player.lichess_username %}">{{ other_season.name }}</a>:
 						{{ game_count }} game{% if game_count != 1 %}s{% endif %} {% if team_name %} for {{ team_name }}{% endif %}
 					</div>
+					{% endfor %}
 				</div>
-				{% endfor %}
 				{% endfor %}
 			</div>
 		</div>
@@ -68,7 +68,7 @@
 				<div class="player-profile-section">
 					<strong>Games</strong>
 					<table>
-					{% for round_, pairing in games %}
+					{% for round_, pairing, team in games %}
 					<tr>
 						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
 						<td>

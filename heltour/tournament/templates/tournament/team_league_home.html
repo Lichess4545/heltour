@@ -9,24 +9,7 @@
 <div class="row row-condensed-xs home-row">
 	<div class="col-md-6 col-xs-12">
 		{% if intro_doc %}
-		<div class="well">
-			<div class="well-head">
-				<div class="inline">
-					<h3>{{ intro_doc.document.name }}</h3>
-				</div>{% if can_edit_document %}
-				<div class="inline document-edit">
-					<a href="{% url 'admin:tournament_document_change' intro_doc.document.pk %}?_popup=1" id="change-document-{{ intro_doc.document.pk }}" class="large-popup-link" title="Change selected document">
-			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-			        </a>
-		        </div>{% endif %}
-		    </div>
-		    <div class="well-body">
-				{{ intro_doc.document.content|safe }}
-				{% if rules_doc_tag %}
-				<a href="{% leagueurl 'document' league_tag season_tag rules_doc_tag %}" class="btn btn-default">Rules and Regulations</a>
-				{% endif %}
-			</div>
-		</div>
+		{% include 'tournament/document_inline.html' with document=intro_doc.document %}
 		{% endif %}
 		{% if registration_season %}
 		<div class="well">

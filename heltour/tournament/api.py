@@ -6,6 +6,7 @@ from models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
+from django.core.urlresolvers import reverse
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
@@ -30,6 +31,11 @@ def find_pairing(request):
         player = request.GET.get('player', None)
         white = request.GET.get('white', None)
         black = request.GET.get('black', None)
+        scheduled = request.GET.get('scheduled', None)
+        if scheduled == 'true':
+            scheduled = True
+        elif scheduled == 'false':
+            scheduled = False
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
@@ -40,12 +46,12 @@ def find_pairing(request):
     pairings = []
     for r in rounds:
         print r, pairings
-        pairings += list(_get_pairings(r, player, white, black))
+        pairings += list(_get_pairings(r, player, white, black, scheduled))
 
     if len(pairings) == 0:
         # Try alternate colors
         for r in rounds:
-            pairings += list(_get_pairings(r, player, black, white))
+            pairings += list(_get_pairings(r, player, black, white, scheduled))
 
     return JsonResponse({'pairings': [_export_pairing(p) for p in pairings]})
 
@@ -106,13 +112,13 @@ def update_pairing(request):
     for r in rounds:
         pairings += _get_pairings(r, None, white, black)
 
-    reversed = False 
+    reversed = False
     if len(pairings) == 0:
         # Try alternate colors
         reversed = True
         for r in rounds:
             pairings += list(_get_pairings(r, None, black, white))
-    
+
     if len(pairings) == 0:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
     if len(pairings) > 1:
@@ -131,19 +137,19 @@ def update_pairing(request):
     return JsonResponse({'updated': 1, 'reversed': reversed})
 
 def _get_active_rounds(league_tag, season_tag):
-    rounds = Round.objects.filter(publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
+    rounds = Round.objects.filter(season__is_active=True, publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
     if league_tag is not None:
         rounds = rounds.filter(season__league__tag=league_tag)
     if season_tag is not None:
         rounds = rounds.filter(season__tag=season_tag)
     return rounds
 
-def _get_pairings(round_, player=None, white=None, black=None):
-    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black)
-    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black)
+def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
+    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black, scheduled)
+    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black, scheduled)
     return pairings
 
-def _filter_pairings(pairings, player=None, white=None, black=None):
+def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
     if player is not None:
         white_pairings = pairings.filter(white__lichess_username__iexact=player)
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
@@ -152,6 +158,10 @@ def _filter_pairings(pairings, player=None, white=None, black=None):
         pairings = pairings.filter(white__lichess_username__iexact=white)
     if black is not None:
         pairings = pairings.filter(black__lichess_username__iexact=black)
+    if scheduled == True:
+        pairings = pairings.exclude(result='', scheduled_time=None)
+    if scheduled == False:
+        pairings = pairings.filter(result='', scheduled_time=None)
     return list(pairings)
 
 @require_GET
@@ -322,3 +332,32 @@ def league_document(request):
          'name': document.name,
          'content': content
      })
+
+@require_GET
+@require_api_token
+def get_private_url(request):
+    try:
+        league_tag = request.GET.get('league', None)
+        season_tag = request.GET.get('season', None)
+        page = request.GET.get('page', None)
+        user = request.GET.get('user', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if user is None:
+        return HttpResponse('Bad request', status=400)
+
+    if page == 'vote':
+        if league_tag is None:
+            return HttpResponse('Bad request', status=400)
+
+        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
+        if season_tag is None:
+            url = reverse('by_league:vote', args=[league_tag, auth.secret_token])
+        else:
+            url = reverse('by_league:by_season:vote', args=[league_tag, season_tag, auth.secret_token])
+        url = request.build_absolute_uri(url)
+
+        return JsonResponse({'url': url, 'expires': auth.expires})
+    else:
+        return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})

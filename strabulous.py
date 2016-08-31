@@ -42,10 +42,10 @@ def update(all_repos, python_repos, python_package_name, python_version):
 def createdb(python_package_name, database_name, database_user):
     print(
         colors.green("Look up the password to set for the user with: ") +
-        colors.blue("cat %s/settings.py | grep \"PASSWORD\"" % python_package_name)
+        colors.blue("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
     )
     if confirm(colors.red("You should only run this when others aren't looking over your shoulder. Run the command?")):
-        local("cat %s/settings.py | grep \"PASSWORD\"" % python_package_name)
+        local("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         UbuntuPgCreateDbAndUser(database_name, database_user)()
 
@@ -81,6 +81,6 @@ def latest_live_db(live_backup_script_path, live_latest_sql_file_path, python_pa
         local_db = get(live_latest_sql_file_path, local_target)[0]
         with settings(warn_only=True):
             if confirm(colors.red("You should only run this when others aren't looking over your shoulder. Show database password?")):
-                local("cat %s/settings.py | grep \"PASSWORD\"" % PYTHON_PACKAGE_NAME)
+                local("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
             PgLoadPlain(local_db, database_name, database_user)()
 

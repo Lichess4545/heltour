@@ -37,6 +37,8 @@ season_urlpatterns = [
     url(r'^dashboard/$', views.league_dashboard, name='league_dashboard'),
     url(r'^player/(?P<username>[\w-]+)/$', views.player_profile, name='player_profile'),
     url(r'^tv/$', views.tv, name='tv'),
+    url(r'^document/(?P<document_tag>[\w-]+)/$', views.document, name='document'),
+    url(r'^vote/(?P<secret_token>\w+)/$', views.vote, name='vote'),
 ]
 
 league_urlpatterns = [
@@ -53,6 +55,7 @@ api_urlpatterns = [
     url(r'^assign_alternate/$', api.assign_alternate, name='assign_alternate'),
     url(r'^set_availability/$', api.set_availability, name='set_availability'),
     url(r'^league_document/$', api.league_document, name='league_document'),
+    url(r'^get_private_url/$', api.get_private_url, name='get_private_url'),
 ]
 
 urlpatterns = [

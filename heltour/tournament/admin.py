@@ -19,6 +19,7 @@ from heltour import settings
 from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -82,7 +83,7 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'manage_players', 'round_transition']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'manage_players', 'round_transition']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
@@ -108,6 +109,18 @@ class SeasonAdmin(VersionAdmin):
                     team_pairing.save()
             season.calculate_scores()
         self.message_user(request, 'Scores recalculated.', messages.INFO)
+
+    def verify_data(self, request, queryset):
+        for season in queryset:
+            # Ensure SeasonPlayer objects exist for all paired players
+            if season.league.competitor_type == 'team':
+                pairings = TeamPlayerPairing.objects.filter(team_pairing__round__season=season)
+            else:
+                pairings = LonePlayerPairing.objects.filter(round__season=season)
+            for p in pairings:
+                SeasonPlayer.objects.get_or_create(season=season, player=p.white)
+                SeasonPlayer.objects.get_or_create(season=season, player=p.black)
+        self.message_user(request, 'Data verified.', messages.INFO)
 
     def round_transition(self, request, queryset):
         if queryset.count() > 1:
@@ -169,7 +182,8 @@ class SeasonAdmin(VersionAdmin):
             self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
 
         if round_to_close is not None:
-            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close)
+            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close) | \
+                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close)
             if len(incomplete_pairings) > 0:
                 self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
 
@@ -212,7 +226,7 @@ class SeasonAdmin(VersionAdmin):
         # Update board order in teams
         for team in season.team_set.all():
             members = list(team.teammember_set.all())
-            members.sort(key=lambda m:-m.player.rating)
+            members.sort(key=lambda m: m.player.rating, reverse=True)
             occupied_boards = [m.board_number for m in members]
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
@@ -341,14 +355,14 @@ class SeasonAdmin(VersionAdmin):
                     self.message_user(request, 'Some changes could not be saved.', messages.WARNING)
 
                 if 'save_continue' in form.data:
-                    return redirect('admin:edit_rosters', object_id)
+                    return redirect('admin:manage_players', object_id)
                 return redirect('admin:tournament_season_changelist')
         else:
             form = forms.EditRostersForm()
 
         board_numbers = list(range(1, season.boards + 1))
         teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
-            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player'))
+            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player').nocache())
         ).nocache()
         team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
@@ -362,13 +376,13 @@ class SeasonAdmin(VersionAdmin):
         alternate_players = set(alt.season_player.player for alt in alternates)
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
-        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p:-p.rating))
+        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating, reverse=True))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
             unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
-            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p:-p.rating))
+            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: p.rating, reverse=True))
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:
@@ -987,6 +1001,23 @@ class DocumentAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
 class LeagueDocumentAdmin(VersionAdmin):
-    list_display = ('document', 'league', 'tag', 'type')
+    list_display = ('document', 'league', 'tag', 'type', 'url')
     search_fields = ('league__name', 'tag', 'document__name')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+    def url(self, obj):
+        _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
+        return '<a href="%s">%s</a>' % (_url, _url)
+    url.allow_tags = True
+
+#-------------------------------------------------------------------------------
+@admin.register(SeasonDocument)
+class SeasonDocumentAdmin(VersionAdmin):
+    list_display = ('document', 'season', 'tag', 'type', 'url')
+    search_fields = ('season__name', 'tag', 'document__name')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+    def url(self, obj):
+        _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
+        return '<a href="%s">%s</a>' % (_url, _url)
+    url.allow_tags = True

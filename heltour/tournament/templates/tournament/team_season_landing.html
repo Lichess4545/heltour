@@ -105,6 +105,9 @@
 			</div>
 		</div>
 		{% endif %}
+		{% if links_doc %}
+		{% include 'tournament/document_inline.html' with document=links_doc.document %}
+		{% endif %}
 	</div>
 </div>
 {% endblock %}

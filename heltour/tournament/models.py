@@ -251,7 +251,7 @@ class Season(_BaseModel):
                             perf_n += 1
                     else:
                         # Special cases for unplayed games
-                        mm_total += 1
+                        mm_total += 0.5
                         cumul -= round_score
                     score_dict[(sp.player_id, round_.number)] = _LoneScoreState(total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played)
 
@@ -286,8 +286,8 @@ class Season(_BaseModel):
                 for round_number in range(1, last_round.number + 1):
                     round_state = score_dict[(player_id, round_number)]
                     if round_state.round_played and round_state.round_opponent is not None:
-                        opponent_scores.append(score_dict[(round_state.round_opponent, last_round.number)][1])
-                        opponent_cumuls.append(score_dict[(round_state.round_opponent, last_round.number)][2])
+                        opponent_scores.append(score_dict[(round_state.round_opponent, last_round.number)].mm_total)
+                        opponent_cumuls.append(score_dict[(round_state.round_opponent, last_round.number)].cumul)
                     else:
                         opponent_scores.append(0)
                 opponent_scores.sort()
@@ -295,9 +295,9 @@ class Season(_BaseModel):
                 # TB1: Modified Median
                 median_scores = opponent_scores
                 skip = 2 if last_round.number >= 9 else 1
-                if score.points <= last_round.number:
+                if score.points <= last_round.number / 2.0:
                     median_scores = median_scores[:-skip]
-                if score.points >= last_round.number:
+                if score.points >= last_round.number / 2.0:
                     median_scores = median_scores[skip:]
                 score.tiebreak1 = sum(median_scores)
 
@@ -1114,6 +1114,8 @@ class AlternateBucket(_BaseModel):
         unique_together = ('season', 'board_number')
 
     def contains(self, rating):
+        if rating is None:
+            return self.min_rating is None
         return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
 
     def __unicode__(self):
@@ -1157,6 +1159,18 @@ class ApiKey(_BaseModel):
         return self.name
 
 #-------------------------------------------------------------------------------
+class PrivateUrlAuth(_BaseModel):
+    authenticated_user = models.CharField(max_length=255, validators=[RegexValidator('^[\w-]+$')])
+    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    expires = models.DateTimeField()
+
+    def is_expired(self):
+        return self.expires < timezone.now()
+
+    def __unicode__(self):
+        return self.authenticated_user
+
+#-------------------------------------------------------------------------------
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()
@@ -1180,6 +1194,23 @@ class LeagueDocument(_BaseModel):
 
     class Meta:
         unique_together = ('league', 'tag')
+
+    def __unicode__(self):
+        return self.document.name
+
+SEASON_DOCUMENT_TYPES = (
+    ('links', 'Links'),
+)
+
+#-------------------------------------------------------------------------------
+class SeasonDocument(_BaseModel):
+    season = models.ForeignKey(Season)
+    document = models.ForeignKey(Document)
+    tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
+    type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
+
+    class Meta:
+        unique_together = ('season', 'tag')
 
     def __unicode__(self):
         return self.document.name

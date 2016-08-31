@@ -121,7 +121,11 @@ class SeasonTestCase(TestCase):
 
         rounds[1].is_completed = True
         rounds[1].save()
-        self.assertItemsEqual([(2, 0, 1, 3, 1.5), (0.5, 1, 3, 0.5, 4.5), (0.5, 1, 3, 1, 4.5), (1, 0.5, 1, 1.5, 1.5)], score_matrix())
+        self.assertItemsEqual([(2, 0.5, 1, 3, 1.5), (0.5, 1, 3, 0.5, 4.5), (0.5, 1, 3, 1, 4.5), (1, 0, 1, 1.5, 1.5)], score_matrix())
+
+        rounds[2].is_completed = True
+        rounds[2].save()
+        self.assertItemsEqual([(2, 2, 2, 5, 2.5), (0.5, 1.5, 4, 1, 7.5), (0.5, 1.5, 4, 1.5, 7.5), (1, 1, 2, 2.5, 2.5)], score_matrix())
 
 class TeamTestCase(TestCase):
     def setUp(self):
