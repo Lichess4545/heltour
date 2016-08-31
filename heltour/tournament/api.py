@@ -358,6 +358,6 @@ def get_private_url(request):
             url = reverse('by_league:by_season:vote', args=[league_tag, season_tag, auth.secret_token])
         url = request.build_absolute_uri(url)
 
-        return JsonResponse({'url': url})
+        return JsonResponse({'url': url, 'expires': auth.expires})
     else:
-        return JsonResponse({'url': None, 'error': 'invalid_page'})
+        return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
