@@ -143,7 +143,7 @@
         {% if game_id %}
           <a href="http://en.lichess.org/{{ game_id }}">
             <section>
-                <div class="chessground small wood cburnett" id="ground_{{ game_id }}">
+                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett" id="ground_{{ game_id }}">
                   <script>
                     newBoard('{{ game_id }}');
                   </script>

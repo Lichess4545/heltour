@@ -2,7 +2,13 @@
  * Board
  */
 .blue .cg-board {
+  background-image: url('../images/board/blue.png');
+}
+.blue2 .cg-board {
   background-image: url('../images/board/blue2.jpg');
+}
+.green .cg-board {
+  background-image: url('../images/board/green.png');
 }
 .wood .cg-board {
   background-image: url('../images/board/wood2.jpg');
