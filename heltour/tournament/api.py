@@ -339,7 +339,7 @@ def get_private_url(request):
     try:
         league_tag = request.GET.get('league', None)
         season_tag = request.GET.get('season', None)
-        url_type = request.GET.get('type', None)
+        page = request.GET.get('page', None)
         user = request.GET.get('user', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
@@ -347,7 +347,7 @@ def get_private_url(request):
     if user is None:
         return HttpResponse('Bad request', status=400)
 
-    if url_type == 'season-game-vote':
+    if page == 'vote':
         if league_tag is None:
             return HttpResponse('Bad request', status=400)
 
@@ -360,4 +360,4 @@ def get_private_url(request):
 
         return JsonResponse({'url': url})
     else:
-        return JsonResponse({'url': None, 'error': 'unknown_type'})
+        return JsonResponse({'url': None, 'error': 'invalid_page'})
