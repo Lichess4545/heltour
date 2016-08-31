@@ -411,9 +411,9 @@ div.inline {
 
 .league-homelink {
 	display: block;
-	height: 80px;
+	height: 70px;
 	width: 320px;
-	line-height: 80px;
+	line-height: 70px;
 	color: white;
 	font-size: 24px;
 	text-align: center;
@@ -427,10 +427,20 @@ div.inline {
 }
 
 .league-homelink-blue {
+	padding-left: 60px;
+	background: url(/static/tournament/img/all-for-one.png);
+	background-position: 5px 0px;
+	background-repeat: no-repeat;
+	background-size: 70px 70px;
 	background-color: #245164;
 }
 
 .league-homelink-green {
+	padding-left: 65px;
+	background: url(/static/tournament/img/wolf-head.png);
+	background-position: 15px 0px;
+	background-repeat: no-repeat;
+	background-size: 70px 70px;
 	background-color: #225622;
 }
 
