@@ -60,7 +60,6 @@
 
       if(m.t === 'fen') {
         let ground = chessGrounds[m.d.id];
-        console.log(m.d);
         m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
         ground.set(m.d);
       }
@@ -100,14 +99,21 @@
     $.ajax({
       url:'https://en.lichess.org/api/game/' + gameId,
       data: {
-        with_fens: 1
+        with_fens: 1,
+        with_moves: 1
       },
       dataType:'jsonp',
       jsonp:'callback',
       success: function(data) {
-        console.log(data);
         let a = {};
         a.fen = data.fens[data.fens.length-1];
+
+        let chess = new Chess();
+        data.moves.split(' ').forEach(chess.move);
+        let history = chess.history({verbose: true});
+        let lastMoveObj = history[history.length-1];
+        a.lastMove = [lastMoveObj.from, lastMoveObj.to];
+
         ground.set(a);
         const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
         $('#label_' + gameId).html(label);

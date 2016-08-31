@@ -976,13 +976,19 @@ def team_tv(request, league_tag=None, season_tag=None, round_number=None):
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
                                          .exclude(game_link='').order_by('scheduled_time')
 
+    def game_id(game):
+        if not game.game_link:
+            return game.game_link
+        link = game.game_link.split("#")[0] # Remove the move anchor
+        parts = game.game_link.rsplit("/")
+        if len(parts) > 4:
+            return None # no idea what link this is.
+        else:
+            return parts[3]
+
     current_game_ids = [];
     for pairing in current_games:
-        current_game_ids.append(pairing.game_link.split('/')[-1])
-
-    # For Testing...
-    current_game_ids = ['86Wbsyjw', 'ZWnh5bw4', 'yDv5dwjq', 'OSVGLUGJ', 'RlTJSTiZ', 'KzE4p1MI'];
-    # End Testing code
+        current_game_ids.append(game_id(pairing));
 
     context = {
         'league_tag': league_tag,
