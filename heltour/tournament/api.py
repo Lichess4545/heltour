@@ -6,6 +6,7 @@ from models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
+from django.core.urlresolvers import reverse
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
@@ -331,3 +332,32 @@ def league_document(request):
          'name': document.name,
          'content': content
      })
+
+@require_GET
+@require_api_token
+def get_private_url(request):
+    try:
+        league_tag = request.GET.get('league', None)
+        season_tag = request.GET.get('season', None)
+        url_type = request.GET.get('type', None)
+        user = request.GET.get('user', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if user is None:
+        return HttpResponse('Bad request', status=400)
+
+    if url_type == 'season-game-vote':
+        if league_tag is None:
+            return HttpResponse('Bad request', status=400)
+
+        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
+        if season_tag is None:
+            url = reverse('by_league:vote', args=[league_tag, auth.secret_token])
+        else:
+            url = reverse('by_league:by_season:vote', args=[league_tag, season_tag, auth.secret_token])
+        url = request.build_absolute_uri(url)
+
+        return JsonResponse({'url': url})
+    else:
+        return JsonResponse({'url': None, 'error': 'unknown_type'})

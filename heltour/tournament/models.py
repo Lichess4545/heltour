@@ -1159,6 +1159,18 @@ class ApiKey(_BaseModel):
         return self.name
 
 #-------------------------------------------------------------------------------
+class PrivateUrlAuth(_BaseModel):
+    authenticated_user = models.CharField(max_length=255, validators=[RegexValidator('^[\w-]+$')])
+    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    expires = models.DateTimeField()
+
+    def is_expired(self):
+        return self.expires < timezone.now()
+
+    def __unicode__(self):
+        return self.authenticated_user
+
+#-------------------------------------------------------------------------------
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()

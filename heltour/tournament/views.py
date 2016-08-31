@@ -950,6 +950,26 @@ def player_profile(request, username, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/player_profile.html', context)
 
+def vote(request, secret_token, league_tag=None, season_tag=None):
+    auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
+    if auth is not None and not auth.is_expired():
+        username = auth.authenticated_user
+    else:
+        username = None
+
+    # Clean up the DB
+    for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
+        expired_auth.delete()
+
+    context = {
+        'league_tag': league_tag,
+        'league': _get_league(league_tag),
+        'season_tag': season_tag,
+        'season': _get_season(league_tag, season_tag, allow_none=True),
+        'username': username,
+    }
+    return render(request, 'tournament/vote.html', context)
+
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
         return _get_default_league(allow_none)
