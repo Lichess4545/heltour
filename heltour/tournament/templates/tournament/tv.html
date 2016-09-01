@@ -155,6 +155,9 @@
         {% endif %}
         {% endwith %}
         {% endfor %}
+        {% if not current_games %}
+        <p>No games are currently being played.</p>
+        {% endif %}
 			</div>
 		</div>
 	</div>
