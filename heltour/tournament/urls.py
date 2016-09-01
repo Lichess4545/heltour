@@ -38,7 +38,7 @@ season_urlpatterns = [
     url(r'^player/(?P<username>[\w-]+)/$', views.player_profile, name='player_profile'),
     url(r'^tv/$', views.tv, name='tv'),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.document, name='document'),
-    url(r'^vote/(?P<secret_token>\w+)/$', views.vote, name='vote'),
+    url(r'^nominate/(?P<secret_token>\w+)/$', views.nominate, name='nominate'),
 ]
 
 league_urlpatterns = [

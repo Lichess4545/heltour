@@ -139,7 +139,7 @@ class RoundTransitionForm(forms.Form):
             self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)
             self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number, widget=forms.HiddenInput)
 
-class VoteForm(forms.Form):
+class NominateForm(forms.Form):
     game_link = forms.URLField(required=False)
 
     def clean_game_link(self):
@@ -152,4 +152,4 @@ class VoteForm(forms.Form):
 
     def __init__(self, season_pairings, *args, **kwargs):
         self.season_pairings = season_pairings
-        super(VoteForm, self).__init__(*args, **kwargs)
+        super(NominateForm, self).__init__(*args, **kwargs)

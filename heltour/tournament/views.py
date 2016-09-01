@@ -950,7 +950,7 @@ def player_profile(request, username, league_tag=None, season_tag=None):
     }
     return render(request, 'tournament/player_profile.html', context)
 
-def vote(request, secret_token, league_tag=None, season_tag=None):
+def nominate(request, secret_token, league_tag=None, season_tag=None):
     league = _get_league(league_tag)
     season = _get_season(league_tag, season_tag)
 
@@ -968,16 +968,16 @@ def vote(request, secret_token, league_tag=None, season_tag=None):
         season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=season)
 
     if player is None:
-        can_vote = False
+        can_nominate = False
         current_nominations = []
         form = None
     else:
         player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
-        can_vote = player_pairings.count() > 0
+        can_nominate = player_pairings.count() > 0
         current_nominations = GameNomination.objects.filter(season=season, nominating_player=player)
 
         if request.method == 'POST':
-            form = VoteForm(season_pairings, request.POST)
+            form = NominateForm(season_pairings, request.POST)
             if form.is_valid():
                 with transaction.atomic():
                     for nom in current_nominations:
@@ -988,7 +988,7 @@ def vote(request, secret_token, league_tag=None, season_tag=None):
                         nom = GameNomination.objects.create(season=season, nominating_player=player, game_link=form.cleaned_data['game_link'])
                         current_nominations = [nom]
         else:
-            form = VoteForm(season_pairings)
+            form = NominateForm(season_pairings)
         if len(current_nominations) > 0:
             form.fields['game_link'].initial = current_nominations[0].game_link
 
@@ -1005,10 +1005,10 @@ def vote(request, secret_token, league_tag=None, season_tag=None):
         'season': season,
         'form': form,
         'username': username,
-        'can_vote': can_vote,
+        'can_nominate': can_nominate,
         'current_nominations': current_nominations,
     }
-    return render(request, 'tournament/vote.html', context)
+    return render(request, 'tournament/nominate.html', context)
 
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:

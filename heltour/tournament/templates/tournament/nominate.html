@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras %}
 
-{% block title %}Vote - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block title %}Game Nomination - {{ season.name }} - {{ league.name }}{% endblock %}
 
 {% block content %}
 <div class="row row-condensed-xs">
@@ -12,8 +12,8 @@
 			</div>
 			<div class="well-body">
 				{% if not username %}
-				<p>This url is invalid or expired.</p>
-				{% elif not can_vote %}
+				<p>This link is invalid or expired.</p>
+				{% elif not can_nominate %}
 				<p>Sorry {{ username }}, you need to have participated in the season to nominate a game.</p>
 				<p>If you think this is an error, please contact a moderator.</p>
 				{% else %}

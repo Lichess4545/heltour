@@ -347,15 +347,15 @@ def get_private_url(request):
     if user is None:
         return HttpResponse('Bad request', status=400)
 
-    if page == 'vote':
+    if page == 'nominate':
         if league_tag is None:
             return HttpResponse('Bad request', status=400)
 
         auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
         if season_tag is None:
-            url = reverse('by_league:vote', args=[league_tag, auth.secret_token])
+            url = reverse('by_league:nominate', args=[league_tag, auth.secret_token])
         else:
-            url = reverse('by_league:by_season:vote', args=[league_tag, season_tag, auth.secret_token])
+            url = reverse('by_league:by_season:nominate', args=[league_tag, season_tag, auth.secret_token])
         url = request.build_absolute_uri(url)
 
         return JsonResponse({'url': url, 'expires': auth.expires})
