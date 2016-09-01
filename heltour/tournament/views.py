@@ -1005,7 +1005,6 @@ def tv(request, league_tag=None, season_tag=None, round_number=None):
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
                                          .exclude(game_link='').order_by('scheduled_time')
-
     context = {
         'league_tag': league_tag,
         'league': league,
