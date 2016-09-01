@@ -138,10 +138,12 @@
 				<h3>Games in Play</h3>
 			</div>
 			<div class="well-body">
-        {% for game_id in current_game_ids %}
+        {% for pairing in current_games %}
+        {% with pairing.game_id as game_id %}
+        {% if game_id %}
           <a href="http://en.lichess.org/{{ game_id }}">
             <section>
-                <div class="chessground small wood cburnett" id="ground_{{ game_id }}">
+                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett" id="ground_{{ game_id }}">
                   <script>
                     newBoard('{{ game_id }}');
                   </script>
@@ -150,6 +152,8 @@
                 </div>
             </section>
           </a>
+        {% endif %}
+        {% endwith %}
         {% endfor %}
 			</div>
 		</div>

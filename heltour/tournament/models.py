@@ -755,6 +755,19 @@ class PlayerPairing(_BaseModel):
     def game_played(self):
         return self.result in ('1-0', '1/2-1/2', '0-1')
 
+    def game_id(self):
+        if not self.game_link:
+            return None
+        link = self.game_link.split("#")[0] # Remove the move anchor
+        parts = link.rsplit("/")
+        if (parts[-1] == 'white' or parts[-1] == 'black'):
+            parts.pop();
+
+        if len(parts) > 4:
+            return None # no idea what link this is.
+        else:
+            return parts[3]
+
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
