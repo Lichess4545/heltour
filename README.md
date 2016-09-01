@@ -11,9 +11,11 @@ may vary slightly.
 3. `source env/bin/activate`
 4. `fab up`
 5. `fab createdb`
-6. `python manage.py migrate`
-7. `python manage.py createsuperuser`
+6. `fab -R dev latestdb`
 8. `fab runserver`
+
+## default admin user password:
+The `fab -R dev latestdb` command downloads an example database that has two leagues that are ongoing in them. The default username is `admin` with password of `09876default1234`.
 
 ### Optional Components
 - To generate pairings, download [JaVaFo](http://www.rrweb.org/javafo/current/javafo.jar) and set JAVAFO_COMMAND to 'java -jar /path/to/javafo.jar'

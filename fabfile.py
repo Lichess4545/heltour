@@ -64,6 +64,7 @@ PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/var/www/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
         'live': ['lichess4545@lichess4545.com'],
+        'dev': ['lichess4545@lichess4545.com'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -169,8 +170,15 @@ def latestdb():
         print "Usage: fab -R [dev|live] latestdb"
         return
 
-    LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour-sql/hourly/latest.sql.bz2"
-    strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
+    if env.roles == ['live']:
+        LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour-sql/hourly/latest.sql.bz2"
+        strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
+    elif env.roles == ['dev']:
+        local_target = project_relative("data/latestdb.sql.bz2")
+        devdb_source = "http://staging.lichess4545.com/devdb.sql.bz2"
+        local("wget -O {} {}".format(local_target, devdb_source))
+        PgLoadPlain(local_target, DATABASE_NAME, DATABASE_USER)()
+
 
 #-------------------------------------------------------------------------------
 def runserver():
