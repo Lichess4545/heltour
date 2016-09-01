@@ -23,13 +23,11 @@
 				<form action="" method="post">
 				    {% csrf_token %}
 				    {% bootstrap_field form.game_link show_label=False form_group_class='form-group input-xxlarge' %}
-				    {% buttons %}
 		        	<button type="submit" class="btn btn-primary single-field-btn">Nominate</button>
-		        	{% endbuttons %}
 				</form>
 				
 				{% if current_nominations %}
-				<div><strong>Current Nomination:</strong></div>
+				<div class="top-space"><strong>Current Nomination:</strong></div>
 				{% for nom in current_nominations %}
 				<div><a href="{{ nom.game_link }}">{% if nom.pairing %}{{ nom.pairing.white }} - {{ nom.pairing.black }}{% else %}{{ nom.game_link }}{% endif %}</a></div>
 				{% endfor %}

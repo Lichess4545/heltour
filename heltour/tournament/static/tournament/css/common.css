@@ -64,6 +64,10 @@ body {
 	margin-top: -5px;
 }
 
+.top-space {
+	margin-top: 15px;
+}
+
 .bottom-space {
 	margin-bottom: 10px;
 }
