@@ -951,11 +951,48 @@ def player_profile(request, username, league_tag=None, season_tag=None):
     return render(request, 'tournament/player_profile.html', context)
 
 def vote(request, secret_token, league_tag=None, season_tag=None):
+    league = _get_league(league_tag)
+    season = _get_season(league_tag, season_tag)
+
     auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
     if auth is not None and not auth.is_expired():
         username = auth.authenticated_user
+        player = Player.objects.filter(lichess_username__iexact=username).first()
     else:
         username = None
+        player = None
+
+    if league.competitor_type == 'team':
+        season_pairings = PlayerPairing.objects.filter(teamplayerpairing__teampairing__round__season=season)
+    else:
+        season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=season)
+
+    if player is None:
+        can_vote = False
+        current_nominations = []
+        form = None
+    else:
+        player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
+        can_vote = player_pairings.count() > 0
+        current_nominations = GameNomination.objects.filter(season=season, nominating_player=player)
+
+        if request.method == 'POST':
+            form = VoteForm(season_pairings, request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    for nom in current_nominations:
+                        nom.delete()
+                    if form.cleaned_data['game_link'] == '':
+                        current_nominations = []
+                    else:
+                        nom = GameNomination.objects.create(season=season, nominating_player=player, game_link=form.cleaned_data['game_link'])
+                        current_nominations = [nom]
+        else:
+            form = VoteForm(season_pairings)
+        if len(current_nominations) > 0:
+            form.fields['game_link'].initial = current_nominations[0].game_link
+
+    current_nominations = [(nom, season_pairings.filter(game_link=nom.game_link).first()) for nom in current_nominations]
 
     # Clean up the DB
     for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
@@ -963,10 +1000,13 @@ def vote(request, secret_token, league_tag=None, season_tag=None):
 
     context = {
         'league_tag': league_tag,
-        'league': _get_league(league_tag),
+        'league': league,
         'season_tag': season_tag,
-        'season': _get_season(league_tag, season_tag, allow_none=True),
+        'season': season,
+        'form': form,
         'username': username,
+        'can_vote': can_vote,
+        'current_nominations': current_nominations,
     }
     return render(request, 'tournament/vote.html', context)
 

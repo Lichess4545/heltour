@@ -710,11 +710,20 @@ class TeamPairing(_BaseModel):
     def __unicode__(self):
         return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
 
-_game_link_regex = re.compile(r'^(https?://)?([a-z]+\.)?lichess\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\?].*)?$')
+# Game link structure:
+# 1. (Optional) http/s prefix
+# 2. (Optional) Subdomain, e.g. "en."
+# 3. "lichess.org/"
+# 4. The gameid (8 chars)
+# 5. (Optional) Extended id for games in progress (4 chars)
+# 6. (Optional) Any junk at the end, e.g. "/black", etc.
+game_link_regex = re.compile(r'^(https?://)?([a-z]+\.)?lichess\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\?].*)?$')
+game_link_validator = RegexValidator(game_link_regex)
+
 def get_gameid_from_gamelink(gamelink):
     if gamelink is None or gamelink == '':
         return None
-    match = _game_link_regex.match(gamelink)
+    match = game_link_regex.match(gamelink)
     if match is None:
         return None
     return match.group(3)
@@ -746,7 +755,7 @@ class PlayerPairing(_BaseModel):
     black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
 
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
-    game_link = models.URLField(max_length=1024, blank=True, validators=[RegexValidator(_game_link_regex)])
+    game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
 
     def __init__(self, *args, **kwargs):
@@ -1180,6 +1189,15 @@ class SeasonPrizeWinner(_BaseModel):
 
     def __unicode__(self):
         return '%s - %s' % (self.season_prize, self.player)
+
+#-------------------------------------------------------------------------------
+class GameNomination(_BaseModel):
+    season = models.ForeignKey(Season)
+    nominating_player = models.ForeignKey(Player)
+    game_link = models.URLField(validators=[game_link_validator])
+
+    def __unicode__(self):
+        return '%s - %s' % (self.season, self.nominating_player)
 
 #-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):

@@ -997,6 +997,14 @@ class SeasonPrizeWinnerAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(GameNomination)
+class GameNominationAdmin(VersionAdmin):
+    list_display = ('__unicode__',)
+    search_fields = ('season__name', 'nominating_player__name')
+    raw_id_fields = ('nominating_player',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)

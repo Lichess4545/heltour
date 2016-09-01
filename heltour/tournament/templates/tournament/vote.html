@@ -8,10 +8,34 @@
 	<div class="col-md-12">
 		<div class="well">
 			<div class="well-head">
-				<h3>Vote</h3>
+				<h3>Game Nomination</h3>
 			</div>
 			<div class="well-body">
-				{% if username %}Welcome, {{ username }}! Time to vote.{% else %}This url is invalid or expired.{% endif %}
+				{% if not username %}
+				<p>This url is invalid or expired.</p>
+				{% elif not can_vote %}
+				<p>Sorry {{ username }}, you need to have participated in the season to nominate a game.</p>
+				<p>If you think this is an error, please contact a moderator.</p>
+				{% else %}
+				<p>Welcome, {{ username }}!</p>
+				<p>Paste the link for the game you would like to nominate. You can only nominate one game.</p>
+				
+				<form action="" method="post">
+				    {% csrf_token %}
+				    {% bootstrap_field form.game_link show_label=False form_group_class='form-group input-xxlarge' %}
+				    {% buttons %}
+		        	<button type="submit" class="btn btn-primary single-field-btn">Nominate</button>
+		        	{% endbuttons %}
+				</form>
+				
+				{% if current_nominations %}
+				<div><strong>Current Nomination:</strong></div>
+				{% for nom, pairing in current_nominations %}
+				<div><a href="{{ nom.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></div>
+				{% endfor %}
+				{% endif %}
+				
+				{% endif %}
 			</div>
 		</div>
 	</div>

@@ -1,11 +1,8 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from .models import (
-    Registration,
-    PREVIOUS_SEASON_ALTERNATE_OPTIONS,
-    ALTERNATE_PREFERENCE_OPTIONS,
-)
+from .models import *
+from django.core.exceptions import ValidationError
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -141,3 +138,18 @@ class RoundTransitionForm(forms.Form):
                 self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
             self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)
             self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number, widget=forms.HiddenInput)
+
+class VoteForm(forms.Form):
+    game_link = forms.URLField(required=False)
+
+    def clean_game_link(self):
+        game_link, ok = normalize_gamelink(self.cleaned_data['game_link'])
+        if not ok:
+            raise ValidationError('Invalid game link.', code='invalid')
+        if self.season_pairings.filter(game_link=game_link).count() == 0:
+            raise ValidationError('The game link doesn\'t match any pairings this season.', code='invalid')
+        return game_link
+
+    def __init__(self, season_pairings, *args, **kwargs):
+        self.season_pairings = season_pairings
+        super(VoteForm, self).__init__(*args, **kwargs)

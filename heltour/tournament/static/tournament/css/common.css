@@ -37,27 +37,31 @@ body {
 }
 
 .input-mini {
-  width: 60px;
+    max-width: 60px;
 }
 
 .input-small {
-  width: 90px;
+    max-width: 90px;
 }
 
 .input-medium {
-  width: 150px;
+    max-width: 150px;
 }
 
 .input-large {
-  width: 210px;
+    max-width: 210px;
 }
 
 .input-xlarge {
-  width: 270px;
+    max-width: 270px;
 }
 
 .input-xxlarge {
-  width: 530px;
+    max-width: 530px;
+}
+
+.single-field-btn {
+	margin-top: -5px;
 }
 
 .bottom-space {
