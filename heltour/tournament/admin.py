@@ -120,6 +120,18 @@ class SeasonAdmin(VersionAdmin):
             for p in pairings:
                 SeasonPlayer.objects.get_or_create(season=season, player=p.white)
                 SeasonPlayer.objects.get_or_create(season=season, player=p.black)
+            # Normalize all gamelinks
+            bad_gamelinks = 0
+            for p in pairings:
+                old = p.game_link
+                p.game_link, ok = normalize_gamelink(old)
+                if not ok:
+                    print 'Bad link: ', repr(old)
+                    bad_gamelinks += 1
+                if p.game_link != old:
+                    p.save()
+            if bad_gamelinks > 0:
+                self.message_user(request, '%d bad gamelinks for %s.' % (bad_gamelinks, season.name), messages.WARNING)
         self.message_user(request, 'Data verified.', messages.INFO)
 
     def round_transition(self, request, queryset):

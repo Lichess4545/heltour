@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django import forms as django_forms
 from collections import namedtuple, defaultdict
+import re
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -709,6 +710,26 @@ class TeamPairing(_BaseModel):
     def __unicode__(self):
         return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
 
+_game_link_regex = re.compile(r'^(https?://)?([a-z]+\.)?lichess\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\?].*)?$')
+def get_gameid_from_gamelink(gamelink):
+    if gamelink is None or gamelink == '':
+        return None
+    match = _game_link_regex.match(gamelink)
+    if match is None:
+        return None
+    return match.group(3)
+
+def get_gamelink_from_gameid(gameid):
+    return 'https://en.lichess.org/%s' % gameid
+
+def normalize_gamelink(gamelink):
+    if gamelink == '':
+        return gamelink, True
+    gameid = get_gameid_from_gamelink(gamelink)
+    if gameid is None:
+        return gamelink, False
+    return get_gamelink_from_gameid(gameid), True
+
 RESULT_OPTIONS = (
     ('1-0', '1-0'),
     ('1/2-1/2', u'\u00BD-\u00BD'),
@@ -725,7 +746,7 @@ class PlayerPairing(_BaseModel):
     black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
 
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
-    game_link = models.URLField(max_length=1024, blank=True)
+    game_link = models.URLField(max_length=1024, blank=True, validators=[RegexValidator(_game_link_regex)])
     scheduled_time = models.DateTimeField(blank=True, null=True)
 
     def __init__(self, *args, **kwargs):
@@ -733,6 +754,7 @@ class PlayerPairing(_BaseModel):
         self.initial_result = self.result
         self.initial_white_id = self.white_id
         self.initial_black_id = self.black_id
+        self.initial_game_link = self.game_link
 
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F':
@@ -756,17 +778,7 @@ class PlayerPairing(_BaseModel):
         return self.result in ('1-0', '1/2-1/2', '0-1')
 
     def game_id(self):
-        if not self.game_link:
-            return None
-        link = self.game_link.split("#")[0] # Remove the move anchor
-        parts = link.rsplit("/")
-        if (parts[-1] == 'white' or parts[-1] == 'black'):
-            parts.pop();
-
-        if len(parts) > 4:
-            return None # no idea what link this is.
-        else:
-            return parts[3]
+        return get_gameid_from_gamelink(self.game_link)
 
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
@@ -775,7 +787,13 @@ class PlayerPairing(_BaseModel):
         result_changed = self.pk is None or self.result != self.initial_result
         white_changed = self.pk is None or self.white_id != self.initial_white_id
         black_changed = self.pk is None or self.black_id != self.initial_black_id
+        game_link_changed = self.pk is None or self.game_link != self.initial_game_link
+
+        if game_link_changed:
+            self.game_link, _ = normalize_gamelink(self.game_link)
+
         super(PlayerPairing, self).save(*args, **kwargs)
+
         if hasattr(self, 'teamplayerpairing') and result_changed:
             self.teamplayerpairing.team_pairing.refresh_points()
             self.teamplayerpairing.team_pairing.save()
