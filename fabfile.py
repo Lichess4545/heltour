@@ -174,6 +174,7 @@ def latestdb():
         LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour-sql/hourly/latest.sql.bz2"
         strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
     elif env.roles == ['dev']:
+        local("mkdir -p {}".format(project_relative("data")))
         local_target = project_relative("data/latestdb.sql.bz2")
         devdb_source = "http://staging.lichess4545.com/devdb.sql.bz2"
         local("wget -O {} {}".format(local_target, devdb_source))
