@@ -96,6 +96,7 @@ class Season(_BaseModel):
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
             ('manage_players', 'Can manage players'),
+            ('review_nominated_games', 'Can review nominated games'),
         )
 
     def __init__(self, *args, **kwargs):
@@ -1199,6 +1200,18 @@ class GameNomination(_BaseModel):
 
     def __unicode__(self):
         return '%s - %s' % (self.season, self.nominating_player)
+
+#-------------------------------------------------------------------------------
+class GameSelection(_BaseModel):
+    season = models.ForeignKey(Season)
+    game_link = models.URLField(validators=[game_link_validator])
+    pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        unique_together = ('season', 'game_link')
+
+    def __unicode__(self):
+        return '%s - %s' % (self.season, self.game_link)
 
 #-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):

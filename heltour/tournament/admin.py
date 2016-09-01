@@ -83,7 +83,7 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'manage_players', 'round_transition']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'manage_players', 'round_transition']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
@@ -98,6 +98,15 @@ class SeasonAdmin(VersionAdmin):
             url(r'^(?P<object_id>[0-9]+)/round_transition/$',
                 permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)),
                 name='round_transition'),
+            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/$',
+                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_view)),
+                name='review_nominated_games'),
+            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
+                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_select_view)),
+                name='review_nominated_games_select'),
+            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<nom_id>[0-9]+)/$',
+                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_deselect_view)),
+                name='review_nominated_games_deselect'),
         ]
         return my_urls + urls
 
@@ -133,6 +142,47 @@ class SeasonAdmin(VersionAdmin):
             if bad_gamelinks > 0:
                 self.message_user(request, '%d bad gamelinks for %s.' % (bad_gamelinks, season.name), messages.WARNING)
         self.message_user(request, 'Data verified.', messages.INFO)
+
+    def review_nominated_games(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Nominated games can only be reviewed one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:review_nominated_games', object_id=queryset[0].pk)
+
+    def review_nominated_games_view(self, request, object_id):
+        season = Season.objects.get(pk=object_id)
+
+        selections = GameSelection.objects.filter(season=season)
+        nominations = GameNomination.objects.filter(season=season)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Review nominated games',
+            'selections': selections,
+            'nominations': nominations,
+        }
+
+        return render(request, 'tournament/admin/review_nominated_games.html', context)
+
+    def review_nominated_games_select_view(self, request, object_id, nom_id):
+        season = Season.objects.get(pk=object_id)
+        nom = GameNomination.objects.get(pk=nom_id)
+
+        GameSelection.objects.get_or_create(season=season, game_link=nom.game_link, defaults={'pairing': nom.pairing})
+
+        return redirect('admin:review_nominated_games', object_id=object_id)
+
+    def review_nominated_games_deselect_view(self, request, object_id, nom_id):
+        season = Season.objects.get(pk=object_id)
+
+        gs = GameSelection.objects.filter(pk=nom_id).first()
+        if gs is not None:
+            gs.delete()
+
+        return redirect('admin:review_nominated_games', object_id=object_id)
 
     def round_transition(self, request, queryset):
         if queryset.count() > 1:

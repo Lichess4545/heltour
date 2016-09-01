@@ -1,0 +1,37 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+
+{% block content %}
+<h2>Selected games</h2>
+<table>
+	{% for s in selections %}
+	<tr>
+		<td>
+			<a href="{{ s.game_link }}">{{ s.game_link }}</a>
+		</td>
+		<td>
+			<a href="#">PGN</a>
+		</td>
+		<td>
+			<a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+
+<h2>Nominated games</h2>
+<table>
+	{% for n in nominations %}
+	<tr>
+		<td>
+			<a href="{{ n.game_link }}">{{ n.game_link }}</a>
+		</td>
+		<td>
+			<a href="#">PGN</a>
+		</td>
+		<td>
+			<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endblock %}
