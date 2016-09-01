@@ -1195,6 +1195,7 @@ class GameNomination(_BaseModel):
     season = models.ForeignKey(Season)
     nominating_player = models.ForeignKey(Player)
     game_link = models.URLField(validators=[game_link_validator])
+    pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __unicode__(self):
         return '%s - %s' % (self.season, self.nominating_player)

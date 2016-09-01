@@ -978,22 +978,26 @@ def nominate(request, secret_token, league_tag=None, season_tag=None):
             current_nominations = GameNomination.objects.filter(season=season, nominating_player=player)
 
             if request.method == 'POST':
-                form = NominateForm(season_pairings, request.POST)
+                form = NominateForm(request.POST)
                 if form.is_valid():
                     with transaction.atomic():
-                        for nom in current_nominations:
-                            nom.delete()
-                        if form.cleaned_data['game_link'] == '':
-                            current_nominations = []
+                        if form.cleaned_data['game_link'] != '':
+                            pairing = season_pairings.filter(game_link=form.cleaned_data['game_link']).first()
+                            if pairing is not None:
+                                for nom in current_nominations:
+                                    nom.delete()
+                                nom = GameNomination.objects.create(season=season, nominating_player=player, game_link=form.cleaned_data['game_link'], pairing=pairing)
+                                current_nominations = [nom]
+                            else:
+                                form.add_error('game_link', ValidationError('The game link doesn\'t match any pairings this season.', code='invalid'))
                         else:
-                            nom = GameNomination.objects.create(season=season, nominating_player=player, game_link=form.cleaned_data['game_link'])
-                            current_nominations = [nom]
+                            for nom in current_nominations:
+                                nom.delete()
+                            current_nominations = []
             else:
-                form = NominateForm(season_pairings)
+                form = NominateForm()
             if len(current_nominations) > 0:
                 form.fields['game_link'].initial = current_nominations[0].game_link
-
-    current_nominations = [(nom, season_pairings.filter(game_link=nom.game_link).first()) for nom in current_nominations]
 
     # Clean up the DB
     for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):

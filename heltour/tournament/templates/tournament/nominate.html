@@ -30,8 +30,8 @@
 				
 				{% if current_nominations %}
 				<div><strong>Current Nomination:</strong></div>
-				{% for nom, pairing in current_nominations %}
-				<div><a href="{{ nom.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></div>
+				{% for nom in current_nominations %}
+				<div><a href="{{ nom.game_link }}">{% if nom.pairing %}{{ nom.pairing.white }} - {{ nom.pairing.black }}{% else %}{{ nom.game_link }}{% endif %}</a></div>
 				{% endfor %}
 				{% endif %}
 				

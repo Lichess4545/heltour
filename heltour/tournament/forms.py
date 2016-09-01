@@ -146,10 +146,4 @@ class NominateForm(forms.Form):
         game_link, ok = normalize_gamelink(self.cleaned_data['game_link'])
         if not ok:
             raise ValidationError('Invalid game link.', code='invalid')
-        if self.season_pairings.filter(game_link=game_link).count() == 0:
-            raise ValidationError('The game link doesn\'t match any pairings this season.', code='invalid')
         return game_link
-
-    def __init__(self, season_pairings, *args, **kwargs):
-        self.season_pairings = season_pairings
-        super(NominateForm, self).__init__(*args, **kwargs)
