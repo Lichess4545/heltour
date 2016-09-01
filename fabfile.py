@@ -1,3 +1,4 @@
+import os
 import sys
 import datetime
 import strabulous
@@ -33,6 +34,8 @@ from baste import (
         UbuntuPgCreateDbAndUser,
     )
 
+
+os.environ.setdefault("HELTOUR_ENV", "LIVE")
 
 #-------------------------------------------------------------------------------
 def import_db_name():
