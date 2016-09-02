@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'django_comments'
 ]
 
-API_WORKER_HOST = 'http://localhost:8001'
+API_WORKER_HOST = 'http://localhost:8780'
 
 MIDDLEWARE_CLASSES = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
