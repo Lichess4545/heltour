@@ -8,6 +8,7 @@ def _run_worker():
 
 _work_queue = Queue.PriorityQueue()
 _worker_thread = threading.Thread(target=_run_worker)
+_worker_thread.daemon = True
 _worker_thread.start()
 
 def queue_work(priority, fn, *args):
