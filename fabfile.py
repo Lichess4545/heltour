@@ -121,6 +121,7 @@ def deploylive():
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour-live restart")
             sudo("service heltour-live-api restart")
+            sudo("service heltour-live-celery restart")
 
         if confirm(colors.red("Would you like to install new nginx config?")):
             run("cp /var/www/www.lichess4545.com/current/sysadmin/www.lichess4545.com.conf /etc/nginx/sites-available/www.lichess4545.com")
@@ -152,6 +153,7 @@ def deploystaging():
         if confirm(colors.red("Would you like to restart the server?")):
             sudo("service heltour-staging restart")
             sudo("service heltour-staging-api restart")
+            sudo("service heltour-staging-restart restart")
 
         if confirm(colors.red("Would you like to install new nginx config?")):
             run("cp /var/www/staging.lichess4545.com/current/sysadmin/staging.lichess4545.com.conf /etc/nginx/sites-available/staging.lichess4545.com")
