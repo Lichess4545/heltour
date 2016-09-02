@@ -6,14 +6,24 @@
 <table>
 	<thead>
 		<tr>
+			{% if is_team %}
+			<th>Board</th>
+			{% endif %}
+			<th>Count</th>
 			<th>Link</th>
 			<th>PGN</th>
 			<th>Action</th>
 		</tr>
 	</thead>
 	<tbody>
-		{% for s in selections %}
+		{% for count, s in selections %}
 		<tr>
+			{% if is_team %}
+			<td>Bd {{ s.pairing.teamplayerpairing.board_number }}</td>
+			{% endif %}
+			<td>
+				{{ count }}
+			</td>
 			<td>
 				<a href="{{ s.game_link }}" class="game-link">{{ s.game_link }}</a>
 			</td>
@@ -24,43 +34,6 @@
 				<a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
 			</td>
 		</tr>
-		{% endfor %}
-	</tbody>
-</table>
-{% else %}
-<p>No games selected.</p>
-{% endif %}
-
-<h2>Nominated games</h2>
-{% if boards %}
-{% for board_number, board_nominations in boards %}
-<h3>Board {{ board_number }}</h3>
-{% if board_nominations %}
-<table>
-	<thead>
-		<tr>
-			<th>Count</th>
-			<th>Link</th>
-			<th>PGN</th>
-			<th>Action</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for count, n in board_nominations %}
-		<tr>
-			<td>
-				{{ count }}
-			</td>
-			<td>
-				<a href="{{ n.game_link }}" class="game-link">{{ n.game_link }}</a>
-			</td>
-			<td>
-				<a href="#" class="pgn-link">PGN</a>
-			</td>
-			<td>
-				<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
-			</td>
-		</tr>
 		<tr style="display: none">
 			<td colspan="4">
 				<textarea readonly="readonly"></textarea>
@@ -69,12 +42,18 @@
 		{% endfor %}
 	</tbody>
 </table>
-{% endif %}
-{% endfor %}
 {% else %}
+<p>No games selected.</p>
+{% endif %}
+
+<h2>Nominated games</h2>
+{% if nominations %}
 <table>
 	<thead>
 		<tr>
+			{% if is_team %}
+			<th>Board</th>
+			{% endif %}
 			<th>Count</th>
 			<th>Link</th>
 			<th>PGN</th>
@@ -84,6 +63,9 @@
 	<tbody>
 		{% for count, n in nominations %}
 		<tr>
+			{% if is_team %}
+			<td>Bd {{ n.pairing.teamplayerpairing.board_number }}</td>
+			{% endif %}
 			<td>
 				{{ count }}
 			</td>
@@ -105,6 +87,8 @@
 		{% endfor %}
 	</tbody>
 </table>
+{% else %}
+<p>No remaining nominations.</p>
 {% endif %}
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

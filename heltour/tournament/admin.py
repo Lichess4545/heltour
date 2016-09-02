@@ -155,29 +155,21 @@ class SeasonAdmin(VersionAdmin):
     def review_nominated_games_view(self, request, object_id):
         season = Season.objects.get(pk=object_id)
 
-        selections = GameSelection.objects.filter(season=season)
-        nominations = GameNomination.objects.filter(season=season)
+        selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
+        nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
 
         selected_links = set((s.game_link for s in selections))
 
-        link_dict = {}
+        link_counts = {}
+        first_nominations = []
         for n in nominations:
-            if n.game_link in selected_links:
-                continue
-            value = link_dict.get(n.game_link, None)
-            if value is None:
-                link_dict[n.game_link] = (1, n)
-            else:
-                link_dict[n.game_link] = (value[0] + 1, value[1])
+            value = link_counts.get(n.game_link, 0)
+            if value == 0:
+                first_nominations.append(n)
+            link_counts[n.game_link] = value + 1
 
-        nominations = list(sorted(link_dict.values(), reverse=True))
-        if season.league.competitor_type == 'team':
-            boards = [(n, []) for n in season.board_number_list()]
-            for count, n in nominations:
-                if n.pairing is not None and hasattr(n.pairing, 'teamplayerpairing'):
-                    boards[n.pairing.teamplayerpairing.board_number - 1][1].append((count, n))
-        else:
-            boards = None
+        selections = [(link_counts.get(s.game_link, 0), s) for s in selections]
+        nominations = [(link_counts.get(n.game_link, 0), n) for n in first_nominations if n.game_link not in selected_links]
 
         context = {
             'has_permission': True,
@@ -187,7 +179,7 @@ class SeasonAdmin(VersionAdmin):
             'title': 'Review nominated games',
             'selections': selections,
             'nominations': nominations,
-            'boards': boards,
+            'is_team': season.league.competitor_type == 'team',
         }
 
         return render(request, 'tournament/admin/review_nominated_games.html', context)
