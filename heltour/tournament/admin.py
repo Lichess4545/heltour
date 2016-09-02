@@ -736,15 +736,15 @@ class PlayerAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def update_selected_player_ratings(self, request, queryset):
-        try:
-            for player in queryset.all():
-                rating, games_played = lichessapi.get_user_classical_rating_and_games_played(player.lichess_username, priority=1)
-                player.rating = rating
-                player.games_played = games_played
-                player.save()
-            self.message_user(request, 'Rating(s) updated', messages.INFO)
-        except:
-            self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
+#         try:
+        for player in queryset.all():
+            rating, games_played = lichessapi.get_user_classical_rating_and_games_played(player.lichess_username, priority=1)
+            player.rating = rating
+            player.games_played = games_played
+            player.save()
+        self.message_user(request, 'Rating(s) updated', messages.INFO)
+#         except:
+#             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
 
 #-------------------------------------------------------------------------------

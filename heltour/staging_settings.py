@@ -31,7 +31,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'staging.lichess4545.tv',
     'staging.lichess4545.com',
-    'localhost:8780',
+    'localhost',
 ]
 
 

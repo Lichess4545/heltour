@@ -35,7 +35,7 @@ ALLOWED_HOSTS = [
     'lichess4545.com',
     'heltour.lakin.ca',
     'heltour.lakin.ca',
-    'localhost:8880',
+    'localhost',
 ]
 
 
