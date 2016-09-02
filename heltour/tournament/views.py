@@ -62,11 +62,11 @@ def team_league_home(request, league_tag=None, season_tag=None):
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                         .exclude(game_link='').order_by('scheduled_time')
+                                         .exclude(game_link='').order_by('scheduled_time').nocache()
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
-                                          .order_by('scheduled_time')
+                                          .order_by('scheduled_time').nocache()
 
     context = {
         'league_tag': league_tag,
@@ -122,11 +122,11 @@ def lone_league_home(request, league_tag=None, season_tag=None):
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                         .exclude(game_link='').order_by('scheduled_time')
+                                         .exclude(game_link='').order_by('scheduled_time').nocache()
     upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
     upcoming_game_time_max = timezone.now() + timedelta(hours=12)
     upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
-                                          .order_by('scheduled_time')
+                                          .order_by('scheduled_time').nocache()
 
     context = {
         'league_tag': league_tag,
@@ -966,9 +966,9 @@ def nominate(request, secret_token, league_tag=None, season_tag=None):
         player = Player.objects.filter(lichess_username__iexact=username).first()
 
     if league.competitor_type == 'team':
-        season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season)
+        season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season).nocache()
     else:
-        season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=season)
+        season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=season).nocache()
 
     if player is not None:
         player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
@@ -1049,7 +1049,7 @@ def tv(request, league_tag=None, season_tag=None, round_number=None):
     current_game_time_min = timezone.now() - timedelta(hours=3)
     current_game_time_max = timezone.now() + timedelta(minutes=5)
     current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                         .exclude(game_link='').order_by('scheduled_time')
+                                         .exclude(game_link='').order_by('scheduled_time').nocache()
     context = {
         'league_tag': league_tag,
         'league': league,
