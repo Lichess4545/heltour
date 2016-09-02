@@ -2,36 +2,128 @@
 
 {% block content %}
 <h2>Selected games</h2>
+{% if selections %}
 <table>
-	{% for s in selections %}
-	<tr>
-		<td>
-			<a href="{{ s.game_link }}">{{ s.game_link }}</a>
-		</td>
-		<td>
-			<a href="#">PGN</a>
-		</td>
-		<td>
-			<a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
-		</td>
-	</tr>
-	{% endfor %}
+	<thead>
+		<tr>
+			<th>Link</th>
+			<th>PGN</th>
+			<th>Action</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for s in selections %}
+		<tr>
+			<td>
+				<a href="{{ s.game_link }}" class="game-link">{{ s.game_link }}</a>
+			</td>
+			<td>
+				<a href="#" class="pgn-link">PGN</a>
+			</td>
+			<td>
+				<a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
 </table>
+{% else %}
+<p>No games selected.</p>
+{% endif %}
 
 <h2>Nominated games</h2>
+{% if boards %}
+{% for board_number, board_nominations in boards %}
+<h3>Board {{ board_number }}</h3>
+{% if board_nominations %}
 <table>
-	{% for n in nominations %}
-	<tr>
-		<td>
-			<a href="{{ n.game_link }}">{{ n.game_link }}</a>
-		</td>
-		<td>
-			<a href="#">PGN</a>
-		</td>
-		<td>
-			<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
-		</td>
-	</tr>
-	{% endfor %}
+	<thead>
+		<tr>
+			<th>Count</th>
+			<th>Link</th>
+			<th>PGN</th>
+			<th>Action</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for count, n in board_nominations %}
+		<tr>
+			<td>
+				{{ count }}
+			</td>
+			<td>
+				<a href="{{ n.game_link }}" class="game-link">{{ n.game_link }}</a>
+			</td>
+			<td>
+				<a href="#" class="pgn-link">PGN</a>
+			</td>
+			<td>
+				<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
+			</td>
+		</tr>
+		<tr style="display: none">
+			<td colspan="4">
+				<textarea readonly="readonly"></textarea>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
 </table>
+{% endif %}
+{% endfor %}
+{% else %}
+<table>
+	<thead>
+		<tr>
+			<th>Count</th>
+			<th>Link</th>
+			<th>PGN</th>
+			<th>Action</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for count, n in nominations %}
+		<tr>
+			<td>
+				{{ count }}
+			</td>
+			<td>
+				<a href="{{ n.game_link }}" class="game-link">{{ n.game_link }}</a>
+			</td>
+			<td>
+				<a href="#" class="pgn-link">PGN</a>
+			</td>
+			<td>
+				<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
+			</td>
+		</tr>
+		<tr style="display: none">
+			<td colspan="4">
+				<textarea readonly="readonly"></textarea>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script>
+$('.pgn-link').on('click', function(e) {
+	e.preventDefault();
+	var $this = $(this);
+	if ($this.is('.open')) {
+		$this.removeClass('open');
+		$this.closest('tr').next().hide();
+	} else {
+		var gamelink = $this.closest('tr').find('.game-link').attr('href');
+		var $nextRow = $this.closest('tr').next();
+		$.get('{% url 'admin:review_nominated_games_pgn' original.pk %}', { gamelink: gamelink }, function(data) {
+			$nextRow.find('textarea').val(data);
+		});
+		$this.addClass('open');
+		$nextRow.show();
+	}
+});
+</script>
 {% endblock %}

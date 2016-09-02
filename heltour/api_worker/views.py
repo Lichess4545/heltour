@@ -6,7 +6,7 @@ from django.http.response import HttpResponse
 from django.utils.crypto import get_random_string
 
 def _do_lichess_api_call(redis_key, path, params, priority, max_retries, retry_count=0):
-    url = "https://en.lichess.org/api/%s" % path
+    url = "https://en.lichess.org/%s" % path
     r = requests.get(url, params)
 
     if r.status_code == 200:

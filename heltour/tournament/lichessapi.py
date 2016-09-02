@@ -28,7 +28,7 @@ def _apicall(url, check_interval=0.1, timeout=120):
             raise ApiWorkerError('Timeout for %s' % url)
 
 def get_user_classical_rating_and_games_played(lichess_username, priority=0, max_retries=3):
-    url = '%s/lichessapi/user/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_username, priority, max_retries)
+    url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     result = _apicall(url)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -39,7 +39,7 @@ def get_user_classical_rating_and_games_played(lichess_username, priority=0, max
 def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3):
     page = 1
     while True:
-        url = '%s/lichessapi/user?team=%s&nb=100&page=%s&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_team_name, page, priority, max_retries)
+        url = '%s/lichessapi/api/user?team=%s&nb=100&page=%s&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_team_name, page, priority, max_retries)
         result = _apicall(url)
         if result == '':
             break
@@ -52,6 +52,17 @@ def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority
         page += 1
         if page > paginator['nbPages']:
             break
+
+def get_pgn_with_cache(gameid, priority=0, max_retries=3):
+    result = cache.get('pgn_%s' % gameid)
+    if result is not None:
+        return result
+    url = '%s/lichessapi/game/export/%s.pgn?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, gameid, priority, max_retries)
+    result = _apicall(url)
+    if result == '':
+        raise ApiWorkerError('API failure')
+    cache.set('pgn_%s' % gameid, result, 60 * 60 * 24) # Cache the PGN for 24 hours
+    return result
 
 class ApiWorkerError(Exception):
     pass

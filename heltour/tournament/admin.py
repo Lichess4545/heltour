@@ -20,6 +20,7 @@ from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
+from django.http.response import HttpResponse
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -104,9 +105,12 @@ class SeasonAdmin(VersionAdmin):
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
                 permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_select_view)),
                 name='review_nominated_games_select'),
-            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<nom_id>[0-9]+)/$',
+            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<sel_id>[0-9]+)/$',
                 permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_deselect_view)),
                 name='review_nominated_games_deselect'),
+            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
+                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_pgn_view)),
+                name='review_nominated_games_pgn'),
         ]
         return my_urls + urls
 
@@ -155,6 +159,28 @@ class SeasonAdmin(VersionAdmin):
         selections = GameSelection.objects.filter(season=season)
         nominations = GameNomination.objects.filter(season=season)
 
+        selected_links = set((s.game_link for s in selections))
+
+        link_dict = {}
+        for n in nominations:
+            if n.game_link in selected_links:
+                continue
+            value = link_dict.get(n.game_link, None)
+            if value is None:
+                link_dict[n.game_link] = (1, n)
+            else:
+                link_dict[n.game_link] = (value[0] + 1, value[1])
+
+        nominations = list(sorted(link_dict.values(), reverse=True))
+        print nominations
+        if season.league.competitor_type == 'team':
+            boards = [(n, []) for n in season.board_number_list()]
+            for count, n in nominations:
+                if n.pairing is not None and hasattr(n.pairing, 'teamplayerpairing'):
+                    boards[n.pairing.teamplayerpairing.board_number - 1][1].append((count, n))
+        else:
+            boards = None
+
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -163,6 +189,7 @@ class SeasonAdmin(VersionAdmin):
             'title': 'Review nominated games',
             'selections': selections,
             'nominations': nominations,
+            'boards': boards,
         }
 
         return render(request, 'tournament/admin/review_nominated_games.html', context)
@@ -175,14 +202,22 @@ class SeasonAdmin(VersionAdmin):
 
         return redirect('admin:review_nominated_games', object_id=object_id)
 
-    def review_nominated_games_deselect_view(self, request, object_id, nom_id):
-        season = Season.objects.get(pk=object_id)
-
-        gs = GameSelection.objects.filter(pk=nom_id).first()
+    def review_nominated_games_deselect_view(self, request, object_id, sel_id):
+        gs = GameSelection.objects.filter(pk=sel_id).first()
         if gs is not None:
             gs.delete()
 
         return redirect('admin:review_nominated_games', object_id=object_id)
+
+    def review_nominated_games_pgn_view(self, request, object_id):
+        gamelink = request.GET.get('gamelink')
+        gameid = get_gameid_from_gamelink(gamelink)
+        pgn = lichessapi.get_pgn_with_cache(gameid)
+
+        # Strip most tags for "blind" review
+        pgn = re.sub('\[[^R]\w+ ".*"\]\n', '', pgn)
+
+        return HttpResponse(pgn)
 
     def round_transition(self, request, queryset):
         if queryset.count() > 1:

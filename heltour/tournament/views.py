@@ -966,7 +966,7 @@ def nominate(request, secret_token, league_tag=None, season_tag=None):
         player = Player.objects.filter(lichess_username__iexact=username).first()
 
     if league.competitor_type == 'team':
-        season_pairings = PlayerPairing.objects.filter(teamplayerpairing__teampairing__round__season=season)
+        season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=season)
     else:
         season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=season)
 
