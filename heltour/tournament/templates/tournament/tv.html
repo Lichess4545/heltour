@@ -30,6 +30,7 @@
     }
   }
 
+  // Ping every 2 seconds to keep connection live
   function pingNow() {
     send(ws, '{"t":"p"}');
   };
@@ -69,7 +70,7 @@
 
   run();
 
-  function newBoard(gameId) {
+  function newBoard(gameId, white_team, black_team) {
     let chess = new Chess();
 
     let ground = Chessground(document.getElementById('ground_' + gameId), {
@@ -103,8 +104,19 @@
       jsonp:'callback',
       success: function(data) {
         if(data.players) {
-          const label = data.players.white.userId + ' (' + data.players.white.rating + ') vs. ' + data.players.black.userId + ' (' + data.players.black.rating + ')';
-          $('#label_' + gameId).html(label);
+          let top_label = null;
+          if (white_team && black_team)
+            top_label = data.players.black.userId + ' (' + black_team + ')';
+          else
+            top_label = data.players.black.userId + ' (' + data.players.black.rating + ')';
+          $('#top_label_' + gameId).html(top_label);
+
+          let bottom_label = null;
+          if (white_team && black_team)
+            bottom_label = data.players.white.userId + ' (' + white_team + ')';
+          else
+            bottom_label = data.players.white.userId + ' (' + data.players.white.rating + ')';
+          $('#bottom_label_' + gameId).html(bottom_label);
         }
 
         if (data.moves) {
@@ -143,13 +155,19 @@
         {% if game_id %}
           <a href="http://en.lichess.org/{{ game_id }}">
             <section>
+              <div id="top_label_{{ game_id }}" class="gameLabel"> </div>
                 <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett" id="ground_{{ game_id }}">
                   <script>
-                    newBoard('{{ game_id }}');
+                    {% if pairing.teamplayerpairing %}
+                      {% with white_team=pairing.teamplayerpairing.white_team.name black_team=pairing.teamplayerpairing.black_team.name %}
+                        newBoard('{{ game_id }}','{{white_team}}','{{black_team}}');
+                      {% endwith %}
+                    {% else %}
+                        newBoard('{{ game_id }}');
+                    {% endif %}
                   </script>
                 </div>
-                <div id="label_{{ game_id }}" class="gameLabel">
-                </div>
+                <div id="bottom_label_{{ game_id }}" class="gameLabel"> </div>
             </section>
           </a>
         {% endif %}
