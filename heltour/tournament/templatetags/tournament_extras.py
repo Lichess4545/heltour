@@ -22,7 +22,6 @@ def resultclass(score, opp_score):
     elif score < opp_score:
         return 'cell-loss'
     else:
-        print score, opp_score
         return 'cell-tie'
 
 @register.simple_tag

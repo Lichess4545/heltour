@@ -45,7 +45,6 @@ def find_pairing(request):
 
     pairings = []
     for r in rounds:
-        print r, pairings
         pairings += list(_get_pairings(r, player, white, black, scheduled))
 
     if len(pairings) == 0:

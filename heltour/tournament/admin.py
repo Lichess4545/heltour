@@ -139,7 +139,6 @@ class SeasonAdmin(VersionAdmin):
                 old = p.game_link
                 p.game_link, ok = normalize_gamelink(old)
                 if not ok:
-                    print 'Bad link: ', repr(old)
                     bad_gamelinks += 1
                 if p.game_link != old:
                     p.save()
@@ -172,7 +171,6 @@ class SeasonAdmin(VersionAdmin):
                 link_dict[n.game_link] = (value[0] + 1, value[1])
 
         nominations = list(sorted(link_dict.values(), reverse=True))
-        print nominations
         if season.league.competitor_type == 'team':
             boards = [(n, []) for n in season.board_number_list()]
             for count, n in nominations:
@@ -675,8 +673,6 @@ class RoundAdmin(VersionAdmin):
                 return None
 
             def bye_error(bye):
-                if bye.player.lichess_username == 'Semanka':
-                    print 'TEST', bye.player in active_players
                 if not request.user.is_staff:
                     return None
                 if bye.player in duplicate_players:
