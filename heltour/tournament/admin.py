@@ -1086,10 +1086,24 @@ class GameNominationAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(GameSelection)
+class GameSelectionAdmin(VersionAdmin):
+    list_display = ('__unicode__',)
+    search_fields = ('season__name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
+@admin.register(PrivateUrlAuth)
+class PrivateUrlAuthAdmin(VersionAdmin):
+    list_display = ('__unicode__',)
+    search_fields = ('authenticated_user',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
