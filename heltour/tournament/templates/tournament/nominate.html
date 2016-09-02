@@ -23,7 +23,7 @@
 				<form action="" method="post">
 				    {% csrf_token %}
 				    {% bootstrap_field form.game_link show_label=False form_group_class='form-group input-xxlarge' %}
-		        	<button type="submit" class="btn btn-primary single-field-btn">Nominate</button>
+		        	<button type="submit" class="btn btn-primary single-field-btn">Save</button>
 				</form>
 				
 				{% if current_nominations %}
