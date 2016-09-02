@@ -21,12 +21,12 @@
 				  </button>
 				  <ul class="dropdown-menu">
 				    <li>
-				    	<a href="{% leagueurl 'standings' league_tag season_tag %}">All Players</a>
+				    	<a href="{% leagueurl 'standings' league.tag season.tag %}">All Players</a>
 				    </li>
 				    <li role="separator" class="divider"></li>
 				    {% for section in player_sections %}
 				    <li>
-				    	<a href="{% leagueurl 'standings_by_section' league_tag season_tag section.0 %}">{{ section.1 }}</a>
+				    	<a href="{% leagueurl 'standings_by_section' league.tag season.tag section.0 %}">{{ section.1 }}</a>
 			    	</li>
 				    {% endfor %}
 				  </ul>
@@ -58,7 +58,7 @@
 							<tr{% if not season.is_completed and player_score.late_join_points > 0 %} class="temporary-rank"{% endif %}>
 								<td class="text-center rank-value">{{ number }}</td>
 								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="{% leagueurl 'player_profile' league_tag season_tag player_score.season_player.player.lichess_username %}">
+									<a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
 										{{ player_score.season_player.player.lichess_username }}
 									</a>
 								</td>

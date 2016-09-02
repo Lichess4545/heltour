@@ -22,7 +22,7 @@
 		    	{% else %}
 				<p>{{ registration_season.name }} starts on {{ registration_season.start_date|date_or_q }}.</p>
 				{% endif %}
-				<a href="{% leagueurl 'register' league_tag season_tag %}" class="btn btn-default">Register Now</a>
+				<a href="{% leagueurl 'register' league.tag season.tag %}" class="btn btn-default">Register Now</a>
 			</div>
 		</div>
 		{% endif %}
@@ -98,9 +98,9 @@
 					</tbody>
 				</table>
 				{% if not season.is_completed %}
-				<a href="{% leagueurl 'standings' league_tag season_tag %}" class="btn btn-default">Full Standings</a>
+				<a href="{% leagueurl 'standings' league.tag season.tag %}" class="btn btn-default">Full Standings</a>
 				{% endif %}
-				<a href="{% leagueurl 'season_landing' league_tag season_tag %}" class="btn btn-default">Season Details</a>
+				<a href="{% leagueurl 'season_landing' league.tag season.tag %}" class="btn btn-default">Season Details</a>
 			</div>
 		</div>
 		{% endif %}
@@ -117,7 +117,7 @@
 				    </button>
 				    <ul class="dropdown-menu">
 					    {% for s in season_list %}
-					    <li><a href="{% leagueurl 'season_landing' league_tag s.tag %}">{{ s.name }}</a></li>
+					    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
 					    {% endfor %}
 				    </ul>
 				</div>

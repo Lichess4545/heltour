@@ -22,8 +22,8 @@
 				  <ul class="dropdown-menu">
 				    {% for n in round_number_list %}
 				    <li>
-				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag n current_team.number %}">Round {{ n }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag n %}">Round {{ n }}</a>
+				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag n current_team.number %}">Round {{ n }}</a>
+				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league.tag season.tag n %}">Round {{ n }}</a>
 				    	{% endif %}
 			    	</li>
 				    {% endfor %}
@@ -54,7 +54,7 @@
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
 								</a>
 							</div>
@@ -62,7 +62,7 @@
 						<td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
 								</a>
 							</div>
@@ -95,7 +95,7 @@
 						<td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
 						<td>
 							<div class="pairing-player">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag bye.player.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag bye.player.lichess_username %}">
 									{{ bye.player.lichess_username }}{% if bye.player.rating %} <span class="visible-xs"></span> ({{ bye.player.rating }}){% endif %}
 								</a>
 							</div>

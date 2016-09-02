@@ -22,8 +22,8 @@
 				  <ul class="dropdown-menu">
 				    {% for n in round_number_list %}
 				    <li>
-				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag n current_team.number %}">Round {{ n }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag n %}">Round {{ n }}</a>
+				    	{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag n current_team.number %}">Round {{ n }}</a>
+				    	{% else %}<a href="{% leagueurl 'pairings_by_round' league.tag season.tag n %}">Round {{ n }}</a>
 				    	{% endif %}
 			    	</li>
 				    {% endfor %}
@@ -38,15 +38,15 @@
 				  </button>
 				  <ul class="dropdown-menu">
 				    <li>
-					    {% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league_tag season_tag round_number %}">All Teams</a>
-				    	{% else %}<a href="{% leagueurl 'pairings' league_tag season_tag %}">All Teams</a>
+					    {% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league.tag season.tag round_number %}">All Teams</a>
+				    	{% else %}<a href="{% leagueurl 'pairings' league.tag season.tag %}">All Teams</a>
 				    	{% endif %}
 				    </li>
 				    <li role="separator" class="divider"></li>
 				    {% for team in team_list %}
 				    <li>
-				    	{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league_tag season_tag round_number team.number %}">{{ team.name }}</a>
-				    	{% else %}<a href="{% leagueurl 'pairings_by_team' league_tag season_tag team.number %}">{{ team.name }}</a>
+				    	{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_number team.number %}">{{ team.name }}</a>
+				    	{% else %}<a href="{% leagueurl 'pairings_by_team' league.tag season.tag team.number %}">{{ team.name }}</a>
 				    	{% endif %}
 			    	</li>
 				    {% endfor %}
@@ -81,14 +81,14 @@
 						<td class="hidden-xs">{{ pairing.white_team_name }}</td>
 						<td>
 							<div class="pairing-player{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
 								</a>
 							</div>
 						</td>
 						<td>
 							<div class="pairing-player{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
 								</a>
 							</div>

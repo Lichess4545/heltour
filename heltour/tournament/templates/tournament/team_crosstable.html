@@ -42,7 +42,7 @@
 								<td class="cell-score"></td>
 								{% else %}
 								<td class="cell-score {% resultclass score opp_score %}">
-									<a href="{% leagueurl 'result' league_tag season_tag team_pairing_id %}">{{ score|floatformat }}</a>
+									<a href="{% leagueurl 'result' league.tag season.tag team_pairing_id %}">{{ score|floatformat }}</a>
 								</td>
 								{% endif %}
 								{% endfor %}

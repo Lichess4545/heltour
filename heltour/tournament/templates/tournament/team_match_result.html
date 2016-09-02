@@ -38,7 +38,7 @@
 						{% for pairing in pairings %}
 						<tr>
 							<td class="pairing-player">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.white_team_player.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
 									{{ pairing.white_team_player.lichess_username }}{% if pairing.white_team_player.rating %} <span class="visible-xs"></span> ({{ pairing.white_team_player.rating }}){% endif %}
 								</a>
 							</td>
@@ -49,7 +49,7 @@
 								{% if pairing.black_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.black_team_score }}</a>{% endif %}
 							</td>
 							<td class="pairing-player">
-								<a href="{% leagueurl 'player_profile' league_tag season_tag pairing.black_team_player.lichess_username %}">
+								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 									{{ pairing.black_team_player.lichess_username }}{% if pairing.black_team_player.rating %} <span class="visible-xs"></span> ({{ pairing.black_team_player.rating }}){% endif %}
 								</a>
 							</td>

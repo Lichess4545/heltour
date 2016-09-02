@@ -15,7 +15,7 @@
 			</div>
 			<div class="well-body">
 				<p>Games must be completed by {{ active_round.end_date | date:"m/d H:i" }} UTC.</p>
-				<a href="{% leagueurl 'pairings' league_tag season_tag %}" class="btn btn-default">Pairings</a>
+				<a href="{% leagueurl 'pairings' league.tag season.tag %}" class="btn btn-default">Pairings</a>
 			</div>
 		</div>
 		{% endif %}
@@ -45,7 +45,7 @@
 						{% endfor %}
 					</tbody>
 				</table>
-				<a href="{% leagueurl 'standings' league_tag season_tag %}" class="btn btn-default">Full Standings</a>
+				<a href="{% leagueurl 'standings' league.tag season.tag %}" class="btn btn-default">Full Standings</a>
 			</div>
 		</div>
 		{% endif %}
@@ -61,10 +61,10 @@
 				        <span class="caret"></span>
 				    </button>
 				    <ul class="dropdown-menu">
-					    <li><a href="{% leagueurl 'season_landing' league_tag %}">{{ default_season.name }}</a></li>
+					    <li><a href="{% leagueurl 'season_landing' league.tag %}">{{ default_season.name }}</a></li>
 					    <li role="separator" class="divider"></li>
 					    {% for s in season_list %}
-					    <li><a href="{% leagueurl 'season_landing' league_tag s.tag %}">{{ s.name }}</a></li>
+					    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
 					    {% endfor %}
 				    </ul>
 				</div>
@@ -86,13 +86,13 @@
 						{% for team_pairing in last_round_pairings %}
 						<tr>
 							<td class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
-								<a href="{% leagueurl 'result' league_tag season_tag team_pairing.pk %}">{{ team_pairing.white_points_display }}</a>
+								<a href="{% leagueurl 'result' league.tag season.tag team_pairing.pk %}">{{ team_pairing.white_points_display }}</a>
 							</td>
 							<td>
 								{{ team_pairing.white_team.name }}
 							</td>
 							<td class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
-								<a href="{% leagueurl 'result' league_tag season_tag team_pairing.pk %}">{{ team_pairing.black_points_display }}</a>
+								<a href="{% leagueurl 'result' league.tag season.tag team_pairing.pk %}">{{ team_pairing.black_points_display }}</a>
 							</td>
 							<td>
 								{{ team_pairing.black_team.name }}
@@ -101,7 +101,7 @@
 						{% endfor %}
 					</tbody>
 				</table>
-				<a href="{% leagueurl 'crosstable' league_tag season_tag %}" class="btn btn-default">All Results</a>
+				<a href="{% leagueurl 'crosstable' league.tag season.tag %}" class="btn btn-default">All Results</a>
 			</div>
 		</div>
 		{% endif %}

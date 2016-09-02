@@ -43,7 +43,7 @@
 									                           {% elif board.player in yellow_card_players %} player-yellow-card" title="1 game missed"
 									                           {% elif board.player in red_card_players %} player-red-card" title="2+ games missed"
 									                           {% else %}"{% endif %}>
-										{% if board.player %}<a href="{% leagueurl 'player_profile' league_tag season_tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>{% endif %}
+										{% if board.player %}<a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>{% endif %}
 									</span>
 								</td>
 								<td class="cell-rating">{{ board.player.rating|default_if_none:"" }}</td>
@@ -78,7 +78,7 @@
 									                           {% elif alt.season_player.player in yellow_card_players %} player-yellow-card" title="1 game missed"
 									                           {% elif alt.season_player.player in red_card_players %} player-red-card" title="2+ games missed"
 									                           {% else %}"{% endif %}>
-										<a href="{% leagueurl 'player_profile' league_tag season_tag alt.season_player.player.lichess_username %}">{{ alt.season_player.player.lichess_username }}</a>
+										<a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">{{ alt.season_player.player.lichess_username }}</a>
 									</span>
 									{% endif %}
 								</td>
