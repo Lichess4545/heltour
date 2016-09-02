@@ -210,7 +210,7 @@ class SeasonAdmin(VersionAdmin):
     def review_nominated_games_pgn_view(self, request, object_id):
         gamelink = request.GET.get('gamelink')
         gameid = get_gameid_from_gamelink(gamelink)
-        pgn = lichessapi.get_pgn_with_cache(gameid)
+        pgn = lichessapi.get_pgn_with_cache(gameid, priority=10)
 
         # Strip most tags for "blind" review
         pgn = re.sub('\[[^R]\w+ ".*"\]\n', '', pgn)
