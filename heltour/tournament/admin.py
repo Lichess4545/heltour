@@ -1102,7 +1102,7 @@ class ApiKeyAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PrivateUrlAuth)
 class PrivateUrlAuthAdmin(VersionAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__unicode__', 'expires')
     search_fields = ('authenticated_user',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
