@@ -1092,7 +1092,7 @@ class GameSelectionAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(NavItem)
 class NavItemAdmin(VersionAdmin):
-    list_display = ('text', 'parent')
+    list_display = ('__unicode__', 'parent')
     search_fields = ('text',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 

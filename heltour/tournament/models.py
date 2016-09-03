@@ -1226,7 +1226,7 @@ class NavItem(_BaseModel):
     append_separator = models.BooleanField(default=False)
 
     def __unicode__(self):
-        return self.text
+        return '%s - %s' % (self.league, self.text)
 
 #-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):
