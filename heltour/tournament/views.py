@@ -898,7 +898,7 @@ class NominateView(SeasonView):
             player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
             can_nominate = player_pairings.count() > 0
 
-            if can_nominate:
+            if can_nominate and self.season.nominations_open:
                 current_nominations = GameNomination.objects.filter(season=self.season, nominating_player=player)
 
                 if post:

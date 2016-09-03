@@ -91,6 +91,7 @@ class Season(_BaseModel):
     is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
+    nominations_open = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
