@@ -453,7 +453,7 @@ div.inline {
 }
 
 .navbar-brand {
-	/*padding-right: 10px;*/
+	padding-right: 5px;
 }
 
 #table-lone-standings thead th {
@@ -530,13 +530,13 @@ div.inline {
 		justify-content: center;
 	}
 	.nav > .league-dropdown {
-		margin-left: -10px;
-		margin-right: 4px;
+		margin-left: 0;
+		margin-right: 10px;
 	}
 	
 	.nav > .league-dropdown > a {
-		padding-left: 10px;
-		padding-right: 11px;
+		padding-left: 3px;
+		padding-right: 5px;
 	}
 }
 @media (max-width: 992px) {
