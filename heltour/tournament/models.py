@@ -1214,6 +1214,20 @@ class GameSelection(_BaseModel):
         return '%s - %s' % (self.season, self.game_link)
 
 #-------------------------------------------------------------------------------
+class NavItem(_BaseModel):
+    league = models.ForeignKey(League)
+    parent = models.ForeignKey('self', blank=True, null=True)
+    order = models.PositiveIntegerField()
+    text = models.CharField(max_length=255)
+    path = models.CharField(max_length=1023, blank=True)
+    league_relative = models.BooleanField(default=False)
+    season_relative = models.BooleanField(default=False)
+    append_separator = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return self.text
+
+#-------------------------------------------------------------------------------
 class ApiKey(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)

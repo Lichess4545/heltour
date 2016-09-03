@@ -23,7 +23,6 @@ season_urlpatterns = [
     url(r'^summary/$', views.SeasonLandingView.as_view(), name='season_landing'),
     url(r'^register/$', views.RegisterView.as_view(), name='register'),
     url(r'^registration_success/$', views.RegistrationSuccessView.as_view(), name='registration_success'),
-    url(r'^faq/$', views.FaqView.as_view(), name='faq'),
     url(r'^rosters/$', views.RostersView.as_view(), name='rosters'),
     url(r'^standings/$', views.StandingsView.as_view(), name='standings'),
     url(r'^standings/section/(?P<section>[\w-]+)/$', views.StandingsView.as_view(), name='standings_by_section'),

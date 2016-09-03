@@ -1087,6 +1087,13 @@ class GameSelectionAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(NavItem)
+class NavItemAdmin(VersionAdmin):
+    list_display = ('text', 'parent')
+    search_fields = ('text',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(ApiKey)
 class ApiKeyAdmin(VersionAdmin):
     list_display = ('name',)

@@ -43,7 +43,9 @@ class LeagueView(BaseView):
     def render(self, template, context):
         context.update({
             'league': self.league,
-            'season': self.season
+            'season': self.season,
+            'nav_tree': _get_nav_tree(self.league.tag, self.season.tag if self.season is not None else None),
+            'other_leagues': League.objects.order_by('display_order').exclude(pk=self.league.pk)
         })
         return render(self.request, template, context)
 
@@ -464,22 +466,6 @@ class RegistrationSuccessView(SeasonView):
             'registration_season': reg_season
         }
         return self.render('tournament/registration_success.html', context)
-
-class FaqView(SeasonView):
-    def view(self):
-        league_document = LeagueDocument.objects.filter(league=self.league, type='faq').first()
-        # If the FAQ document doesn't exist, create a placeholder
-        if league_document is None:
-            league_document = LeagueDocument.objects.filter(league=self.league, tag='faq').first()
-        if league_document is None:
-            document = Document.objects.create(name='FAQ', content='Coming soon.')
-            league_document = LeagueDocument.objects.create(league=self.league, document=document, tag='faq', type='faq')
-        context = {
-            'document': league_document.document,
-            'is_faq': True,
-            'can_edit': self.request.user.has_perm('tournament.change_document'),
-        }
-        return self.render('tournament/document.html', context)
 
 class RostersView(SeasonView):
     def view(self):
@@ -989,3 +975,22 @@ def _get_default_season(league_tag, allow_none=False):
     if not allow_none and season is None:
         raise Http404
     return season
+
+@cached_as(NavItem)
+def _get_nav_tree(league_tag, season_tag):
+    league = _get_league(league_tag)
+    root_items = league.navitem_set.filter(parent=None).order_by('order')
+
+    def transform(item):
+        text = item.text
+        url = item.path
+        if item.season_relative and season_tag is not None:
+            url = '/season/%s' % season_tag + url
+        if item.league_relative:
+            url = '/%s' % league_tag + url
+        children = [transform(child) for child in item.navitem_set.order_by('order')]
+        append_separator = item.append_separator
+        return (text, url, children, append_separator)
+
+    return [transform(item) for item in root_items]
+

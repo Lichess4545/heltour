@@ -21,29 +21,54 @@
 	        <span class="icon-bar"></span>
 	        <span class="icon-bar"></span>
 	      </button>
-	      <a class="navbar-brand" href="{% block home_link %}{% leagueurl 'league_home' league.tag None %}{% endblock %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
+	      <a class="navbar-brand" href="{% leagueurl 'league_home' league.tag None %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
 	    </div>
 
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav">
-	        {% if season %}
-	        <li class="{% block nav_season %}{% endblock %}"><a href="{% leagueurl 'season_landing' league.tag season.tag %}">{{ season.name }}</a></li>
-	        <li class="{% block nav_faq %}{% endblock %}"><a href="{% leagueurl 'faq' league.tag season.tag %}">FAQ</a></li>
-	        {% if league.competitor_type == 'team' %}
-	        <li class="{% block nav_rosters %}{% endblock %}"><a href="{% leagueurl 'rosters' league.tag season.tag %}">Rosters</a></li>
+	        <li class="dropdown league-dropdown">
+	            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="visible-xs">Change League <span class="caret"></span></span><span class="caret hidden-xs"></span></a>
+	            <ul class="dropdown-menu">
+	            	{% for other_league in other_leagues %}
+	        		<li><a href="{% leagueurl 'league_home' other_league.tag None %}">{{ other_league.name }}</a></li>
+	        		{% endfor %}
+	            </ul>
+	        </li>
+	      	{% if season %}
+	        <li class="dropdown">
+	            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ season.name }} <span class="caret"></span></a>
+	            <ul class="dropdown-menu">
+	        		<li><a href="{% leagueurl 'season_landing' league.tag season.tag %}">Summary</a></li>
+	            	{% if league.competitor_type == 'team' %}
+	        		<li><a href="{% leagueurl 'rosters' league.tag season.tag %}">Rosters</a></li>
+	        		<li><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
+	        		<li><a href="{% leagueurl 'crosstable' league.tag season.tag %}">Crosstable</a></li>
+	        		<li><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
+	        		<li><a href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a></li>
+	        		{% else %}
+	        		<li><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
+	        		<li><a href="{% leagueurl 'wallchart' league.tag season.tag %}">Wallchart</a></li>
+	        		<li><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
+	        		{% endif %}
+	            </ul>
+	        </li>
 	        {% endif %}
-	        <li class="{% block nav_standings %}{% endblock %}"><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
-	        {% if league.competitor_type == 'team' %}
-	        <li class="{% block nav_crosstable %}{% endblock %}"><a href="{% leagueurl 'crosstable' league.tag season.tag %}">Crosstable</a></li>
+	        {% for item_text, item_url, item_children, append_separator in nav_tree %}
+	        {% if item_children %}
+	        <li class="dropdown">
+	            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ item_text }} <span class="caret"></span></a>
+	            <ul class="dropdown-menu">
+	            	{% for item_text, item_url, item_children, append_separator in item_children %}
+	        		<li><a href="{{ item_url }}">{{ item_text }}</a></li>
+	        		{% if append_separator %}<li class="divider"></li>{% endif %}
+	            	{% endfor %}
+	            </ul>
+	        </li>
 	        {% else %}
-	        <li class="{% block nav_wallchart %}{% endblock %}"><a href="{% leagueurl 'wallchart' league.tag season.tag %}">Wallchart</a></li>
+	        <li><a href="{{ item_url }}">{{ item_text }}</a></li>
 	        {% endif %}
-	        <li class="{% block nav_pairings %}{% endblock %}"><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
-	        {% if league.competitor_type == 'team' %}
-	        <li class="{% block nav_stats %}{% endblock %}"><a href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a></li>
-	        {% endif %}
-          <li class="{% block nav_tv %}{% endblock %}"><a href="{% leagueurl 'tv' league.tag season.tag %}">TV</a></li>
-	        {% endif %}
+	        {% endfor %}
+	        <li><a href="{% leagueurl 'tv' league.tag season.tag %}">TV</a></li>
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
 	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league.tag None %}">Dashboard</a></li>{% endif %}

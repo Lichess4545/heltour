@@ -452,6 +452,10 @@ div.inline {
 	background-color: #225622;
 }
 
+.navbar-brand {
+	padding-right: 10px;
+}
+
 #table-lone-standings thead th {
 	white-space: nowrap;
 }
@@ -524,6 +528,15 @@ div.inline {
 		align-items: center;
 		display: flex;
 		justify-content: center;
+	}
+	.nav > .league-dropdown {
+		margin-left: -10px;
+		margin-right: 4px;
+	}
+	
+	.nav > .league-dropdown > a {
+		padding-left: 10px;
+		padding-right: 11px;
 	}
 }
 @media (max-width: 992px) {
