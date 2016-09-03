@@ -1,4 +1,5 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load comments %}
 
 {% block content %}
 <h2>Selected games</h2>
@@ -13,10 +14,11 @@
 			<th>Link</th>
 			<th>PGN</th>
 			<th>Action</th>
+			<th>Comments</th>
 		</tr>
 	</thead>
 	<tbody>
-		{% for count, s in selections %}
+		{% for count, s, n in selections %}
 		<tr>
 			{% if is_team %}
 			<td>Bd {{ s.pairing.teamplayerpairing.board_number }}</td>
@@ -32,6 +34,16 @@
 			</td>
 			<td>
 				<a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
+			</td>
+			<td>
+			{{ n.comments }}
+				{% if n %}
+				<a class="add-comment-link" href="#">Add Comment</a>
+				<div style="display: none">
+					{% render_comment_form for n %}
+				</div>
+				{% render_comment_list for n %}
+				{% endif %}
 			</td>
 		</tr>
 		<tr style="display: none">
@@ -58,6 +70,7 @@
 			<th>Link</th>
 			<th>PGN</th>
 			<th>Action</th>
+			<th>Comments</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -77,6 +90,14 @@
 			</td>
 			<td>
 				<a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
+			</td>
+			<td>
+			{{ n.comments }}
+				<a class="add-comment-link" href="#">Add Comment</a>
+				<div style="display: none">
+					{% render_comment_form for n %}
+				</div>
+				{% render_comment_list for n %}
 			</td>
 		</tr>
 		<tr style="display: none">
@@ -108,6 +129,10 @@ $('.pgn-link').on('click', function(e) {
 		$this.addClass('open');
 		$nextRow.show();
 	}
+});
+$('.add-comment-link').on('click', function(e) {
+	e.preventDefault();
+	$(this).next().toggle();
 });
 </script>
 {% endblock %}

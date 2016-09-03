@@ -156,19 +156,21 @@ class SeasonAdmin(VersionAdmin):
         season = Season.objects.get(pk=object_id)
 
         selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
-        nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
+        nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number', 'date_created')
 
         selected_links = set((s.game_link for s in selections))
 
         link_counts = {}
+        link_to_nom = {}
         first_nominations = []
         for n in nominations:
             value = link_counts.get(n.game_link, 0)
             if value == 0:
                 first_nominations.append(n)
+                link_to_nom[n.game_link] = n
             link_counts[n.game_link] = value + 1
 
-        selections = [(link_counts.get(s.game_link, 0), s) for s in selections]
+        selections = [(link_counts.get(s.game_link, 0), s, link_to_nom.get(s.game_link, None)) for s in selections]
         nominations = [(link_counts.get(n.game_link, 0), n) for n in first_nominations if n.game_link not in selected_links]
 
         context = {
