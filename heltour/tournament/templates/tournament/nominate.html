@@ -13,6 +13,8 @@
 			<div class="well-body">
 				{% if not username %}
 				<p>This link is invalid or expired.</p>
+				{% elif not season.nominations_open %}
+				<p>Nominations are closed for this season.</p>
 				{% elif not can_nominate %}
 				<p>Sorry {{ username }}, you need to have participated in the season to nominate a game.</p>
 				<p>If you think this is an error, please contact a moderator.</p>

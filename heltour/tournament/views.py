@@ -974,7 +974,7 @@ def nominate(request, secret_token, league_tag=None, season_tag=None):
         player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
         can_nominate = player_pairings.count() > 0
 
-        if can_nominate:
+        if can_nominate and season.nominations_open:
             current_nominations = GameNomination.objects.filter(season=season, nominating_player=player)
 
             if request.method == 'POST':

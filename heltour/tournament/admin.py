@@ -173,6 +173,9 @@ class SeasonAdmin(VersionAdmin):
         selections = [(link_counts.get(s.game_link, 0), s, link_to_nom.get(s.game_link, None)) for s in selections]
         nominations = [(link_counts.get(n.game_link, 0), n) for n in first_nominations if n.game_link not in selected_links]
 
+        if season.nominations_open:
+            self.message_user(request, 'Nominations are still open. You should edit the season and close nominations before reviewing.', messages.WARNING)
+
         context = {
             'has_permission': True,
             'opts': self.model._meta,
