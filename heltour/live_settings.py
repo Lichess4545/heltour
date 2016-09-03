@@ -61,8 +61,11 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'debug_toolbar',
     'cacheops',
-    'django_comments'
+    'django_comments',
+    'heltour.comments'
 ]
+
+COMMENTS_APP = 'heltour.comments'
 
 API_WORKER_HOST = 'http://localhost:8880'
 
