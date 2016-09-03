@@ -67,7 +67,7 @@
 				        <span class="caret"></span>
 				    </button>
 				    <ul class="dropdown-menu">
-					    <li><a href="{% leagueurl 'season_landing' league.tag %}">{{ default_season.name }}</a></li>
+					    <li><a href="{% leagueurl 'season_landing' league.tag default_season.tag %}">{{ default_season.name }}</a></li>
 					    <li role="separator" class="divider"></li>
 					    {% for s in season_list %}
 					    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>

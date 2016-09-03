@@ -48,11 +48,18 @@ class LeagueView(BaseView):
         return render(self.request, template, context)
 
 class SeasonView(LeagueView):
+    def get(self, request, *args, **kwargs):
+        self.read_context()
+        if not self._season_specified:
+            return redirect('by_league:by_season:%s' % request.resolver_match.url_name, *self.args, league_tag=self.league.tag, season_tag=self.season.tag, **self.kwargs)
+        return self.view(*self.args, **self.kwargs)
+
     def read_context(self):
         league_tag = self.kwargs.pop('league_tag')
         season_tag = self.kwargs.pop('season_tag', None)
         self.league = _get_league(league_tag)
         self.season = _get_season(league_tag, season_tag, False)
+        self._season_specified = season_tag is not None
 
 class HomeView(BaseView):
     def view(self):
@@ -167,7 +174,7 @@ class LeagueHomeView(LeagueView):
         }
         return self.render('tournament/lone_league_home.html', context)
 
-class SeasonLandingView(LeagueView):
+class SeasonLandingView(SeasonView):
     def view(self):
         if self.league.competitor_type == 'team':
             return self.team_view()
