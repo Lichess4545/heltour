@@ -30,4 +30,4 @@ def update_player_ratings(self):
         except Exception as e:
             logger.warning('Error getting rating for %s: %s' % (username, e))
 
-    return len(players)
+    logger.info('Updated ratings for %d players', len(players))
