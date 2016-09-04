@@ -185,6 +185,12 @@ def get_roster(request):
     except IndexError:
         return JsonResponse({'season_tag': None, 'players': None, 'teams': None, 'error': 'no_matching_rounds'})
 
+    if season.league.competitor_type == 'team':
+        return _team_roster(season)
+    else:
+        return _lone_roster(season)
+
+def _team_roster(season):
     season_players = season.seasonplayer_set.all()
     teams = season.team_set.order_by('number').all()
 
@@ -211,6 +217,26 @@ def get_roster(request):
                              key=lambda alt: alt.priority_date()
                          )]
         } for board_number in season.board_number_list()]
+    })
+
+def _lone_roster(season):
+    season_players = season.seasonplayer_set.all()
+
+    player_board = {}
+    current_round = season.round_set.filter(publish_pairings=True, is_completed=False).first()
+    if current_round is not None:
+        for p in current_round.loneplayerpairing_set.all():
+            player_board[p.white] = p.pairing_order
+            player_board[p.black] = p.pairing_order
+
+    return JsonResponse({
+        'league': season.league.tag,
+        'season': season.tag,
+        'players': [{
+            'username': season_player.player.lichess_username,
+            'rating': season_player.player.rating,
+            'board': player_board.get(season_player.player, None)
+        } for season_player in season_players]
     })
 
 @csrf_exempt

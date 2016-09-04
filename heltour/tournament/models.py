@@ -336,6 +336,8 @@ class Season(_BaseModel):
         return None
 
     def board_number_list(self):
+        if self.boards is None:
+            raise Exception('Tried to get board list but season.boards is None')
         return [n for n in range(1, self.boards + 1)]
 
     def __unicode__(self):
