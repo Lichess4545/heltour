@@ -1,6 +1,9 @@
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi
 from heltour.celery import app
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
 
 # Disabled for now because of rate-limiting
 lichess_teams = [] # ['lichess4545-league']
@@ -21,7 +24,10 @@ def update_player_ratings(self):
 
     # Any players not found above will be queried individually
     for username, p in player_dict.items():
-        p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, 0)
-        p.save()
+        try:
+            p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, 0)
+            p.save()
+        except Exception as e:
+            logger.warning('Error getting rating for %s: %s' % (username, e))
 
     return len(players)
