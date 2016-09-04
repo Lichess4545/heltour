@@ -496,7 +496,7 @@ div.inline {
 	color: black;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
 	.podium {
 		display: flex;
 	}
@@ -539,7 +539,7 @@ div.inline {
 		padding-right: 5px;
 	}
 }
-@media (max-width: 992px) {
+@media (max-width: 991px) {
 	.row-condensed-sm > * {
 		padding-left: 0px;
 		padding-right: 0px;
@@ -563,7 +563,7 @@ div.inline {
 	    max-width: 100%;
 	}	
 }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
 	body {
 		margin-bottom: 50px;
 	}
