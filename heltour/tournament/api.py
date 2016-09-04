@@ -233,7 +233,7 @@ def assign_alternate(request):
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    if team_num is None or board_num is None or player_name is None:
+    if team_num is None or board_num is None or not player_name:
         return HttpResponse('Bad request', status=400)
 
     try:
@@ -315,7 +315,7 @@ def league_document(request):
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    if league_tag is None or type_ is None:
+    if not league_tag or not type_:
         return HttpResponse('Bad request', status=400)
 
     league_doc = LeagueDocument.objects.filter(league__tag=league_tag, type=type_).first()
@@ -343,15 +343,15 @@ def get_private_url(request):
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    if user is None:
+    if not user:
         return HttpResponse('Bad request', status=400)
 
     if page == 'nominate':
-        if league_tag is None:
+        if not league_tag:
             return HttpResponse('Bad request', status=400)
 
         auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
-        if season_tag is None:
+        if not season_tag:
             url = reverse('by_league:nominate', args=[league_tag, auth.secret_token])
         else:
             url = reverse('by_league:by_season:nominate', args=[league_tag, season_tag, auth.secret_token])
