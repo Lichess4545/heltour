@@ -427,12 +427,10 @@ class PairingsView(SeasonView):
 
 class RegisterView(LeagueView):
     def view(self, post=False):
-        if self.season is None:
-            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
-        elif self.season.registration_open:
+        if self.season is not None and self.season.registration_open:
             reg_season = self.season
         else:
-            reg_season = None
+            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
