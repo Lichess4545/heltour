@@ -191,7 +191,7 @@ def get_roster(request):
         return _lone_roster(season)
 
 def _team_roster(season):
-    season_players = season.seasonplayer_set.all()
+    season_players = season.seasonplayer_set.select_related('player').nocache()
     teams = season.team_set.order_by('number').all()
 
     return JsonResponse({
@@ -220,7 +220,7 @@ def _team_roster(season):
     })
 
 def _lone_roster(season):
-    season_players = season.seasonplayer_set.all()
+    season_players = season.seasonplayer_set.select_related('player').nocache()
 
     player_board = {}
     current_round = season.round_set.filter(publish_pairings=True, is_completed=False).first()
