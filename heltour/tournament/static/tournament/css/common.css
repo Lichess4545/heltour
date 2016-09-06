@@ -22,6 +22,14 @@ body {
 	background-color: #e9e9e9;
 }
 
+.well-body > h2:first-child {
+	margin-top: 2px;
+}
+
+h2 {
+	font-size: 22px;
+}
+
 .footer p {
 	text-align: center;
 	margin: 15px 0;
@@ -566,9 +574,6 @@ div.inline {
 @media (max-width: 767px) {
 	body {
 		margin-bottom: 50px;
-	}
-	h2 {
-		margin-top: 2px;
 	}
 	.row-condensed-xs > * {
 		padding-left: 0px;
