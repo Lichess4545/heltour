@@ -799,9 +799,10 @@ class PlayerProfileView(LeagueView):
 
         def game_count(season):
             if season.league.competitor_type == 'team':
-                return (TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)).filter(team_pairing__round__season=self.season).count()
+                season_pairings = TeamPlayerPairing.objects.filter(team_pairing__round__season=season)
             else:
-                return (LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)).filter(round__season=self.season).count()
+                season_pairings = LonePlayerPairing.objects.filter(round__season=season)
+            return (season_pairings.filter(white=player) | season_pairings.filter(black=player)).count()
 
         def team_name(season):
             if season.league.competitor_type == 'team':
