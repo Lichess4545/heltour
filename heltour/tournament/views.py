@@ -456,13 +456,13 @@ class RegisterView(LeagueView):
 
 class RegistrationSuccessView(SeasonView):
     def view(self):
-        try:
-            if self.season is None:
-                reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date')[0]
-            else:
-                reg_season = self.season
-        except IndexError:
+        if self.season is not None and self.season.registration_open:
+            reg_season = self.season
+        else:
+            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
+        if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
+
         context = {
             'registration_season': reg_season
         }
