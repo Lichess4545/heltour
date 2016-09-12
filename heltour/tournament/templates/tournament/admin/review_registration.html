@@ -118,12 +118,14 @@
 		</div>
 		{% endfor %}
 		
+		{% if original.player %}
 		{% get_comment_list for original.player as comments %}
 		{% if comments %}
 		<div class="form-row">
 			<strong>Comments for {{ original.player.lichess_username }}:</strong>
 			{% render_comment_list for original.player %}
 		</div>
+		{% endif %}
 		{% endif %}
 	
 	</div>
