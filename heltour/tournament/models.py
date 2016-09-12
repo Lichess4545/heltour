@@ -88,7 +88,7 @@ class Season(_BaseModel):
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField(blank=True, null=True)
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)

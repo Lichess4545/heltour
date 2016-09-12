@@ -51,7 +51,7 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
         board_count = board - 1
 
         # Create the season
-        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count)
+        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
 
         # Read the teams
         team_name_col = sheet_rosters[0].index('Teams')
@@ -247,7 +247,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     round_count = int(match.group(1))
 
         # Create the season
-        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count)
+        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, is_active=True)
 
         # Read the players and their scores
         name_col = sheet_standings[0].index('Name')
