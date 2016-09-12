@@ -860,7 +860,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
 @admin.register(Registration)
 class RegistrationAdmin(VersionAdmin):
     list_display = ('lichess_username', 'email', 'status', 'season')
-    search_fields = ('lichess_username', 'season')
+    search_fields = ('lichess_username', 'season__name')
     list_filter = ('status', 'season',)
 
     def get_urls(self):
