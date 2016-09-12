@@ -391,7 +391,6 @@ class Player(_BaseModel):
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
-    is_moderator = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -402,6 +401,17 @@ class Player(_BaseModel):
             return self.lichess_username
         else:
             return "%s (%d)" % (self.lichess_username, self.rating)
+
+#-------------------------------------------------------------------------------
+class LeagueModerator(_BaseModel):
+    league = models.ForeignKey(League)
+    player = models.ForeignKey(Player)
+
+    class Meta:
+        unique_together = ('league', 'player')
+
+    def __unicode__(self):
+        return "%s - %s" % (self.league, self.player.lichess_username)
 
 ROUND_CHANGE_OPTIONS = (
     ('register', 'Register'),

@@ -743,6 +743,13 @@ class PlayerAdmin(VersionAdmin):
 #         except:
 #             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
+#-------------------------------------------------------------------------------
+@admin.register(LeagueModerator)
+class LeagueModeratorAdmin(VersionAdmin):
+    search_fields = ('player__lichess_username',)
+    list_filter = ('league',)
+    raw_id_fields = ('player',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 class TeamMemberInline(admin.TabularInline):

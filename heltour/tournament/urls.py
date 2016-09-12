@@ -54,6 +54,7 @@ api_urlpatterns = [
     url(r'^get_roster/$', api.get_roster, name='get_roster'),
     url(r'^assign_alternate/$', api.assign_alternate, name='assign_alternate'),
     url(r'^set_availability/$', api.set_availability, name='set_availability'),
+    url(r'^get_league_moderators/$', api.get_league_moderators, name='get_league_moderators'),
     url(r'^league_document/$', api.league_document, name='league_document'),
     url(r'^get_private_url/$', api.get_private_url, name='get_private_url'),
 ]

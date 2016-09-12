@@ -333,6 +333,21 @@ def set_availability(request):
 
 @require_GET
 @require_api_token
+def get_league_moderators(request):
+    try:
+        league_tag = request.GET.get('league', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if not league_tag:
+        return HttpResponse('Bad request', status=400)
+
+    moderator_names = [lm.player.lichess_username for lm in LeagueModerator.objects.filter(league__tag=league_tag)]
+
+    return JsonResponse({'moderators': moderator_names})
+
+@require_GET
+@require_api_token
 def league_document(request):
     try:
         league_tag = request.GET.get('league', None)
