@@ -95,7 +95,7 @@ class LeagueHomeView(LeagueView):
             }
             return self.render('tournament/team_league_home.html', context)
 
-        season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=self.season.pk)
+        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=self.season.pk)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season), reverse=True)[:5], 1))
@@ -140,7 +140,7 @@ class LeagueHomeView(LeagueView):
             }
             return self.render('tournament/lone_league_home.html', context)
 
-        season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=self.season.pk)
+        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=self.season.pk)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         player_scores = _lone_player_scores(self.season, final=True)[:5]
@@ -190,7 +190,7 @@ class SeasonLandingView(SeasonView):
                 return self.team_completed_season_view()
 
             default_season = _get_default_season(self.league.tag)
-            season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+            season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
             active_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
                                         .order_by('-number') \
@@ -221,7 +221,7 @@ class SeasonLandingView(SeasonView):
                 return self.lone_completed_season_view()
 
             default_season = _get_default_season(self.league.tag)
-            season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+            season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
             active_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
                                         .order_by('-number') \
@@ -247,7 +247,7 @@ class SeasonLandingView(SeasonView):
 
     def team_completed_season_view(self):
         default_season = _get_default_season(self.league.tag)
-        season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
         round_numbers = list(range(1, self.season.rounds + 1))
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
@@ -273,7 +273,7 @@ class SeasonLandingView(SeasonView):
 
     def lone_completed_season_view(self):
         default_season = _get_default_season(self.league.tag)
-        season_list = Season.objects.filter(league=self.league).order_by('-start_date', '-id').exclude(pk=default_season.pk)
+        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=default_season.pk)
 
         round_numbers = list(range(1, self.season.rounds + 1))
         player_scores = _lone_player_scores(self.season)
