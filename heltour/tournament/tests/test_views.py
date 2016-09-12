@@ -48,42 +48,31 @@ class SeasonLandingTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:season_landing', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:season_landing', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_season_landing.html')
 
-        response = self.client.get(reverse('by_league:season_landing', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:season_landing', args=['lone', 'lone']))
         self.assertTemplateUsed(response, 'tournament/lone_season_landing.html')
 
         for s in Season.objects.all():
             s.is_completed = True
             s.save()
 
-        response = self.client.get(reverse('by_league:season_landing', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:season_landing', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_completed_season_landing.html')
 
-        response = self.client.get(reverse('by_league:season_landing', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:season_landing', args=['lone', 'lone']))
         self.assertTemplateUsed(response, 'tournament/lone_completed_season_landing.html')
-
-class FaqTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
-        response = self.client.get(reverse('by_league:faq', args=['team']))
-        self.assertTemplateUsed(response, 'tournament/document.html')
-
-        response = self.client.get(reverse('by_league:faq', args=['lone']))
-        self.assertTemplateUsed(response, 'tournament/document.html')
 
 class RostersTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:rosters', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:rosters', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_rosters.html')
 
-        response = self.client.get(reverse('by_league:rosters', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:rosters', args=['lone', 'lone']))
         self.assertEqual(404, response.status_code)
 
 class StandingsTestCase(TestCase):
@@ -91,10 +80,10 @@ class StandingsTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:standings', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:standings', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_standings.html')
 
-        response = self.client.get(reverse('by_league:standings', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:standings', args=['lone', 'lone']))
         self.assertTemplateUsed(response, 'tournament/lone_standings.html')
 
 class CrosstableTestCase(TestCase):
@@ -102,10 +91,10 @@ class CrosstableTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:crosstable', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:crosstable', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_crosstable.html')
 
-        response = self.client.get(reverse('by_league:crosstable', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:crosstable', args=['lone', 'lone']))
         self.assertEqual(404, response.status_code)
 
 class WallchartTestCase(TestCase):
@@ -113,10 +102,10 @@ class WallchartTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:wallchart', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:wallchart', args=['team', 'team']))
         self.assertEqual(404, response.status_code)
 
-        response = self.client.get(reverse('by_league:wallchart', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:wallchart', args=['lone', 'lone']))
         self.assertTemplateUsed(response, 'tournament/lone_wallchart.html')
 
 class PairingsTestCase(TestCase):
@@ -124,10 +113,10 @@ class PairingsTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:pairings', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:pairings', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_pairings.html')
 
-        response = self.client.get(reverse('by_league:pairings', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:pairings', args=['lone', 'lone']))
         self.assertTemplateUsed(response, 'tournament/lone_pairings.html')
 
 class StatsTestCase(TestCase):
@@ -135,10 +124,10 @@ class StatsTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:stats', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:stats', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/team_stats.html')
 
-        response = self.client.get(reverse('by_league:stats', args=['lone']))
+        response = self.client.get(reverse('by_league:by_season:stats', args=['lone', 'lone']))
         self.assertEqual(404, response.status_code)
 
 class RegisterTestCase(TestCase):
@@ -146,15 +135,15 @@ class RegisterTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
-        response = self.client.get(reverse('by_league:register', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_closed.html')
 
         season = Season.objects.all()[0]
         season.registration_open = True
         season.save()
 
-        response = self.client.get(reverse('by_league:register', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/register.html')
 
-        response = self.client.get(reverse('by_league:registration_success', args=['team']))
+        response = self.client.get(reverse('by_league:by_season:registration_success', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_success.html')
