@@ -5,6 +5,7 @@ from captcha.fields import ReCaptchaField
 from .models import *
 from django.core.exceptions import ValidationError
 from heltour import settings
+import captcha
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -153,3 +154,20 @@ class NominateForm(forms.Form):
         if not ok:
             raise ValidationError('Invalid game link.', code='invalid')
         return game_link
+
+class ContactForm(forms.Form):
+    league = forms.ChoiceField(choices=[])
+    your_lichess_username = forms.CharField(max_length=255, required=False)
+    your_email_address = forms.EmailField(max_length=255)
+    subject = forms.CharField(max_length=140)
+    message = forms.CharField(max_length=1024, widget=forms.Textarea)
+    captcha = ReCaptchaField()
+
+    def __init__(self, *args, **kwargs):
+        leagues = kwargs.pop('leagues')
+        super(ContactForm, self).__init__(*args, **kwargs)
+
+        self.fields['league'] = forms.ChoiceField(choices=[(l.tag, l.name) for l in leagues])
+
+        if settings.DEBUG:
+            del self.fields['captcha']

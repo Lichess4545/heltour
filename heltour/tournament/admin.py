@@ -746,6 +746,7 @@ class PlayerAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(VersionAdmin):
+    list_display = ('__unicode__', 'send_contact_emails')
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)

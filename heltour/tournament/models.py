@@ -407,6 +407,8 @@ class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League)
     player = models.ForeignKey(Player)
 
+    send_contact_emails = models.BooleanField(default=True)
+
     class Meta:
         unique_together = ('league', 'player')
 

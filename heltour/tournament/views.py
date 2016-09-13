@@ -11,6 +11,7 @@ from collections import defaultdict
 from decorators import cached_as
 import re
 from django.views.generic import View
+from django.core.mail.message import EmailMessage
 
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
@@ -795,6 +796,41 @@ class DocumentView(LeagueView):
             'can_edit': self.request.user.has_perm('tournament.change_document'),
         }
         return self.render('tournament/document.html', context)
+
+class ContactView(LeagueView):
+    def view(self, post=False):
+        leagues = [self.league] + list(League.objects.order_by('display_order').exclude(pk=self.league.pk))
+        if post:
+            form = ContactForm(self.request.POST, leagues=leagues)
+            if form.is_valid():
+                league = League.objects.get(tag=form.cleaned_data['league'])
+                for mod in league.leaguemoderator_set.all():
+                    if mod.send_contact_emails and mod.player.email:
+                        message = EmailMessage(
+                            '[%s] %s' % (league.name, form.cleaned_data['subject']),
+                            'Sender:\n%s\n%s\n\nMessage:\n%s' %
+                                (form.cleaned_data['your_lichess_username'], form.cleaned_data['your_email_address'], form.cleaned_data['message']),
+                            settings.DEFAULT_FROM_EMAIL,
+                            [mod.player.email]
+                        )
+                        message.send()
+                return redirect(leagueurl('contact_success', league_tag=self.league.tag))
+        else:
+            form = ContactForm(leagues=leagues)
+
+        context = {
+            'form': form,
+        }
+        return self.render('tournament/contact.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
+class ContactSuccessView(LeagueView):
+    def view(self):
+        context = {
+        }
+        return self.render('tournament/contact_success.html', context)
 
 class PlayerProfileView(LeagueView):
     def view(self, username):

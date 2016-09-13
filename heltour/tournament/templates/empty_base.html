@@ -1,4 +1,4 @@
-{% with "20" as static_version %}<!DOCTYPE html>
+{% with "21" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -34,7 +34,7 @@
     {% if league %}
     <footer class="footer">
       <div class="container-fluid">
-        <p class="text-muted">{{ league.name }} &middot; <a href="{% url 'home' %}">Change</a></p>
+        <p class="text-muted">{{ league.name }} &middot; <a href="{% url 'home' %}">Change</a> &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a></p>
       </div>
     </footer>
     {% endif %}
