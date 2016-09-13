@@ -62,7 +62,8 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'cacheops',
     'django_comments',
-    'heltour.comments'
+    'heltour.comments',
+    'captcha'
 ]
 
 COMMENTS_APP = 'heltour.comments'
@@ -208,6 +209,11 @@ MEDIA_ROOT = 'media'
 MEDIA_URL = '/media/'
 CKEDITOR_ALLOW_NONIMAGE_FILES = False
 
+RECAPTCHA_PUBLIC_KEY = ''
+RECAPTCHA_PRIVATE_KEY = ''
+NOCAPTCHA = True
+RECAPTCHA_USE_SSL = True
+
 LOGIN_URL = '/admin/login/'
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
@@ -260,3 +266,5 @@ if os.path.exists("/etc/heltour/production.json"):
     SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
     MEDIA_ROOT = overrides.get("MEDIA_ROOT", MEDIA_ROOT)
     SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
+    RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)
+    RECAPTCHA_PRIVATE_KEY = overrides.get("RECAPTCHA_PRIVATE_KEY", RECAPTCHA_PRIVATE_KEY)

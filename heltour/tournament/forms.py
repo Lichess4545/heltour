@@ -1,8 +1,10 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from captcha.fields import ReCaptchaField
 
 from .models import *
 from django.core.exceptions import ValidationError
+from heltour import settings
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -10,6 +12,7 @@ YES_NO_OPTIONS = (
 )
 
 class RegistrationForm(forms.ModelForm):
+    captcha = ReCaptchaField()
     class Meta:
         model = Registration
         fields = (
@@ -70,6 +73,9 @@ class RegistrationForm(forms.ModelForm):
             self.fields['can_commit'].label = _(u'Are you able to commit to 1 long time control game (30|30 currently) of classical chess on Lichess.org per week?')
             self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the LoneWolf League?')
             self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/lonewolf/document/rules/">Rules Document</a>')
+
+        if settings.DEBUG:
+            del self.fields['captcha']
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
