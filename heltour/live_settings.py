@@ -163,11 +163,11 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
 BROKER_URL = 'redis://localhost:6379/1'
 
 CELERYBEAT_SCHEDULE = {
-    'update-ratings': {
-        'task': 'heltour.tournament.tasks.update_player_ratings',
-        'schedule': timedelta(minutes=30),
-        'args': ()
-    },
+#     'update-ratings': {
+#         'task': 'heltour.tournament.tasks.update_player_ratings',
+#         'schedule': timedelta(minutes=30),
+#         'args': ()
+#     },
 }
 
 CELERY_TIMEZONE = 'UTC'
