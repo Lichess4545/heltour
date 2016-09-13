@@ -99,6 +99,13 @@ div.inline {
 	background-color: rgb(249, 249, 249)
 }
 
+.team-link,
+.team-link:hover,
+.team-link:active,
+.team-link:focus {
+	color: inherit;
+}
+
 .player-profile-row {
 	max-width: 1200px;
 }

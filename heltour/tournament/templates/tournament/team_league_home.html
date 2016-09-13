@@ -90,7 +90,9 @@
 						{% for number, team_score in team_scores %}
 						<tr>
 							<td class="text-center cell-teamnumber">{{ number }}</td>
-							<td>{{ team_score.team.name }}</td>
+							<td>
+								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
+							</td>
 							<td class="text-center">{{ team_score.match_points_display }}</td>
 							<td class="text-center">{{ team_score.game_points_display }}</td>
 						</tr>

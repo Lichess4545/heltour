@@ -21,7 +21,7 @@
 								<img src="{% static 'tournament/img/trophy-1.png' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ first_team.team.name }}
+								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag first_team.team.number %}">{{ first_team.team.name }}</a>
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in first_team.team.boards %}
@@ -36,7 +36,7 @@
 								<img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ second_team.team.name }}
+								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag second_team.team.number %}">{{ second_team.team.name }}</a>
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in second_team.team.boards %}
@@ -51,7 +51,7 @@
 								<img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ third_team.team.name }}
+								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag third_team.team.number %}">{{ third_team.team.name }}</a>
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in third_team.team.boards %}
@@ -120,7 +120,9 @@
 							{% for number, team_score in team_scores %}
 							<tr>
 								<td class="text-center cell-teamnumber">{{ number }}</td>
-								<td>{{ team_score.team.name }}</td>
+								<td>
+									<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
+								</td>
 								<td class="text-center">{{ team_score.match_points_display }}</td>
 								<td class="text-center">{{ team_score.game_points_display }}</td>
 								{% for score, opp_score, team_pairing_id in team_score.round_scores %}
