@@ -878,6 +878,41 @@ class PlayerProfileView(LeagueView):
         }
         return self.render('tournament/player_profile.html', context)
 
+class TeamProfileView(LeagueView):
+    def view(self, team_number):
+        team = get_object_or_404(Team, season=self.season, number=team_number)
+
+        member_players = {tm.player for tm in team.teammember_set.all()}
+        game_counts = defaultdict(int)
+        for tp in team.pairings_as_white.all():
+            for p in tp.teamplayerpairing_set.all():
+                if p.board_number % 2 == 1:
+                    game_counts[p.white] += 1
+                else:
+                    game_counts[p.black] += 1
+        for tp in team.pairings_as_black.all():
+            for p in tp.teamplayerpairing_set.all():
+                if p.board_number % 2 == 1:
+                    game_counts[p.black] += 1
+                else:
+                    game_counts[p.white] += 1
+
+        prev_members = [(player, game_count) for player, game_count in sorted(game_counts.items(), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
+
+        matches = []
+        for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
+            if self.season.league.competitor_type == 'team':
+                pairing = (team.pairings_as_white.all() | team.pairings_as_black.all()).filter(round=round_).first()
+            if pairing is not None:
+                matches.append((round_, pairing))
+
+        context = {
+            'team': team,
+            'prev_members': prev_members,
+            'matches': matches,
+        }
+        return self.render('tournament/team_profile.html', context)
+
 class NominateView(SeasonView):
     def view(self, secret_token, post=False):
         username = None
