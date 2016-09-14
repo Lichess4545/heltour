@@ -29,6 +29,11 @@ body {
 	margin-top: 2px;
 }
 
+.well-body > :last-child,
+.well-body > :last-child > :last-child {
+	margin-bottom: 0;
+}
+
 h2 {
 	font-size: 22px;
 }

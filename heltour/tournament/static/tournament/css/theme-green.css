@@ -66,10 +66,6 @@
 	background-color: #ffffff;
 }
 
-.well-body > :last-child {
-	margin-bottom: 0;
-}
-
 
 .btn-primary {
 	background: linear-gradient(#699486, #225622);
