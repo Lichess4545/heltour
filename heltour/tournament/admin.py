@@ -1057,7 +1057,7 @@ class SeasonPlayerAdmin(VersionAdmin):
     list_display = ('player', 'season')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season',)
-    raw_id_fields = ('player',)
+    raw_id_fields = ('player', 'registration')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
