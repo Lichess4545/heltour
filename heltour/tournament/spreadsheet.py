@@ -25,7 +25,6 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
         # Open the sheets
         sheet_rosters = _trim_cells(doc.worksheet('Rosters').get_all_values())
         sheet_standings = _trim_cells(doc.worksheet('Standings').get_all_values())
-        sheet_past_rounds = _trim_cells(doc.worksheet('Past Rounds').get_all_values())
 
         # Read the round count
         round_ = 1
@@ -66,6 +65,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
             teams.append(team)
             team_name_row += 1
 
+        print 'Teams: ', teams
+
         # Read the team members and alternates
         alternates_start_row = [row[0] == 'Alternates' for row in sheet_rosters].index(True)
         for i in range(season.boards):
@@ -95,6 +96,61 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                 alternates_row += 1
 
         if not rosters_only:
+
+            try:
+                # Try using the alternate format
+                sheet_fixed_pairings = _trim_cells(doc.worksheet('Fixed Pairings').get_all_values())
+
+                rounds = Round.objects.filter(season=season).order_by('number')
+
+                pairing_order = 0
+                board_number = board_count
+                new_pairing = True
+
+                for row in sheet_fixed_pairings:
+                    try:
+                        round_number = int(row[0])
+                    except ValueError:
+                        continue
+
+                    white_team_name = row[1] if board_number == board_count or board_number % 2 == 0 else row[4]
+                    white_team = Team.objects.get(season=season, name__iexact=white_team_name)
+
+                    black_team_name = row[4] if board_number == board_count or board_number % 2 == 0 else row[1]
+                    black_team = Team.objects.get(season=season, name__iexact=black_team_name)
+
+                    team_pairing, created = TeamPairing.objects.get_or_create(round=rounds[round_number - 1], white_team=white_team, black_team=black_team, defaults={'pairing_order': pairing_order})
+                    if created:
+                        pairing_order += 1
+                        board_number = 1
+                    else:
+                        board_number += 1
+
+                    white_player_name = row[2]
+                    white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+                    SeasonPlayer.objects.get_or_create(season=season, player=white_player)
+
+                    black_player_name = row[3]
+                    black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+                    SeasonPlayer.objects.get_or_create(season=season, player=black_player)
+
+                    game_link = row[5]
+                    result = row[6]
+
+                    # TODO: Scheduled time
+
+                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player, result=result, game_link=game_link, scheduled_time=None)
+
+                for round_ in rounds:
+                    round_.publish_pairings = True
+                    round_.is_completed = True
+                    round_.save()
+
+                return
+            except WorksheetNotFound:
+                pass
+
+            sheet_past_rounds = _trim_cells(doc.worksheet('Past Rounds').get_all_values())
 
             # Read the pairings
             rounds = Round.objects.filter(season=season).order_by('number')
