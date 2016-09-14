@@ -22,8 +22,6 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
 
     with transaction.atomic():
 
-        # Open the sheets
-        sheet_rosters = _trim_cells(doc.worksheet('Rosters').get_all_values())
         sheet_standings = _trim_cells(doc.worksheet('Standings').get_all_values())
 
         # Read the round count
@@ -38,74 +36,117 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
             round_ += 1
         round_count = round_ - 1
 
-        # Read the board count
-        board = 1
-        while True:
-            try:
-                sheet_rosters[0].index('Board %d' % board)
-            except ValueError:
-                # No more boards
-                break
-            board += 1
-        board_count = board - 1
+        try:
+            sheet_rosters = _trim_cells(doc.worksheet('Rosters').get_all_values())
 
-        # Create the season
-        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
-
-        # Read the teams
-        team_name_col = sheet_rosters[0].index('Teams')
-        team_name_row = 1
-        teams = []
-        while True:
-            team_name = sheet_rosters[team_name_row][team_name_col]
-            if len(team_name) == 0:
-                break
-            team = Team.objects.create(season=season, number=len(teams) + 1, name=team_name)
-            TeamScore.objects.create(team=team)
-            teams.append(team)
-            team_name_row += 1
-
-        print 'Teams: ', teams
-
-        # Read the team members and alternates
-        alternates_start_row = [row[0] == 'Alternates' for row in sheet_rosters].index(True)
-        for i in range(season.boards):
-            board = i + 1
-            player_name_col = sheet_rosters[0].index('Board %d' % board)
-            player_rating_col = sheet_rosters[0].index('Rating %d' % board)
-            # Team members
-            for i in range(len(teams)):
-                player_row = i + 1
-                player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
-                player_rating = sheet_rosters[player_row][player_rating_col]
-                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                            defaults={'lichess_username': player_name, 'rating': int(player_rating)})
-                SeasonPlayer.objects.get_or_create(season=season, player=player)
-                TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
-            # Alternates
-            alternates_row = alternates_start_row
+            # Read the board count
+            board = 1
             while True:
-                player_name = sheet_rosters[alternates_row][player_name_col]
-                player_rating = sheet_rosters[alternates_row][player_rating_col]
-                if len(player_name) == 0 or len(player_rating) == 0:
+                try:
+                    sheet_rosters[0].index('Board %d' % board)
+                except ValueError:
+                    # No more boards
                     break
-                player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                            defaults={'lichess_username': player_name, 'rating': int(player_rating)})
-                season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
-                Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
-                alternates_row += 1
+                board += 1
+            board_count = board - 1
+
+            # Create the season
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
+
+            # Read the teams
+            team_name_col = sheet_rosters[0].index('Teams')
+            team_name_row = 1
+            teams = []
+            while True:
+                team_name = sheet_rosters[team_name_row][team_name_col]
+                if len(team_name) == 0:
+                    break
+                team = Team.objects.create(season=season, number=len(teams) + 1, name=team_name)
+                TeamScore.objects.create(team=team)
+                teams.append(team)
+                team_name_row += 1
+
+            # Read the team members and alternates
+            alternates_start_row = [row[0] == 'Alternates' for row in sheet_rosters].index(True)
+            for i in range(season.boards):
+                board = i + 1
+                player_name_col = sheet_rosters[0].index('Board %d' % board)
+                player_rating_col = sheet_rosters[0].index('Rating %d' % board)
+                # Team members
+                for i in range(len(teams)):
+                    player_row = i + 1
+                    player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
+                    player_rating = sheet_rosters[player_row][player_rating_col]
+                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
+                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    SeasonPlayer.objects.get_or_create(season=season, player=player)
+                    TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
+                # Alternates
+                alternates_row = alternates_start_row
+                while True:
+                    player_name = sheet_rosters[alternates_row][player_name_col]
+                    player_rating = sheet_rosters[alternates_row][player_rating_col]
+                    if len(player_name) == 0 or len(player_rating) == 0:
+                        break
+                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
+                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
+                    Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
+                    alternates_row += 1
+
+        except WorksheetNotFound:
+            # Try using the alternative rosters format
+            sheet_rosters = _trim_cells(doc.worksheet('Team Rosters').get_all_values())
+
+            # Read the board count
+            board_count = 0
+            for row in sheet_rosters:
+                match = re.match('Board ([0-9]+)', row[0])
+                if match is not None:
+                    board_count = int(match.group(1))
+                if row[0] == 'Avg Rating':
+                    break
+
+            # Create the season
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
+
+            # Read the teams
+            teams = []
+            for col in range(1, len(sheet_rosters[0])):
+                team_name = sheet_rosters[0][col]
+                if len(team_name) == 0:
+                    break
+                team = Team.objects.create(season=season, number=len(teams) + 1, name=team_name)
+                TeamScore.objects.create(team=team)
+                teams.append(team)
+
+            print teams
+
+            # Read the team members
+            for i in range(season.boards):
+                board = i + 1
+                name_row = board * 3 - 2
+                rating_row = board * 3 - 1
+                # Team members
+                for i in range(len(teams)):
+                    player_col = i + 1
+                    player_name, is_captain = _parse_player_name(sheet_rosters[name_row][player_col])
+                    player_rating = sheet_rosters[rating_row][player_col]
+                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
+                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    SeasonPlayer.objects.get_or_create(season=season, player=player)
+                    TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
 
         if not rosters_only:
 
             try:
-                # Try using the alternate format
+                # Try using the alternative pairings format
                 sheet_fixed_pairings = _trim_cells(doc.worksheet('Fixed Pairings').get_all_values())
 
                 rounds = Round.objects.filter(season=season).order_by('number')
 
                 pairing_order = 0
                 board_number = board_count
-                new_pairing = True
 
                 for row in sheet_fixed_pairings:
                     try:
@@ -114,9 +155,11 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                         continue
 
                     white_team_name = row[1] if board_number == board_count or board_number % 2 == 0 else row[4]
+                    print white_team_name
                     white_team = Team.objects.get(season=season, name__iexact=white_team_name)
 
                     black_team_name = row[4] if board_number == board_count or board_number % 2 == 0 else row[1]
+                    print black_team_name
                     black_team = Team.objects.get(season=season, name__iexact=black_team_name)
 
                     team_pairing, created = TeamPairing.objects.get_or_create(round=rounds[round_number - 1], white_team=white_team, black_team=black_team, defaults={'pairing_order': pairing_order})
@@ -137,14 +180,20 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     game_link = row[5]
                     result = row[6]
 
+                    colors_reversed = len(row[7]) > 0
+
                     # TODO: Scheduled time
 
-                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player, result=result, game_link=game_link, scheduled_time=None)
+                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player, result=result, game_link=game_link, colors_reversed=colors_reversed, scheduled_time=None)
 
                 for round_ in rounds:
                     round_.publish_pairings = True
                     round_.is_completed = True
                     round_.save()
+
+                season.is_active = False
+                season.is_completed = True
+                season.save()
 
                 return
             except WorksheetNotFound:
@@ -207,6 +256,9 @@ def _parse_player_name(player_name):
     if player_name[-1:] == '*':
         is_captain = True
         player_name = player_name[:-1]
+    elif player_name[-4:] == ' (C)':
+        is_captain = True
+        player_name = player_name[:-4]
     else:
         is_captain = False
     return player_name, is_captain
