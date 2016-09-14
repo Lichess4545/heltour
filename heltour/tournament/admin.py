@@ -916,6 +916,11 @@ class RegistrationAdmin(VersionAdmin):
             if form.is_valid():
                 if 'confirm' in form.data:
                     with transaction.atomic():
+                        # Limit changes to moderators
+                        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+                        if mod is not None and mod.player.email and mod.player.email != reg.email:
+                            reg.email = mod.player.email
+
                         # Add or update the player in the DB
                         player, _ = Player.objects.update_or_create(
                             lichess_username__iexact=reg.lichess_username,
@@ -994,6 +999,10 @@ class RegistrationAdmin(VersionAdmin):
 
         next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
 
+        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        no_email_change = mod is not None and mod.player.email and mod.player.email != reg.email
+        confirm_email = mod.player.email if no_email_change else reg.email
+
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -1001,7 +1010,9 @@ class RegistrationAdmin(VersionAdmin):
             'original': reg,
             'title': 'Confirm approval',
             'form': form,
-            'next_round': next_round
+            'next_round': next_round,
+            'confirm_email': confirm_email,
+            'no_email_change': no_email_change
         }
 
         return render(request, 'tournament/admin/approve_registration.html', context)
