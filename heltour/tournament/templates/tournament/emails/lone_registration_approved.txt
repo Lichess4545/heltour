@@ -3,8 +3,10 @@
 Your registration for {{ reg.season.name }} has been approved.
 
 Please join us on Slack - if you aren't already signed up you should receive an invitation soon.
-{% if reg.season.is_started %}The season has already begun, so you'll get a pairing for the next round.{% else %}The season starts on {{ reg.season.start_date|date_or_q }}. You'll get a pairing then.{% endif %} 
+If you don't receive an invitation you can contact us for help:
+https://www.lichess4545.com/lonewolf/contact/
 
+{% if reg.season.is_started %}The season has already begun, so you'll get a pairing for the next round.{% else %}The season starts on {{ reg.season.start_date|date_or_q }}. You'll get a pairing then.{% endif %} 
 For more information, or if you have any questions, please check out our Slack:
 https://lichess4545.slack.com/
 
