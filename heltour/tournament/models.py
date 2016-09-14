@@ -79,6 +79,13 @@ class League(_BaseModel):
     def __unicode__(self):
         return self.name
 
+PLAYOFF_OPTIONS = (
+    (0, 'None'),
+    (1, 'Finals'),
+    (2, 'Semi-Finals'),
+    (3, 'Quarter-Finals'),
+)
+
 #-------------------------------------------------------------------------------
 class Season(_BaseModel):
     league = models.ForeignKey(League)
@@ -87,6 +94,7 @@ class Season(_BaseModel):
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     boards = models.PositiveIntegerField(blank=True, null=True)
+    playoffs = models.PositiveIntegerField(default=0, choices=PLAYOFF_OPTIONS)
 
     is_active = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
@@ -167,20 +175,32 @@ class Season(_BaseModel):
             for team in Team.objects.filter(season=self):
                 white_pairing = find(round_pairings, white_team_id=team.id)
                 black_pairing = find(round_pairings, black_team_id=team.id)
+                is_playoffs = round_.number > self.rounds - self.playoffs
 
                 def increment_score(round_opponent, round_points, round_opponent_points, round_wins):
-                    match_count, match_points, game_points, games_won, _, _, _, _ = score_dict[(team.pk, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, 0)
+                    playoff_score, match_count, match_points, game_points, games_won, _, _, _, _ = score_dict[(team.pk, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, 0, None, 0)
                     round_match_points = 0
-                    if round_opponent is not None:
-                        match_count += 1
-                        if round_points > round_opponent_points:
-                            round_match_points = 2
-                        elif round_points == round_opponent_points:
-                            round_match_points = 1
-                        match_points += round_match_points
-                        game_points += round_points
-                        games_won += round_wins
-                    score_dict[(team.pk, round_.number)] = _TeamScoreState(match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points)
+                    if round_opponent is None:
+                        if not is_playoffs:
+                            # Bye
+                            match_points += 1
+                            game_points += self.boards / 2
+                    else:
+                        if is_playoffs:
+                            print 'Playoff', round_points
+                            if round_points > round_opponent_points:
+                                playoff_score += 2 ** (self.rounds - round_.number)
+                            # TODO: Handle ties/tiebreaks somehow?
+                        else:
+                            match_count += 1
+                            if round_points > round_opponent_points:
+                                round_match_points = 2
+                            elif round_points == round_opponent_points:
+                                round_match_points = 1
+                            match_points += round_match_points
+                            game_points += round_points
+                            games_won += round_wins
+                    score_dict[(team.pk, round_.number)] = _TeamScoreState(playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points)
 
                 if white_pairing is not None:
                     increment_score(white_pairing.black_team_id, white_pairing.white_points, white_pairing.black_points, white_pairing.white_wins)
@@ -199,6 +219,7 @@ class Season(_BaseModel):
         team_scores = TeamScore.objects.filter(team__season=self)
         for score in team_scores:
             if last_round is None:
+                score.playoff_score = 0
                 score.match_count = 0
                 score.match_points = 0
                 score.game_points = 0
@@ -207,6 +228,7 @@ class Season(_BaseModel):
                 score.sb_score = 0
             else:
                 score_state = score_dict[(score.team_id, last_round.number)]
+                score.playoff_score = score_state.playoff_score
                 score.match_count = score_state.match_count
                 score.match_points = score_state.match_points
                 score.game_points = score_state.game_points
@@ -343,7 +365,7 @@ class Season(_BaseModel):
     def __unicode__(self):
         return self.name
 
-_TeamScoreState = namedtuple('_TeamScoreState', 'match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
+_TeamScoreState = namedtuple('_TeamScoreState', 'playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
 _LoneScoreState = namedtuple('_LoneScoreState', 'total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played')
 
 # From https://www.fide.com/component/handbook/?id=174&view=article
@@ -596,6 +618,7 @@ class TeamScore(_BaseModel):
     match_points = models.PositiveIntegerField(default=0)
     game_points = ScoreField(default=0)
 
+    playoff_score = models.PositiveIntegerField(default=0)
     head_to_head = models.PositiveIntegerField(default=0)
     games_won = models.PositiveIntegerField(default=0)
     sb_score = ScoreField(default=0)
@@ -655,8 +678,8 @@ class TeamScore(_BaseModel):
         return "%s" % (self.team)
 
     def __cmp__(self, other):
-        return cmp((self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score),
-                   (other.match_points, other.game_points, other.head_to_head, other.games_won, other.sb_score))
+        return cmp((self.playoff_score, self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score),
+                   (other.playoff_score, other.match_points, other.game_points, other.head_to_head, other.games_won, other.sb_score))
 
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
