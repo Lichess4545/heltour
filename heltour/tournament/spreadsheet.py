@@ -25,14 +25,23 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
         sheet_standings = _trim_cells(doc.worksheet('Standings').get_all_values())
 
         # Read the round count
+        playoffs = 0
         round_ = 1
         round_cols = []
         while True:
             try:
                 round_cols.append(sheet_standings[0].index('Round %d' % round_))
             except ValueError:
-                # No more rounds
-                break
+                try:
+                    round_cols.append(sheet_standings[0].index('Semifinal'))
+                    playoffs = 2
+                    round_ += 1
+                    round_cols.append(sheet_standings[0].index('Final'))
+                    round_ += 1
+                    break
+                except ValueError:
+                    # No more rounds
+                    break
             round_ += 1
         round_count = round_ - 1
 
@@ -51,7 +60,7 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
             board_count = board - 1
 
             # Create the season
-            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, playoffs=playoffs, is_active=True)
 
             # Read the teams
             team_name_col = sheet_rosters[0].index('Teams')
@@ -108,7 +117,7 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     break
 
             # Create the season
-            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, is_active=True)
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, playoffs=playoffs, is_active=True)
 
             # Read the teams
             teams = []
@@ -180,7 +189,7 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     game_link = row[5]
                     result = row[6]
 
-                    colors_reversed = len(row[7]) > 0
+                    colors_reversed = sheet_fixed_pairings[0][7] == 'reversed' and len(row[7]) > 0
 
                     # TODO: Scheduled time
 
