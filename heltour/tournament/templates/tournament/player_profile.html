@@ -81,8 +81,8 @@
 							{% endif %}
 						</td>
 						<td class="text-center">
-							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result | format_result }}</a>
-							{% else %}{{ pairing.result | format_result }}{% endif %}
+							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result_display }}</a>
+							{% else %}{{ pairing.result_display }}{% endif %}
 						</td>
 					</tr>
 					{% endfor %}

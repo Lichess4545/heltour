@@ -32,12 +32,6 @@ def highlightclass(highlights, player):
     return ''
 
 @register.filter
-def format_result(result):
-    if result is None:
-        return ''
-    return result.replace('1/2', u'\u00BD')
-
-@register.filter
 def date_or_q(datetime):
     if datetime is None:
         return '?'

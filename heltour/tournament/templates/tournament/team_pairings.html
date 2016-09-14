@@ -101,10 +101,10 @@
 						<td class="text-center text-nowrap">
 							{% if pairing.game_link %}
 							<a href="{{ pairing.game_link }}">
-								{% if pairing.result %}{{ pairing.result|format_result }}{% else %}&#x2694;{% endif %}
+								{% if pairing.result %}{{ pairing.result_display }}{% else %}&#x2694;{% endif %}
 							</a>
 							{% else %}
-							{{ pairing.result|format_result }}
+							{{ pairing.result_display }}
 							{% endif %}
 						</td>
 						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}

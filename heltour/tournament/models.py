@@ -774,6 +774,8 @@ class PlayerPairing(_BaseModel):
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
 
+    colors_reversed = models.BooleanField(default=False)
+
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
         self.initial_result = self.result
@@ -783,21 +785,29 @@ class PlayerPairing(_BaseModel):
 
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F':
-            return 1
+            return 1 if not self.colors_reversed else 0
         elif self.result == '0-1' or self.result == '0F-1X' or self.result == '0F-0F':
-            return 0
+            return 0 if not self.colors_reversed else 1
         elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
             return 0.5
         return None
 
     def black_score(self):
         if self.result == '0-1' or self.result == '0F-1X':
-            return 1
+            return 1 if not self.colors_reversed else 0
         elif self.result == '1-0' or self.result == '1X-0F' or self.result == '0F-0F':
-            return 0
+            return 0 if not self.colors_reversed else 1
         elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
             return 0.5
         return None
+
+    def result_display(self):
+        if not self.result:
+            return ''
+        result = self.result.replace('1/2', u'\u00BD')
+        if self.colors_reversed:
+            result += '*'
+        return result
 
     def game_played(self):
         return self.result in ('1-0', '1/2-1/2', '0-1')
