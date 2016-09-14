@@ -921,13 +921,13 @@ class TeamProfileView(LeagueView):
         member_players = {tm.player for tm in team.teammember_set.all()}
         game_counts = defaultdict(int)
         for tp in team.pairings_as_white.all():
-            for p in tp.teamplayerpairing_set.all():
+            for p in tp.teamplayerpairing_set.nocache():
                 if p.board_number % 2 == 1:
                     game_counts[p.white] += 1
                 else:
                     game_counts[p.black] += 1
         for tp in team.pairings_as_black.all():
-            for p in tp.teamplayerpairing_set.all():
+            for p in tp.teamplayerpairing_set.nocache():
                 if p.board_number % 2 == 1:
                     game_counts[p.black] += 1
                 else:
