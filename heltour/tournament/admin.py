@@ -21,10 +21,18 @@ from django_comments.models import Comment
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponse
+from django.utils.http import urlquote
 
 # Customize which sections are visible
 # admin.site.register(Comment)
 admin.site.unregister(Site)
+
+def redirect_with_params(*args, **kwargs):
+    params = kwargs.pop('params')
+    response = redirect(*args, **kwargs)
+    response['Location'] += params
+    print 'Redirect: ', response['Location']
+    return response
 
 #-------------------------------------------------------------------------------
 @admin.register(League)
@@ -880,15 +888,18 @@ class RegistrationAdmin(VersionAdmin):
         reg = Registration.objects.get(pk=object_id)
 
         if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
             form = forms.ReviewRegistrationForm(request.POST)
             if form.is_valid():
+                params = '?_changelist_filters=' + urlquote(changelist_filters)
                 if 'approve' in form.data and reg.status == 'pending':
-                    return redirect('admin:approve_registration', object_id=object_id)
+                    return redirect_with_params('admin:approve_registration', object_id=object_id, params=params)
                 elif 'reject' in form.data and reg.status == 'pending':
-                    return redirect('admin:reject_registration', object_id=object_id)
+                    return redirect_with_params('admin:reject_registration', object_id=object_id, params=params)
                 else:
-                    return redirect('admin:tournament_registration_changelist')
+                    return redirect_with_params('admin:tournament_registration_changelist', params=params)
         else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ReviewRegistrationForm()
 
         is_team = reg.season.league.competitor_type == 'team'
@@ -900,7 +911,8 @@ class RegistrationAdmin(VersionAdmin):
             'original': reg,
             'title': 'Review registration',
             'form': form,
-            'is_team': is_team
+            'is_team': is_team,
+            'changelist_filters': changelist_filters
         }
 
         return render(request, 'tournament/admin/review_registration.html', context)
@@ -912,6 +924,7 @@ class RegistrationAdmin(VersionAdmin):
             return redirect('admin:tournament_registration_change', object_id)
 
         if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
@@ -991,10 +1004,11 @@ class RegistrationAdmin(VersionAdmin):
                         reg.save()
 
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
-                    return redirect('admin:tournament_registration_changelist')
+                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:
-                    return redirect('admin:tournament_registration_change', object_id)
+                    return redirect_with_params('admin:tournament_registration_change', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
         else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ApproveRegistrationForm(registration=reg)
 
         next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
@@ -1012,7 +1026,8 @@ class RegistrationAdmin(VersionAdmin):
             'form': form,
             'next_round': next_round,
             'confirm_email': confirm_email,
-            'no_email_change': no_email_change
+            'no_email_change': no_email_change,
+            'changelist_filters': changelist_filters
         }
 
         return render(request, 'tournament/admin/approve_registration.html', context)
@@ -1024,6 +1039,7 @@ class RegistrationAdmin(VersionAdmin):
             return redirect('admin:tournament_registration_change', object_id)
 
         if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
             form = forms.RejectRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
@@ -1032,10 +1048,12 @@ class RegistrationAdmin(VersionAdmin):
                     reg.status_changed_date = timezone.now()
                     reg.save()
                     self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
-                    return redirect('admin:tournament_registration_changelist')
+                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:
                     return redirect('admin:tournament_registration_change', object_id)
+                    return redirect_with_params('admin:tournament_registration_change', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
         else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.RejectRegistrationForm(registration=reg)
 
         context = {
@@ -1044,7 +1062,8 @@ class RegistrationAdmin(VersionAdmin):
             'site_url': '/',
             'original': reg,
             'title': 'Confirm rejection',
-            'form': form
+            'form': form,
+            'changelist_filters': changelist_filters
         }
 
         return render(request, 'tournament/admin/reject_registration.html', context)

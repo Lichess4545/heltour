@@ -3,6 +3,7 @@
 {% block content %}
 <form action="" method="post">
 	{% csrf_token %}
+	<input type="hidden" name="_changelist_filters" value="{{ changelist_filters }}"/>
 	
 	<div class="aligned-text">
 	
