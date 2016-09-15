@@ -129,8 +129,6 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                 TeamScore.objects.create(team=team)
                 teams.append(team)
 
-            print teams
-
             # Read the team members
             for i in range(season.boards):
                 board = i + 1
@@ -164,11 +162,9 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                         continue
 
                     white_team_name = row[1] if board_number == board_count or board_number % 2 == 0 else row[4]
-                    print white_team_name
                     white_team = Team.objects.get(season=season, name__iexact=white_team_name)
 
                     black_team_name = row[4] if board_number == board_count or board_number % 2 == 0 else row[1]
-                    print black_team_name
                     black_team = Team.objects.get(season=season, name__iexact=black_team_name)
 
                     team_pairing, created = TeamPairing.objects.get_or_create(round=rounds[round_number - 1], white_team=white_team, black_team=black_team, defaults={'pairing_order': pairing_order})
