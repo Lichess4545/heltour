@@ -356,8 +356,12 @@ class SeasonAdmin(VersionAdmin):
             else:
                 boundaries.append((left + right) / 2)
         for board_num in range(1, season.boards + 1):
-            AlternateBucket.objects.update_or_create(season=season, board_number=board_num,
-                                                            defaults={ 'max_rating': boundaries[board_num - 1], 'min_rating': boundaries[board_num] })
+            min_rating = boundaries[board_num]
+            max_rating = boundaries[board_num - 1]
+            if min_rating is None and max_rating is None:
+                AlternateBucket.objects.filter(season=season, board_number=board_num).delete()
+            else:
+                AlternateBucket.objects.update_or_create(season=season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
 
         # Assign alternates to buckets
         for alt in Alternate.objects.filter(season_player__season=season):
@@ -461,9 +465,9 @@ class SeasonAdmin(VersionAdmin):
             form = forms.EditRostersForm()
 
         board_numbers = list(range(1, season.boards + 1))
-        teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
+        teams = list(Team.objects.filter(season=season).order_by('number').prefetch_related(
             Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player').nocache())
-        ).nocache()
+        ).nocache())
         team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
         alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
         alternates_by_board = [(n, sorted(
