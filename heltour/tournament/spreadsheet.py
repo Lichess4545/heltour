@@ -264,6 +264,9 @@ def _parse_player_name(player_name):
     elif player_name[-4:] == ' (C)':
         is_captain = True
         player_name = player_name[:-4]
+    elif player_name[-5:] == ' (VC)':
+        is_captain = False
+        player_name = player_name[:-5]
     else:
         is_captain = False
     return player_name, is_captain
