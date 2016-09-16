@@ -25,7 +25,11 @@
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in first_team.team.boards %}
-								<li>{{ team_member.player.lichess_username }}</li>
+								<li>
+									<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
+										{{ team_member.player.lichess_username }}
+									</a>
+								</li>
 								{% endfor %}
 							</ul>
 							{% endif %}
@@ -40,7 +44,11 @@
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in second_team.team.boards %}
-								<li>{{ team_member.player.lichess_username }}</li>
+								<li>
+									<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
+										{{ team_member.player.lichess_username }}
+									</a>
+								</li>
 								{% endfor %}
 							</ul>
 							{% endif %}
@@ -55,7 +63,11 @@
 							</div>
 							<ul class="winners-team-members">
 								{% for n, team_member in third_team.team.boards %}
-								<li>{{ team_member.player.lichess_username }}</li>
+								<li>
+									<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
+										{{ team_member.player.lichess_username }}
+									</a>
+								</li>
 								{% endfor %}
 							</ul>
 							{% endif %}

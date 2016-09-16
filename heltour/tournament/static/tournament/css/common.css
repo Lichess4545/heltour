@@ -107,7 +107,11 @@ div.inline {
 .team-link,
 .team-link:hover,
 .team-link:active,
-.team-link:focus {
+.team-link:focus,
+.player-link,
+.player-link:hover,
+.player-link:active,
+.player-link:focus {
 	color: inherit;
 }
 

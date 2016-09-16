@@ -21,7 +21,9 @@
 								<img src="{% static 'tournament/img/trophy-1.png' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ first_player.season_player.player.lichess_username }}
+								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag first_player.season_player.player.lichess_username %}">
+									{{ first_player.season_player.player.lichess_username }}
+								</a>
 							</div>
 							{% endif %}
 						</div>
@@ -31,7 +33,9 @@
 								<img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ second_player.season_player.player.lichess_username }}
+								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag second_player.season_player.player.lichess_username %}">
+									{{ second_player.season_player.player.lichess_username }}
+								</a>
 							</div>
 							{% endif %}
 						</div>
@@ -41,7 +45,9 @@
 								<img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
 							</div>
 							<div class="winners-name">
-								{{ third_player.season_player.player.lichess_username }}
+								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag third_player.season_player.player.lichess_username %}">
+									{{ third_player.season_player.player.lichess_username }}
+								</a>
 							</div>
 							{% endif %}
 						</div>
@@ -52,7 +58,9 @@
 							</div>
 							<div class="winners-name">
 								U1600<br/>
-								{{ u1600_player.season_player.player.lichess_username }}
+								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag u1600_player.season_player.player.lichess_username %}">
+									{{ u1600_player.season_player.player.lichess_username }}
+								</a>
 							</div>
 							{% endif %}
 						</div>
