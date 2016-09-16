@@ -1,5 +1,5 @@
 from heltour.tournament.models import *
-from heltour.tournament import lichessapi
+from heltour.tournament import lichessapi, slackapi
 from heltour.celery import app
 from celery.utils.log import get_task_logger
 
@@ -46,3 +46,13 @@ def update_tv_state(self):
                     game.save()
             except Exception as e:
                 logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
+
+@app.task(bind=True)
+def update_slack_users(self):
+    slack_users = slackapi.get_user_list()
+    name_set = {u.name.lower() for u in slack_users}
+    for p in Player.objects.all():
+        in_slack_group = p.lichess_username.lower() in name_set
+        if in_slack_group != p.in_slack_group:
+            p.in_slack_group = in_slack_group
+            p.save()

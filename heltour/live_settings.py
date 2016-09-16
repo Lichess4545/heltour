@@ -174,6 +174,11 @@ CELERYBEAT_SCHEDULE = {
 #         'schedule': timedelta(minutes=5),
 #         'args': ()
 #     },
+    'update-slack-users': {
+        'task': 'heltour.tournament.tasks.update_slack_users',
+        'schedule': timedelta(minutes=30),
+        'args': ()
+    },
 }
 
 CELERY_TIMEZONE = 'UTC'

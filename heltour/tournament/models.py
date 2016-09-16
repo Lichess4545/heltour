@@ -416,6 +416,7 @@ class Player(_BaseModel):
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
+    in_slack_group = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['lichess_username']
