@@ -162,9 +162,14 @@ BROKER_URL = 'redis://localhost:6379/2'
 CELERYBEAT_SCHEDULE = {
 #     'update-ratings': {
 #         'task': 'heltour.tournament.tasks.update_player_ratings',
-#         'schedule': timedelta(minutes=240),
+#         'schedule': timedelta(minutes=30),
 #         'args': ()
 #     },
+    'update-tv-state': {
+        'task': 'heltour.tournament.tasks.update_tv_state',
+        'schedule': timedelta(minutes=5),
+        'args': ()
+    },
 }
 
 CELERY_TIMEZONE = 'UTC'

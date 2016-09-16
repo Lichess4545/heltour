@@ -788,6 +788,11 @@ RESULT_OPTIONS = (
     ('0F-0F', '0F-0F'),
 )
 
+TV_STATE_OPTIONS = (
+    ('default', 'Default'),
+    ('hide', 'Hide'),
+)
+
 #-------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
     white = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_white")
@@ -796,8 +801,9 @@ class PlayerPairing(_BaseModel):
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
-
     colors_reversed = models.BooleanField(default=False)
+
+    tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
 
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)

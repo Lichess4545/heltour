@@ -31,3 +31,18 @@ def update_player_ratings(self):
             logger.warning('Error getting rating for %s: %s' % (username, e))
 
     logger.info('Updated ratings for %d players', len(players))
+
+@app.task(bind=True)
+def update_tv_state(self):
+    games_to_update = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').nocache()
+
+    for game in games_to_update:
+        gameid = get_gameid_from_gamelink(game.game_link)
+        if gameid is not None:
+            try:
+                meta = lichessapi.get_game_meta(gameid, priority=1)
+                if 'status' not in meta or meta['status'] != 'started':
+                    game.tv_state = 'hide'
+                    game.save()
+            except Exception as e:
+                logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))

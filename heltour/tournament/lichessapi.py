@@ -64,5 +64,12 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3):
     cache.set('pgn_%s' % gameid, result, 60 * 60 * 24) # Cache the PGN for 24 hours
     return result
 
+def get_game_meta(gameid, priority=0, max_retries=3):
+    url = '%s/lichessapi/api/game/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, gameid, priority, max_retries)
+    result = _apicall(url)
+    if result == '':
+        raise ApiWorkerError('API failure')
+    return json.loads(result)
+
 class ApiWorkerError(Exception):
     pass
