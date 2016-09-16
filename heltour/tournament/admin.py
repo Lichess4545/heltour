@@ -872,13 +872,26 @@ class LonePlayerPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(VersionAdmin):
-    list_display = ('lichess_username', 'email', 'status', 'season')
+    list_display = ('review', 'email', 'status', 'season')
+    list_display_links = ()
     search_fields = ('lichess_username', 'season__name')
     list_filter = ('status', 'season',)
+
+    def review(self, obj):
+        _url = reverse('admin:review_registration', args=[obj.pk])
+        return '<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username)
+    review.allow_tags = True
+
+    def edit(self, obj):
+        return 'Edit'
+    edit.allow_tags = True
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
         my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/review/$',
+                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.review_registration)),
+                name='review_registration'),
             url(r'^(?P<object_id>[0-9]+)/approve/$',
                 permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)),
                 name='approve_registration'),
@@ -900,6 +913,8 @@ class RegistrationAdmin(VersionAdmin):
                     return redirect_with_params('admin:approve_registration', object_id=object_id, params=params)
                 elif 'reject' in form.data and reg.status == 'pending':
                     return redirect_with_params('admin:reject_registration', object_id=object_id, params=params)
+                elif 'edit' in form.data:
+                    return redirect_with_params('admin:tournament_registration_change', object_id, params=params)
                 else:
                     return redirect_with_params('admin:tournament_registration_changelist', params=params)
         else:
@@ -925,7 +940,7 @@ class RegistrationAdmin(VersionAdmin):
         reg = Registration.objects.get(pk=object_id)
 
         if reg.status != 'pending':
-            return redirect('admin:tournament_registration_change', object_id)
+            return redirect('admin:review_registration', object_id)
 
         if request.method == 'POST':
             changelist_filters = request.POST.get('_changelist_filters', '')
@@ -1013,7 +1028,7 @@ class RegistrationAdmin(VersionAdmin):
                     self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
                     return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:
-                    return redirect_with_params('admin:tournament_registration_change', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect_with_params('admin:review_registration', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ApproveRegistrationForm(registration=reg)
@@ -1043,7 +1058,7 @@ class RegistrationAdmin(VersionAdmin):
         reg = Registration.objects.get(pk=object_id)
 
         if reg.status != 'pending':
-            return redirect('admin:tournament_registration_change', object_id)
+            return redirect('admin:review_registration', object_id)
 
         if request.method == 'POST':
             changelist_filters = request.POST.get('_changelist_filters', '')
@@ -1057,8 +1072,8 @@ class RegistrationAdmin(VersionAdmin):
                     self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
                     return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:
-                    return redirect('admin:tournament_registration_change', object_id)
-                    return redirect_with_params('admin:tournament_registration_change', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect('admin:review_registration', object_id)
+                    return redirect_with_params('admin:review_registration', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.RejectRegistrationForm(registration=reg)
@@ -1074,8 +1089,6 @@ class RegistrationAdmin(VersionAdmin):
         }
 
         return render(request, 'tournament/admin/reject_registration.html', context)
-
-    change_view = review_registration
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
