@@ -7,11 +7,11 @@
 <tr><td>Peak Rating:</td><td>{{ reg.peak_classical_rating }}</td></tr>
 <tr><td>Registration date:</td><td>{{ reg.date_created.date }}</td></tr>
 <tr><td>Friends:</td><td>{{ reg.friends }}</td></tr>
-<tr><td>Alt Pref:</td><td>{{ reg.get_alternate_preference_display }}</td></tr>
+<tr><td>Alt Pref:</td><td class="{% if reg.alternate_preference == 'alternate' %}text-approved{% endif %}">{{ reg.get_alternate_preference_display }}</td></tr>
 {% endif %}
-<tr><td>20 games:</td><td>{{ has_played_20_games|yesno:'Yes,No' }}</td></tr>
-<tr><td>In slack group:</td><td>{{ player.in_slack_group|yesno:'Yes,No' }}</td></tr>
-<tr><td>Missed games:</td><td>{{ season_player.games_missed }}</td></tr>
+<tr><td>20 games:</td><td class="{% if not has_played_20_games %}text-rejected{% endif %}">{{ has_played_20_games|yesno:'Yes,No' }}</td></tr>
+<tr><td>In slack group:</td><td class="{% if not player.in_slack_group %}text-rejected{% endif %}">{{ player.in_slack_group|yesno:'Yes,No' }}</td></tr>
+<tr><td>Missed games:</td><td class="{% if season_player.games_missed >= 2 %}text-rejected{% endif %}">{{ season_player.games_missed }}</td></tr>
 {% get_comment_list for player as comments %}
 {% if comments %}
 <tr><td>{% render_comment_list for player %}</td></tr>
