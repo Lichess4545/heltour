@@ -74,6 +74,7 @@
     let chess = new Chess();
 
     let ground = Chessground(document.getElementById('ground_' + gameId), {
+      fen: '8/8/8/8/8/8/8/8',
       coordinates: false,
       viewOnly: true,
       turnColor: 'white',
@@ -110,14 +111,14 @@
             top_label = data.players.black.userId + ' (' + black_team + ')';
           else
             top_label = data.players.black.userId + ' (' + data.players.black.rating + ')';
-          $('#top_label_' + gameId).html(top_label);
+          $('#top_label_' + gameId).text(top_label);
 
           let bottom_label = null;
           if (white_team && black_team)
             bottom_label = data.players.white.userId + ' (' + white_team + ')';
           else
             bottom_label = data.players.white.userId + ' (' + data.players.white.rating + ')';
-          $('#bottom_label_' + gameId).html(bottom_label);
+          $('#bottom_label_' + gameId).text(bottom_label);
         }
 
         if (data.moves) {
@@ -151,32 +152,36 @@
 				<h3>Games in Play</h3>
 			</div>
 			<div class="well-body">
-        {% for pairing in current_games %}
-        {% with pairing.game_id as game_id %}
-        {% if game_id %}
-          <a href="http://en.lichess.org/{{ game_id }}">
-            <section>
-              <div id="top_label_{{ game_id }}" class="gameLabel"> </div>
-                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett" id="ground_{{ game_id }}">
-                  <script>
-                    {% if pairing.teamplayerpairing %}
-                      {% with white_team=pairing.teamplayerpairing.white_team.name black_team=pairing.teamplayerpairing.black_team.name %}
-                        newBoard('{{ game_id }}','{{white_team}}','{{black_team}}');
-                      {% endwith %}
-                    {% else %}
-                        newBoard('{{ game_id }}');
-                    {% endif %}
-                  </script>
-                </div>
-                <div id="bottom_label_{{ game_id }}" class="gameLabel"> </div>
-            </section>
-          </a>
-        {% endif %}
-        {% endwith %}
-        {% endfor %}
-        {% if not current_games %}
-        <p>No games are currently being played.</p>
-        {% endif %}
+            	<div class="row">
+			        {% for pairing in current_games %}
+			        {% with pairing.game_id as game_id %}
+			        {% if game_id %}
+			        <div class="col-md-4 col-lg-3 col-sm-6 col-xs-12 text-center">
+			          <a href="http://en.lichess.org/{{ game_id }}">
+			            <section>
+			              <div id="top_label_{{ game_id }}" class="gameLabel"> </div>
+			                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett" id="ground_{{ game_id }}">
+			                  <script>
+			                    {% if pairing.teamplayerpairing %}
+			                      {% with white_team=pairing.teamplayerpairing.white_team.name black_team=pairing.teamplayerpairing.black_team.name %}
+			                        newBoard('{{ game_id }}','{{white_team}}','{{black_team}}');
+			                      {% endwith %}
+			                    {% else %}
+			                        newBoard('{{ game_id }}');
+			                    {% endif %}
+			                  </script>
+			                </div>
+			                <div id="bottom_label_{{ game_id }}" class="gameLabel"> </div>
+			            </section>
+			          </a>
+			        </div>
+			        {% endif %}
+			        {% endwith %}
+			        {% endfor %}
+        		</div>
+		        {% if not current_games %}
+		        <p>No games are currently being played.</p>
+		        {% endif %}
 			</div>
 		</div>
 	</div>
