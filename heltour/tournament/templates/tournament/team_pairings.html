@@ -82,18 +82,22 @@
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team_name }}</a>
 						</td>
 						<td>
+							{% if pairing.white %}
 							<div class="pairing-player{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
 								</a>
 							</div>
+							{% endif %}
 						</td>
 						<td>
+							{% if pairing.black %}
 							<div class="pairing-player{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
 								</a>
 							</div>
+							{% endif %}
 						</td>
 						<td class="hidden-xs">
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team_name }}</a>
