@@ -60,12 +60,16 @@
 					<table>
 					{% for round_, pairing in matches %}
 					<tr>
-						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
+						<td>
+							<a class="team-link" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_.number team.number  %}">
+								<span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span>
+							</a>
+						</td>
 						<td>
 							{% if pairing.white_team == team %}
-							vs <a href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team.name }}</a>
+							vs <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team.name }}</a>
 							{% else %}
-							vs <a href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team.name }}</a>
+							vs <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team.name }}</a>
 							{% endif %}
 						</td>
 						<td class="text-center">
