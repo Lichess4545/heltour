@@ -843,14 +843,14 @@ class PlayerProfileView(LeagueView):
                 season_pairings = LonePlayerPairing.objects.filter(round__season=season)
             return (season_pairings.filter(white=player) | season_pairings.filter(black=player)).count()
 
-        def team_name(season):
+        def team(season):
             if season.league.competitor_type == 'team':
                 team_member = player.teammember_set.filter(team__season=season).first()
                 if team_member is not None:
-                    return team_member.team.name
+                    return team_member.team
             return None
 
-        other_season_leagues = [(l, [(sp.season, game_count(sp.season), team_name(sp.season)) for sp in player.seasonplayer_set.filter(season__league=l).exclude(season=self.season).order_by('-season__start_date')]) \
+        other_season_leagues = [(l, [(sp.season, game_count(sp.season), team(sp.season)) for sp in player.seasonplayer_set.filter(season__league=l).exclude(season=self.season).order_by('-season__start_date')]) \
                          for l in League.objects.order_by('display_order')]
         other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
 
