@@ -50,11 +50,20 @@
 	z-index: 1000;
 }
 
+.player-red {
+	background: linear-gradient(90deg, #fff 97%, #c00 3%);
+}
+
+.player-blue {
+	background: linear-gradient(90deg, #fff 97%, #00c 3%);
+}
+
 .team .team-name-editable {
 	display: inline-block;
 	vertical-align: top;
 	min-width: 160px;
 	cursor: text;
+	min-height: 16px;
 }
 
 .team .team-name-edit {
