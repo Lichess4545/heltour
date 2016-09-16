@@ -74,9 +74,9 @@
 						<td>
 							{% if pairing.white == player %}
 							{{ pairing.white.lichess_username }} {% if pairing.white.rating %}<span class="hidden-xs">({{ pairing.white.rating }})</span>{% endif %}</span>
-							- <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black }}</a>
+							- {% if pairing.black %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black }}</a>{% else %} ?{% endif %}
 							{% else %}
-							<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white }}</a>
+							{% if pairing.white %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white }}</a>{% else %} ?{% endif %}
 							- {{ pairing.black.lichess_username }} {% if pairing.black.rating %}<span class="hidden-xs">({{ pairing.black.rating }})</span>{% endif %}</span>
 							{% endif %}
 						</td>
@@ -100,9 +100,9 @@
 						<td>
 							{% if pairing.white == player %}
 							{{ pairing.white.lichess_username }} {% if pairing.white.rating %}<span class="hidden-xs">({{ pairing.white.rating }})</span>{% endif %}</span>
-							- <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black }}</a>
+							- {% if pairing.black %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black }}</a>{% else %} ?{% endif %}
 							{% else %}
-							<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white }}</a>
+							{% if pairing.white %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white }}</a>{% else %} ?{% endif %}
 							- {{ pairing.black.lichess_username }} {% if pairing.black.rating %}<span class="hidden-xs">({{ pairing.black.rating }})</span>{% endif %}</span>
 							{% endif %}
 						</td>
