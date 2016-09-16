@@ -127,24 +127,36 @@ function detect_changes(initial) {
 }
 
 // Recalculate the average rating for the speciifed team
-function update_average($team) {
-	if ($team.length === 0) {
-		return;
-	}
-	var $players = $team.find('.player');
-	var n = 0;
-	var total = 0.0;
-	for (var i = 0; i < $players.length; i++) {
-		var rating = parseInt($players.eq(i).find('.rating').text());
-		if (!isNaN(rating)) {
-			n += 1;
-			total += rating;
+function updateAverage($teams) {
+	for (var i = 0; i < $teams.length; i++) {
+		$team = $($teams[i]);
+		var $players = $team.find('.player');
+		var n = 0;
+		var total = 0.0;
+		var nExp = 0;
+		var totalExp = 0.0;
+		for (var j = 0; j < $players.length; j++) {
+			var rating = parseInt($players.eq(j).find('.rating').text());
+			if (!isNaN(rating)) {
+				n += 1;
+				total += rating;
+			}
+			var ratingExp = parseInt($players.eq(j).attr('data-exp-rating'));
+			if (!isNaN(ratingExp)) {
+				nExp += 1;
+				totalExp += ratingExp;
+			}
 		}
-	}
-	if (n > 0) {
-		$team.find('.average-rating').text((total / n).toFixed(2));
-	} else {
-		$team.find('.average-rating').text('');
+		if (n > 0) {
+			$team.find('.average-rating').text((total / n).toFixed(2));
+		} else {
+			$team.find('.average-rating').text('');
+		}
+		if (nExp > 0) {
+			$team.find('.average-exp-rating').text((totalExp / nExp).toFixed(2));
+		} else {
+			$team.find('.average-exp-rating').text('');
+		}
 	}
 }
 
@@ -220,8 +232,8 @@ function setUpDropEvents($boards) {
 			}
 			
 			// Update average ratings
-			update_average($source_team);
-			update_average($target_team);
+			updateAverage($source_team);
+			updateAverage($target_team);
 			
 			// Animate the moved player(s)
 			setTimeout(function() {
@@ -322,6 +334,8 @@ $(function() {
 	setUpPopovers($('.player'));
 	
 	setUpDropEvents($('#table-edit-rosters [data-board], .table-drop'));
+	
+	updateAverage($('.team'));
 	
 	// Allow team names to be edited by clicking on them
 	$('body').on('click', '.team-name-editable', function(e) {

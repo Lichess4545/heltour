@@ -40,3 +40,7 @@ def date_or_q(datetime):
 @register.filter
 def percent(number, decimal_digits=0):
     return ('{:.' + str(decimal_digits) + '%}').format(number)
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

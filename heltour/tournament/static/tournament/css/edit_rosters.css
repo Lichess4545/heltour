@@ -7,8 +7,11 @@
 
 #table-edit-rosters tr th:last-child,
 #table-alternates tr th:last-child,
-#table-unassigned tr th:last-child {
-	width: 60px;
+#table-unassigned tr th:last-child,
+#table-edit-rosters tr th:nth-last-child(2),
+#table-alternates tr th:nth-last-child(2),
+#table-unassigned tr th:nth-last-child(2) {
+	width: 55px;
 }
 
 #table-unassigned {

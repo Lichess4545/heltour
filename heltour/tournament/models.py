@@ -1014,6 +1014,14 @@ class SeasonPlayer(_BaseModel):
     class Meta:
         unique_together = ('season', 'player')
 
+    def expected_rating(self):
+        if self.player.rating is None:
+            return None
+        if self.registration is not None:
+            peak = max(self.registration.peak_classical_rating, self.player.rating)
+            return (self.player.rating + peak) / 2
+        return self.player.rating
+
     def get_loneplayerscore(self):
         try:
             return self.loneplayerscore

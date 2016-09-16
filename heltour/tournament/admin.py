@@ -483,7 +483,7 @@ class SeasonAdmin(VersionAdmin):
                                           key=lambda alt: alt.priority_date()
                                          )) for n in board_numbers]
 
-        season_player_objs = SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player').nocache()
+        season_player_objs = SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player', 'registration').nocache()
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
@@ -533,6 +533,8 @@ class SeasonAdmin(VersionAdmin):
             if reg is not None and reg.alternate_preference == 'alternate':
                     blue_players.add(sp.player)
 
+        expected_ratings = {sp.player: sp.expected_rating() for sp in season_player_objs}
+
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -549,6 +551,7 @@ class SeasonAdmin(VersionAdmin):
             'board_count': season.boards,
             'red_players': red_players,
             'blue_players': blue_players,
+            'expected_ratings': expected_ratings,
         }
 
         return render(request, 'tournament/admin/edit_rosters.html', context)
