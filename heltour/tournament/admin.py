@@ -376,11 +376,19 @@ class SeasonAdmin(VersionAdmin):
     def player_info_view(self, request, object_id, player_name):
         season = Season.objects.get(pk=object_id)
         season_player = SeasonPlayer.objects.get(season=season, player__lichess_username=player_name)
+        player = season_player.player
+
+        reg = season_player.registration
+        if player.games_played is not None:
+            has_played_20_games = player.games_played >= 20
+        else:
+            has_played_20_games = reg is not None and reg.has_played_20_games
 
         context = {
             'season_player': season_player,
             'player': season_player.player,
-            'reg': season_player.registration
+            'reg': reg,
+            'has_played_20_games': has_played_20_games
         }
 
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)

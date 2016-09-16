@@ -238,7 +238,7 @@ function setUpPopovers($players) {
 		container: 'body',
 		content: $spinner,
 		html: true,
-		placement: 'top',
+		placement: 'left',
 		title: function() {
 			var player_name = $(this).find('.name').text();
 			var url = $(this).attr('data-url');
