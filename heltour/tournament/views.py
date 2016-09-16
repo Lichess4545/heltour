@@ -1013,10 +1013,7 @@ class NominateView(SeasonView):
 
 class TvView(LeagueView):
     def view(self, round_number=None):
-        current_game_time_min = timezone.now() - timedelta(hours=3)
-        current_game_time_max = timezone.now() + timedelta(minutes=5)
-        current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                             .exclude(game_link='').order_by('scheduled_time').nocache()
+        current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time').nocache()
         context = {
             'current_games': current_games,
         }
