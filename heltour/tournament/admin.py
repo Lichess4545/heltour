@@ -941,8 +941,11 @@ class RegistrationAdmin(VersionAdmin):
                         # Add or update the player in the DB
                         player, _ = Player.objects.update_or_create(
                             lichess_username__iexact=reg.lichess_username,
-                            defaults={'lichess_username': reg.lichess_username, 'rating': reg.classical_rating, 'email': reg.email, 'is_active': True}
+                            defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
                         )
+                        if player.rating is None:
+                            player.rating = reg.classical_rating
+                            player.save()
                         SeasonPlayer.objects.update_or_create(
                             player=player,
                             season=reg.season,
