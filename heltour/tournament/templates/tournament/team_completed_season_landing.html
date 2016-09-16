@@ -78,9 +78,6 @@
 		</div>
 	</div>
 	<div class="col-md-4 col-xs-12">
-		{% if links_doc %}
-		{% include 'tournament/document_inline.html' with document=links_doc.document %}
-		{% endif %}
 		{% if season_list %}
 		<div class="well">
 			<div class="well-head">
@@ -103,6 +100,9 @@
 			</div>
 		</div>
 	    {% endif %}
+		{% if links_doc %}
+		{% include 'tournament/document_inline.html' with document=links_doc.document %}
+		{% endif %}
 	</div>
 </div>
 <div class="row row-condensed-xs home-row">
