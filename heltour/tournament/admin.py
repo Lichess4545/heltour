@@ -954,13 +954,19 @@ class RegistrationAdmin(VersionAdmin):
                             reg.email = mod.player.email
 
                         # Add or update the player in the DB
-                        player, _ = Player.objects.update_or_create(
+                        player, created = Player.objects.update_or_create(
                             lichess_username__iexact=reg.lichess_username,
                             defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
                         )
                         if player.rating is None:
+                            # This is automatically set, so don't change it if we already have a rating
                             player.rating = reg.classical_rating
                             player.save()
+                        if created and reg.already_in_slack_group:
+                            # This is automatically set, so don't change it if the player already exists
+                            player.in_slack_group = True
+                            player.save()
+
                         SeasonPlayer.objects.update_or_create(
                             player=player,
                             season=reg.season,
