@@ -923,15 +923,19 @@ class TeamProfileView(LeagueView):
         for tp in team.pairings_as_white.all():
             for p in tp.teamplayerpairing_set.nocache():
                 if p.board_number % 2 == 1:
-                    game_counts[p.white] += 1
+                    if p.white is not None:
+                        game_counts[p.white] += 1
                 else:
-                    game_counts[p.black] += 1
+                    if p.black is not None:
+                        game_counts[p.black] += 1
         for tp in team.pairings_as_black.all():
             for p in tp.teamplayerpairing_set.nocache():
                 if p.board_number % 2 == 1:
-                    game_counts[p.black] += 1
+                    if p.black is not None:
+                        game_counts[p.black] += 1
                 else:
-                    game_counts[p.white] += 1
+                    if p.white is not None:
+                        game_counts[p.white] += 1
 
         prev_members = [(player, game_count) for player, game_count in sorted(game_counts.items(), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
 
