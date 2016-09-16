@@ -404,12 +404,14 @@ class Round(_BaseModel):
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
 
+username_validator = RegexValidator('^[\w-]+$')
+
 #-------------------------------------------------------------------------------
 class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
-    lichess_username = models.CharField(max_length=255, validators=[RegexValidator('^[\w-]+$')])
+    lichess_username = models.CharField(max_length=255, validators=[username_validator])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
@@ -970,7 +972,7 @@ class Registration(_BaseModel):
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
 
-    lichess_username = models.CharField(max_length=255)
+    lichess_username = models.CharField(max_length=255, validators=[username_validator])
     slack_username = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
 
@@ -1291,7 +1293,7 @@ class ApiKey(_BaseModel):
 
 #-------------------------------------------------------------------------------
 class PrivateUrlAuth(_BaseModel):
-    authenticated_user = models.CharField(max_length=255, validators=[RegexValidator('^[\w-]+$')])
+    authenticated_user = models.CharField(max_length=255, validators=[username_validator])
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
     expires = models.DateTimeField()
 
