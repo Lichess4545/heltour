@@ -231,14 +231,15 @@ function setUpDropEvents($boards) {
 	});
 }
 
-function setUpPopovers($players) {
-	var $spinner = $('#spinner-template').clone().show();
-	// Init popovers
-	$players.popover({
+function initPopover($el, content) {
+	$el.popover({
 		container: 'body',
-		content: $spinner,
+		content: content,
 		html: true,
-		placement: 'left',
+		placement: function (ctx, source) {
+	        var right = $(window).width() - ($(source).offset().left + $(source).outerWidth());
+	        return right > 300 ? 'right' : 'left';
+        },
 		title: function() {
 			var player_name = $(this).find('.name').text();
 			var url = $(this).attr('data-url');
@@ -246,6 +247,12 @@ function setUpPopovers($players) {
 		},
 		trigger: 'click',
 	});
+}
+
+function setUpPopovers($players) {
+	var $spinner = $('#spinner-template').clone().show();
+	// Init popovers
+	initPopover($players, $spinner);
 	// Handle the popover generation
 	$players.on('shown.bs.popover', function() {
 		var $player = $(this);
@@ -285,8 +292,9 @@ function setUpPopovers($players) {
 			// Pull the popover content from the server
 			var url = $player.attr('data-info-url');
 			$.get(url, function(data) {
-				popover.options.content = data;
 				$player.data('has_info', true);
+				$player.popover('destroy');
+				initPopover($player, data);
 				$player.popover('show');
 			});
 		}
