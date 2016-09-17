@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http.response import Http404
+from django.http.response import Http404, JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from .models import *
@@ -12,6 +12,7 @@ from decorators import cached_as
 import re
 from django.views.generic import View
 from django.core.mail.message import EmailMessage
+import json
 
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
@@ -1019,12 +1020,30 @@ class NominateView(SeasonView):
         return self.view(secret_token, post=True)
 
 class TvView(LeagueView):
-    def view(self, round_number=None):
-        current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time').nocache()
+    def view(self):
         context = {
-            'current_games': current_games,
+            'json': json.dumps(_tv_json()),
         }
         return self.render('tournament/tv.html', context)
+
+class TvJsonView(LeagueView):
+    def view(self):
+        return JsonResponse(_tv_json())
+
+def _tv_json():
+    def export_game(game):
+        if hasattr(game, 'teamplayerpairing'):
+            return {
+                'id': game.game_id(),
+                'white_team': game.teamplayerpairing.white_team_name(),
+                'black_team': game.teamplayerpairing.black_team_name()
+            }
+        else:
+            return {
+                'id': game.game_id()
+            }
+    current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time').nocache()
+    return {'games': [export_game(g) for g in current_games]}
 
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
