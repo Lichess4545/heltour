@@ -107,7 +107,7 @@
 		{% for prev in original.previous_registrations %}
 		<div class="form-row">
 			A <a href="{% url 'admin:tournament_registration_change' prev.id %}">previous registration</a> for
-			<span class="text-username">{{ original.lichess_username }}</span> in <span class="text-season">{{ original.season }}</span>
+			<span class="text-username">{{ original.lichess_username }}</span> in <span class="text-season">{{ prev.season }}</span>
 			{% if prev.status == 'approved' %}was <span class="text-approved">approved</span>{% elif prev.status == 'rejected' %}was <span class="text-rejected">rejected</span>{% else %}is <span class="text-pending">pending</span>.{% endif %}
 			{% if prev.status != 'pending' %}by {{ prev.status_changed_by }} on {{ prev.status_changed_date }}.{% endif %}
 		</div>
