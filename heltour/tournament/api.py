@@ -414,7 +414,7 @@ def player_joined_slack(request):
     if not name:
         return HttpResponse('Bad request', status=400)
     try:
-        player = Player.objects.get(lichess_username__iexact=name.lower())
+        player = Player.objects.get(lichess_username__iexact=name)
     except Player.DoesNotExist:
         return JsonResponse({'updated': 0, 'error': 'not_found'})
 
