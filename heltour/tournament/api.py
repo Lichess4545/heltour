@@ -401,3 +401,24 @@ def get_private_url(request):
         return JsonResponse({'url': url, 'expires': auth.expires})
     else:
         return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
+
+@csrf_exempt
+@require_POST
+@require_api_token
+def player_joined_slack(request):
+    try:
+        name = request.POST.get('name', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if not name:
+        return HttpResponse('Bad request', status=400)
+    try:
+        player = Player.objects.get(lichess_username__iexact=name)
+    except Player.DoesNotExist:
+        return JsonResponse({'updated': 0, 'error': 'not_found'})
+
+    player.in_slack_group = True
+    player.save()
+
+    return JsonResponse({'updated': 1})

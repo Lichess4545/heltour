@@ -60,6 +60,7 @@ api_urlpatterns = [
     url(r'^get_league_moderators/$', api.get_league_moderators, name='get_league_moderators'),
     url(r'^league_document/$', api.league_document, name='league_document'),
     url(r'^get_private_url/$', api.get_private_url, name='get_private_url'),
+    url(r'^player_joined_slack/$', api.player_joined_slack, name='player_joined_slack'),
 ]
 
 urlpatterns = [
