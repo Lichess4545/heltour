@@ -478,6 +478,11 @@ class PlayerLateRegistration(_BaseModel):
             score.late_join_points = self.late_join_points
             score.save()
 
+    def save(self, *args, **kwargs):
+        super(PlayerLateRegistration, self).save(*args, **kwargs)
+        if self.round.publish_pairings and not self.round.is_completed:
+            self.perform_registration()
+
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
 
@@ -495,6 +500,19 @@ class PlayerWithdrawl(_BaseModel):
             sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
             sp.is_active = False
             sp.save()
+
+            # Delete pairings and give opponents byes
+            for pairing in self.round.loneplayerpairing_set.filter(white=self.player):
+                PlayerBye.objects.create(round=self.round, player=pairing.black, type='full-point-pairing-bye')
+                pairing.delete()
+            for pairing in self.round.loneplayerpairing_set.filter(black=self.player):
+                PlayerBye.objects.create(round=self.round, player=pairing.white, type='full-point-pairing-bye')
+                pairing.delete()
+
+    def save(self, *args, **kwargs):
+        super(PlayerWithdrawl, self).save(*args, **kwargs)
+        if self.round.publish_pairings and not self.round.is_completed:
+            self.perform_withdrawl()
 
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)

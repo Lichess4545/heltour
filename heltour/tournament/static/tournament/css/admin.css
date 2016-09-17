@@ -71,6 +71,16 @@
 	padding-right: 20px;
 }
 
+#scheduled-actions .current-round-actions .action-register,
+#scheduled-actions .current-round-actions .action-withdraw {
+	color: #999;
+}
+
+#scheduled-actions .current-round-actions .action-register .change-link,
+#scheduled-actions .current-round-actions .action-withdraw .change-link {
+	display: none;
+}
+
 td > dl {
 	margin-bottom: 0;
 }

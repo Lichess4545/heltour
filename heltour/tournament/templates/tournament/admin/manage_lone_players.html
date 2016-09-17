@@ -79,7 +79,7 @@
 		{% for round_, regs, wds, byes in round_data %}
 		<thead>
 			<tr>
-				<th colspan="6">Round {{ round_.number }}</th>
+				<th colspan="6">Round {{ round_.number }}{% if round_.publish_pairings %} (Current){% endif %}</th>
 			</tr>
 			<tr>
 				<th>Action</th>
@@ -87,55 +87,55 @@
 				<th colspan="4">Details</th>
 			</tr>
 		</thead>
-		<tbody>
+		<tbody{% if round_.publish_pairings %} class="current-round-actions"{% endif %}>
 			{% for reg in regs %}
-			<tr>
+			<tr class="action-register">
 				<td>Register</td>
 				<td>{{ reg.player }}</td>
 				<td>Byes: {{ reg.retroactive_byes }}</td>
 				<td>LjP: {{ reg.late_join_points }}</td>
 				<td>
-					<a href="{% url 'admin:tournament_playerlateregistration_change' reg.pk %}?_popup=1" id="change-playerlateregistration-{{ reg.pk }}" class="popup-link" title="Change selected player late registration">
+					<a href="{% url 'admin:tournament_playerlateregistration_change' reg.pk %}?_popup=1" id="change-playerlateregistration-{{ reg.pk }}" class="change-link popup-link" title="Change selected player late registration">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 			        </a>
 		        </td>
 				<td>
-					<a href="{% url 'admin:tournament_playerlateregistration_delete' reg.pk %}?_popup=1" id="delete-playerlateregistration-{{ reg.pk }}" class="popup-link" title="Delete selected player late registration">
+					<a href="{% url 'admin:tournament_playerlateregistration_delete' reg.pk %}?_popup=1" id="delete-playerlateregistration-{{ reg.pk }}" class="delete-link popup-link" title="Delete selected player late registration">
 			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 			        </a>
 		        </td>
 			</tr>
 			{% endfor %}
 			{% for wd in wds %}
-			<tr>
+			<tr class="action-withdraw">
 				<td>Withdraw</td>
 				<td>{{ wd.player }}</td>
 				<td></td>
 				<td></td>
 				<td>
-					<a href="{% url 'admin:tournament_playerwithdrawl_change' wd.pk %}?_popup=1" id="change-tournament_playerwithdrawl_change-{{ wd.pk }}" class="popup-link" title="Change selected player withdrawl">
+					<a href="{% url 'admin:tournament_playerwithdrawl_change' wd.pk %}?_popup=1" id="change-tournament_playerwithdrawl_change-{{ wd.pk }}" class="change-link popup-link" title="Change selected player withdrawl">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 			        </a>
 		        </td>
 				<td>
-					<a href="{% url 'admin:tournament_playerwithdrawl_delete' wd.pk %}?_popup=1" id="delete-tournament_playerwithdrawl_delete-{{ wd.pk }}" class="popup-link" title="Delete selected player withdrawl">
+					<a href="{% url 'admin:tournament_playerwithdrawl_delete' wd.pk %}?_popup=1" id="delete-tournament_playerwithdrawl_delete-{{ wd.pk }}" class="delete-link popup-link" title="Delete selected player withdrawl">
 			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 			        </a>
 		        </td>
 			</tr>
 			{% endfor %}
 			{% for bye in byes %}
-			<tr>
+			<tr class="action-bye">
 				<td>Bye</td>
 				<td>{{ bye.player }}</td>
 				<td colspan="2">{{ bye.get_type_display }}</td>
 				<td>
-					<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-playerbye-{{ bye.pk }}" class="popup-link" title="Change selected player bye">
+					<a href="{% url 'admin:tournament_playerbye_change' bye.pk %}?_popup=1" id="change-playerbye-{{ bye.pk }}" class="change-link popup-link" title="Change selected player bye">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 			        </a>
 		        </td>
 				<td>
-					<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-playerbye-{{ bye.pk }}" class="popup-link" title="Delete selected player bye">
+					<a href="{% url 'admin:tournament_playerbye_delete' bye.pk %}?_popup=1" id="delete-playerbye-{{ bye.pk }}" class="delete-link popup-link" title="Delete selected player bye">
 			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 			        </a>
 		        </td>

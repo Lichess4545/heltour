@@ -562,7 +562,7 @@ class SeasonAdmin(VersionAdmin):
         active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
         inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
 
-        rounds = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number')
+        rounds = Round.objects.filter(season=season, is_completed=False).order_by('number')
         round_data = [(r, r.playerlateregistration_set.order_by('player__lichess_username'), r.playerwithdrawl_set.order_by('player__lichess_username'),
                   r.playerbye_set.order_by('player__lichess_username')) for r in rounds]
 
