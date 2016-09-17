@@ -4,7 +4,7 @@ from heltour.tournament import lichessapi, slackapi, views, forms
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import permission_required
 
 import json
@@ -53,7 +53,7 @@ class LeagueAdmin(VersionAdmin):
         return redirect('admin:import_season', object_id=queryset[0].pk)
 
     def import_season_view(self, request, object_id):
-        league = League.objects.get(pk=object_id)
+        league = get_object_or_404(League, pk=object_id)
 
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
@@ -161,7 +161,7 @@ class SeasonAdmin(VersionAdmin):
         return redirect('admin:review_nominated_games', object_id=queryset[0].pk)
 
     def review_nominated_games_view(self, request, object_id):
-        season = Season.objects.get(pk=object_id)
+        season = get_object_or_404(Season, pk=object_id)
 
         selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
         nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number', 'date_created')
@@ -198,8 +198,8 @@ class SeasonAdmin(VersionAdmin):
         return render(request, 'tournament/admin/review_nominated_games.html', context)
 
     def review_nominated_games_select_view(self, request, object_id, nom_id):
-        season = Season.objects.get(pk=object_id)
-        nom = GameNomination.objects.get(pk=nom_id)
+        season = get_object_or_404(Season, pk=object_id)
+        nom = get_object_or_404(GameNomination, pk=nom_id)
 
         GameSelection.objects.get_or_create(season=season, game_link=nom.game_link, defaults={'pairing': nom.pairing})
 
@@ -229,7 +229,7 @@ class SeasonAdmin(VersionAdmin):
         return redirect('admin:round_transition', object_id=queryset[0].pk)
 
     def round_transition_view(self, request, object_id):
-        season = Season.objects.get(pk=object_id)
+        season = get_object_or_404(Season, pk=object_id)
 
         round_to_close = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
         round_to_open = season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
@@ -374,8 +374,8 @@ class SeasonAdmin(VersionAdmin):
         return redirect('admin:manage_players', object_id=queryset[0].pk)
 
     def player_info_view(self, request, object_id, player_name):
-        season = Season.objects.get(pk=object_id)
-        season_player = SeasonPlayer.objects.get(season=season, player__lichess_username=player_name)
+        season = get_object_or_404(Season, pk=object_id)
+        season_player = get_object_or_404(SeasonPlayer, season=season, player__lichess_username=player_name)
         player = season_player.player
 
         reg = season_player.registration
@@ -394,14 +394,14 @@ class SeasonAdmin(VersionAdmin):
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
     def manage_players_view(self, request, object_id):
-        season = Season.objects.get(pk=object_id)
+        season = get_object_or_404(Season, pk=object_id)
         if season.league.competitor_type == 'team':
             return self.team_manage_players_view(request, object_id)
         else:
             return self.lone_manage_players_view(request, object_id)
 
     def team_manage_players_view(self, request, object_id):
-        season = Season.objects.get(pk=object_id)
+        season = get_object_or_404(Season, pk=object_id)
         teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         if request.method == 'POST':
@@ -557,7 +557,7 @@ class SeasonAdmin(VersionAdmin):
         return render(request, 'tournament/admin/edit_rosters.html', context)
 
     def lone_manage_players_view(self, request, object_id):
-        season = Season.objects.get(pk=object_id)
+        season = get_object_or_404(Season, pk=object_id)
 
         active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
         inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
@@ -604,7 +604,7 @@ class RoundAdmin(VersionAdmin):
         return redirect('admin:generate_pairings', object_id=queryset[0].pk)
 
     def generate_pairings_view(self, request, object_id):
-        round_ = Round.objects.get(pk=object_id)
+        round_ = get_object_or_404(Round, pk=object_id)
 
         if request.method == 'POST':
             form = forms.GeneratePairingsForm(request.POST)
@@ -638,7 +638,7 @@ class RoundAdmin(VersionAdmin):
         return render(request, 'tournament/admin/generate_pairings.html', context)
 
     def review_pairings_view(self, request, object_id):
-        round_ = Round.objects.get(pk=object_id)
+        round_ = get_object_or_404(Round, pk=object_id)
 
         if request.method == 'POST':
             form = forms.ReviewPairingsForm(request.POST)
@@ -933,7 +933,7 @@ class RegistrationAdmin(VersionAdmin):
         return my_urls + urls
 
     def review_registration(self, request, object_id):
-        reg = Registration.objects.get(pk=object_id)
+        reg = get_object_or_404(Registration, pk=object_id)
 
         if request.method == 'POST':
             changelist_filters = request.POST.get('_changelist_filters', '')
@@ -968,7 +968,7 @@ class RegistrationAdmin(VersionAdmin):
         return render(request, 'tournament/admin/review_registration.html', context)
 
     def approve_registration(self, request, object_id):
-        reg = Registration.objects.get(pk=object_id)
+        reg = get_object_or_404(Registration, pk=object_id)
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
@@ -1092,7 +1092,7 @@ class RegistrationAdmin(VersionAdmin):
         return render(request, 'tournament/admin/approve_registration.html', context)
 
     def reject_registration(self, request, object_id):
-        reg = Registration.objects.get(pk=object_id)
+        reg = get_object_or_404(Registration, pk=object_id)
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
