@@ -160,6 +160,13 @@ function updateAverage($teams) {
 	}
 }
 
+function updateDisplayedRatings() {
+	attrName = $('#id_rating_type').val() === 'expected' ? 'data-exp-rating' : 'data-rating';
+	$('.rating').each(function(i, el) {
+		$(el).text($(el).closest('.player').attr(attrName));
+	});
+}
+
 function setUpDragEvents($players) {
 	$players.draggable({
 		revert: true,
@@ -336,6 +343,11 @@ $(function() {
 	setUpDropEvents($('#table-edit-rosters [data-board], .table-drop'));
 	
 	updateAverage($('.team'));
+	
+	$('#id_rating_type').on('change', function(e) {
+		updateDisplayedRatings();
+	});
+	updateDisplayedRatings();
 	
 	// Allow team names to be edited by clicking on them
 	$('body').on('click', '.team-name-editable', function(e) {

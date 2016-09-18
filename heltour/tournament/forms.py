@@ -128,6 +128,7 @@ class ReviewPairingsForm(forms.Form):
 
 class EditRostersForm(forms.Form):
     changes = forms.CharField(widget=forms.HiddenInput)
+    rating_type = forms.ChoiceField(choices=[('actual', 'Actual Ratings'), ('expected', 'Expected Ratings')])
 
 class RoundTransitionForm(forms.Form):
     def __init__(self, is_team_league, round_to_close, round_to_open, season_to_close, *args, **kwargs):

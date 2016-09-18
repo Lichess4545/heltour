@@ -14,8 +14,8 @@
 {% block content %}
 <form action="" method="post" id="form-edit-rosters">
 	{% csrf_token %}
-	{{ form }}
 	<p>Drag and drop to move players. Click on players for more info or to set the captain.{% if not teams_locked %} Click on team names to edit.{% endif %} <span style="color: #c00">Red</span> = not in slack, &lt;20 games or 2+ missed games. <span style="color: #00c">Blue</span> = prefers to be an alternate.</p>
+	<p>Show: {{ form.rating_type }}</p>
 	<h2>Teams</h2>
 	<table id="table-edit-rosters" data-boards="{{ board_count }}">
 		<thead>
@@ -44,7 +44,7 @@
 						      data-exp-rating="{{ expected_ratings|get_item:board.player }}"
 						      data-toggle="popover">
 							<span class="name">{{ board.player.lichess_username }}</span>
-							(<span class="rating">{{ expected_ratings|get_item:board.player|default_if_none:"?" }}</span>)
+							(<span class="rating"></span>)
 							<span class="extra">{% if board.is_captain %}(C){% elif board.is_vice_captain %}(V){% endif %}</span>
 						</span>
 					{% endif %}
@@ -106,7 +106,7 @@
 						      	      data-exp-rating="{{ expected_ratings|get_item:alt.season_player.player }}"
 								      data-toggle="popover">
 									<span class="name">{{ alt.season_player.player.lichess_username }}</span>
-									(<span class="rating">{{ expected_ratings|get_item:alt.season_player.player|default_if_none:"?" }}</span>)
+									(<span class="rating"></span>)
 									<span class="extra"></span>
 								</span>
 							</td>
@@ -149,7 +149,7 @@
 						              data-exp-rating="{{ expected_ratings|get_item:player }}"
 								      data-toggle="popover">
 									<span class="name">{{ player.lichess_username }}</span>
-									(<span class="rating">{{ expected_ratings|get_item:player|default_if_none:"?" }}</span>)
+									(<span class="rating"></span>)
 									<span class="extra"></span>
 								</span>
 							</td>
