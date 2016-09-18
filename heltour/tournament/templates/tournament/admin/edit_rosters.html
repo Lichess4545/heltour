@@ -14,6 +14,7 @@
 {% block content %}
 <form action="" method="post" id="form-edit-rosters">
 	{% csrf_token %}
+	{{ form.changes }}
 	<p>Drag and drop to move players. Click on players for more info or to set the captain.{% if not teams_locked %} Click on team names to edit.{% endif %} <span style="color: #c00">Red</span> = not in slack, &lt;20 games or 2+ missed games. <span style="color: #00c">Blue</span> = prefers to be an alternate.</p>
 	<p>Show: {{ form.rating_type }}</p>
 	<h2>Teams</h2>
