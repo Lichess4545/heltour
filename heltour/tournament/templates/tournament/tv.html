@@ -193,7 +193,7 @@
 {% block js %}
 <script>
   render({{ json|safe }});
-  setInterval(poll, 1000 * 60 * 1); // 1 minute
+  setInterval(poll, 1000 * 30); // 30 seconds
 </script>
 {% endblock %}
 

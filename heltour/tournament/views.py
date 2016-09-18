@@ -1053,7 +1053,11 @@ def _tv_json():
                 'league': game.loneplayerpairing.round.season.league.tag,
                 'season': game.loneplayerpairing.round.season.tag,
             }
-    current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time').nocache()
+    current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time') \
+                                         .select_related('teamplayerpairing__team_pairing__round__season__league',
+                                                         'teamplayerpairing__team_pairing__black_team',
+                                                         'teamplayerpairing__team_pairing__white_team',
+                                                         'loneplayerpairing__round__season__league').nocache()
     return {'games': [export_game(g) for g in current_games]}
 
 def _get_league(league_tag, allow_none=False):
