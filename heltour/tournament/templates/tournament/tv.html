@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles tournament_extras %}
 
-{% block title %}Games in Play - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block title %}TV - {{ season.name }} - {{ league.name }}{% endblock %}
 
 {% block nav_tv %}active{% endblock %}
 
@@ -70,7 +70,7 @@
 
   run();
 
-  function newBoard($parent, gameId, white_team, black_team) {
+  function newBoard($parent, game) {
     let chess = new Chess();
 
     let ground = Chessground($parent.find('.chessground')[0], {
@@ -95,10 +95,10 @@
       }
     });
 
-    chessGrounds[gameId] = ground;
+    chessGrounds[game.id] = ground;
 
     $.ajax({
-      url:'https://en.lichess.org/api/game/' + gameId,
+      url:'https://en.lichess.org/api/game/' + game.id,
       data: {
         with_moves: 1
       },
@@ -107,18 +107,23 @@
       success: function(data) {
         if(data.players) {
           let top_label = null;
-          if (white_team && black_team)
-            top_label = data.players.black.userId + ' (' + black_team + ')';
-          else
-            top_label = data.players.black.userId + ' (' + data.players.black.rating + ')';
-          $parent.find('.top-label').text(top_label);
+          $parent.find('.top-label')
+                 .text(data.players.black.userId + ' (' + data.players.black.rating + ')')
+                 .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.black.userId + '/"></a>');
+          if (game.black_team)
+            $parent.find('.top-team-label')
+                   .text(game.black_team.name + ' (Board ' + game.board_number + ')')
+                   .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/"></a>');
+          
 
           let bottom_label = null;
-          if (white_team && black_team)
-            bottom_label = data.players.white.userId + ' (' + white_team + ')';
-          else
-            bottom_label = data.players.white.userId + ' (' + data.players.white.rating + ')';
-          $parent.find('.bottom-label').text(bottom_label);
+          $parent.find('.bottom-label')
+                 .text(data.players.white.userId + ' (' + data.players.white.rating + ')')
+                 .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.white.userId + '/"></a>');
+          if (game.white_team)
+            $parent.find('.bottom-team-label')
+                   .text(game.white_team.name + ' (Board ' + game.board_number + ')')
+                   .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/"></a>');
         }
 
         if (data.moves) {
@@ -136,7 +141,7 @@
 
     let message = JSON.stringify({
       t: 'startWatching',
-      d: gameId
+      d: game.id
     })
     send(ws, message);
 
@@ -168,8 +173,9 @@
 	  $.each(data.games, function(i, g) {
 	  	if (!(g.id in shown_games)) {
 		  	$g = $('#game-template').clone().attr('id', null).data('id', g.id).show();
+		  	$g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
 		  	$('#games').append($g);
-		  	newBoard($g, g.id, g.white_team, g.black_team);
+		  	newBoard($g, g);
 		  	shown_games[g.id] = $g;
 	  	}
 	  });
@@ -192,7 +198,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="row row-condensed-xs">
+<div class="row row-condensed-xs tv-row">
 	<div class="col-md-12">
 		<div class="well">
 			<div class="well-head">
@@ -200,15 +206,19 @@
 			</div>
 			<div class="well-body">
 				<div id="game-template" style="display:none">
-			        <div class="col-md-4 col-lg-3 col-sm-6 col-xs-12 text-center">
-			          <a class="game-link">
+			        <div class="col-md-4 col-lg-3 col-sm-6 col-xs-12 text-center game-col">
 			            <section>
-			                <div class="gameLabel top-label"> </div>
+			                <div class="gameLabel">
+			                	<div class="top-team-label"></div>
+			                	<div class="top-label"></div>
+			                </div>
 			                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett">
 			                </div>
-			                <div class="gameLabel bottom-label"> </div>
+			                <div class="gameLabel">
+			                	<div class="bottom-team-label"></div>
+			                	<div class="bottom-label"></div>
+			                </div>
 			            </section>
-			          </a>
 			        </div>
 	        	</div>
 	        	<div class="row" id="games">

@@ -1,21 +1,25 @@
-.gameLabel {
-  margin-top: 15px;
-  color: #666;
-  text-align: center;
-}
-
 section {
   display: inline-block;
   margin: 0 5px 20px 0;
   background: #f3f3f3;
   padding: 0 0 0 0;
   border: 1px solid #ccc;
+  line-height: 20px;
+  vertical-align: middle;
 }
 section .gameLabel {
   margin: 0;
   padding: 5px 0 5px 0;
   font-weight: bold;
-  height: 30px;
+  min-height: 30px;
+  text-align: center;
+}
+section .gameLabel a {
+  color: #666;
+}
+
+.tv-row .well-body {
+	padding-bottom: 0px;
 }
 
 .chessground.tiny {
@@ -50,4 +54,11 @@ section .gameLabel {
 
 .cg-board-wrap coords {
   color: #848484;
+}
+
+@media (min-width: 768px) {
+	.game-col {
+	  height: 420px;
+	  line-height: 420px;
+	}
 }

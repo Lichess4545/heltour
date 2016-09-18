@@ -1035,12 +1035,23 @@ def _tv_json():
         if hasattr(game, 'teamplayerpairing'):
             return {
                 'id': game.game_id(),
-                'white_team': game.teamplayerpairing.white_team_name(),
-                'black_team': game.teamplayerpairing.black_team_name()
+                'league': game.teamplayerpairing.team_pairing.round.season.league.tag,
+                'season': game.teamplayerpairing.team_pairing.round.season.tag,
+                'white_team': {
+                    'name': game.teamplayerpairing.white_team_name(),
+                    'number': game.teamplayerpairing.white_team().number,
+                },
+                'black_team': {
+                    'name': game.teamplayerpairing.black_team_name(),
+                    'number': game.teamplayerpairing.black_team().number,
+                },
+                'board_number': game.teamplayerpairing.board_number,
             }
         else:
             return {
-                'id': game.game_id()
+                'id': game.game_id(),
+                'league': game.loneplayerpairing.round.season.league.tag,
+                'season': game.loneplayerpairing.round.season.tag,
             }
     current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time').nocache()
     return {'games': [export_game(g) for g in current_games]}
