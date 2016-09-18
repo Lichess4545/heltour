@@ -338,19 +338,20 @@ class SeasonAdmin(VersionAdmin):
         # Update alternate buckets
         members_by_board = [TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
         ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
-        # Exclude highest/lowest values if possible (to avoid outliers skewing the average)
-        average_by_board = [sum(r_list[1:-1]) / (len(r_list) - 2) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
+        # Calculate the average of the upper/lower half of each board (minus the most extreme value to avoid outliers skewing the average)
+        left_average_by_board = [sum(r_list[1:int(len(r_list) / 2)]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
+        right_average_by_board = [sum(r_list[int((len(r_list) + 1) / 2):-1]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
         boundaries = []
         for i in range(season.boards + 1):
             # The logic here is a bit complicated in order to handle cases where there are no players for a board
             left_i = i - 1
-            while left_i >= 0 and average_by_board[left_i] is None:
+            while left_i >= 0 and left_average_by_board[left_i] is None:
                 left_i -= 1
-            left = average_by_board[left_i] if left_i >= 0 else None
+            left = left_average_by_board[left_i] if left_i >= 0 else None
             right_i = i
-            while right_i < season.boards and average_by_board[right_i] is None:
+            while right_i < season.boards and right_average_by_board[right_i] is None:
                 right_i += 1
-            right = average_by_board[right_i] if right_i < season.boards else None
+            right = right_average_by_board[right_i] if right_i < season.boards else None
             if left is None or right is None:
                 boundaries.append(None)
             else:
