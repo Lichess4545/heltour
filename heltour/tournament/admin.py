@@ -770,7 +770,7 @@ class PlayerByeAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(VersionAdmin):
-    search_fields = ('lichess_username',)
+    search_fields = ('lichess_username', 'email')
     list_filter = ('is_active',)
     actions = ['update_selected_player_ratings']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
