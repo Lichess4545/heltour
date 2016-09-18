@@ -49,7 +49,9 @@ class RegistrationForm(forms.ModelForm):
         self.season = kwargs.pop('season')
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
-        weeks = [(i, 'Week %s' % i) for i in range(1, self.season.rounds + 1)]
+        weeks = [(r.number, 'Week %s (%s - %s)' %
+                            (r.number, r.start_date.strftime('%b %-d') if r.start_date is not None else '?', r.end_date.strftime('%b %-d') if r.end_date is not None else '?'))
+                 for r in self.season.round_set.order_by('number')]
         self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would be unable to play?'),
                                                                      choices=weeks, widget=forms.CheckboxSelectMultiple)
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 games of classical chess on Lichess?'),
