@@ -136,7 +136,7 @@ function updateAverage($teams) {
 		var nExp = 0;
 		var totalExp = 0.0;
 		for (var j = 0; j < $players.length; j++) {
-			var rating = parseInt($players.eq(j).find('.rating').text());
+			var rating = parseInt($players.eq(j).attr('data-rating'));
 			if (!isNaN(rating)) {
 				n += 1;
 				total += rating;
