@@ -22,6 +22,10 @@ section .gameLabel a {
 	padding-bottom: 0px;
 }
 
+#no-games p {
+	padding-bottom: 15px;
+}
+
 .chessground.tiny {
   width: 225px;
   height: 225px;
