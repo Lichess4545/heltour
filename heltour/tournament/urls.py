@@ -18,6 +18,7 @@ from django.conf.urls import url, include
 from django.conf.urls.static import static
 from . import views, api
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.cache import cache_control
 
 season_urlpatterns = [
     url(r'^summary/$', views.SeasonLandingView.as_view(), name='season_landing'),
@@ -37,8 +38,8 @@ season_urlpatterns = [
     url(r'^dashboard/$', staff_member_required(views.LeagueDashboardView.as_view()), name='league_dashboard'),
     url(r'^player/(?P<username>[\w-]+)/$', views.PlayerProfileView.as_view(), name='player_profile'),
     url(r'^team/(?P<team_number>[0-9]+)/$', views.TeamProfileView.as_view(), name='team_profile'),
-    url(r'^tv/$', views.TvView.as_view(), name='tv'),
-    url(r'^tv/json/$', views.TvJsonView.as_view(), name='tv_json'),
+    url(r'^tv/$', cache_control(no_cache=True)(views.TvView.as_view()), name='tv'),
+    url(r'^tv/json/$', cache_control(no_cache=True)(views.TvJsonView.as_view()), name='tv_json'),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
     url(r'^nominate/(?P<secret_token>\w+)/$', views.NominateView.as_view(), name='nominate'),
 ]
