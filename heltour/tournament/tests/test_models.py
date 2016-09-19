@@ -24,6 +24,12 @@ def createCommonLeagueData():
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
 
+def create_reg(season, name):
+    return Registration.objects.create(season=season, status='pending', lichess_username=name, slack_username=name,
+                                       email='a@test.com', classical_rating=1500, peak_classical_rating=1600,
+                                       has_played_20_games=True, already_in_slack_group=True, previous_season_alternate='new',
+                                       can_commit=True, agreed_to_rules=True, alternate_preference='full_time')
+
 class SeasonTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
@@ -342,19 +348,13 @@ class RegistrationTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
 
-    def create_reg(self, season, name):
-        return Registration.objects.create(season=season, status='pending', lichess_username=name, slack_username=name,
-                                           email='a@test.com', classical_rating=1500, peak_classical_rating=1600,
-                                           has_played_20_games=True, already_in_slack_group=True, previous_season_alternate='new',
-                                           can_commit=True, agreed_to_rules=True, alternate_preference='full_time')
-
     def test_registration_previous(self):
         season = Season.objects.all()[0]
-        reg = self.create_reg(season, 'testuser')
+        reg = create_reg(season, 'testuser')
 
         self.assertItemsEqual([], reg.previous_registrations())
 
-        reg2 = self.create_reg(season, 'testuser')
+        reg2 = create_reg(season, 'testuser')
         self.assertItemsEqual([], reg.previous_registrations())
         self.assertItemsEqual([reg], reg2.previous_registrations())
 
@@ -364,7 +364,7 @@ class RegistrationTestCase(TestCase):
 
         player = Player.objects.create(lichess_username='testuser')
         sp = SeasonPlayer.objects.create(season=season, player=player)
-        reg = self.create_reg(season2, 'testuser')
+        reg = create_reg(season2, 'testuser')
 
         self.assertItemsEqual([sp], reg.other_seasons())
 
@@ -407,6 +407,48 @@ class AlternateTestCase(TestCase):
         player.rating = 1700
         alt.update_board_number()
         self.assertEqual(3, alt.board_number)
+
+    def test_priority_date(self):
+        sp = SeasonPlayer.objects.all()[0]
+        alt = Alternate.objects.create(season_player=sp, board_number=1)
+
+        self.assertEqual(alt.date_created, alt.priority_date())
+
+        time1 = timezone.now()
+        sp.registration = create_reg(sp.season, 'testuser')
+        sp.save()
+        time2 = timezone.now()
+
+        self.assertTrue(time1 <= alt.priority_date() <= time2)
+
+        time3 = timezone.now()
+        r = Round.objects.all()[0]
+        r.start_date = time3
+        r.save()
+        AlternateAssignment.objects.create(round=r, team=Team.objects.all()[0], board_number=1, player=sp.player)
+
+        self.assertEqual(time3, alt.priority_date())
+
+        time4 = timezone.now()
+        alt.priority_date_override = time4
+        alt.save()
+
+        self.assertEqual(time4, alt.priority_date())
+
+        time5 = timezone.now()
+        sp.unresponsive = True
+        sp.save()
+        time6 = timezone.now()
+        alt.refresh_from_db()
+
+        self.assertTrue(time5 <= alt.priority_date() <= time6)
+
+        sp = SeasonPlayer.objects.get(pk=sp.pk)
+        sp.unresponsive = False
+        sp.save()
+        alt.refresh_from_db()
+
+        self.assertTrue(time5 <= alt.priority_date() <= time6)
 
 class AlternateAssignmentTestCase(TestCase):
     def setUp(self):

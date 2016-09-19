@@ -1032,6 +1032,22 @@ class SeasonPlayer(_BaseModel):
     class Meta:
         unique_together = ('season', 'player')
 
+    def __init__(self, *args, **kwargs):
+        super(SeasonPlayer, self).__init__(*args, **kwargs)
+        self.initial_unresponsive = self.unresponsive
+
+    def save(self, *args, **kwargs):
+        unresponsive_changed = self.pk is None or self.unresponsive != self.initial_unresponsive
+
+        if unresponsive_changed and self.unresponsive and hasattr(self, 'alternate'):
+            alt = self.alternate
+            current_date = timezone.now()
+            if alt.priority_date_override is None or alt.priority_date_override < current_date:
+                alt.priority_date_override = current_date
+                alt.save()
+
+        super(SeasonPlayer, self).save(*args, **kwargs)
+
     def expected_rating(self):
         if self.player.rating is None:
             return None
@@ -1164,6 +1180,7 @@ class PlayerAvailability(_BaseModel):
 class Alternate(_BaseModel):
     season_player = models.OneToOneField(SeasonPlayer)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    priority_date_override = models.DateTimeField(null=True, blank=True)
 
     def update_board_number(self):
         season = self.season_player.season
@@ -1176,6 +1193,9 @@ class Alternate(_BaseModel):
                     self.save()
 
     def priority_date(self):
+        if self.priority_date_override is not None:
+            return self.priority_date_override
+
         most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').first()
 
         if most_recent_assign is not None:
