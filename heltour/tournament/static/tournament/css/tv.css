@@ -26,6 +26,24 @@ section .gameLabel a {
 	margin-bottom: 15px;
 }
 
+#schedule {
+	margin-bottom: 0;
+}
+
+#schedule thead tr:first-child th {
+	padding-top: 18px;
+}
+
+#schedule thead:first-child tr:first-child th {
+	padding-top: 8px;
+}
+
+#schedule .team-row td,
+#schedule .board-row td {
+	padding-top: 0;
+	border-top: none;
+}
+
 .chessground.tiny {
   width: 225px;
   height: 225px;

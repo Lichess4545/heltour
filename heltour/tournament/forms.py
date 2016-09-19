@@ -187,3 +187,6 @@ class TvFilterForm(forms.Form):
             self.fields['board'] = forms.ChoiceField(choices=[('all', 'All Boards')] + [(n, 'Board %d' % n) for n in boards])
         if teams is not None and boards > 0:
             self.fields['team'] = forms.ChoiceField(choices=[('all', 'All Teams')] + [(team.number, team.name) for team in teams])
+
+class TvTimezoneForm(forms.Form):
+    timezone = forms.ChoiceField(choices=[('local', 'Local'), ('utc', 'UTC')])

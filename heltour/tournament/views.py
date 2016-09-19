@@ -1031,9 +1031,11 @@ class TvView(LeagueView):
         teams = active_season.team_set.order_by('name') if active_season is not None else None
 
         filter_form = TvFilterForm(leagues=leagues, boards=boards, teams=teams)
+        timezone_form = TvTimezoneForm()
 
         context = {
             'filter_form': filter_form,
+            'timezone_form': timezone_form,
             'json': json.dumps(_tv_json(self.league)),
         }
         return self.render('tournament/tv.html', context)
@@ -1062,6 +1064,11 @@ def _tv_json(league, board=None, team=None):
         if hasattr(game, 'teamplayerpairing'):
             return {
                 'id': game.game_id(),
+                'white': str(game.white),
+                'white_name': game.white.lichess_username,
+                'black': str(game.black),
+                'black_name': game.black.lichess_username,
+                'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game.teamplayerpairing.team_pairing.round.season.league.tag,
                 'season': game.teamplayerpairing.team_pairing.round.season.tag,
                 'white_team': {
@@ -1078,9 +1085,12 @@ def _tv_json(league, board=None, team=None):
                                   # TODO: Team filter can do weird things if there are multiple active seasons
                                   (team is None or team == game.teamplayerpairing.white_team().number or team == game.teamplayerpairing.black_team().number)
             }
-        else:
+        elif hasattr(game, 'loneplayerpairing'):
             return {
                 'id': game.game_id(),
+                'white': str(game.white),
+                'black': str(game.black),
+                'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game.loneplayerpairing.round.season.league.tag,
                 'season': game.loneplayerpairing.round.season.tag,
                 'matches_filter': (league is None or league == game.loneplayerpairing.round.season.league) and board is None and team is None
@@ -1090,7 +1100,13 @@ def _tv_json(league, board=None, team=None):
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
                                                          'loneplayerpairing__round__season__league').nocache()
-    return {'games': [export_game(g, league, board, team) for g in current_games]}
+    scheduled_games = PlayerPairing.objects.filter(result='', game_link='', scheduled_time__gt=timezone.now() - timedelta(minutes=20)).order_by('scheduled_time') \
+                                         .select_related('teamplayerpairing__team_pairing__round__season__league',
+                                                         'teamplayerpairing__team_pairing__black_team',
+                                                         'teamplayerpairing__team_pairing__white_team',
+                                                         'loneplayerpairing__round__season__league').nocache()[:20]
+    return {'games': [export_game(g, league, board, team) for g in current_games],
+            'schedule': [export_game(g, league, board, team) for g in scheduled_games]}
 
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:

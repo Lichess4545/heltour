@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/BootstrapXL.css' %}">
-<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}">
+<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=1">
 {% endblock %}
 
 {% block head_js %}
@@ -17,6 +17,7 @@
 <script type="text/javascript" src="{% static 'lib/js/chessground.js' %}"></script>
 <script type="text/javascript" src="{% static 'lib/js/jquery-3.1.0.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'lib/js/chess.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/js/moment.min.js' %}"></script>
 <script>
   var chessGrounds = null;
   var ws = null;
@@ -148,11 +149,11 @@
 
   };
   
-  shown_games = {};
+  var shown_games = {};
   
   function render(data) {
 	  // Populate a set of all the games we're about to show
-	  next_games = {};
+	  var next_games = {};
 	  $.each(data.games, function(i, g) {
 	  	next_games[g.id] = 1;
 	  });
@@ -170,14 +171,14 @@
 	  // Show new games
 	  $.each(data.games, function(i, g) {
 	  	if (g.id in shown_games) {
-	  		$g = shown_games[g.id];
+	  		var $g = shown_games[g.id];
 	  		$g.toggle(g.matches_filter);
 	  		if (g.matches_filter && !$g.data('has_board')) {
 		  		newBoard($g, g);
 		  		$g.data('has_board', true);
 	  		}
 	  	} else {
-		  	$g = $('#game-template').clone().attr('id', null).data('id', g.id);
+		  	var $g = $('#game-template').clone().attr('id', null).data('id', g.id);
 		  	$g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
 		  	$('#games-row').append($g);
 		  	if (g.matches_filter) {
@@ -189,8 +190,47 @@
 	  	}
 	  });
 	  
+	  // Render the schedule
+	  $('#schedule').empty();
+	  var days = [];
+	  var day_schedules = [];
+	  $.each(data.schedule, function(i, g) {
+	  	if (g.matches_filter) {
+	  		g.time = moment(g.time);
+	  		if ($('#id_timezone').val() === 'utc') {
+	  			g.time = g.time.utc();
+	  		}
+	  		var day = g.time.format('dddd, MMM D');
+	  		var index = days.indexOf(day);
+	  		if (index === -1) {
+	  			days.push(day);
+	  			day_schedules.push([]);
+	  			index = days.length - 1;
+	  		}
+  			day_schedules[index].push(g);
+	  	}
+	  });
+	  for (var i = 0; i < days.length; i++) {
+	  	var $thead = $('<thead><tr><th colspan="3">' + days[i] + '</th><th>Time</th></thead>').appendTo('#schedule');
+	  	var $tbody = $('<tbody></tbody>').appendTo('#schedule');
+	  	for (var j = 0; j < day_schedules[i].length; j++) {
+	  		var g = day_schedules[i][j];
+	  		$('<tr><td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.white_name + '">' + g.white + '</a></td><td>-</td>' +
+	  		  '<td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.black_name + '">' + g.black + '</a></td>' +
+	  		  '<td>' + g.time.format('HH:mm') + '</td></tr>').appendTo($tbody);
+//	  		if (g.board_number) {
+//	  			$('<tr class="team-row"><td><a href="/' + g.league + '/season/' + g.season + '/team/' + g.white_team.number + '">' + g.white_team.name + '</a></td>' +
+//                      '<td><a href="/' + g.league + '/season/' + g.season + '/team/' + g.black_team.number + '">' + g.black_team.name + '</a></td><td></td></tr>' +
+//                  '<tr class="board-row"><td>Board ' + g.board_number + '</td><td></td><td></td></tr>').appendTo($tbody);
+//	  		}
+	  	}
+	  }
+	  
 	  $('#no-games').toggle(!data.games.length);
 	  $('#no-filter-games').toggle(!!data.games.length && !$('#games-row').children().filter(':visible').length);
+	  
+	  $('#no-schedule').toggle(!data.schedule.length);
+	  $('#no-filter-schedule').toggle(!!data.schedule.length && !$('#schedule').children().length);
   }
   
   function poll() {
@@ -198,6 +238,7 @@
   	var league = '{{ league.tag }}';
   	var board = 'all';
   	var team = 'all';
+  	var timezone = 'local';
   	$.each(hashParts, function(i, s) {
   		if (s.startsWith('league=')) {
   			league = s.substring('league='.length);
@@ -205,11 +246,14 @@
   			board = s.substring('board='.length);
   		} else if (s.startsWith('team=')) {
   			team = s.substring('team='.length);
+  		} else if (s.startsWith('timezone=')) {
+  			timezone = s.substring('timezone='.length);
   		}
   	});
   	$('#id_league').val(league);
   	$('#id_board').val(board);
   	$('#id_team').val(team);
+  	$('#id_timezone').val(timezone);
   	$.get('{% leagueurl 'tv_json' league.tag season.tag %}?league=' + league + '&board=' + board + '&team=' + team, function(data) {
   		render(data);
   	});
@@ -229,8 +273,10 @@
   	if ($('#id_team').length && $('#id_team').val() !== 'all') {
   		hashParts.push('team=' + $('#id_team').val());
   	}
+  	if ($('#id_timezone').length && $('#id_timezone').val() !== 'local') {
+  		hashParts.push('timezone=' + $('#id_timezone').val());
+  	}
   	location.hash = hashParts.join('&');
-  	poll();
   }
 </script>
 {% endblock %}
@@ -239,12 +285,14 @@
 <script>
   setInterval(poll, 1000 * 30); // 30 seconds
   
-  $('#filters select').change(updateHash);
+  $('#id_timezone').children('[value=local]').text('Local (UTC' + moment().format('Z') + ')');
+  $('#filters select, #id_timezone').change(updateHash);
   if (location.hash.length > 0) {
   	poll();
   } else {
   	render({{ json|safe }});
   }
+  window.onhashchange = poll;
 </script>
 {% endblock %}
 
@@ -310,8 +358,14 @@
 				<h3>Schedule</h3>
 			</div>
 			<div class="well-body">
-        		<div id="no-schedule">
+				{% bootstrap_form timezone_form %}
+	        	<table id="schedule" class="table">
+	        	</table>
+        		<div id="no-schedule" style="display: none">
 		        	<p>No scheduled games.</p>
+		        </div>
+        		<div id="no-filter-schedule" style="display: none">
+		        	<p>No scheduled games match the filters.</p>
 		        </div>
 			</div>
 		</div>
