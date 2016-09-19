@@ -160,11 +160,11 @@
 	  });
 	  
 	  // Delete existing games we're not showing any more
-	  // TODO: Add to a recently finished section?
-	  $('#games').children().each(function(i, el) {
+	  $('#games-row').children().each(function(i, el) {
 	  	var id = $(el).data('id');
 	  	if (!(id in next_games)) {
-	  		$(el).remove();
+	  		$('#finished-games').show();
+	  		$('#finished-games-row').append(el);
 	  		delete shown_games[id];
 	  	}
 	  });
@@ -174,7 +174,7 @@
 	  	if (!(g.id in shown_games)) {
 		  	$g = $('#game-template').clone().attr('id', null).data('id', g.id).show();
 		  	$g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
-		  	$('#games').append($g);
+		  	$('#games-row').append($g);
 		  	newBoard($g, g);
 		  	shown_games[g.id] = $g;
 	  	}
@@ -193,7 +193,7 @@
 {% block js %}
 <script>
   render({{ json|safe }});
-  setInterval(poll, 1000 * 30); // 30 seconds
+  setInterval(poll, 1000); // 30 seconds
 </script>
 {% endblock %}
 
@@ -221,11 +221,16 @@
 			            </section>
 			        </div>
 	        	</div>
-	        	<div class="row" id="games">
+	        	<div class="row" id="games-row">
 	        	</div>
         		<div id="no-games" style="display:none">
 		        	<p>No games are currently being played.</p>
 		        </div>
+	        	<div id="finished-games" style="display:none">
+	        		<h2>Recently Finished</h2>
+		        	<div class="row" id="finished-games-row">
+		        	</div>
+	        	</div>
 			</div>
 		</div>
 	</div>
