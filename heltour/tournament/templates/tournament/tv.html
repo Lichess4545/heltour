@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load staticfiles tournament_extras %}
+{% load staticfiles tournament_extras bootstrap3 %}
 
 {% block title %}TV - {{ season.name }} - {{ league.name }}{% endblock %}
 
@@ -8,7 +8,8 @@
 {% block css %}
 <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
-<link rel="stylesheet" href="{% static 'lib/css/tv.css' %}">
+<link rel="stylesheet" href="{% static 'lib/css/BootstrapXL.css' %}">
+<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}">
 {% endblock %}
 
 {% block head_js %}
@@ -150,9 +151,6 @@
   shown_games = {};
   
   function render(data) {
-	  console.log('rendering ' + JSON.stringify(data));
-	  $('#no-games').toggle(!data.games.length);
-	  
 	  // Populate a set of all the games we're about to show
 	  next_games = {};
 	  $.each(data.games, function(i, g) {
@@ -171,42 +169,95 @@
 	  
 	  // Show new games
 	  $.each(data.games, function(i, g) {
-	  	if (!(g.id in shown_games)) {
-		  	$g = $('#game-template').clone().attr('id', null).data('id', g.id).show();
+	  	if (g.id in shown_games) {
+	  		$g = shown_games[g.id];
+	  		$g.toggle(g.matches_filter);
+	  		if (g.matches_filter && !$g.data('has_board')) {
+		  		newBoard($g, g);
+		  		$g.data('has_board', true);
+	  		}
+	  	} else {
+		  	$g = $('#game-template').clone().attr('id', null).data('id', g.id);
 		  	$g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
 		  	$('#games-row').append($g);
-		  	newBoard($g, g);
+		  	if (g.matches_filter) {
+		  		$g.show();
+		  		newBoard($g, g);
+		  		$g.data('has_board', true);
+		  	}
 		  	shown_games[g.id] = $g;
 	  	}
 	  });
+	  
+	  $('#no-games').toggle(!data.games.length);
+	  $('#no-filter-games').toggle(!!data.games.length && !$('#games-row').children().filter(':visible').length);
   }
   
   function poll() {
-  	$.get('{% leagueurl 'tv_json' league.tag season.tag %}', function(data) {
-  		console.log(data);
+  	var hashParts = location.hash.substring(1).split('&');
+  	var league = '{{ league.tag }}';
+  	var board = 'all';
+  	var team = 'all';
+  	$.each(hashParts, function(i, s) {
+  		if (s.startsWith('league=')) {
+  			league = s.substring('league='.length);
+  		} else if (s.startsWith('board=')) {
+  			board = s.substring('board='.length);
+  		} else if (s.startsWith('team=')) {
+  			team = s.substring('team='.length);
+  		}
+  	});
+  	$('#id_league').val(league);
+  	$('#id_board').val(board);
+  	$('#id_team').val(team);
+  	$.get('{% leagueurl 'tv_json' league.tag season.tag %}?league=' + league + '&board=' + board + '&team=' + team, function(data) {
   		render(data);
   	});
+  }
+  
+  function updateHash() {
+  	var hashParts = [];
+  	if ($('#id_league').val() === 'all') {
+  		hashParts.push('league=all');
+  	} else if ($('#id_league').val() != '{{ league.tag }}') {
+  		location.href = '/' + $('#id_league').val() + '/tv/';
+  		return;
+  	}
+  	if ($('#id_board').length && $('#id_board').val() !== 'all') {
+  		hashParts.push('board=' + $('#id_board').val());
+  	}
+  	if ($('#id_team').length && $('#id_team').val() !== 'all') {
+  		hashParts.push('team=' + $('#id_team').val());
+  	}
+  	location.hash = hashParts.join('&');
+  	poll();
   }
 </script>
 {% endblock %}
 
 {% block js %}
 <script>
-  render({{ json|safe }});
-  setInterval(poll, 1000); // 30 seconds
+  setInterval(poll, 1000 * 30); // 30 seconds
+  
+  $('#filters select').change(updateHash);
+  if (location.hash.length > 0) {
+  	poll();
+  } else {
+  	render({{ json|safe }});
+  }
 </script>
 {% endblock %}
 
 {% block content %}
 <div class="row row-condensed-xs tv-row">
-	<div class="col-md-12">
-		<div class="well">
+	<div class="col-md-6 col-lg-8">
+		<div class="well" id="games-well">
 			<div class="well-head">
 				<h3>Current Games</h3>
 			</div>
 			<div class="well-body">
 				<div id="game-template" style="display:none">
-			        <div class="col-md-4 col-lg-3 col-sm-6 col-xs-12 text-center game-col">
+			        <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12 col-xs-12 text-center game-col">
 			            <section>
 			                <div class="gameLabel">
 			                	<div class="top-team-label"></div>
@@ -226,11 +277,37 @@
         		<div id="no-games" style="display:none">
 		        	<p>No games are currently being played.</p>
 		        </div>
+        		<div id="no-filter-games" style="display:none">
+		        	<p>No current games match the filters.</p>
+		        </div>
 	        	<div id="finished-games" style="display:none">
 	        		<h2>Recently Finished</h2>
 		        	<div class="row" id="finished-games-row">
 		        	</div>
 	        	</div>
+	        	<div></div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-6 col-lg-4">
+		<div class="well">
+			<div class="well-head">
+				<h3>Filters</h3>
+			</div>
+			<div class="well-body">
+				<div id='filters'>
+					{% bootstrap_form filter_form %}
+				</div>
+			</div>
+		</div>
+		<div class="well">
+			<div class="well-head">
+				<h3>Schedule</h3>
+			</div>
+			<div class="well-body">
+        		<div id="no-schedule">
+		        	<p>No scheduled games.</p>
+		        </div>
 			</div>
 		</div>
 	</div>

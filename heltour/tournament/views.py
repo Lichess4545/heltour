@@ -1021,17 +1021,44 @@ class NominateView(SeasonView):
 
 class TvView(LeagueView):
     def view(self):
+        leagues = [self.league] + list(League.objects.order_by('display_order').exclude(pk=self.league.pk))
+        if self.season.is_active and not self.season.is_completed:
+            active_season = self.season
+        else:
+            active_season = _get_default_season(self.league.tag, True)
+
+        boards = active_season.board_number_list() if active_season is not None and active_season.boards is not None else None
+        teams = active_season.team_set.order_by('name') if active_season is not None else None
+
+        filter_form = TvFilterForm(leagues=leagues, boards=boards, teams=teams)
+
         context = {
-            'json': json.dumps(_tv_json()),
+            'filter_form': filter_form,
+            'json': json.dumps(_tv_json(self.league)),
         }
         return self.render('tournament/tv.html', context)
 
 class TvJsonView(LeagueView):
     def view(self):
-        return JsonResponse(_tv_json())
+        league_tag = self.request.GET.get('league')
+        if league_tag == 'all':
+            league = None
+        elif league_tag is not None:
+            league = League.objects.filter(tag=league_tag).first()
+        else:
+            league = self.league
+        try:
+            board = int(self.request.GET.get('board'))
+        except ValueError:
+            board = None
+        try:
+            team = int(self.request.GET.get('team'))
+        except ValueError:
+            team = None
+        return JsonResponse(_tv_json(league, board, team))
 
-def _tv_json():
-    def export_game(game):
+def _tv_json(league, board=None, team=None):
+    def export_game(game, league, board, team):
         if hasattr(game, 'teamplayerpairing'):
             return {
                 'id': game.game_id(),
@@ -1046,19 +1073,24 @@ def _tv_json():
                     'number': game.teamplayerpairing.black_team().number,
                 },
                 'board_number': game.teamplayerpairing.board_number,
+                'matches_filter': (league is None or league == game.teamplayerpairing.team_pairing.round.season.league) and
+                                  (board is None or board == game.teamplayerpairing.board_number) and
+                                  # TODO: Team filter can do weird things if there are multiple active seasons
+                                  (team is None or team == game.teamplayerpairing.white_team().number or team == game.teamplayerpairing.black_team().number)
             }
         else:
             return {
                 'id': game.game_id(),
                 'league': game.loneplayerpairing.round.season.league.tag,
                 'season': game.loneplayerpairing.round.season.tag,
+                'matches_filter': (league is None or league == game.loneplayerpairing.round.season.league)
             }
     current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time') \
                                          .select_related('teamplayerpairing__team_pairing__round__season__league',
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
                                                          'loneplayerpairing__round__season__league').nocache()
-    return {'games': [export_game(g) for g in current_games]}
+    return {'games': [export_game(g, league, board, team) for g in current_games]}
 
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:

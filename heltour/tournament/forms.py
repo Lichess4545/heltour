@@ -174,3 +174,16 @@ class ContactForm(forms.Form):
 
         if settings.DEBUG:
             del self.fields['captcha']
+
+class TvFilterForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        leagues = kwargs.pop('leagues')
+        boards = kwargs.pop('boards')
+        teams = kwargs.pop('teams')
+        super(TvFilterForm, self).__init__(*args, **kwargs)
+
+        self.fields['league'] = forms.ChoiceField(choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues], initial=leagues[0].tag)
+        if boards is not None and boards > 0:
+            self.fields['board'] = forms.ChoiceField(choices=[('all', 'All Boards')] + [(n, 'Board %d' % n) for n in boards])
+        if teams is not None and boards > 0:
+            self.fields['team'] = forms.ChoiceField(choices=[('all', 'All Teams')] + [(team.number, team.name) for team in teams])

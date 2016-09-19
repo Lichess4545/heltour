@@ -18,12 +18,12 @@ section .gameLabel a {
   color: #666;
 }
 
-.tv-row .well-body {
-	padding-bottom: 0px;
+#games-well > .well-body > :last-child {
+	margin-bottom: -17px;
 }
 
-#no-games p {
-	padding-bottom: 15px;
+#no-games, #no-filter-games {
+	margin-bottom: 15px;
 }
 
 #finished-games h2 {
