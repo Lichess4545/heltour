@@ -251,7 +251,7 @@
 {% block content %}
 <div class="row row-condensed-xs tv-row">
 	<div class="col-md-6 col-lg-8">
-		<div class="well" id="games-well">
+		<div class="well games-well">
 			<div class="well-head">
 				<h3>Current Games</h3>
 			</div>
@@ -280,10 +280,15 @@
         		<div id="no-filter-games" style="display:none">
 		        	<p>No current games match the filters.</p>
 		        </div>
-	        	<div id="finished-games" style="display:none">
-	        		<h2>Recently Finished</h2>
-		        	<div class="row" id="finished-games-row">
-		        	</div>
+	        	<div></div>
+			</div>
+		</div>
+		<div class="well games-well" id="finished-games" style="display: none">
+			<div class="well-head">
+				<h3>Recently Finished</h3>
+			</div>
+			<div class="well-body">
+	        	<div class="row" id="finished-games-row">
 	        	</div>
 	        	<div></div>
 			</div>

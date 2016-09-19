@@ -1083,7 +1083,7 @@ def _tv_json(league, board=None, team=None):
                 'id': game.game_id(),
                 'league': game.loneplayerpairing.round.season.league.tag,
                 'season': game.loneplayerpairing.round.season.tag,
-                'matches_filter': (league is None or league == game.loneplayerpairing.round.season.league)
+                'matches_filter': (league is None or league == game.loneplayerpairing.round.season.league) and board is None and team is None
             }
     current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').order_by('scheduled_time') \
                                          .select_related('teamplayerpairing__team_pairing__round__season__league',

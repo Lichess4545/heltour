@@ -18,16 +18,12 @@ section .gameLabel a {
   color: #666;
 }
 
-#games-well > .well-body > :last-child {
+.games-well > .well-body > :last-child {
 	margin-bottom: -17px;
 }
 
 #no-games, #no-filter-games {
 	margin-bottom: 15px;
-}
-
-#finished-games h2 {
-	margin-bottom: 20px;
 }
 
 .chessground.tiny {
