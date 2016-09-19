@@ -194,8 +194,13 @@
 	  $('#schedule').empty();
 	  var days = [];
 	  var day_schedules = [];
+	  var count = 0;
 	  $.each(data.schedule, function(i, g) {
 	  	if (g.matches_filter) {
+	  		count++;
+	  		if (count > 20) { // Max to display
+	  			return;
+	  		}
 	  		g.time = moment(g.time);
 	  		if ($('#id_timezone').val() === 'utc') {
 	  			g.time = g.time.utc();

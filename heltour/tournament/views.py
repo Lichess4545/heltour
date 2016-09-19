@@ -1104,7 +1104,7 @@ def _tv_json(league, board=None, team=None):
                                          .select_related('teamplayerpairing__team_pairing__round__season__league',
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
-                                                         'loneplayerpairing__round__season__league').nocache()[:20]
+                                                         'loneplayerpairing__round__season__league').nocache()
     return {'games': [export_game(g, league, board, team) for g in current_games],
             'schedule': [export_game(g, league, board, team) for g in scheduled_games]}
 
