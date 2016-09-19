@@ -5,6 +5,30 @@
 
 {% block home_link %}/{% endblock %}
 
+{% block css %}
+<link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
+<link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
+<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=1">
+{% endblock %}
+
+{% block head_js %}
+<script type="text/javascript" src="{% static 'lib/js/chessground.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/js/jquery-3.1.0.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/js/chess.min.js' %}"></script>
+<script>
+var currentLeague = '{{ league.tag }}';
+var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
+</script>
+<script type="text/javascript" src="{% static 'tournament/js/tv.js' %}"></script>
+{% endblock %}
+
+{% block js %}
+<script>
+  setInterval(pollSingle, 1000 * 60); // 60 seconds
+  pollSingle();
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row row-condensed-xs home-row">
 	<div class="col-md-6 col-xs-12">
@@ -26,49 +50,30 @@
 			</div>
 		</div>
 		{% endif %}
-		{% if current_games or upcoming_games %}
-		<div class="well">
+		<div class="well single-game-well">
 			<div class="well-head">
-				<h3>Ongoing Games</h3>
+				<h3>Current Games</h3>
 			</div>
-		    <div class="well-body">
-				{% if current_games %}
-				<table class="table table-striped">
-					<thead>
-						<tr>
-							<th>Players</th>
-							<th>Start Time</th>
-						</tr>
-					</thead>
-					<tbody>
-						{% for pairing in current_games %}
-						<tr>
-							<td><a href="{{ pairing.game_link }}">{{ pairing.white }} - {{ pairing.black }}</a></td>
-							<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
-						</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-				{% endif %}
-				{% if upcoming_games %}
-				<h4>Starting Soon</h4>
-				<table class="table">
-					<tr>
-						<th>Players</th>
-						<th>Start Time</th>
-					</tr>
-					{% for pairing in upcoming_games %}
-					<tr>
-						<td>{{ pairing.white }} - {{ pairing.black }}</td>
-						<td>{{ pairing.scheduled_time | date:"H:i" }}</td>
-					</tr>
-					{% endfor %}
-				</table>
-				{% endif %}
-				<p>All times are in UTC.</p>
+			<div class="well-body text-center">
+				<div id="game-template" style="display:none">
+		            <section>
+		                <div class="gameLabel">
+		                	<div class="top-team-label"></div>
+		                	<div class="top-label"></div>
+		                </div>
+		                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett">
+		                </div>
+		                <div class="gameLabel">
+		                	<div class="bottom-team-label"></div>
+		                	<div class="bottom-label"></div>
+		                </div>
+		            </section>
+	        	</div>
+	        	<div id="single-game-container">
+	        	</div>
+        		<a class="btn btn-default" href="{% leagueurl 'tv' league.tag season.tag %}">Watch All</a>
 			</div>
 		</div>
-		{% endif %}
 	</div>
 	<div class="col-md-6 col-xs-12">
 		{% if player_scores %}

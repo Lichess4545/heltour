@@ -102,17 +102,6 @@ class LeagueHomeView(LeagueView):
 
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season), reverse=True)[:5], 1))
 
-        # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
-        # TODO: Convert game times to the user's local time (maybe in JS?)
-        current_game_time_min = timezone.now() - timedelta(hours=3)
-        current_game_time_max = timezone.now() + timedelta(minutes=5)
-        current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                             .exclude(game_link='').order_by('scheduled_time').nocache()
-        upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
-        upcoming_game_time_max = timezone.now() + timedelta(hours=12)
-        upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
-                                              .order_by('scheduled_time').nocache()
-
         context = {
             'team_scores': team_scores,
             'season_list': season_list,
@@ -120,8 +109,6 @@ class LeagueHomeView(LeagueView):
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document'),
             'registration_season': registration_season,
-            'current_games': current_games,
-            'upcoming_games': upcoming_games,
             'other_leagues': other_leagues,
         }
         return self.render('tournament/team_league_home.html', context)
@@ -153,17 +140,6 @@ class LeagueHomeView(LeagueView):
         else:
             player_highlights = []
 
-        # TODO: Use the lichess api to check the game status and remove games even if a game link hasn't been posted yet
-        # TODO: Convert game times to the user's local time (maybe in JS?)
-        current_game_time_min = timezone.now() - timedelta(hours=3)
-        current_game_time_max = timezone.now() + timedelta(minutes=5)
-        current_games = PlayerPairing.objects.filter(result='', scheduled_time__gt=current_game_time_min, scheduled_time__lt=current_game_time_max) \
-                                             .exclude(game_link='').order_by('scheduled_time').nocache()
-        upcoming_game_time_min = timezone.now() - timedelta(minutes=5)
-        upcoming_game_time_max = timezone.now() + timedelta(hours=12)
-        upcoming_games = PlayerPairing.objects.filter(game_link='', result='', scheduled_time__gt=upcoming_game_time_min, scheduled_time__lt=upcoming_game_time_max) \
-                                              .order_by('scheduled_time').nocache()
-
         context = {
             'player_scores': player_scores,
             'season_list': season_list,
@@ -171,8 +147,6 @@ class LeagueHomeView(LeagueView):
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document'),
             'registration_season': registration_season,
-            'current_games': current_games,
-            'upcoming_games': upcoming_games,
             'other_leagues': other_leagues,
             'player_highlights': player_highlights,
         }
