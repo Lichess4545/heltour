@@ -266,14 +266,8 @@ function initPopover($el, content) {
 		},
 		trigger: 'click',
 	});
-}
-
-function setUpPopovers($players) {
-	var $spinner = $('#spinner-template').clone().show();
-	// Init popovers
-	initPopover($players, $spinner);
 	// Handle the popover generation
-	$players.on('shown.bs.popover', function() {
+	$el.on('shown.bs.popover', function() {
 		var $player = $(this);
 		var popover = $player.data('bs.popover');
 		var $extra = $player.find('.extra');
@@ -318,6 +312,12 @@ function setUpPopovers($players) {
 			});
 		}
 	});
+}
+
+function setUpPopovers($players) {
+	var $spinner = $('#spinner-template').clone().show();
+	// Init popovers
+	initPopover($players, $spinner);
 	// Close popovers when the user clicks outside 
 	$('body').on('mousedown', function(e) {
 	    if ($(e.target).parents('.popover.in').length === 0) { 
