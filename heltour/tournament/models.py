@@ -1316,7 +1316,7 @@ class GameSelection(_BaseModel):
     def __unicode__(self):
         return '%s - %s' % (self.season, self.game_link)
 
-class TimeAvailable(_BaseModel):
+class AvailableTime(_BaseModel):
     league = models.ForeignKey(League)
     player = models.ForeignKey(Player)
     time = models.DateTimeField()

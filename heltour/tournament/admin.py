@@ -1186,6 +1186,13 @@ class GameSelectionAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
+@admin.register(AvailableTime)
+class AvailableTimeAdmin(VersionAdmin):
+    list_display = ('player', 'time', 'league')
+    search_fields = ('player__lichess_username',)
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
 @admin.register(NavItem)
 class NavItemAdmin(VersionAdmin):
     list_display = ('__unicode__', 'parent')

@@ -1021,7 +1021,7 @@ class ScheduleView(LeagueView, UrlAuthMixin):
             return redirect('by_league:edit_schedule', self.league.tag)
         username, player = self.get_authenticated_user()
 
-        times = player.timeavailable_set.filter(league=self.league) if player is not None else None
+        times = player.availabletime_set.filter(league=self.league) if player is not None else None
 
         context = {
             'username': username,
