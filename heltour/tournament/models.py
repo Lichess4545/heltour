@@ -1316,6 +1316,11 @@ class GameSelection(_BaseModel):
     def __unicode__(self):
         return '%s - %s' % (self.season, self.game_link)
 
+class TimeAvailable(_BaseModel):
+    league = models.ForeignKey(League)
+    player = models.ForeignKey(Player)
+    time = models.DateTimeField()
+
 #-------------------------------------------------------------------------------
 class NavItem(_BaseModel):
     league = models.ForeignKey(League)
@@ -1340,9 +1345,11 @@ class ApiKey(_BaseModel):
 
 #-------------------------------------------------------------------------------
 class PrivateUrlAuth(_BaseModel):
+    # Note: Could separate the one-time-URL and timed-auth portions into separate models at some point in the future
     authenticated_user = models.CharField(max_length=255, validators=[username_validator])
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
     expires = models.DateTimeField()
+    used = models.BooleanField(default=False)
 
     def is_expired(self):
         return self.expires < timezone.now()

@@ -41,7 +41,10 @@ season_urlpatterns = [
     url(r'^tv/$', cache_control(no_cache=True)(views.TvView.as_view()), name='tv'),
     url(r'^tv/json/$', cache_control(no_cache=True)(views.TvJsonView.as_view()), name='tv_json'),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
-    url(r'^nominate/(?P<secret_token>\w+)/$', views.NominateView.as_view(), name='nominate'),
+    url(r'^nominate/$', views.NominateView.as_view(), name='nominate'),
+    url(r'^nominate/(?P<secret_token>\w+)/$', views.NominateView.as_view(), name='nominate_with_token'),
+    url(r'^schedule/edit/$', views.ScheduleView.as_view(), name='edit_schedule'),
+    url(r'^schedule/edit/(?P<secret_token>\w+)/$', views.ScheduleView.as_view(), name='edit_schedule_with_token'),
 ]
 
 league_urlpatterns = [

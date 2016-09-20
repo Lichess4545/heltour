@@ -393,14 +393,24 @@ def get_private_url(request):
 
         auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
         if not season_tag:
-            url = reverse('by_league:nominate', args=[league_tag, auth.secret_token])
+            url = reverse('by_league:nominate_with_token', args=[league_tag, auth.secret_token])
         else:
             url = reverse('by_league:by_season:nominate', args=[league_tag, season_tag, auth.secret_token])
         url = request.build_absolute_uri(url)
 
         return JsonResponse({'url': url, 'expires': auth.expires})
-    else:
-        return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
+
+    if page == 'schedule':
+        if not league_tag:
+            return HttpResponse('Bad request', status=400)
+
+        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
+        url = reverse('by_league:edit_schedule_with_token', args=[league_tag, auth.secret_token])
+        url = request.build_absolute_uri(url)
+
+        return JsonResponse({'url': url, 'expires': auth.expires})
+
+    return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
 
 @csrf_exempt
 @require_POST

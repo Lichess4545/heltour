@@ -65,6 +65,31 @@ class SeasonView(LeagueView):
         self.season = _get_season(league_tag, season_tag, False)
         self._season_specified = season_tag is not None
 
+class UrlAuthMixin:
+    def persist_url_auth(self, secret_token):
+        if secret_token is not None:
+            auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
+            if auth is not None and not auth.is_expired() and not auth.used:
+                self.request.session['url_auth_token'] = secret_token
+                auth.used = True
+                auth.save()
+            return True
+        return False
+
+    def get_authenticated_user(self):
+        username = None
+        player = None
+
+        secret_token = self.request.session.get('url_auth_token', '')
+        auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
+        if auth is not None and not auth.is_expired():
+            username = auth.authenticated_user
+            player = Player.objects.filter(lichess_username__iexact=username).first()
+        # Clean up the DB
+        for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
+            expired_auth.delete()
+        return username, player
+
 class HomeView(BaseView):
     def view(self):
         leagues = League.objects.filter(is_active=True).order_by('display_order')
@@ -931,18 +956,15 @@ class TeamProfileView(LeagueView):
         }
         return self.render('tournament/team_profile.html', context)
 
-class NominateView(SeasonView):
-    def view(self, secret_token, post=False):
-        username = None
-        player = None
+class NominateView(SeasonView, UrlAuthMixin):
+    def view(self, secret_token=None, post=False):
         can_nominate = False
         current_nominations = []
         form = None
 
-        auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
-        if auth is not None and not auth.is_expired():
-            username = auth.authenticated_user
-            player = Player.objects.filter(lichess_username__iexact=username).first()
+        if self.persist_url_auth(secret_token):
+            return redirect('by_league:nominate', self.league.tag)
+        username, player = self.get_authenticated_user()
 
         if self.league.competitor_type == 'team':
             season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season).nocache()
@@ -990,8 +1012,26 @@ class NominateView(SeasonView):
         }
         return self.render('tournament/nominate.html', context)
 
-    def view_post(self, secret_token):
-        return self.view(secret_token, post=True)
+    def view_post(self):
+        return self.view(post=True)
+
+class ScheduleView(LeagueView, UrlAuthMixin):
+    def view(self, secret_token=None, post=False):
+        if self.persist_url_auth(secret_token):
+            return redirect('by_league:edit_schedule', self.league.tag)
+        username, player = self.get_authenticated_user()
+
+        times = player.timeavailable_set.filter(league=self.league) if player is not None else None
+
+        context = {
+            'username': username,
+            'player': player,
+            'times': times,
+        }
+        return self.render('tournament/schedule.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
 
 class TvView(LeagueView):
     def view(self):
