@@ -1064,11 +1064,11 @@ class TvJsonView(LeagueView):
         else:
             league = self.league
         try:
-            board = int(self.request.GET.get('board'))
+            board = int(self.request.GET.get('board', ''))
         except ValueError:
             board = None
         try:
-            team = int(self.request.GET.get('team'))
+            team = int(self.request.GET.get('team', ''))
         except ValueError:
             team = None
         return JsonResponse(_tv_json(league, board, team))
