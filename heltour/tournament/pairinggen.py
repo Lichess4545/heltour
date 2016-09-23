@@ -52,7 +52,7 @@ def _generate_team_pairings(round_, overwrite=False):
                     black_player = black_alt.player
 
                 if board_number % 2 == 0:
-                    white, black = black, white
+                    white_player, black_player = black_player, white_player
                 TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
 
 def _generate_lone_pairings(round_, overwrite=False):
