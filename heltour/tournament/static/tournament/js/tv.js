@@ -129,6 +129,8 @@
   };
   
   var shown_games = {};
+  var schedule_max = 10;
+  var schedule_page_size = 10;
   
   function render(data) {
 	  // Populate a set of all the games we're about to show
@@ -177,7 +179,7 @@
 	  $.each(data.schedule, function(i, g) {
 	  	if (g.matches_filter) {
 	  		count++;
-	  		if (count > 20) { // Max to display
+	  		if (count > schedule_max) {
 	  			return;
 	  		}
 	  		g.time = moment(g.time);
@@ -194,6 +196,8 @@
   			day_schedules[index].push(g);
 	  	}
 	  });
+	  $('#more-schedule').toggle(count > schedule_max);
+	  
 	  for (var i = 0; i < days.length; i++) {
 	  	var $thead = $('<thead><tr><th colspan="3">' + days[i] + '</th><th>Time</th></thead>').appendTo('#schedule');
 	  	var $tbody = $('<tbody></tbody>').appendTo('#schedule');

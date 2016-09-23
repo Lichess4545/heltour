@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/BootstrapXL.css' %}">
-<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=2">
 {% endblock %}
 
 {% block head_js %}
@@ -31,6 +31,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
   
   $('#id_timezone').children('[value=local]').text('Local (UTC' + moment().format('Z') + ')');
   $('#filters select, #id_timezone').change(updateHash);
+  $('#more-schedule').click(function() { schedule_max += schedule_page_size; poll(); });
   if (location.hash.length > 0) {
   	poll();
   } else {
@@ -111,6 +112,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
         		<div id="no-filter-schedule" style="display: none">
 		        	<p>No scheduled games match the filters.</p>
 		        </div>
+        		<a class="btn btn-default" id="more-schedule" style="display: none">Show More</a>
 			</div>
 		</div>
 	</div>

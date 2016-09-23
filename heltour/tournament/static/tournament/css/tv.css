@@ -44,6 +44,10 @@ section .gameLabel a {
 	border-top: none;
 }
 
+#more-schedule {
+	margin-top: 10px;
+}
+
 .chessground.tiny {
   width: 225px;
   height: 225px;
