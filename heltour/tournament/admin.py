@@ -854,7 +854,7 @@ class AlternateAssignmentAdmin(VersionAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
-    raw_id_fields = ('round', 'team', 'player')
+    raw_id_fields = ('round', 'team', 'player', 'replaced_player')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------

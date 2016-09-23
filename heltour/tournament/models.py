@@ -1218,10 +1218,17 @@ class AlternateAssignment(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     player = models.ForeignKey(Player)
 
+    replaced_player = models.ForeignKey(Player, null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
+
     class Meta:
         unique_together = ('round', 'team', 'board_number')
 
     def save(self, *args, **kwargs):
+        if self.replaced_player is None:
+            tm = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
+            if tm is not None:
+                self.replaced_player = tm.player
+
         super(AlternateAssignment, self).save(*args, **kwargs)
 
         # Find and update any current pairings
