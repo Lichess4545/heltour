@@ -273,10 +273,17 @@
   
   function updateHash() {
   	var hashParts = [];
+  	if ($('#id_timezone').length && $('#id_timezone').val() !== 'local') {
+  		hashParts.push('timezone=' + $('#id_timezone').val());
+  	}
   	if ($('#id_league').val() === 'all') {
   		hashParts.push('league=all');
   	} else if ($('#id_league').val() != currentLeague) {
-  		location.href = '/' + $('#id_league').val() + '/tv/';
+  		var url = '/' + $('#id_league').val() + '/tv/'
+  		if (hashParts.length > 0) {
+  			url += "#" + hashParts.join('&');
+  		}
+  		location.href = url;
   		return;
   	}
   	if ($('#id_board').length && $('#id_board').val() !== 'all') {
@@ -284,9 +291,6 @@
   	}
   	if ($('#id_team').length && $('#id_team').val() !== 'all') {
   		hashParts.push('team=' + $('#id_team').val());
-  	}
-  	if ($('#id_timezone').length && $('#id_timezone').val() !== 'local') {
-  		hashParts.push('timezone=' + $('#id_timezone').val());
   	}
   	location.hash = hashParts.join('&');
   }
