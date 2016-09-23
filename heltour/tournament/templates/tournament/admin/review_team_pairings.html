@@ -18,18 +18,22 @@
 				<td>{{ pairing.board_number }}</td>
 				<td>{{ pairing.white_team_name }}</td>
 				<td>
+					{% if pairing.white %}
 					<div class="pairing-player">
 						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.white.lichess_username %}">
 							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
 						</a>
 					</div>
+					{% endif %}
 				</td>
 				<td>
+					{% if pairing.black %}
 					<div class="pairing-player">
 						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.black.lichess_username %}">
 							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
 						</a>
 					</div>
+					{% endif %}
 				</td>
 				<td>{{ pairing.black_team_name }}</td>
 			</tr>
