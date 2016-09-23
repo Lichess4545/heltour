@@ -177,12 +177,13 @@ class ContactForm(forms.Form):
 
 class TvFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        current_league = kwargs.pop('current_league')
         leagues = kwargs.pop('leagues')
         boards = kwargs.pop('boards')
         teams = kwargs.pop('teams')
         super(TvFilterForm, self).__init__(*args, **kwargs)
 
-        self.fields['league'] = forms.ChoiceField(choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues], initial=leagues[0].tag)
+        self.fields['league'] = forms.ChoiceField(choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues], initial=current_league.tag)
         if boards is not None and boards > 0:
             self.fields['board'] = forms.ChoiceField(choices=[('all', 'All Boards')] + [(n, 'Board %d' % n) for n in boards])
         if teams is not None and boards > 0:

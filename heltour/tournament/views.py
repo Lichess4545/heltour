@@ -1035,7 +1035,7 @@ class ScheduleView(LeagueView, UrlAuthMixin):
 
 class TvView(LeagueView):
     def view(self):
-        leagues = [self.league] + list(League.objects.order_by('display_order').exclude(pk=self.league.pk))
+        leagues = list(League.objects.order_by('display_order'))
         if self.season.is_active and not self.season.is_completed:
             active_season = self.season
         else:
@@ -1044,7 +1044,7 @@ class TvView(LeagueView):
         boards = active_season.board_number_list() if active_season is not None and active_season.boards is not None else None
         teams = active_season.team_set.order_by('name') if active_season is not None else None
 
-        filter_form = TvFilterForm(leagues=leagues, boards=boards, teams=teams)
+        filter_form = TvFilterForm(current_league=self.league, leagues=leagues, boards=boards, teams=teams)
         timezone_form = TvTimezoneForm()
 
         context = {
