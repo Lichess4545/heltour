@@ -11,20 +11,14 @@
     }
   }
 
-  // Ping every 2 seconds to keep connection live
-  function pingNow() {
-    send(ws, '{"t":"p"}');
-  };
-
   function run () {
     chessGrounds = {};
     const baseURL = 'wss://socket.lichess.org';
-    const endpoint = '/socket';
+    const endpoint = '/api/socket';
     const url = baseURL + endpoint + '?sri=' + Math.random().toString(36).substring(2)
     ws = new WebSocket(url);
 
     ws.onopen = function () {
-      pingNow();
       while(queue.length > 0) {
         let message = queue.pop();
         ws.send(message);
@@ -32,7 +26,7 @@
     }
 
     ws.onerror = function (error) {
-      console.log(error);
+      console.error(error);
     }
 
     ws.onmessage = function (e) {
@@ -42,9 +36,6 @@
         let ground = chessGrounds[m.d.id];
         m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
         ground.set(m.d);
-      }
-      else if(m.t === 'n') {
-        setTimeout(pingNow, 2000);
       }
     }
   }

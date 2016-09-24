@@ -7,3 +7,4 @@ env
 certs
 celerybeat-schedule
 *eclipse*
+data
