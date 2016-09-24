@@ -48,12 +48,19 @@ def _generate_team_pairings(round_, overwrite=False):
                     white_player, black_player = black_player, white_player
                 TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
 
+
+# Create a list of players playing for the team this round
+#
+# The players and board numbers defined in AlternateAssignment are our invariants.
+# Other players could end up in slightly different boards than expected if the board
+# order changed since an alternate was assigned.
 def _get_player_list(team, round_, board_count):
     team_members = [TeamMember.objects.filter(team=team, board_number=b).first() for b in range(1, board_count + 1)]
     alternates = list(AlternateAssignment.objects.filter(round=round_, team=team).order_by('board_number'))
 
     player_list = [tm.player if tm is not None else None for tm in team_members]
 
+    # Remove players that are being replaced by alternates
     for alt in reversed(alternates):
         if alt.replaced_player is not None:
             try:
@@ -63,6 +70,7 @@ def _get_player_list(team, round_, board_count):
         else:
             del player_list[alt.board_number - 1]
 
+    # Add assigned alternates at the appropriate board
     for alt in alternates:
         player_list.insert(alt.board_number - 1, alt.player)
 
