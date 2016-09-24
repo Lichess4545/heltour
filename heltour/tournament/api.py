@@ -143,6 +143,19 @@ def _get_active_rounds(league_tag, season_tag):
         rounds = rounds.filter(season__tag=season_tag)
     return rounds
 
+def _get_next_round(league_tag, season_tag, round_num):
+    rounds = Round.objects.filter(season__is_active=True, is_completed=False).order_by('-season__start_date', '-season__id', 'number')
+    if league_tag is not None:
+        rounds = rounds.filter(season__league__tag=league_tag)
+    if season_tag is not None:
+        rounds = rounds.filter(season__tag=season_tag)
+    next_round = rounds[0]
+    season = next_round.season
+    if round_num is None:
+        return next_round
+    else:
+        return season.round_set.filter(number=round_num)[0]
+
 def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
     pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black, scheduled)
     pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black, scheduled)
@@ -263,12 +276,8 @@ def assign_alternate(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_active_rounds(league_tag, season_tag)[0]
-        season = latest_round.season
-        if round_num is None:
-            round_ = latest_round
-        else:
-            round_ = season.round_set.filter(number=round_num)[0]
+        round_ = _get_next_round(league_tag, season_tag, round_num)
+        season = round_.season
         team = season.team_set.filter(number=team_num)[0]
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
@@ -311,12 +320,7 @@ def set_availability(request):
         return HttpResponse('Bad request', status=400)
 
     try:
-        latest_round = _get_active_rounds(league_tag, season_tag)[0]
-        season = latest_round.season
-        if round_num is None:
-            round_ = latest_round
-        else:
-            round_ = season.round_set.filter(number=round_num)[0]
+        round_ = _get_next_round(league_tag, season_tag, round_num)
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
