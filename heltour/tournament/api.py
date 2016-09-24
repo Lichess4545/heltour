@@ -294,7 +294,7 @@ def assign_alternate(request):
     if alternate is None and member_playing_up is None:
         return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
 
-    AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player})
+    AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player, 'replaced_player': None})
 
     return JsonResponse({'updated': 1})
 
