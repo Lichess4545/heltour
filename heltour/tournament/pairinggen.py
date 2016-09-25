@@ -165,7 +165,8 @@ class DutchTeamPairingSystem:
         for i in range(len(pairs)):
             white_team = pairs[i][0]
             black_team = pairs[i][1]
-            team_pairings.append(TeamPairing(white_team=white_team, black_team=black_team, round=round_, pairing_order=i + 1))
+            if white_team is not None and black_team is not None:
+                team_pairings.append(TeamPairing(white_team=white_team, black_team=black_team, round=round_, pairing_order=i + 1))
         return team_pairings
 
     def _process_pairings(self, team, pairings):
