@@ -9,6 +9,7 @@ from django.utils import timezone
 from django import forms as django_forms
 from collections import namedtuple, defaultdict
 import re
+from django.core.exceptions import ValidationError
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -629,6 +630,10 @@ class TeamMember(_BaseModel):
     class Meta:
         unique_together = ('team', 'board_number')
 
+    def clean(self):
+        if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
+            raise ValidationError('Team member must be a player in the season')
+
     def __unicode__(self):
         return "%s" % self.player
 
@@ -727,6 +732,10 @@ class TeamPairing(_BaseModel):
         super(TeamPairing, self).save(*args, **kwargs)
         if points_changed and self.round.is_completed:
             self.round.season.calculate_scores()
+
+    def clean(self):
+        if self.white_team.season != self.round.season or self.black_team.season != self.round.season:
+            raise ValidationError('Round and team seasons must match')
 
     def refresh_points(self):
         self.white_points = 0
@@ -1222,6 +1231,12 @@ class AlternateAssignment(_BaseModel):
 
     class Meta:
         unique_together = ('round', 'team', 'board_number')
+
+    def clean(self):
+        if self.round.season != self.team.season:
+            raise ValidationError('Round and team seasons must match')
+        if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
+            raise ValidationError('Assigned player must be a player in the season')
 
     def save(self, *args, **kwargs):
         if self.replaced_player is None:
