@@ -1,6 +1,10 @@
-  var chessGrounds = null;
+  var chessGrounds = {};
   var ws = null;
   var queue = [];
+  
+  var shown_games = {};
+  var schedule_max = 10;
+  var schedule_page_size = 10;
 
   function send (ws, message) {
     if(ws.readyState === 1) {
@@ -12,7 +16,6 @@
   }
 
   function run () {
-    chessGrounds = {};
     const baseURL = 'wss://socket.lichess.org';
     const endpoint = '/api/socket';
     const url = baseURL + endpoint + '?sri=' + Math.random().toString(36).substring(2)
@@ -37,6 +40,17 @@
         m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
         ground.set(m.d);
       }
+    }
+    
+    ws.onclose = function() {
+    	run();
+    	$.each(shown_games, function(id, el) {
+    	    let message = JSON.stringify({
+    	      t: 'startWatching',
+    	      d: id
+    	    })
+    	    send(ws, message);
+    	});
     }
   }
 
@@ -118,10 +132,6 @@
     send(ws, message);
 
   };
-  
-  var shown_games = {};
-  var schedule_max = 10;
-  var schedule_page_size = 10;
   
   function render(data) {
 	  // Populate a set of all the games we're about to show
