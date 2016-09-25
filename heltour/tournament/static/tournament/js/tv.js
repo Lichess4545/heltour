@@ -2,6 +2,14 @@
   var ws = null;
   var queue = [];
 
+ 
+ 
+  // Ping every 2 seconds to keep connection live
+  function pingNow() {
+    console.log("ping");
+    send(ws, '{"t":"p"}');
+  };
+
   function send (ws, message) {
     if(ws.readyState === 1) {
       ws.send(message);
@@ -23,6 +31,7 @@
         let message = queue.pop();
         ws.send(message);
       }
+      setInterval(pingNow, 2000);
     }
 
     ws.onerror = function (error) {
