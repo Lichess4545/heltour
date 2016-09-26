@@ -297,5 +297,10 @@
   	if ($('#id_team').length && $('#id_team').val() !== 'all') {
   		hashParts.push('team=' + $('#id_team').val());
   	}
-  	location.hash = hashParts.join('&');
+  	if (history.pushState) {
+  		history.pushState(null, null, hashParts.length ? '#' + hashParts.join('&') : location.pathname);
+  		poll();
+  	} else {
+  		location.hash = hashParts.join('&') || '_';
+  	}
   }
