@@ -22,6 +22,8 @@ from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponse
 from django.utils.http import urlquote
+from django.core.mail.message import EmailMultiAlternatives
+from django.core import mail
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -92,7 +94,7 @@ class SeasonAdmin(VersionAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'manage_players', 'round_transition']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'manage_players', 'round_transition']
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
@@ -119,6 +121,9 @@ class SeasonAdmin(VersionAdmin):
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
                 permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_pgn_view)),
                 name='review_nominated_games_pgn'),
+            url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
+                permission_required('tournament.bulk_email')(self.admin_site.admin_view(self.bulk_email_view)),
+                name='bulk_email'),
         ]
         return my_urls + urls
 
@@ -297,6 +302,50 @@ class SeasonAdmin(VersionAdmin):
         }
 
         return render(request, 'tournament/admin/round_transition.html', context)
+
+    def bulk_email(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Emails can only be sent one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:bulk_email', object_id=queryset[0].pk)
+
+    def bulk_email_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+
+        if request.method == 'POST':
+            form = forms.BulkEmailForm(season, request.POST)
+            if form.is_valid() and form.cleaned_data['confirm_send']:
+                season_players = season.seasonplayer_set.all()
+                email_addresses = {sp.player.email for sp in season_players}
+                email_messages = []
+                for addr in email_addresses:
+                    message = EmailMultiAlternatives(
+                        form.cleaned_data['subject'],
+                        form.cleaned_data['text_content'],
+                        settings.DEFAULT_FROM_EMAIL,
+                        [addr]
+                    )
+                    message.attach_alternative(form.cleaned_data['html_content'], 'text/html')
+                    email_messages.append(message)
+                conn = mail.get_connection()
+                conn.open()
+                conn.send_messages(email_messages)
+                conn.close()
+                self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
+                return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.BulkEmailForm(season)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Bulk email',
+            'form': form
+        }
+
+        return render(request, 'tournament/admin/bulk_email.html', context)
 
     def _time_from_now(self, delta):
         if delta.days > 0:

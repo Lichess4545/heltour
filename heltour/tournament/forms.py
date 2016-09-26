@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from captcha.fields import ReCaptchaField
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
 from .models import *
 from django.core.exceptions import ValidationError
@@ -174,6 +175,17 @@ class ContactForm(forms.Form):
 
         if settings.DEBUG:
             del self.fields['captcha']
+
+class BulkEmailForm(forms.Form):
+    subject = forms.CharField(max_length=140)
+    html_content = forms.CharField(max_length=4096, required=True, widget=CKEditorUploadingWidget())
+    text_content = forms.CharField(max_length=4096, required=True, widget=forms.Textarea)
+    confirm_send = forms.BooleanField()
+
+    def __init__(self, season, *args, **kwargs):
+        super(BulkEmailForm, self).__init__(*args, **kwargs)
+
+        self.fields['confirm_send'].label = 'Yes, I\'m sure - send emails to %d players in %s' % (season.seasonplayer_set.count(), season.name)
 
 class TvFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
