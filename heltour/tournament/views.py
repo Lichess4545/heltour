@@ -348,12 +348,15 @@ class PairingsView(SeasonView):
             unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round__number=round_number, is_available=False) \
                                                                                  .select_related('player')
                                                                                  .nocache()}
+            captains = {tm.player for tm in TeamMember.objects.filter(team__season=self.season, is_captain=True)}
+
             context = {
                 'round_number': round_number,
                 'round_number_list': round_number_list,
                 'current_team': current_team,
                 'team_list': team_list,
                 'pairing_lists': pairing_lists,
+                'captains': captains,
                 'unavailable_players': unavailable_players,
                 'specified_round': specified_round,
                 'specified_team': team_number is not None,

@@ -338,7 +338,9 @@ div.inline {
     max-width: calc(100% - 25px);
 }
 
-#table-rosters .cell-player.captain:after {
+#table-rosters .cell-player.captain:after,
+.player-profile-section .captain:after,
+.pairings-row .captain:after {
 	content: '(C)';
 }
 
