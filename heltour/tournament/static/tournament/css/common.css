@@ -349,7 +349,7 @@ div.inline {
 }
 
 .player-unresponsive {
-	background-color: #ddd6ff;
+	background-color: #ffe6e9;
 }
 
 .player-scheduled {
@@ -367,10 +367,12 @@ div.inline {
 .legend-swatch {
 	width: 20px;
 	height: 20px;
+	border: 1px solid #dddddd;
 }
 
 .legend-label {
 	padding-left: 10px;
+	padding-right: 20px;
 }
 
 #table-result-stats {
