@@ -316,7 +316,7 @@ class SeasonAdmin(VersionAdmin):
             form = forms.BulkEmailForm(season, request.POST)
             if form.is_valid() and form.cleaned_data['confirm_send']:
                 season_players = season.seasonplayer_set.all()
-                email_addresses = {sp.player.email for sp in season_players}
+                email_addresses = {sp.player.email for sp in season_players if sp.player.email != ''}
                 email_messages = []
                 for addr in email_addresses:
                     message = EmailMultiAlternatives(
