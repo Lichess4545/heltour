@@ -53,7 +53,7 @@
 				  </ul>
 				</div>
 				{% endif %}
-				
+
 				{% if pairing_lists %}
 				<table class="table table-condensed-xs">
 					{% for pairing_list in pairing_lists %}
@@ -83,7 +83,7 @@
 						</td>
 						<td>
 							{% if pairing.white %}
-							<div class="pairing-player{% if pairing.white in captains %} captain{% endif %}{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+								<div class="pairing-player{% if pairing.white in captains %} captain{% endif %}{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
 								</a>
@@ -120,6 +120,12 @@
 					</tr>
 					{% endfor %}
 					{% endfor %}
+				</table>
+				<table>
+					<tr>
+						<td class="legend-swatch player-unavailable">	</td>
+						<td class="legend-label">	Unavailable </td>
+					</tr>
 				</table>
 				{% else %}
 				<p>No pairings available.</p>

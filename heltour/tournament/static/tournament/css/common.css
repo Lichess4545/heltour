@@ -276,7 +276,7 @@ div.inline {
 	max-width: 500px;
 	table-layout: fixed;
 }
-	
+
 #table-match-result tr th:nth-child(2) {
 	text-align: center;
 	width: 80px;
@@ -364,6 +364,15 @@ div.inline {
 	background-color: #ffabab;
 }
 
+.legend-swatch {
+	width: 20px;
+	height: 20px;
+}
+
+.legend-label {
+	padding-left: 10px;
+}
+
 #table-result-stats {
 	max-width: 700px;
 	table-layout: fixed;
@@ -397,7 +406,7 @@ div.inline {
 	list-style: none;
 	margin: 10px 0 0 0;
 	padding: 0;
-	
+
 	font-size: 16px;
 	font-weight: bold;
 	color: #666;
@@ -570,7 +579,7 @@ div.inline {
 		margin-left: 0;
 		margin-right: 10px;
 	}
-	
+
 	.nav > .league-dropdown > a {
 		padding-left: 3px;
 		padding-right: 5px;
@@ -598,7 +607,7 @@ div.inline {
 	}
 	#table-rosters .cell-player.captain .player-name {
 	    max-width: 100%;
-	}	
+	}
 }
 @media (max-width: 767px) {
 	body {
@@ -630,11 +639,11 @@ div.inline {
 	.document-content ul, .document-content ol {
 		padding-left: 30px;
 	}
-	
+
 	#table-result-stats {
 		table-layout: auto;
 	}
-	
+
 	.round-switcher:first-child {
 		margin-left: -5px;
 	}
