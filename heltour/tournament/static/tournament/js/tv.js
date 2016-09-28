@@ -145,7 +145,7 @@
 	  	var id = $(el).data('id');
 	  	if (!(id in next_games)) {
 	  		$('#finished-games').show();
-	  		$('#finished-games-row').append(el);
+	  		$('#finished-games-row').prepend(el);
 	  		delete shown_games[id];
 	  	}
 	  });
