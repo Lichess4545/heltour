@@ -6,6 +6,7 @@ from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import permission_required
+import reversion
 
 import json
 import pairinggen
@@ -247,27 +248,39 @@ class SeasonAdmin(VersionAdmin):
                 with transaction.atomic():
                     if 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number:
                         if form.cleaned_data['complete_round']:
-                            round_to_close.is_completed = True
-                            round_to_close.save()
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Close round')
+                                round_to_close.is_completed = True
+                                round_to_close.save()
                             self.message_user(request, 'Round %d set as completed.' % round_to_close.number, messages.INFO)
                     if 'complete_season' in form.cleaned_data and season_to_close is not None and form.cleaned_data['complete_season'] \
                             and (round_to_close is None or round_to_close.is_completed):
-                        season_to_close.is_completed = True
-                        season_to_close.save()
+                        with reversion.create_revision():
+                            reversion.set_user(request.user)
+                            reversion.set_comment('Close season')
+                            season_to_close.is_completed = True
+                            season_to_close.save()
                         self.message_user(request, '%s set as completed.' % season_to_close.name, messages.INFO)
                     if 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number:
                         if 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']:
                             try:
-                                self.do_update_board_order(season)
+                                with reversion.create_revision():
+                                    reversion.set_user(request.user)
+                                    reversion.set_comment('Update board order')
+                                    self.do_update_board_order(season)
                                 self.message_user(request, 'Board order updated.', messages.INFO)
                             except IndexError:
                                 self.message_user(request, 'Error updating board order.', messages.ERROR)
                                 return redirect('admin:round_transition', object_id)
                         if form.cleaned_data['generate_pairings']:
                             try:
-                                pairinggen.generate_pairings(round_to_open, overwrite=False)
-                                round_to_open.publish_pairings = False
-                                round_to_open.save()
+                                with reversion.create_revision():
+                                    reversion.set_user(request.user)
+                                    reversion.set_comment('Generate pairings')
+                                    pairinggen.generate_pairings(round_to_open, overwrite=False)
+                                    round_to_open.publish_pairings = False
+                                    round_to_open.save()
                                 self.message_user(request, 'Pairings generated.', messages.INFO)
                                 return redirect('admin:review_pairings', round_to_open.pk)
                             except pairinggen.PairingsExistException:
@@ -363,7 +376,11 @@ class SeasonAdmin(VersionAdmin):
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
-                self.do_update_board_order(season)
+                with reversion.create_revision():
+                    reversion.set_user(request.user)
+                    reversion.set_comment('Update board order')
+
+                    self.do_update_board_order(season)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)
@@ -463,52 +480,72 @@ class SeasonAdmin(VersionAdmin):
                 for change in changes:
                     try:
                         if change['action'] == 'change-member':
-                            team_num = change['team_number']
-                            team = Team.objects.get(season=season, number=team_num)
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Edit rosters - change team member')
 
-                            board_num = change['board_number']
-                            player_info = change['player']
+                                team_num = change['team_number']
+                                team = Team.objects.get(season=season, number=team_num)
 
-                            teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
-                            if teammember == None:
-                                teammember = TeamMember(team=team, board_number=board_num)
-                            if player_info is None:
-                                teammember.delete()
-                            else:
-                                teammember.player = Player.objects.get(lichess_username=player_info['name'])
-                                teammember.is_captain = player_info['is_captain']
-                                teammember.is_vice_captain = player_info['is_vice_captain']
-                                teammember.save()
+                                board_num = change['board_number']
+                                player_info = change['player']
+
+                                teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
+                                if teammember == None:
+                                    teammember = TeamMember(team=team, board_number=board_num)
+                                if player_info is None:
+                                    teammember.delete()
+                                else:
+                                    teammember.player = Player.objects.get(lichess_username=player_info['name'])
+                                    teammember.is_captain = player_info['is_captain']
+                                    teammember.is_vice_captain = player_info['is_vice_captain']
+                                    teammember.save()
 
                         if change['action'] == 'change-team' and not teams_locked:
-                            team_num = change['team_number']
-                            team = Team.objects.get(season=season, number=team_num)
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Edit rosters - change team')
 
-                            team_name = change['team_name']
-                            team.name = team_name
-                            team.save()
+                                team_num = change['team_number']
+                                team = Team.objects.get(season=season, number=team_num)
+
+                                team_name = change['team_name']
+                                team.name = team_name
+                                team.save()
 
                         if change['action'] == 'create-team' and not teams_locked:
-                            model = change['model']
-                            team = Team.objects.create(season=season, number=model['number'], name=model['name'])
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Edit rosters - create team')
 
-                            for board_num, player_info in enumerate(model['boards'], 1):
-                                if player_info is not None:
-                                    player = Player.objects.get(lichess_username=player_info['name'])
-                                    is_captain = player_info['is_captain']
-                                    TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
+                                model = change['model']
+                                team = Team.objects.create(season=season, number=model['number'], name=model['name'])
+
+                                for board_num, player_info in enumerate(model['boards'], 1):
+                                    if player_info is not None:
+                                        player = Player.objects.get(lichess_username=player_info['name'])
+                                        is_captain = player_info['is_captain']
+                                        TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
 
                         if change['action'] == 'create-alternate':
-                            board_num = change['board_number']
-                            season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                            Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Edit rosters - create alternate')
+
+                                board_num = change['board_number']
+                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                                Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
 
                         if change['action'] == 'delete-alternate':
-                            board_num = change['board_number']
-                            season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                            alt = Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
-                            if alt is not None:
-                                alt.delete()
+                            with reversion.create_revision():
+                                reversion.set_user(request.user)
+                                reversion.set_comment('Edit rosters - delete alternate')
+
+                                board_num = change['board_number']
+                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
+                                alt = Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
+                                if alt is not None:
+                                    alt.delete()
 
                     except Exception:
                         has_error = True
@@ -660,9 +697,14 @@ class RoundAdmin(VersionAdmin):
             form = forms.GeneratePairingsForm(request.POST)
             if form.is_valid():
                 try:
-                    pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
-                    round_.publish_pairings = False
-                    round_.save()
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Generate pairings')
+
+                        pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
+                        round_.publish_pairings = False
+                        round_.save()
+
                     self.message_user(request, 'Pairings generated.', messages.INFO)
                     return redirect('admin:review_pairings', object_id)
                 except pairinggen.PairingsExistException:
@@ -694,7 +736,10 @@ class RoundAdmin(VersionAdmin):
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
                 if 'publish' in form.data:
-                    with transaction.atomic():
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Publish pairings')
+
                         round_.publish_pairings = True
                         round_.save()
                         # Update ranks in case of manual edits
@@ -708,7 +753,12 @@ class RoundAdmin(VersionAdmin):
                     self.message_user(request, 'Pairings published.', messages.INFO)
                 elif 'delete' in form.data:
                     try:
-                        pairinggen.delete_pairings(round_)
+                        with reversion.create_revision():
+                            reversion.set_user(request.user)
+                            reversion.set_comment('Delete pairings')
+
+                            pairinggen.delete_pairings(round_)
+
                         self.message_user(request, 'Pairings deleted.', messages.INFO)
                     except pairinggen.PairingHasResultException:
                         self.message_user(request, 'Pairings with results can\'t be deleted.', messages.ERROR)
@@ -1028,7 +1078,10 @@ class RegistrationAdmin(VersionAdmin):
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
-                    with transaction.atomic():
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Approve registration')
+
                         # Limit changes to moderators
                         mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
                         if mod is not None and mod.player.email and mod.player.email != reg.email:
@@ -1152,10 +1205,15 @@ class RegistrationAdmin(VersionAdmin):
             form = forms.RejectRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
-                    reg.status = 'rejected'
-                    reg.status_changed_by = request.user.username
-                    reg.status_changed_date = timezone.now()
-                    reg.save()
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Reject registration')
+
+                        reg.status = 'rejected'
+                        reg.status_changed_by = request.user.username
+                        reg.status_changed_date = timezone.now()
+                        reg.save()
+
                     self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
                     return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:

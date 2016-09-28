@@ -13,6 +13,7 @@ import re
 from django.views.generic import View
 from django.core.mail.message import EmailMessage
 import json
+import reversion
 
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
@@ -444,7 +445,9 @@ class RegisterView(LeagueView):
         if post:
             form = RegistrationForm(self.request.POST, season=reg_season)
             if form.is_valid():
-                form.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Submit registration')
+                    form.save()
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:
             form = RegistrationForm(season=reg_season)
