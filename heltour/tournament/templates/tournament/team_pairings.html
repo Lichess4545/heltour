@@ -121,12 +121,14 @@
 					{% endfor %}
 					{% endfor %}
 				</table>
+				{% if show_legend %}
 				<table>
 					<tr>
 						<td class="legend-swatch player-unavailable"></td>
 						<td class="legend-label">Unavailable</td>
 					</tr>
 				</table>
+				{% endif %}
 				{% else %}
 				<p>No pairings available.</p>
 				{% endif %}

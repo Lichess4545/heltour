@@ -351,6 +351,9 @@ class PairingsView(SeasonView):
                                                                                  .nocache()}
             captains = {tm.player for tm in TeamMember.objects.filter(team__season=self.season, is_captain=True)}
 
+            # Show the legend if at least one the players in the visible pairings is unavailable
+            show_legend = len(unavailable_players & ({p.white for plist in pairing_lists for p in plist} | {p.black for plist in pairing_lists for p in plist})) > 0
+
             context = {
                 'round_number': round_number,
                 'round_number_list': round_number_list,
@@ -359,6 +362,7 @@ class PairingsView(SeasonView):
                 'pairing_lists': pairing_lists,
                 'captains': captains,
                 'unavailable_players': unavailable_players,
+                'show_legend': show_legend,
                 'specified_round': specified_round,
                 'specified_team': team_number is not None,
                 'can_edit': can_change_pairing
@@ -517,6 +521,9 @@ class RostersView(SeasonView):
             yellow_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed == 1}
             red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
 
+            # Show the legend if we have any data that might need it
+            show_legend = len(scheduled_alternates | unresponsive_players | yellow_card_players | red_card_players) > 0
+
             context = {
                 'teams': teams,
                 'board_numbers': board_numbers,
@@ -525,6 +532,7 @@ class RostersView(SeasonView):
                 'unresponsive_players': unresponsive_players,
                 'yellow_card_players': yellow_card_players,
                 'red_card_players': red_card_players,
+                'show_legend': show_legend,
                 'can_edit': self.request.user.has_perm('tournament.manage_players'),
             }
             return self.render('tournament/team_rosters.html', context)
