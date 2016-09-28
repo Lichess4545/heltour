@@ -18,7 +18,7 @@
   function run () {
     const baseURL = 'wss://socket.lichess.org';
     const endpoint = '/api/socket';
-    const url = baseURL + endpoint + '?sri=' + Math.random().toString(36).substring(2)
+    const url = baseURL + endpoint;
     ws = new WebSocket(url);
 
     ws.onopen = function () {
