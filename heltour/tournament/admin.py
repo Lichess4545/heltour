@@ -397,7 +397,8 @@ class SeasonAdmin(VersionAdmin):
             occupied_boards.sort()
             for i, board_number in enumerate(occupied_boards):
                 m = members[i]
-                TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                if m.board_number != board_number:
+                    TeamMember.objects.update_or_create(team=team, board_number=board_number, \
                                                            defaults={ 'player': m.player, 'is_captain': m.is_captain,
                                                                       'is_vice_captain': m.is_vice_captain })
 
