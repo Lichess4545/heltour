@@ -559,7 +559,7 @@ class StandingsView(SeasonView):
 
     def lone_view(self, section=None):
         @cached_as(*common_lone_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, section, is_staff):
             round_numbers = list(range(1, self.season.rounds + 1))
             player_scores = _lone_player_scores(self.season)
 
@@ -567,7 +567,7 @@ class StandingsView(SeasonView):
                 match = re.match(r'u(\d+)', section)
                 if match is not None:
                     max_rating = int(match.group(1))
-                    player_scores = [ps for ps in player_scores if ps[1].season_player.seed_rating < max_rating]
+                    player_scores = [ps for ps in player_scores if ps[1].season_player.seed_rating_display() < max_rating]
 
             player_sections = [('u%d' % sp.max_rating, 'U%d' % sp.max_rating) for sp in SeasonPrize.objects.filter(season=self.season).exclude(max_rating=None).order_by('max_rating')]
             section_dict = {k: (k, v) for k, v in player_sections}
@@ -587,7 +587,7 @@ class StandingsView(SeasonView):
                 'player_highlights': player_highlights,
             }
             return self.render('tournament/lone_standings.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, section, self.request.user.is_staff)
 
 def _get_player_highlights(prize_winners):
     return [
@@ -603,7 +603,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     # calculations, we populate a few common data structures and use those as parameters.
 
     if sort_by_seed:
-        sort_key = lambda s: s.season_player.seed_rating
+        sort_key = lambda s: s.season_player.seed_rating_display()
     elif season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:

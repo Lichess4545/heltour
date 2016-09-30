@@ -462,6 +462,8 @@ class PlayerLateRegistration(_BaseModel):
             # Set the SeasonPlayer as active
             sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
             sp.is_active = True
+            if sp.seed_rating is None:
+                sp.seed_rating = self.player.rating
             sp.save()
 
             # Create any retroactive byes (but don't overwrite existing byes/pairings)
@@ -1064,6 +1066,9 @@ class SeasonPlayer(_BaseModel):
             peak = max(self.registration.peak_classical_rating, self.player.rating)
             return (self.player.rating + peak) / 2
         return self.player.rating
+
+    def seed_rating_display(self):
+        return self.seed_rating or self.player.rating
 
     def get_loneplayerscore(self):
         try:
