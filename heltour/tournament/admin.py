@@ -1009,8 +1009,12 @@ class RegistrationAdmin(VersionAdmin):
     search_fields = ('lichess_username', 'season__name')
     list_filter = ('status', 'season',)
 
+    def changelist_view(self, request, extra_context=None):
+        self.request = request
+        return super(RegistrationAdmin, self).changelist_view(request, extra_context=extra_context)
+
     def review(self, obj):
-        _url = reverse('admin:review_registration', args=[obj.pk])
+        _url = reverse('admin:review_registration', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
         return '<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username)
     review.allow_tags = True
 
