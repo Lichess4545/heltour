@@ -92,25 +92,31 @@
       jsonp:'callback',
       success: function(data) {
         if(data.players) {
-          let top_label = null;
-          $parent.find('.top-label')
-                 .text(data.players.black.userId + ' (' + data.players.black.rating + ')')
-                 .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.black.userId + '/"></a>');
+          let top_label = $parent.find('.top-label');
+          top_label.find('.player-div').show();
+          top_label.find('.player-name').text(data.players.black.userId);
+          top_label.find('.player-rating').text(data.players.black.rating);
+          top_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + data.players.black.userId + '/');
           if (game.black_team) {
-            $parent.find('.top-team-label')
-                   .text('Board ' + game.board_number + ' - ' + game.black_team.name + ' (' + game.black_team.score.toFixed(1) + ')')
-                   .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/"></a>');
+            top_label.find('.team-div').show();
+            top_label.find('.board-number').text(game.board_number);
+            top_label.find('.team-name').text(game.black_team.name);
+            top_label.find('.team-score').text(game.black_team.score.toFixed(1));
+            top_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/');
           }
           
 
-          let bottom_label = null;
-          $parent.find('.bottom-label')
-                 .text(data.players.white.userId + ' (' + data.players.white.rating + ')')
-                 .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.white.userId + '/"></a>');
+          let bottom_label = $parent.find('.bottom-label');
+          bottom_label.find('.player-div').show();
+          bottom_label.find('.player-name').text(data.players.white.userId);
+          bottom_label.find('.player-rating').text(data.players.white.rating);
+          bottom_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + data.players.white.userId + '/');
           if (game.white_team) {
-            $parent.find('.bottom-team-label')
-                   .text('Board ' + game.board_number + ' - ' + game.white_team.name + ' (' + game.white_team.score.toFixed(1) + ')')
-                   .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/"></a>');
+            bottom_label.find('.team-div').show();
+            bottom_label.find('.board-number').text(game.board_number);
+            bottom_label.find('.team-name').text(game.white_team.name);
+            bottom_label.find('.team-score').text(game.white_team.score.toFixed(1));
+            bottom_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/');
           }
         }
 

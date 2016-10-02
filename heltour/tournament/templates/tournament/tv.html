@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
 <link rel="stylesheet" href="{% static 'lib/css/BootstrapXL.css' %}">
-<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'tournament/css/tv.css' %}?v=4">
 {% endblock %}
 
 {% block head_js %}
@@ -52,15 +52,31 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 				<div id="game-template" style="display:none">
 			        <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12 col-xs-12 text-center game-col">
 			            <section>
-			                <div class="gameLabel">
-			                	<div class="top-team-label"></div>
-			                	<div class="top-label"></div>
+			                <div class="gameLabel top-label">
+			                	<div class="team-div" style="display:none">
+			                		<a class="team-link">
+			                			Board <span class="board-number"></span> - <span class="team-name"></span> (<span class="team-score"></span>)
+		                			</a>
+			                	</div>
+			                	<div class="player-div" style="display:none">
+			                		<a class="player-link">
+			                			<span class="player-name"></span> (<span class="player-rating"></span>)
+			                		</a>
+		                		</div>
 			                </div>
 			                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett">
 			                </div>
-			                <div class="gameLabel">
-			                	<div class="bottom-team-label"></div>
-			                	<div class="bottom-label"></div>
+			                <div class="gameLabel bottom-label">
+			                	<div class="team-div" style="display:none">
+			                		<a class="team-link">
+			                			Board <span class="board-number"></span> - <span class="team-name"></span> (<span class="team-score"></span>)
+			                		</a>
+		                		</div>
+			                	<div class="player-div" style="display:none">
+			                		<a class="player-link">
+			                			<span class="player-name"></span> (<span class="player-rating"></span>)
+			                		</a>
+		                		</div>
 			                </div>
 			            </section>
 			        </div>
