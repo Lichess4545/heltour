@@ -1102,12 +1102,12 @@ def _tv_json(league, board=None, team=None):
                 'white_team': {
                     'name': game.teamplayerpairing.white_team_name(),
                     'number': game.teamplayerpairing.white_team().number,
-                    'score': game.teamplayerpairing.team_pairing.white_points,
+                    'score': game.teamplayerpairing.white_team_match_score(),
                 },
                 'black_team': {
                     'name': game.teamplayerpairing.black_team_name(),
                     'number': game.teamplayerpairing.black_team().number,
-                    'score': game.teamplayerpairing.team_pairing.black_points,
+                    'score': game.teamplayerpairing.black_team_match_score(),
                 },
                 'board_number': game.teamplayerpairing.board_number,
                 'matches_filter': (league is None or league == game.teamplayerpairing.team_pairing.round.season.league) and

@@ -952,6 +952,12 @@ class TeamPlayerPairing(PlayerPairing):
     def black_team_score(self):
         return self.black_score() if self.board_number % 2 == 1 else self.white_score()
 
+    def white_team_match_score(self):
+        return self.team_pairing.white_points if self.board_number % 2 == 1 else self.team_pairing.black_points
+
+    def black_team_match_score(self):
+        return self.team_pairing.black_points if self.board_number % 2 == 1 else self.team_pairing.white_points
+
     def white_team_name(self):
         return "%s" % self.white_team().name
 
