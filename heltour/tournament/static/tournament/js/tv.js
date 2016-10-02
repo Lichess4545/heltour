@@ -96,20 +96,22 @@
           $parent.find('.top-label')
                  .text(data.players.black.userId + ' (' + data.players.black.rating + ')')
                  .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.black.userId + '/"></a>');
-          if (game.black_team)
+          if (game.black_team) {
             $parent.find('.top-team-label')
-                   .text(game.black_team.name + ' (Board ' + game.board_number + ')')
+                   .text('Board ' + game.board_number + ' - ' + game.black_team.name + ' (' + game.black_team.score.toFixed(1) + ')')
                    .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/"></a>');
+          }
           
 
           let bottom_label = null;
           $parent.find('.bottom-label')
                  .text(data.players.white.userId + ' (' + data.players.white.rating + ')')
                  .wrap('<a href="/' + game.league + '/season/' + game.season + '/player/' + data.players.white.userId + '/"></a>');
-          if (game.white_team)
+          if (game.white_team) {
             $parent.find('.bottom-team-label')
-                   .text(game.white_team.name + ' (Board ' + game.board_number + ')')
+                   .text('Board ' + game.board_number + ' - ' + game.white_team.name + ' (' + game.white_team.score.toFixed(1) + ')')
                    .wrap('<a href="/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/"></a>');
+          }
         }
 
         if (data.moves) {
