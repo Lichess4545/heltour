@@ -5,7 +5,7 @@ from django.core.cache import cache
 
 from heltour import settings
 
-def _apicall(url, check_interval=0.1, timeout=120):
+def _apicall(url, timeout=120, check_interval=0.1):
     # Make a request to the local API worker to put the result of a lichess API call into the redis cache
     r = requests.get(url)
     if r.status_code != 200:
@@ -27,20 +27,20 @@ def _apicall(url, check_interval=0.1, timeout=120):
         if time_spent >= timeout:
             raise ApiWorkerError('Timeout for %s' % url)
 
-def get_user_classical_rating_and_games_played(lichess_username, priority=0, max_retries=3):
+def get_user_classical_rating_and_games_played(lichess_username, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_username, priority, max_retries)
-    result = _apicall(url)
+    result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
     user_info = json.loads(result)
     classical = user_info['perfs']['classical']
     return (classical['rating'], classical['games'])
 
-def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3):
+def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3, timeout=120):
     page = 1
     while True:
         url = '%s/lichessapi/api/user?team=%s&nb=100&page=%s&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_team_name, page, priority, max_retries)
-        result = _apicall(url)
+        result = _apicall(url, timeout)
         if result == '':
             break
         paginator = json.loads(result)['paginator']
@@ -53,20 +53,20 @@ def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority
         if page > paginator['nbPages']:
             break
 
-def get_pgn_with_cache(gameid, priority=0, max_retries=3):
+def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=120):
     result = cache.get('pgn_%s' % gameid)
     if result is not None:
         return result
     url = '%s/lichessapi/game/export/%s.pgn?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, gameid, priority, max_retries)
-    result = _apicall(url)
+    result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
     cache.set('pgn_%s' % gameid, result, 60 * 60 * 24) # Cache the PGN for 24 hours
     return result
 
-def get_game_meta(gameid, priority=0, max_retries=3):
+def get_game_meta(gameid, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/game/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, gameid, priority, max_retries)
-    result = _apicall(url)
+    result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
     return json.loads(result)

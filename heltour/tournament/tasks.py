@@ -15,7 +15,7 @@ def update_player_ratings(self):
 
     # Query players from the bulk user endpoint based on our lichess teams
     for team_name in lichess_teams:
-        for username, rating, games_played in lichessapi.enumerate_user_classical_rating_and_games_played(team_name, 0):
+        for username, rating, games_played in lichessapi.enumerate_user_classical_rating_and_games_played(team_name, priority=0, timeout=300):
             # Remove the player from the dict
             p = player_dict.pop(username, None)
             if p is not None:
@@ -25,7 +25,7 @@ def update_player_ratings(self):
     # Any players not found above will be queried individually
     for username, p in player_dict.items():
         try:
-            p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, 0)
+            p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, priority=0, timeout=300)
             p.save()
         except Exception as e:
             logger.warning('Error getting rating for %s: %s' % (username, e))
@@ -40,7 +40,7 @@ def update_tv_state(self):
         gameid = get_gameid_from_gamelink(game.game_link)
         if gameid is not None:
             try:
-                meta = lichessapi.get_game_meta(gameid, priority=1)
+                meta = lichessapi.get_game_meta(gameid, priority=1, timeout=300)
                 if 'status' not in meta or meta['status'] != 'started':
                     game.tv_state = 'hide'
                     game.save()
