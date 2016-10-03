@@ -1006,7 +1006,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
 class RegistrationAdmin(VersionAdmin):
     list_display = ('review', 'email', 'status', 'season')
     list_display_links = ()
-    search_fields = ('lichess_username', 'season__name')
+    search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
 
     def changelist_view(self, request, extra_context=None):
