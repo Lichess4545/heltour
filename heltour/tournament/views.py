@@ -928,6 +928,7 @@ class PlayerProfileView(LeagueView):
             'team_member': team_member,
             'alternate': alternate,
             'schedule': schedule,
+            'can_edit': self.request.user.has_perm('tournament.change_season_player'),
         }
         return self.render('tournament/player_profile.html', context)
 
