@@ -102,9 +102,14 @@ def _generate_lone_pairings(round_, overwrite=False):
                 sp.save()
         season_players = sorted(season_players, key=lambda sp: sp.get_loneplayerscore().pairing_sort_key(), reverse=True)
 
-        # Exclude players with byes
+        # Create byes for unavailable players
         current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_)}
-        season_players = [sp for sp in season_players if sp.player not in current_byes]
+        unavailable_players = {avail.player for avail in PlayerAvailability.objects.filter(round=round_, is_available=False)}
+        for p in unavailable_players - current_byes:
+            PlayerBye.objects.create(round=round_, player=p, type='half-point-bye')
+
+        # Exclude players with byes
+        season_players = [sp for sp in season_players if sp.player not in current_byes and sp.player not in unavailable_players]
 
         previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
         previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
