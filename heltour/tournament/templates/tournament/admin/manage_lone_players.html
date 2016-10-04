@@ -141,6 +141,7 @@
 		        </td>
 			</tr>
 			{% endfor %}
+			{% if not round_.publish_pairings %}
 			{% for avail in unavailables %}
 			<tr class="action-bye">
 				<td>Unavailable</td>
@@ -152,6 +153,7 @@
 				<td></td>
 			</tr>
 			{% endfor %}
+			{% endif %}
 			<tr>
 				<td colspan="6">
 					<a href="{% url 'admin:tournament_playerlateregistration_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerlateregistration" class="inline-create-link popup-link" title="Add player late registration">
