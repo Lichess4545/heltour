@@ -650,9 +650,20 @@ class SeasonAdmin(VersionAdmin):
         active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
         inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
 
+        def get_data(r):
+            regs = r.playerlateregistration_set.order_by('player__lichess_username')
+            wds = r.playerwithdrawl_set.order_by('player__lichess_username')
+            byes = r.playerbye_set.order_by('player__lichess_username')
+            unavailables = r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username')
+
+            # Don't show "unavailable" for players that already have a bye
+            players_with_byes = {b.player for b in byes}
+            unavailables = [u for u in unavailables if u.player not in players_with_byes]
+
+            return r, regs, wds, byes, unavailables
+
         rounds = Round.objects.filter(season=season, is_completed=False).order_by('number')
-        round_data = [(r, r.playerlateregistration_set.order_by('player__lichess_username'), r.playerwithdrawl_set.order_by('player__lichess_username'),
-                  r.playerbye_set.order_by('player__lichess_username')) for r in rounds]
+        round_data = [get_data(r) for r in rounds]
 
         context = {
             'has_permission': True,
