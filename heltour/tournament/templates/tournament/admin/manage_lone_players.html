@@ -145,10 +145,8 @@
 			<tr class="action-bye">
 				<td>Unavailable</td>
 				<td>{{ avail.player }}</td>
-				<td colspan="2">
-					<a href="{% url 'admin:tournament_playerbye_add' %}?_popup=1&round={{ round_.pk }}&player={{ avail.player.pk }}&type=half-point-bye" id="add-playerbye" class="inline-create-link popup-link" title="Add player bye">
-			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Bye
-			        </a>
+				<td colspan="4">
+					Will create half-point bye
 				</td>
 				<td></td>
 				<td></td>
