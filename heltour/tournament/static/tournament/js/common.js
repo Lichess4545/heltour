@@ -24,3 +24,8 @@ $(function() {
 	window.dismissChangeRelatedObjectPopup = dismissRelatedObjectPopup;
 	window.dismissDeleteRelatedObjectPopup = dismissRelatedObjectPopup;
 });
+
+if ($('.cbreplay').length > 0) {
+	document.write('<link rel="stylesheet" type="text/css" href="https://pgn.chessbase.com/CBReplay.css">');
+	document.write('<script src="https://pgn.chessbase.com/cbreplay.js" type="text/javascript"></script>');
+}
