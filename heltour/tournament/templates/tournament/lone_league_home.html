@@ -57,15 +57,21 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			<div class="well-body text-center">
 				<div id="game-template" style="display:none">
 		            <section>
-		                <div class="gameLabel">
-		                	<div class="top-team-label"></div>
-		                	<div class="top-label"></div>
+		                <div class="gameLabel top-label">
+		                	<div class="player-div" style="display:none">
+		                		<a class="player-link">
+		                			<span class="player-name"></span> (<span class="player-rating"></span>)
+		                		</a>
+	                		</div>
 		                </div>
 		                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett">
 		                </div>
-		                <div class="gameLabel">
-		                	<div class="bottom-team-label"></div>
-		                	<div class="bottom-label"></div>
+		                <div class="gameLabel bottom-label">
+		                	<div class="player-div" style="display:none">
+		                		<a class="player-link">
+		                			<span class="player-name"></span> (<span class="player-rating"></span>)
+		                		</a>
+	                		</div>
 		                </div>
 		            </section>
 	        	</div>
