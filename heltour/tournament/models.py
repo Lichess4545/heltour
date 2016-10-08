@@ -533,6 +533,7 @@ class PlayerBye(_BaseModel):
     player = models.ForeignKey(Player)
     type = models.CharField(max_length=31, choices=BYE_TYPE_OPTIONS)
     player_rank = models.PositiveIntegerField(blank=True, null=True)
+    player_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         unique_together = ('round', 'player')
@@ -542,6 +543,12 @@ class PlayerBye(_BaseModel):
         self.initial_round_id = self.round_id
         self.initial_player_id = self.player_id
         self.initial_type = self.type
+
+    def player_rating_display(self):
+        if self.player_rating is not None:
+            return self.player_rating
+        else:
+            return self.player.rating
 
     def refresh_rank(self, rank_dict=None):
         if rank_dict == None:
@@ -568,6 +575,8 @@ class PlayerBye(_BaseModel):
                 self.refresh_rank()
             else:
                 self.player_rank = None
+        if player_changed:
+            self.player_rating = None
         super(PlayerBye, self).save(*args, **kwargs)
         if (round_changed or player_changed or type_changed) and self.round.is_completed:
             self.round.season.calculate_scores()
@@ -629,8 +638,26 @@ class TeamMember(_BaseModel):
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
 
+    player_rating = models.PositiveIntegerField(null=True, blank=True)
+
     class Meta:
         unique_together = ('team', 'board_number')
+
+    def __init__(self, *args, **kwargs):
+        super(TeamMember, self).__init__(*args, **kwargs)
+        self.initial_player_id = self.player_id
+
+    def player_rating_display(self):
+        if self.player_rating is not None:
+            return self.player_rating
+        else:
+            return self.player.rating
+
+    def save(self, *args, **kwargs):
+        player_changed = self.pk is None or self.player_id != self.initial_player_id
+        if player_changed:
+            self.player_rating = None
+        super(TeamMember, self).save(*args, **kwargs)
 
     def clean(self):
         if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
@@ -829,6 +856,8 @@ TV_STATE_OPTIONS = (
 class PlayerPairing(_BaseModel):
     white = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_white")
     black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
+    white_rating = models.PositiveIntegerField(blank=True, null=True)
+    black_rating = models.PositiveIntegerField(blank=True, null=True)
 
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
@@ -843,6 +872,22 @@ class PlayerPairing(_BaseModel):
         self.initial_white_id = self.white_id
         self.initial_black_id = self.black_id
         self.initial_game_link = self.game_link
+
+    def white_rating_display(self):
+        if self.white_rating is not None:
+            return self.white_rating
+        elif self.white is not None:
+            return self.white.rating
+        else:
+            return None
+
+    def black_rating_display(self):
+        if self.black_rating is not None:
+            return self.black_rating
+        elif self.black is not None:
+            return self.black.rating
+        else:
+            return None
 
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F':
@@ -887,6 +932,9 @@ class PlayerPairing(_BaseModel):
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
+        if white_changed or black_changed or game_link_changed:
+            self.white_rating = None
+            self.black_rating = None
 
         super(PlayerPairing, self).save(*args, **kwargs)
 
@@ -1045,16 +1093,27 @@ class SeasonPlayer(_BaseModel):
     games_missed = models.PositiveIntegerField(default=0)
     unresponsive = models.BooleanField(default=False)
     seed_rating = models.PositiveIntegerField(blank=True, null=True)
+    final_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         unique_together = ('season', 'player')
 
     def __init__(self, *args, **kwargs):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
-        self.initial_unresponsive = self.unresponsive
+        self.initial_player_id = self.player_id
+
+    def player_rating_display(self):
+        if self.final_rating is not None:
+            return self.final_rating
+        else:
+            return self.player.rating
 
     def save(self, *args, **kwargs):
         unresponsive_changed = self.pk is None or self.unresponsive != self.initial_unresponsive
+        player_changed = self.pk is None or self.player_id != self.initial_player_id
+
+        if player_changed:
+            self.player_rating = None
 
         if unresponsive_changed and self.unresponsive and hasattr(self, 'alternate'):
             alt = self.alternate
@@ -1201,6 +1260,24 @@ class Alternate(_BaseModel):
     season_player = models.OneToOneField(SeasonPlayer)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     priority_date_override = models.DateTimeField(null=True, blank=True)
+
+    player_rating = models.PositiveIntegerField(null=True, blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super(Alternate, self).__init__(*args, **kwargs)
+        self.initial_season_player_id = self.season_player_id
+
+    def player_rating_display(self):
+        if self.player_rating is not None:
+            return self.player_rating
+        else:
+            return self.season_player.player.rating
+
+    def save(self, *args, **kwargs):
+        season_player_changed = self.pk is None or self.season_player_id != self.initial_season_player_id
+        if season_player_changed:
+            self.player_rating = None
+        super(Alternate, self).save(*args, **kwargs)
 
     def update_board_number(self):
         season = self.season_player.season

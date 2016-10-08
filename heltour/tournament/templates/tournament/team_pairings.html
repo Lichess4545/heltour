@@ -85,7 +85,7 @@
 							{% if pairing.white %}
 								<div class="pairing-player{% if pairing.white in captains %} captain{% endif %}{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
+									{{ pairing.white.lichess_username }}{% if pairing.white_rating_display %} <span class="visible-xs"></span> ({{ pairing.white_rating_display }}){% endif %}
 								</a>
 							</div>
 							{% endif %}
@@ -94,7 +94,7 @@
 							{% if pairing.black %}
 							<div class="pairing-player{% if pairing.black in captains %} captain{% endif %}{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
+									{{ pairing.black.lichess_username }}{% if pairing.black_rating_display %} <span class="visible-xs"></span> ({{ pairing.black_rating_display }}){% endif %}
 								</a>
 							</div>
 							{% endif %}

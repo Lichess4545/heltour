@@ -877,6 +877,7 @@ class PlayerByeAdmin(VersionAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
+    exclude = ('player_rating',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -913,6 +914,7 @@ class TeamMemberInline(admin.TabularInline):
     extra = 0
     ordering = ('board_number',)
     raw_id_fields = ('player',)
+    exclude = ('player_rating',)
 
 #-------------------------------------------------------------------------------
 @admin.register(Team)
@@ -939,6 +941,7 @@ class TeamMemberAdmin(VersionAdmin):
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
+    exclude = ('player_rating',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -957,6 +960,7 @@ class AlternateAdmin(VersionAdmin):
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
     raw_id_fields = ('season_player',)
+    exclude = ('player_rating',)
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
@@ -991,6 +995,7 @@ class PlayerPairingAdmin(VersionAdmin):
     list_display = ('__unicode__', 'scheduled_time')
     search_fields = ('white__lichess_username', 'black__lichess_username')
     raw_id_fields = ('white', 'black')
+    exclude = ('white_rating', 'black_rating', 'tv_state')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------

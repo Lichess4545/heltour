@@ -19,7 +19,9 @@
 						<td><span class="hidden-xs">Board {{ n }}:</span><span class="visible-xs">Bd {{ n }}</span></td>
 						<td{% if team_member.is_captain %} class="captain"{% endif %}>
 							{% if team_member %}
-							<a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">{{ team_member.player }}</a>
+							<a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
+								{{ team_member.player.lichess_username }}{% if team_member.player_rating_display %} ({{ team_member.player_rating_display }}){% endif %}
+							</a>
 							{% endif %}
 						</td>
 					</tr>
@@ -33,10 +35,12 @@
 				<div class="player-profile-section">
 					<strong>Previous Members/Alternates</strong>
 					<table>
-					{% for player, game_count in prev_members %}
+					{% for player, rating_display, game_count in prev_members %}
 					<tr>
 						<td>
-							<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">{{ player }}</a>
+							<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
+								{{ player.lichess_username }}{% if rating_display %} ({{ rating_display }}){% endif %}
+							</a>
 						</td>
 						<td>{% if game_count == 1 %}1 game{% else %}{{ game_count }} games{% endif %}</td>
 					</tr>

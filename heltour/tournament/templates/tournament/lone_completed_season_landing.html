@@ -128,12 +128,12 @@
 							{% with player_score.season_player.player as player %}
 							<tr>
 								<td class="text-center rank-value">{{ number }}</td>
-								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
+								<td class="{% highlightclass player_highlights player %}">
+									<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
 										{{ player.lichess_username }}
 									</a>
 								</td>
-								<td class="text-center">{{ player.rating }}</td>
+								<td class="text-center">{{ player_score.season_player.player_rating_display }}</td>
 								{% for result_code, opponent_num, _, _ in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}

@@ -55,7 +55,7 @@
 						<td>
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} <span class="visible-xs"></span> ({{ pairing.white.rating }}){% endif %}
+									{{ pairing.white.lichess_username }}{% if pairing.white_rating_display %} <span class="visible-xs"></span> ({{ pairing.white_rating_display }}){% endif %}
 								</a>
 							</div>
 						</td>
@@ -63,7 +63,7 @@
 						<td>
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} <span class="visible-xs"></span> ({{ pairing.black.rating }}){% endif %}
+									{{ pairing.black.lichess_username }}{% if pairing.black_rating_display %} <span class="visible-xs"></span> ({{ pairing.black_rating_display }}){% endif %}
 								</a>
 							</div>
 						</td>
@@ -96,7 +96,7 @@
 						<td>
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag bye.player.lichess_username %}">
-									{{ bye.player.lichess_username }}{% if bye.player.rating %} <span class="visible-xs"></span> ({{ bye.player.rating }}){% endif %}
+									{{ bye.player.lichess_username }}{% if bye.player_rating_display %} <span class="visible-xs"></span> ({{ bye.player_rating_display }}){% endif %}
 								</a>
 							</div>
 						</td>

@@ -44,7 +44,7 @@
 									{{ player_score.season_player.player.lichess_username }}
 								</a>
 							</td>
-							<td class="text-center">{{ player_score.season_player.player.rating }}</td>
+							<td class="text-center">{{ player_score.season_player.player_rating_display }}</td>
 							<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
 							<td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
 						</tr>
@@ -100,7 +100,7 @@
 							</td>
 							<td>
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-									{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
+									{{ pairing.white.lichess_username }}{% if pairing.white_rating_display %} ({{ pairing.white_rating_display }}){% endif %}
 								</a>
 							</td>
 							<td class="cell-score {% if pairing.black_score == 1 %}cell-win{% elif pairing.black_score == 0 %}cell-loss{% elif pairing.black_score == 0.5 %}cell-tie{% endif %}">
@@ -112,7 +112,7 @@
 							</td>
 							<td>
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-									{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
+									{{ pairing.black.lichess_username }}{% if pairing.black_rating_display %} ({{ pairing.black_rating_display }}){% endif %}
 								</a>
 							</td>
 						</tr>

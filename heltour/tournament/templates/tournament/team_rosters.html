@@ -48,7 +48,7 @@
 										{% if board.player %}<a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>{% endif %}
 									</span>
 								</td>
-								<td class="cell-rating">{{ board.player.rating|default_if_none:"" }}</td>
+								<td class="cell-rating">{{ board.player_rating_display|default_if_none:"" }}</td>
 								{% endfor %}
 								<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>
 							</tr>
@@ -84,7 +84,7 @@
 									</span>
 									{% endif %}
 								</td>
-								<td class="cell-rating">{{ alt.season_player.player.rating|default_if_none:"" }}</td>
+								<td class="cell-rating">{{ alt.player_rating_display|default_if_none:"" }}</td>
 								{% endfor %}
 								<td>&nbsp;</td>
 							</tr>
