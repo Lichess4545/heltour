@@ -887,7 +887,9 @@ class PlayerProfileView(LeagueView):
 
         schedule = []
         for round_ in self.season.round_set.filter(is_completed=False).order_by('number'):
-            if self.season.league.competitor_type == 'team':
+            if not round_.publish_pairings:
+                pairing = None
+            elif self.season.league.competitor_type == 'team':
                 pairing = pairings.filter(team_pairing__round=round_).first()
             else:
                 pairing = pairings.filter(round=round_).first()
