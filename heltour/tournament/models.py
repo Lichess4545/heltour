@@ -889,6 +889,22 @@ class PlayerPairing(_BaseModel):
         else:
             return None
 
+    def white_display(self):
+        if not self.white:
+            return '?'
+        if self.white_rating_display():
+            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display())
+        else:
+            return self.white
+
+    def black_display(self):
+        if not self.black:
+            return '?'
+        if self.black_rating_display():
+            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display())
+        else:
+            return self.black
+
     def white_score(self):
         if self.result == '1-0' or self.result == '1X-0F':
             return 1 if not self.colors_reversed else 0
@@ -929,7 +945,7 @@ class PlayerPairing(_BaseModel):
         return None
 
     def __unicode__(self):
-        return "%s - %s" % (self.white, self.black)
+        return "%s - %s" % (self.white_display(), self.black_display())
 
     def save(self, *args, **kwargs):
         result_changed = self.pk is None or self.result != self.initial_result
