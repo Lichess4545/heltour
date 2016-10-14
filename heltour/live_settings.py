@@ -179,6 +179,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=30),
         'args': ()
     },
+    'populate-historical-ratings': {
+        'task': 'heltour.tournament.tasks.populate_historical_ratings',
+        'schedule': timedelta(minutes=30),
+        'args': ()
+    },
 }
 
 CELERY_TIMEZONE = 'UTC'

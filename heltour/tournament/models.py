@@ -921,6 +921,13 @@ class PlayerPairing(_BaseModel):
     def game_id(self):
         return get_gameid_from_gamelink(self.game_link)
 
+    def get_round(self):
+        if hasattr(self, 'teamplayerpairing'):
+            return self.teamplayerpairing.team_pairing.round
+        if hasattr(self, 'loneplayerpairing'):
+            return self.loneplayerpairing.round
+        return None
+
     def __unicode__(self):
         return "%s - %s" % (self.white, self.black)
 
