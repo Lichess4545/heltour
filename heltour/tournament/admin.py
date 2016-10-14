@@ -25,6 +25,7 @@ from django.http.response import HttpResponse
 from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
+from django.utils.html import format_html
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -992,30 +993,45 @@ class TeamPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'scheduled_time')
-    search_fields = ('white__lichess_username', 'black__lichess_username')
+    list_display = ('__unicode__', 'scheduled_time', 'game_link_url')
+    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
     exclude = ('white_rating', 'black_rating', 'tv_state')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
+    def game_link_url(self, obj):
+        if not obj.game_link:
+            return ''
+        return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
+
 #-------------------------------------------------------------------------------
 @admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'team_pairing', 'board_number')
+    list_display = ('__unicode__', 'team_pairing', 'board_number', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username',
-                     'team_pairing__white_team__name', 'team_pairing__black_team__name')
+                     'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
+    def game_link_url(self, obj):
+        if not obj.game_link:
+            return ''
+        return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
+
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'round')
-    search_fields = ('white__lichess_username', 'black__lichess_username')
+    list_display = ('__unicode__', 'round', 'game_link')
+    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link_url')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+    def game_link_url(self, obj):
+        if not obj.game_link:
+            return ''
+        return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
 
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
