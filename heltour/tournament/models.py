@@ -1123,6 +1123,7 @@ class SeasonPlayer(_BaseModel):
 
     def __init__(self, *args, **kwargs):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
+        self.initial_unresponsive = self.unresponsive
         self.initial_player_id = self.player_id
 
     def player_rating_display(self):
