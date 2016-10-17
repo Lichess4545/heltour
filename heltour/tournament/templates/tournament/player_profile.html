@@ -103,6 +103,11 @@
 					</table>
 				</div>
 				{% endif %}
+				{% if season_perf_rating %}
+				<div class="player-profile-section">
+					<strong>Perf rating:</strong> {{ season_perf_rating }}
+				</div>
+				{% endif %}
 				{% if schedule %}
 				<div class="player-profile-section">
 					<strong>Schedule</strong>

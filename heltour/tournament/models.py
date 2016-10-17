@@ -339,10 +339,7 @@ class Season(_BaseModel):
                 # Performance rating
                 if score_state.perf_n >= 5:
                     average_opp_rating = int(round(score_state.perf_total_rating / float(score_state.perf_n)))
-                    # Turn the score into a number from 0-100 (0 = 0%, 100 = 100%)
-                    lookup_index = max(min(int(round(100.0 * score_state.perf_score / score_state.perf_n)), 100), 0)
-                    # Use that number to get a rating difference from the FIDE lookup table
-                    dp = fide_dp_lookup[lookup_index]
+                    dp = get_fide_dp(score_state.perf_score, score_state.perf_n)
                     score.perf_rating = average_opp_rating + dp
                 else:
                     score.perf_rating = None
@@ -376,6 +373,12 @@ fide_dp_lookup = [-800, -677, -589, -538, -501, -470, -444, -422, -401, -383, -3
                    - 65, -57, -50, -43, -36, -29, -21, -14, -7, 0, 7, 14, 21, 29, 36, 43, 50, 57, 65, 72, 80, 87, 95, 102, 110, 117, 125, 133,
                    141, 149, 158, 166, 175, 184, 193, 202, 211, 220, 230, 240, 251, 262, 273, 284, 296, 309, 322, 336, 351, 366, 383, 401,
                    422, 444, 470, 501, 538, 589, 677, 800]
+
+def get_fide_dp(score, total):
+    # Turn the score into a number from 0-100 (0 = 0%, 100 = 100%)
+    lookup_index = max(min(int(round(100.0 * score / total)), 100), 0)
+    # Use that number to get a rating difference from the FIDE lookup table
+    return fide_dp_lookup[lookup_index]
 
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):

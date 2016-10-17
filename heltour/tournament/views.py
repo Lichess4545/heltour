@@ -882,6 +882,28 @@ class PlayerProfileView(LeagueView):
             pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
             games = [(p.round, p, None) for p in pairings.filter(round__season=self.season).exclude(result='').order_by('round__number').nocache()]
 
+        # Calculate performance rating
+        perf_n = 0
+        perf_total_rating = 0.0
+        perf_score = 0.0
+        if games:
+            for round_, p, team in games:
+                # Add pairing to performance calculation
+                if p.game_played() and p.white is not None and p.black is not None:
+                    perf_n += 1
+                    sp = SeasonPlayer.objects.filter(season=self.season, player=p.black if p.white == player else p.white).first()
+                    if sp is not None and sp.seed_rating is not None:
+                        perf_total_rating += sp.seed_rating
+                    else:
+                        perf_total_rating += p.black_rating_display() if p.white == player else p.white_rating_display()
+                    perf_score += p.white_score() if p.white == player else p.black_score()
+        if perf_n >= 5:
+            average_opp_rating = int(round(perf_total_rating / float(perf_n)))
+            dp = get_fide_dp(perf_score, perf_n)
+            season_perf_rating = average_opp_rating + dp
+        else:
+            season_perf_rating = None
+
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
         alternate = Alternate.objects.filter(season_player=season_player).first()
 
@@ -930,6 +952,7 @@ class PlayerProfileView(LeagueView):
             'team_member': team_member,
             'alternate': alternate,
             'schedule': schedule,
+            'season_perf_rating': season_perf_rating,
             'can_edit': self.request.user.has_perm('tournament.change_season_player'),
         }
         return self.render('tournament/player_profile.html', context)
