@@ -1223,7 +1223,7 @@ class LonePlayerScore(_BaseModel):
                     result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
             elif bye is not None:
                 score = bye.score()
-                result_type = 'H'
+                result_type = 'B' if score == 1 else 'H' if score == 0.5 else 'U'
             else:
                 score = 0
                 result_type = 'U'
