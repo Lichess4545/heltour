@@ -1258,10 +1258,10 @@ class LonePlayerScore(_BaseModel):
         return "%g" % self.tiebreak4
 
     def pairing_sort_key(self):
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player.rating)
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or self.season_player.player.rating)
 
     def final_standings_sort_key(self):
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player.rating)
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or self.season_player.player.rating)
 
     def __unicode__(self):
         return "%s" % (self.season_player)
