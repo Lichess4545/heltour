@@ -1167,9 +1167,9 @@ class RegistrationAdmin(VersionAdmin):
                                 # Late registration
                                 next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
                                 if next_round is not None:
-                                    PlayerLateRegistration.objects.create(round=next_round, player=player,
-                                                                          retroactive_byes=form.cleaned_data['retroactive_byes'],
-                                                                          late_join_points=form.cleaned_data['late_join_points'])
+                                    PlayerLateRegistration.objects.update_or_create(round=next_round, player=player,
+                                                                          defaults={'retroactive_byes': form.cleaned_data['retroactive_byes'],
+                                                                          'late_join_points': form.cleaned_data['late_join_points']})
 
                             subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
                             msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
