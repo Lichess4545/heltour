@@ -106,6 +106,10 @@ def _find_closest_rating(player, date, season):
 
     pairings_by_date = sorted([(pairing_date(p), p) for p in pairings])
     if len(pairings_by_date) == 0:
+        # Try to find the seed rating
+        sp = SeasonPlayer.objects.filter(season=season, player=player).first()
+        if sp is not None and sp.seed_rating is not None:
+            return sp.seed_rating
         # Default to current rating
         return player.rating
     pairings_by_date_lt = [p for p in pairings_by_date if p[0] <= date]
