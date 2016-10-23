@@ -428,12 +428,19 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             try:
                 worksheet = doc.worksheet('ROUND %d PAIRINGS' % round_.number)
             except WorksheetNotFound:
-                continue
+                numbers = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT']
+                try:
+                    worksheet = doc.worksheet('ROUND %s PAIRINGS' % numbers[round_.number])
+                except WorksheetNotFound:
+                    continue
             sheet = _trim_cells(worksheet.get_all_values())
             pairings = []
             pairing_rows = []
 
-            time_col = sheet[0].index('Game Scheduled (in GMT)')
+            try:
+                time_col = sheet[0].index('Game Scheduled (in GMT)')
+            except ValueError:
+                time_col = None
             white_col = sheet[0].index('White')
             white_rank_col = white_col - 1
             black_col = sheet[0].index('Black')
@@ -467,7 +474,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 result = sheet[row][result_col]
                 if result == u'\u2694':
                     result = ''
-                time_str = sheet[row][time_col]
+                time_str = sheet[row][time_col] if time_col is not None else ''
                 scheduled_time = None
                 if '/' in time_str:
                     scheduled_time = datetime.strptime(time_str, '%m/%d %H:%M')
