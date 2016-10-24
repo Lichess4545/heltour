@@ -512,6 +512,9 @@ class RostersView(SeasonView):
             scheduled_alternates = {assign.player for assign in AlternateAssignment.objects.filter(round=current_round)
                                                                                            .select_related('player')
                                                                                            .nocache()}
+            unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round=current_round, is_available=False) \
+                                                                                 .select_related('player')
+                                                                                 .nocache()}
             unresponsive_players = {sp.player for sp in SeasonPlayer.objects.filter(season=self.season, unresponsive=True)
                                                                             .select_related('player')
                                                                             .nocache()}
@@ -522,7 +525,7 @@ class RostersView(SeasonView):
             red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
 
             # Show the legend if we have any data that might need it
-            show_legend = len(scheduled_alternates | unresponsive_players | yellow_card_players | red_card_players) > 0
+            show_legend = len(scheduled_alternates | unavailable_players | unresponsive_players | yellow_card_players | red_card_players) > 0
 
             context = {
                 'teams': teams,
@@ -530,6 +533,7 @@ class RostersView(SeasonView):
                 'alternate_rows': alternate_rows,
                 'scheduled_alternates': scheduled_alternates,
                 'unresponsive_players': unresponsive_players,
+                'unavailable_players': unavailable_players,
                 'yellow_card_players': yellow_card_players,
                 'red_card_players': red_card_players,
                 'show_legend': show_legend,

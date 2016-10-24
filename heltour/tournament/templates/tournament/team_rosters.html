@@ -42,6 +42,7 @@
 								{% for board_number, board in team.boards %}
 								<td class="cell-player{% if board.is_captain %} captain{% endif %}" colspan="2">
 									<span class="player-name{% if board.player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									                           {% elif board.player in unavailable_players %} player-unavailable" title="unavailable"
 									                           {% elif board.player in yellow_card_players %} player-yellow-card" title="1 game missed"
 									                           {% elif board.player in red_card_players %} player-red-card" title="2+ games missed"
 									                           {% else %}"{% endif %}>
@@ -76,6 +77,7 @@
 									{% endif %}
 									{% else %}
 									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									                           {% elif alt.season_player.player in unavailable_players %} player-unavailable" title="unavailable"
 									                           {% elif alt.season_player.player in scheduled_alternates %} player-scheduled" title="scheduled"
 									                           {% elif alt.season_player.player in yellow_card_players %} player-yellow-card" title="1 game missed"
 									                           {% elif alt.season_player.player in red_card_players %} player-red-card" title="2+ games missed"
@@ -96,6 +98,8 @@
 						<tr>
 							<td class="legend-swatch player-scheduled"></td>
 							<td class="legend-label">Scheduled</td>
+							<td class="legend-swatch player-unavailable"></td>
+							<td class="legend-label">Unavailable</td>
 							<td class="legend-swatch player-unresponsive"></td>
 							<td class="legend-label">Unresponsive</td>
 							<td class="legend-swatch player-yellow-card"></td>
