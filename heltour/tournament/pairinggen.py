@@ -95,7 +95,7 @@ def _generate_lone_pairings(round_, overwrite=False):
             wd.perform_withdrawl()
 
         # Sort by seed rating/score
-        season_players = SeasonPlayer.objects.filter(season=round_.season, is_active=True).select_related('player', 'loneplayerscore').nocache()
+        season_players = SeasonPlayer.objects.filter(season=round_.season).select_related('player', 'loneplayerscore').nocache()
         for sp in season_players:
             if sp.seed_rating is None:
                 sp.seed_rating = sp.player.rating
@@ -109,14 +109,14 @@ def _generate_lone_pairings(round_, overwrite=False):
             PlayerBye.objects.create(round=round_, player=p, type='half-point-bye')
 
         # Exclude players with byes
-        season_players = [sp for sp in season_players if sp.player not in current_byes and sp.player not in unavailable_players]
+        current_players = {sp for sp in season_players if sp.is_active and sp.player not in current_byes and sp.player not in unavailable_players}
 
         previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
         previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
 
         # Run the pairing algorithm
         pairing_system = DutchLonePairingSystem()
-        lone_pairings, byes = pairing_system.create_lone_pairings(round_, season_players, previous_pairings, previous_byes)
+        lone_pairings, byes = pairing_system.create_lone_pairings(round_, season_players, current_players, previous_pairings, previous_byes)
 
         # Save the lone pairings
         rank_dict = lone_player_pairing_rank_dict(round_.season)
@@ -183,13 +183,14 @@ class DutchTeamPairingSystem:
                 yield JavafoPairing(p.white_team, 'black', 1.0 if p.black_points > p.white_points else 0.5 if p.white_points == p.black_points else 0)
 
 class DutchLonePairingSystem:
-    def create_lone_pairings(self, round_, season_players, previous_pairings, previous_byes):
+    def create_lone_pairings(self, round_, season_players, current_players, previous_pairings, previous_byes):
         # Note: Assumes season_players is sorted by seed and previous_pairings/previous_byes are sorted by round
 
         players = [
             JavafoPlayer(
                          sp.player, sp.get_loneplayerscore().pairing_points(),
-                         list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points))
+                         list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points)),
+                         sp in current_players
             ) for sp in season_players
         ]
         javafo = JavafoInstance(round_.season.rounds, players)
@@ -228,10 +229,11 @@ class DutchLonePairingSystem:
                 yield JavafoPairing(None, None, None, forfeit=True)
 
 class JavafoPlayer:
-    def __init__(self, player, score, pairings):
+    def __init__(self, player, score, pairings, include=True):
         self.player = player
         self.score = score
         self.pairings = pairings
+        self.include = include
 
 class JavafoPairing:
     def __init__(self, opponent, color, score, forfeit=False):
@@ -281,6 +283,8 @@ class JavafoInstance:
                     if score == ' ':
                         color = '-'
                     line += '{0: >6} {1} {2}'.format(opponent_num, color, score)
+                if not player.include:
+                    line += '{0: >6} {1} {2}'.format('0000', '-', '-')
                 line += '\n'
                 input_file.write(line)
             input_file.flush()
