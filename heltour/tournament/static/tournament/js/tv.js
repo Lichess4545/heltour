@@ -312,3 +312,16 @@
   		location.hash = hashParts.join('&') || '_';
   	}
   }
+
+  $(function() {
+	  $('body').on('click', '.btn-flip-board', function(e) {
+		  e.preventDefault();
+		  e.stopPropagation();
+		  var $c = $(this).closest('.game-container');
+		  var id = $c.data('id');
+		  var cg = chessGrounds[id];
+		  cg.toggleOrientation();
+		  $(this).closest('.dropdown').removeClass('open');
+	  });
+  });
+ 

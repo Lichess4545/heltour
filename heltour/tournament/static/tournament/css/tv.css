@@ -26,6 +26,44 @@ section .gameLabel .team-name {
 	vertical-align: top;
 }
 
+.tv-game-menu {
+	visibility: hidden;
+    opacity: 0;
+  	transition: visibility 0s 0.5s, opacity 0.5s linear;
+  	
+	float: right;
+	margin-right: -24px;
+	margin-top: -1px;
+	width: 24px;
+	height: 24px;
+  	background: #f3f3f3;
+  	border: 1px solid #ccc;
+}
+
+section:hover .tv-game-menu,
+.tv-game-menu.open {
+	visibility: visible;
+    opacity: 1;
+    transition: none;
+}
+
+@media (max-width: 767px) {
+	.tv-game-menu {
+		visibility: visible;
+	    opacity: 1;
+	    transition: none;
+	}	
+}
+
+.tv-game-menu > a {
+	color: #666;
+	display: block;
+	width: 24px;
+	height: 24px;
+	padding-right: 4px;
+	text-align: center;
+}
+
 .games-well > .well-body > :last-child {
 	margin-bottom: -17px;
 }
