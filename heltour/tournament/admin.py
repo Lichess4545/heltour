@@ -1022,8 +1022,8 @@ class TeamPlayerPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(VersionAdmin):
-    list_display = ('__unicode__', 'round', 'game_link')
-    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link_url')
+    list_display = ('__unicode__', 'round', 'game_link_url')
+    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
