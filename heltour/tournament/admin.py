@@ -1036,7 +1036,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(VersionAdmin):
-    list_display = ('review', 'email', 'status', 'season')
+    list_display = ('review', 'email', 'status', 'season', 'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
