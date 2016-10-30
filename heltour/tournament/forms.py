@@ -90,6 +90,11 @@ class RegistrationForm(forms.ModelForm):
         return registration
 
     def clean_weeks_unavailable(self):
+        upcoming_rounds = [r for r in self.season.round_set.order_by('number') if r.start_date > timezone.now()]
+        upcoming_rounds_available = [r for r in upcoming_rounds if str(r.number) not in self.cleaned_data['weeks_unavailable']]
+        upcoming_rounds_unavailable = [r for r in upcoming_rounds if str(r.number) in self.cleaned_data['weeks_unavailable']]
+        if len(upcoming_rounds_available) == 0 and len(upcoming_rounds_unavailable) > 0:
+            raise ValidationError('You can\'t mark yourself as unavailable for all upcoming rounds.')
         return ','.join(self.cleaned_data['weeks_unavailable'])
 
 
