@@ -23,7 +23,7 @@
 
     ws.onopen = function () {
       while(queue.length > 0) {
-        let message = queue.pop();
+        var message = queue.pop();
         ws.send(message);
       }
     }
@@ -36,7 +36,7 @@
       const m = JSON.parse(e.data);
 
       if(m.t === 'fen') {
-        let ground = chessGrounds[m.d.id];
+        var ground = chessGrounds[m.d.id];
         m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
         ground.set(m.d);
       }
@@ -45,7 +45,7 @@
     ws.onclose = function() {
     	run();
     	$.each(shown_games, function(id, el) {
-    	    let message = JSON.stringify({
+    	    var message = JSON.stringify({
     	      t: 'startWatching',
     	      d: id
     	    })
@@ -57,9 +57,9 @@
   run();
 
   function newBoard($parent, game) {
-    let chess = new Chess();
+    var chess = new Chess();
 
-    let ground = Chessground($parent.find('.chessground')[0], {
+    var ground = Chessground($parent.find('.chessground')[0], {
       fen: '8/8/8/8/8/8/8/8',
       coordinates: false,
       viewOnly: true,
@@ -92,7 +92,7 @@
       jsonp:'callback',
       success: function(data) {
         if(data.players) {
-          let top_label = $parent.find('.top-label');
+          var top_label = $parent.find('.top-label');
           top_label.find('.player-div').show();
           top_label.find('.player-name').text(data.players.black.userId);
           top_label.find('.player-rating').text(data.players.black.rating);
@@ -106,7 +106,7 @@
           }
           
 
-          let bottom_label = $parent.find('.bottom-label');
+          var bottom_label = $parent.find('.bottom-label');
           bottom_label.find('.player-div').show();
           bottom_label.find('.player-name').text(data.players.white.userId);
           bottom_label.find('.player-rating').text(data.players.white.rating);
@@ -121,7 +121,7 @@
         }
 
         if (data.moves) {
-          let a = {};
+          var a = {};
           const chess = new Chess();
           data.moves.split(' ').forEach(chess.move);
           const history = chess.history({verbose: true});
@@ -133,7 +133,7 @@
       }
     });
 
-    let message = JSON.stringify({
+    var message = JSON.stringify({
       t: 'startWatching',
       d: game.id
     })
