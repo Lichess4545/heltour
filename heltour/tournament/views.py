@@ -894,8 +894,10 @@ class PlayerProfileView(LeagueView):
         perf_score = 0.0
         if games:
             for round_, p, team in games:
-                season_score += p.white_score() if p.white == player else p.black_score()
-                season_score_total += 1
+                game_score = p.white_score() if p.white == player else p.black_score()
+                if game_score is not None:
+                    season_score += game_score
+                    season_score_total += 1
                 # Add pairing to performance calculation
                 if p.game_played() and p.white is not None and p.black is not None:
                     perf_n += 1
@@ -904,7 +906,7 @@ class PlayerProfileView(LeagueView):
                         perf_total_rating += sp.seed_rating
                     else:
                         perf_total_rating += p.black_rating_display() if p.white == player else p.white_rating_display()
-                    perf_score += p.white_score() if p.white == player else p.black_score()
+                    perf_score += game_score
         if perf_n >= 5:
             average_opp_rating = int(round(perf_total_rating / float(perf_n)))
             dp = get_fide_dp(perf_score, perf_n)
