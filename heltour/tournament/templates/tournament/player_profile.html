@@ -103,9 +103,14 @@
 					</table>
 				</div>
 				{% endif %}
-				{% if season_perf_rating %}
+				{% if season_score_total %}
 				<div class="player-profile-section">
-					<strong>Perf rating:</strong> {{ season_perf_rating }}
+					<table>
+						<tr>
+							<td><strong>Score:</strong> {{ season_score|floatformat }}/{{ season_score_total }}</td>
+							{% if season_perf_rating %}<td><strong>Perf rating:</strong> {{ season_perf_rating }}</td>{% endif %}
+						</tr>
+					</table>
 				</div>
 				{% endif %}
 				{% if schedule %}

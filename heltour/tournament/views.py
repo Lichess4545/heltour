@@ -887,11 +887,15 @@ class PlayerProfileView(LeagueView):
             games = [(p.round, p, None) for p in pairings.filter(round__season=self.season).exclude(result='').order_by('round__number').nocache()]
 
         # Calculate performance rating
+        season_score = 0
+        season_score_total = 0
         perf_n = 0
         perf_total_rating = 0.0
         perf_score = 0.0
         if games:
             for round_, p, team in games:
+                season_score += p.white_score() if p.white == player else p.black_score()
+                season_score_total += 1
                 # Add pairing to performance calculation
                 if p.game_played() and p.white is not None and p.black is not None:
                     perf_n += 1
@@ -957,6 +961,8 @@ class PlayerProfileView(LeagueView):
             'alternate': alternate,
             'schedule': schedule,
             'season_perf_rating': season_perf_rating,
+            'season_score': season_score,
+            'season_score_total': season_score_total,
             'can_edit': self.request.user.has_perm('tournament.change_season_player'),
         }
         return self.render('tournament/player_profile.html', context)
