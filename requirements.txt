@@ -12,6 +12,7 @@ django-cacheops==2.4.5
 django-contrib-comments==1.7.2
 django-redis==4.4.4
 django-recaptcha==1.0.5
+django-select2-forms==1.1.28
 celery==3.1.23
 letsencrypt
 -e hg+https://bitbucket.org/lakin.wecker/baste#egg=baste

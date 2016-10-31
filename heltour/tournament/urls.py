@@ -74,6 +74,7 @@ urlpatterns = [
     url(r'^api/', include(api_urlpatterns, 'api')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
+    url(r'^select2/', include('select2.urls')),
 ]
 
 if settings.DEBUG:

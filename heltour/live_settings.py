@@ -63,7 +63,8 @@ INSTALLED_APPS = [
     'cacheops',
     'django_comments',
     'heltour.comments',
-    'captcha'
+    'captcha',
+    'select2',
 ]
 
 COMMENTS_APP = 'heltour.comments'

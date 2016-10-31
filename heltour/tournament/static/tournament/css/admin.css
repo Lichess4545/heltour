@@ -84,3 +84,7 @@
 td > dl {
 	margin-bottom: 0;
 }
+
+.select2-container.django-select2 {
+	width: auto;
+}

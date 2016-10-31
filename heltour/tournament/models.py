@@ -10,6 +10,7 @@ from django import forms as django_forms
 from collections import namedtuple, defaultdict
 import re
 from django.core.exceptions import ValidationError
+import select2.fields
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -434,7 +435,7 @@ class Player(_BaseModel):
 #-------------------------------------------------------------------------------
 class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
     send_contact_emails = models.BooleanField(default=True)
 
@@ -453,7 +454,7 @@ ROUND_CHANGE_OPTIONS = (
 #-------------------------------------------------------------------------------
 class PlayerLateRegistration(_BaseModel):
     round = models.ForeignKey(Round)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     retroactive_byes = models.PositiveIntegerField(default=0)
     late_join_points = ScoreField(default=0)
 
@@ -495,7 +496,7 @@ class PlayerLateRegistration(_BaseModel):
 #-------------------------------------------------------------------------------
 class PlayerWithdrawl(_BaseModel):
     round = models.ForeignKey(Round)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
     class Meta:
         unique_together = ('round', 'player')
@@ -533,7 +534,7 @@ BYE_TYPE_OPTIONS = (
 #-------------------------------------------------------------------------------
 class PlayerBye(_BaseModel):
     round = models.ForeignKey(Round)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     type = models.CharField(max_length=31, choices=BYE_TYPE_OPTIONS)
     player_rank = models.PositiveIntegerField(blank=True, null=True)
     player_rating = models.PositiveIntegerField(blank=True, null=True)
@@ -636,7 +637,7 @@ BOARD_NUMBER_OPTIONS = (
 #-------------------------------------------------------------------------------
 class TeamMember(_BaseModel):
     team = models.ForeignKey(Team)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
@@ -1112,7 +1113,7 @@ class Registration(_BaseModel):
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
     season = models.ForeignKey(Season)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
@@ -1169,7 +1170,7 @@ class SeasonPlayer(_BaseModel):
             return LonePlayerScore.objects.create(season_player=self)
 
     def __unicode__(self):
-        return "%s" % self.player
+        return "%s - %s" % (self.season, self.player)
 
 #-------------------------------------------------------------------------------
 class LonePlayerScore(_BaseModel):
@@ -1273,7 +1274,7 @@ def lone_player_pairing_rank_dict(season):
 #-------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):
     round = models.ForeignKey(Round)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     is_available = models.BooleanField(default=True)
 
     class Meta:
@@ -1340,7 +1341,7 @@ class AlternateAssignment(_BaseModel):
     round = models.ForeignKey(Round)
     team = models.ForeignKey(Team)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
     replaced_player = models.ForeignKey(Player, null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
 
@@ -1423,7 +1424,7 @@ class SeasonPrize(_BaseModel):
 #-------------------------------------------------------------------------------
 class SeasonPrizeWinner(_BaseModel):
     season_prize = models.ForeignKey(SeasonPrize)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
     class Meta:
         unique_together = ('season_prize', 'player')
@@ -1434,7 +1435,7 @@ class SeasonPrizeWinner(_BaseModel):
 #-------------------------------------------------------------------------------
 class GameNomination(_BaseModel):
     season = models.ForeignKey(Season)
-    nominating_player = models.ForeignKey(Player)
+    nominating_player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     game_link = models.URLField(validators=[game_link_validator])
     pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
 
@@ -1455,7 +1456,7 @@ class GameSelection(_BaseModel):
 
 class AvailableTime(_BaseModel):
     league = models.ForeignKey(League)
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     time = models.DateTimeField()
 
 #-------------------------------------------------------------------------------
