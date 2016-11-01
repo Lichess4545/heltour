@@ -88,13 +88,13 @@
 						{% for team_pairing in last_round_pairings %}
 						<tr>
 							<td class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
-								<a href="{% leagueurl 'result' league.tag season.tag team_pairing.pk %}">{{ team_pairing.white_points_display }}</a>
+								<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.white_team.number %}">{{ team_pairing.white_points_display }}</a>
 							</td>
 							<td>
 								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">{{ team_pairing.white_team.name }}</a>
 							</td>
 							<td class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
-								<a href="{% leagueurl 'result' league.tag season.tag team_pairing.pk %}">{{ team_pairing.black_points_display }}</a>
+								<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.black_team.number %}">{{ team_pairing.black_points_display }}</a>
 							</td>
 							<td>
 								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">{{ team_pairing.black_team.name }}</a>

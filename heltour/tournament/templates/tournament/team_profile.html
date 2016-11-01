@@ -78,7 +78,7 @@
 						</td>
 						<td class="text-center">
 							{% if round_.is_completed %}
-							<a href="{% leagueurl 'result' league.tag season.tag pairing.pk %}">
+							<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_.number team.number %}">
 							{% if pairing.white_team == team %}
 							{{ pairing.white_points }}-{{ pairing.black_points }}
 							{% else %}

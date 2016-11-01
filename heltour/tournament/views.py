@@ -674,17 +674,6 @@ class WallchartView(SeasonView):
             return self.render('tournament/lone_wallchart.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
 
-class ResultView(SeasonView):
-    def view(self, pairing_id):
-        team_pairing = get_object_or_404(TeamPairing, round__season=self.season, pk=pairing_id)
-        pairings = team_pairing.teamplayerpairing_set.order_by('board_number').nocache()
-        context = {
-            'team_pairing': team_pairing,
-            'pairings': pairings,
-            'round_number': team_pairing.round.number,
-        }
-        return self.render('tournament/team_match_result.html', context)
-
 class StatsView(SeasonView):
     def view(self):
         if self.league.competitor_type == 'team':

@@ -37,14 +37,14 @@
 								<td>
 									<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
 								</td>
-								{% for number, score, opp_score, team_pairing_id in team_score.cross_scores %}
+								{% for number, score, opp_score, round_num in team_score.cross_scores %}
 								{% if number == team_score.team.number %}
 								<td class="cell-score cell-cross">x</td>
 								{% elif score == None %}
 								<td class="cell-score"></td>
 								{% else %}
 								<td class="cell-score {% resultclass score opp_score %}">
-									<a href="{% leagueurl 'result' league.tag season.tag team_pairing_id %}">{{ score|floatformat }}</a>
+									<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
 								</td>
 								{% endif %}
 								{% endfor %}

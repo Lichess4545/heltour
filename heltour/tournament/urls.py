@@ -34,7 +34,6 @@ season_urlpatterns = [
     url(r'^round/(?P<round_number>[0-9]+)/pairings/$', views.PairingsView.as_view(), name='pairings_by_round'),
     url(r'^round/(?P<round_number>[0-9]+)/pairings/team/(?P<team_number>[0-9]+)/$', views.PairingsView.as_view(), name='pairings_by_round_team'),
     url(r'^stats/$', views.StatsView.as_view(), name='stats'),
-    url(r'^result/(?P<pairing_id>[0-9]+)/$', views.ResultView.as_view(), name='result'),
     url(r'^dashboard/$', staff_member_required(views.LeagueDashboardView.as_view()), name='league_dashboard'),
     url(r'^player/(?P<username>[\w-]+)/$', views.PlayerProfileView.as_view(), name='player_profile'),
     url(r'^team/(?P<team_number>[0-9]+)/$', views.TeamProfileView.as_view(), name='team_profile'),
