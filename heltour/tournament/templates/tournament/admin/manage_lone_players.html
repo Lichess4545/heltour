@@ -89,7 +89,7 @@
 		</thead>
 		<tbody{% if round_.publish_pairings %} class="current-round-actions"{% endif %}>
 			{% for reg in regs %}
-			<tr class="action-register">
+			<tr class="action-register{% if not reg.player.in_slack_group %} row-error" title="Not in slack{% endif %}">
 				<td>Register</td>
 				<td>{{ reg.player }}</td>
 				<td>Byes: {{ reg.retroactive_byes }}</td>
