@@ -858,8 +858,8 @@ TV_STATE_OPTIONS = (
 
 #-------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
-    white = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_white")
-    black = models.ForeignKey(Player, blank=True, null=True, related_name="pairings_as_black")
+    white = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username', blank=True, null=True, related_name="pairings_as_white")
+    black = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username', blank=True, null=True, related_name="pairings_as_black")
     white_rating = models.PositiveIntegerField(blank=True, null=True)
     black_rating = models.PositiveIntegerField(blank=True, null=True)
 
@@ -1349,7 +1349,7 @@ class AlternateAssignment(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
-    replaced_player = models.ForeignKey(Player, null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
+    replaced_player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username', null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
 
     class Meta:
         unique_together = ('round', 'team', 'board_number')
