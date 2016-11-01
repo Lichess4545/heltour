@@ -377,7 +377,7 @@ div.inline {
 	white-space: nowrap;
 }
 
-#table-result-stats {
+.table-stats {
 	max-width: 700px;
 	table-layout: fixed;
 }

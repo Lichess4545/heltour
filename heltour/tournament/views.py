@@ -14,6 +14,7 @@ from django.views.generic import View
 from django.core.mail.message import EmailMessage
 import json
 import reversion
+import math
 
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
@@ -686,11 +687,14 @@ class ResultView(SeasonView):
 
 class StatsView(SeasonView):
     def view(self):
+        if self.league.competitor_type == 'team':
+            return self.team_view()
+        else:
+            return self.lone_view()
+
+    def team_view(self):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
         def _view(league_tag, season_tag, is_staff):
-            if self.league.competitor_type != 'team':
-                raise Http404
-
             all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
                                                 .nocache()
@@ -702,12 +706,12 @@ class StatsView(SeasonView):
                 for p in all_pairings:
                     if board_num is not None and p.teamplayerpairing.board_number != board_num:
                         continue
-                    if p.game_link == '' or p.result == '':
+                    if p.game_link == '' or p.result == '' or not p.game_played():
                         # Don't count forfeits etc
                         continue
                     total += 1
-                    if p.white.rating is not None and p.black.rating is not None:
-                        rating_delta += p.white.rating - p.black.rating
+                    if p.white_rating_display() is not None and p.black_rating_display() is not None:
+                        rating_delta += p.white_rating_display() - p.black_rating_display()
                     if p.result == '1-0':
                         counts[0] += 1
                         counts[3] += 1
@@ -732,6 +736,68 @@ class StatsView(SeasonView):
                 'boards': boards,
             }
             return self.render('tournament/team_stats.html', context)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+
+    def lone_view(self):
+        @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing)
+        def _view(league_tag, season_tag, is_staff):
+            all_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season) \
+                                                .select_related('loneplayerpairing', 'white', 'black') \
+                                                .nocache()
+
+            total = 0.0
+            rating_total = 0.0
+            counts = [0, 0, 0, 0]
+            rating_delta = 0
+            abs_rating_delta = 0
+            rating_delta_counts = [0, 0, 0, 0, 0, 0]
+            upset_counts = [0, 0, 0, 0, 0, 0]
+            for p in all_pairings:
+                if p.game_link == '' or p.result == '' or not p.game_played():
+                    # Don't count forfeits etc
+                    continue
+                total += 1
+                if p.white_rating_display() is not None and p.black_rating_display() is not None:
+                    d = p.white_rating_display() - p.black_rating_display()
+                    rating_delta += d
+                    abs_rating_delta += abs(d)
+                    rating_delta_index = int(min(math.floor(abs(d) / 100.0), 5))
+                    rating_delta_counts[rating_delta_index] += 1
+                    if math.copysign(1, p.white_rating_display() - p.black_rating_display()) == p.black_score() - p.white_score() \
+                        and p.white_rating_display() != p.black_rating_display():
+                        upset_counts[rating_delta_index] += 1
+                    if p.white_score() == p.black_score():
+                        upset_counts[rating_delta_index] += 0.5
+                    rating_total += 1
+                if p.result == '1-0':
+                    counts[0] += 1
+                    counts[3] += 1
+                elif p.result == '0-1':
+                    counts[2] += 1
+                    counts[3] -= 1
+                elif p.result == '1/2-1/2':
+                    counts[1] += 1
+
+            win_counts = tuple(counts)
+            win_percents = tuple((c / total for c in counts))
+            win_rating_delta = rating_delta / total
+            rating_delta_average = abs_rating_delta / total
+            rating_delta_counts = tuple(rating_delta_counts)
+            rating_delta_percents = tuple((c / total for c in rating_delta_counts))
+            upset_percents = tuple((c1 / float(c2) for c1, c2 in zip(upset_counts, rating_delta_counts)))
+
+            context = {
+                'has_win_rate_stats': win_counts != (0, 0, 0, 0),
+                'win_rating_delta': win_rating_delta,
+                'win_counts': win_counts,
+                'win_percents': win_percents,
+                'has_rating_delta_stats': rating_delta_counts != (0, 0, 0, 0, 0, 0),
+                'rating_delta_counts': rating_delta_counts,
+                'rating_delta_percents': rating_delta_percents,
+                'rating_delta_average': rating_delta_average,
+                'upset_percents': upset_percents,
+            }
+            return self.render('tournament/lone_stats.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
 
 class LeagueDashboardView(LeagueView):
