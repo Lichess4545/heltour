@@ -644,7 +644,7 @@ div.inline {
 		padding-left: 30px;
 	}
 
-	#table-result-stats {
+	.table-stats {
 		table-layout: auto;
 	}
 
