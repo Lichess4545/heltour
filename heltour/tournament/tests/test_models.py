@@ -187,14 +187,14 @@ class TeamScoreTestCase(TestCase):
         pairing1 = TeamPairing.objects.get(round__number=1)
         pairing2 = TeamPairing.objects.get(round__number=2)
 
-        self.assertItemsEqual([(1.5, 0.5, pairing1.pk), (1.0, 1.0, pairing2.pk), (None, None, None)], teamscore.round_scores())
+        self.assertItemsEqual([(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)], teamscore.round_scores())
 
     def test_teamscore_cross_scores(self):
         teamscore = TeamScore.objects.get(team__number=1)
         pairing1 = TeamPairing.objects.get(round__number=1)
         pairing2 = TeamPairing.objects.get(round__number=2)
 
-        self.assertItemsEqual([(1, None, None, None), (2, 1.5, 0.5, pairing1.pk), (3, 1.0, 1.0, pairing2.pk), (4, None, None, None)], teamscore.cross_scores())
+        self.assertItemsEqual([(1, None, None, None), (2, 1.5, 0.5, 1), (3, 1.0, 1.0, 2), (4, None, None, None)], teamscore.cross_scores())
 
     def test_teamscore_cmp(self):
         ts1 = TeamScore()

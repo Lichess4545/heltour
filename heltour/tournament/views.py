@@ -767,6 +767,9 @@ class StatsView(SeasonView):
                 elif p.result == '1/2-1/2':
                     counts[1] += 1
 
+            if total == 0:
+                return self.render('tournament/lone_stats.html', {})
+
             win_counts = tuple(counts)
             win_percents = tuple((c / total for c in counts))
             win_rating_delta = rating_delta / total

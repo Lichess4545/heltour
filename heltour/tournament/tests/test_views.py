@@ -128,7 +128,7 @@ class StatsTestCase(TestCase):
         self.assertTemplateUsed(response, 'tournament/team_stats.html')
 
         response = self.client.get(reverse('by_league:by_season:stats', args=['lone', 'lone']))
-        self.assertEqual(404, response.status_code)
+        self.assertTemplateUsed(response, 'tournament/lone_stats.html')
 
 class RegisterTestCase(TestCase):
     def setUp(self):
