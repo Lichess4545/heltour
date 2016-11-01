@@ -1275,9 +1275,9 @@ class RegistrationAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(VersionAdmin):
-    list_display = ('player', 'season', 'in_slack')
+    list_display = ('player', 'season', 'is_active', 'in_slack')
     search_fields = ('season__name', 'player__lichess_username')
-    list_filter = ('season', 'player__in_slack_group')
+    list_filter = ('season', 'is_active', 'player__in_slack_group')
     raw_id_fields = ('player', 'registration')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
 
