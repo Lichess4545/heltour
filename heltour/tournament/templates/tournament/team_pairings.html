@@ -58,37 +58,23 @@
 				<table class="table table-condensed-xs" id="table-team-pairings">
 					{% for pairing_list in pairing_lists %}
 					<tr class="header-row">
-						<th>TEAM</th>
-						<th class="text-center" colspan="2">SCORE</th>
-						<th class="text-right">TEAM</th>
-						<th>&nbsp;</th>{% if can_edit %}
-						<th>&nbsp;</th>{% endif %}
-					</tr>
-					<tr>
-						<td>
+						<th>
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing_list.0.team_pairing.white_team.number %}">
 								{{ pairing_list.0.team_pairing.white_team_name }}
 							</a>
-						</td>
-						<td class="cell-score {% resultclass pairing_list.0.team_pairing.white_points pairing_list.0.team_pairing.black_points %}">
+						</th>
+						<th class="cell-score {% resultclass pairing_list.0.team_pairing.white_points pairing_list.0.team_pairing.black_points %}">
 							{{ pairing_list.0.team_pairing.white_points_display|formatscore }}
-						</td>
-						<td class="cell-score {% resultclass pairing_list.0.team_pairing.black_points pairing_list.0.team_pairing.white_points %}">
+						</th>
+						<th class="cell-score {% resultclass pairing_list.0.team_pairing.black_points pairing_list.0.team_pairing.white_points %}">
 							{{ pairing_list.0.team_pairing.black_points_display|formatscore }}
-						</td>
-						<td class="text-right">
+						</th>
+						<th class="text-right">
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing_list.0.team_pairing.black_team.number %}">
 								{{ pairing_list.0.team_pairing.black_team_name }}
 							</a>
-						</td>
-						<td>&nbsp;</td>{% if can_edit %}
-						<td>&nbsp;</td>{% endif %}
-					</tr>
-					<tr class="header-row">
-						<th>PLAYER</th>
-						<th class="text-center" colspan="2">SCORE</th>
-						<th class="text-right">PLAYER</th>
-						<th class="text-right">TIME</th>{% if can_edit %}
+						</th>
+						<th>&nbsp;</th>{% if can_edit %}
 						<th>&nbsp;</th>{% endif %}
 					</tr>
 					{% for pairing in pairing_list %}

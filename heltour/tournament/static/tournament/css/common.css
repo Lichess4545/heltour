@@ -307,11 +307,17 @@ div.inline {
 	table-layout: auto;
 }
 
+#table-team-pairings th {
+	vertical-align: middle;
+	font-weight: normal;
+}
+
 #table-team-pairings .cell-score {
 	width: 37px;
 	text-align: center;
 	padding-left: 0;
 	padding-right: 0;
+	font-weight: normal;
 }
 
 #table-team-pairings .cell-score a {
