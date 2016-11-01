@@ -1021,6 +1021,12 @@ class TeamPlayerPairing(PlayerPairing):
     def black_team_player(self):
         return self.black if self.board_number % 2 == 1 else self.white
 
+    def white_team_color(self):
+        return 'white' if self.board_number % 2 == 1 else 'black'
+
+    def black_team_color(self):
+        return 'black' if self.board_number % 2 == 1 else 'white'
+
     def white_team_score(self):
         return self.white_score() if self.board_number % 2 == 1 else self.black_score()
 

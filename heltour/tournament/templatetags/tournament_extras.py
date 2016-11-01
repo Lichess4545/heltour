@@ -32,6 +32,22 @@ def highlightclass(highlights, player):
     return ''
 
 @register.filter
+def formatscore(score):
+    if str(score) == '0.5':
+        return u'\u00BD'
+    return str(score).replace('.5', u'\u00BD')
+
+@register.filter
+def forfeitchar(score):
+    if score == 1:
+        return 'X'
+    elif score == 0.5:
+        return 'Z'
+    elif score == 0:
+        return 'F'
+    return ''
+
+@register.filter
 def date_or_q(datetime):
     if datetime is None:
         return '?'
