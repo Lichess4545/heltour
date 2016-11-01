@@ -71,14 +71,10 @@
 							</a>
 						</td>
 						<td class="cell-score {% resultclass pairing_list.0.team_pairing.white_points pairing_list.0.team_pairing.black_points %}">
-							<a class="team-link" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_number pairing_list.0.team_pairing.white_team.number  %}">
-								{{ pairing_list.0.team_pairing.white_points_display|formatscore }}
-							</a>
+							{{ pairing_list.0.team_pairing.white_points_display|formatscore }}
 						</td>
-						<td class="text-center cell-score {% resultclass pairing_list.0.team_pairing.black_points pairing_list.0.team_pairing.white_points %}">
-							<a class="team-link" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_number pairing_list.0.team_pairing.black_team.number  %}">
-								{{ pairing_list.0.team_pairing.black_points_display|formatscore }}
-							</a>
+						<td class="cell-score {% resultclass pairing_list.0.team_pairing.black_points pairing_list.0.team_pairing.white_points %}">
+							{{ pairing_list.0.team_pairing.black_points_display|formatscore }}
 						</td>
 						<td class="text-right">
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing_list.0.team_pairing.black_team.number %}">
@@ -88,9 +84,9 @@
 					</tr>
 					<tr class="header-row">
 						<th>PLAYER</th>
-						<th colspan="2">SCORE</th>
-						<th>PLAYER</th>
-						<th>TIME</th>{% if can_edit %}
+						<th class="text-center" colspan="2">SCORE</th>
+						<th class="text-right">PLAYER</th>
+						<th class="text-right">TIME</th>{% if can_edit %}
 						<th>&nbsp;</th>{% endif %}
 					</tr>
 					{% for pairing in pairing_list %}
@@ -103,13 +99,35 @@
 							</a>
 							{% endif %}
 						</td>
-						<td class="cell-score {% resultclass pairing.white_team_score pairing.black_team_score %}">
-							{% if pairing.white_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.white_team_score|forfeitchar }}{% endif %}</a>{% endif %}
+						{% if pairing.game_link and not pairing.result %}
+						<td class="cell-score" colspan="2">
+							<a href="{{ pairing.game_link }}">&#x2694;</a>
 						</td>
-						<td class="cell-score {% resultclass pairing.black_team_score pairing.white_team_score %}">
-							{% if pairing.black_team_score != None %}<a href="{{ pairing.game_link }}">{{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.black_team_score|forfeitchar }}{% endif %}</a>{% endif %}
+						{% else %}
+						<td class="cell-score">
+							{% if pairing.white_team_score != None %}
+							{% if pairing.game_link %}
+							<a href="{{ pairing.game_link }}">
+								{{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.white_team_score|forfeitchar }}{% endif %}
+							</a>
+							{% else %}
+							{{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.white_team_score|forfeitchar }}{% endif %}
+							{% endif %}
+							{% endif %}
 						</td>
-						<td class="pairing-player player-{{ pairing.black_team_color }}{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+						<td class="cell-score">
+							{% if pairing.black_team_score != None %}
+							{% if pairing.game_link %}
+							<a href="{{ pairing.game_link }}">
+								{{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.black_team_score|forfeitchar }}{% endif %}
+							</a>
+							{% else %}
+							{{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.black_team_score|forfeitchar }}{% endif %}
+							{% endif %}
+							{% endif %}
+						</td>
+						{% endif %}
+						<td class="text-right pairing-player player-{{ pairing.black_team_color }}{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
 							{% if pairing.black_team_player %}
 							<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 								{{ pairing.black_team_player.lichess_username }}{% if pairing.black_team_player.rating %} <span class="visible-xs"></span> ({{ pairing.black_team_player.rating }}){% endif %}
@@ -118,7 +136,7 @@
 							</a>
 							{% endif %}
 						</td>
-						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+						<td class="text-right">{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
 						<td>
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">

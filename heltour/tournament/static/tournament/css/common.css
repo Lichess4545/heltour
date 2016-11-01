@@ -307,20 +307,6 @@ div.inline {
 	table-layout: auto;
 }
 
-#table-team-pairings tr th:nth-child(2) {
-	text-align: center;
-	padding-left: 0px;
-	padding-right: 0px;
-}
-
-#table-team-pairings tr th:nth-child(3) {
-	text-align: right;
-}
-
-#table-team-pairings tr th:nth-child(4) {
-	text-align: right;
-}
-
 #table-team-pairings .cell-score {
 	width: 37px;
 	text-align: center;
@@ -328,11 +314,11 @@ div.inline {
 	padding-right: 0;
 }
 
-#table-team-pairings tr td:nth-child(4), #table-team-pairings tr td:nth-child(5) {
-	text-align: right;
+#table-team-pairings .cell-score a {
+	color: #337ab7;
 }
 
-#table-team-pairings a {
+#table-team-pairings .color-dot, #table-team-pairings .captain {
 	color: rgb(51, 51, 51);
 }
 
