@@ -303,10 +303,6 @@ div.inline {
 	max-width: 532px;
 }
 
-#table-team-pairings {
-	table-layout: auto;
-}
-
 #table-team-pairings th {
 	vertical-align: middle;
 	font-weight: normal;
@@ -318,6 +314,14 @@ div.inline {
 	padding-left: 0;
 	padding-right: 0;
 	font-weight: normal;
+}
+
+#table-team-pairings .cell-time {
+	width: 105px;
+}
+
+#table-team-pairings .cell-edit {
+	width: 34px;
 }
 
 #table-team-pairings .cell-score a {
@@ -636,6 +640,10 @@ div.inline {
 	.nav > .league-dropdown > a {
 		padding-left: 3px;
 		padding-right: 5px;
+	}
+
+	#table-team-pairings {
+		table-layout: fixed;
 	}
 }
 @media (max-width: 991px) {

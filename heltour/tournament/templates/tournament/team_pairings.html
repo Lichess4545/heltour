@@ -74,8 +74,8 @@
 								{{ pairing_list.0.team_pairing.black_team_name }}
 							</a>
 						</th>
-						<th>&nbsp;</th>{% if can_edit %}
-						<th>&nbsp;</th>{% endif %}
+						<th class="cell-time">&nbsp;</th>{% if can_edit %}
+						<th class="cell-edit">&nbsp;</th>{% endif %}
 					</tr>
 					{% for pairing in pairing_list %}
 					<tr>
@@ -124,8 +124,8 @@
 							</a>
 							{% endif %}
 						</td>
-						<td class="text-right">{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
-						<td>
+						<td class="text-right cell-time">{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+						<td class="cell-edit">
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 					        </a>
