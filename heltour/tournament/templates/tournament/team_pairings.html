@@ -92,26 +92,24 @@
 							<a href="{{ pairing.game_link }}">&#x2694;</a>
 						</td>
 						{% else %}
-						<td class="cell-score">
-							{% if pairing.white_team_score != None %}
+						<td class="cell-game-result" colspan="2">
 							{% if pairing.game_link %}
 							<a href="{{ pairing.game_link }}">
+							{% endif %}
+							{% spaceless %}
+							<span>
+								{% if pairing.white_team_score != None %}
 								{{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.white_team_score|forfeitchar }}{% endif %}
-							</a>
-							{% else %}
-							{{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.white_team_score|forfeitchar }}{% endif %}
-							{% endif %}
-							{% endif %}
-						</td>
-						<td class="cell-score">
-							{% if pairing.black_team_score != None %}
-							{% if pairing.game_link %}
-							<a href="{{ pairing.game_link }}">
+								{% endif %}
+							</span>
+							<span>
+								{% if pairing.black_team_score != None %}
 								{{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.black_team_score|forfeitchar }}{% endif %}
+								{% endif %}
+							</span>
+							{% endspaceless %}
+							{% if pairing.game_link %}
 							</a>
-							{% else %}
-							{{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}{{ pairing.black_team_score|forfeitchar }}{% endif %}
-							{% endif %}
 							{% endif %}
 						</td>
 						{% endif %}

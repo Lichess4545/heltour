@@ -289,6 +289,20 @@ div.inline {
 	width: 34px;
 }
 
+#table-team-pairings .cell-game-result {
+	padding: 0;
+}
+
+#table-team-pairings .cell-game-result span {
+	display: inline-block;
+	width: 50%;
+	text-align: center;
+}
+
+#table-team-pairings .cell-game-result a:hover span {
+	text-decoration: underline;
+}
+
 #table-team-pairings .cell-score a {
 	color: #337ab7;
 }
