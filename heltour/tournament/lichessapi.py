@@ -71,5 +71,12 @@ def get_game_meta(gameid, priority=0, max_retries=3, timeout=120):
         raise ApiWorkerError('API failure')
     return json.loads(result)
 
+def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/api/user/%s/games?nb=%s&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
+    result = _apicall(url, timeout)
+    if result == '':
+        raise ApiWorkerError('API failure')
+    return json.loads(result)['currentPageResults']
+
 class ApiWorkerError(Exception):
     pass

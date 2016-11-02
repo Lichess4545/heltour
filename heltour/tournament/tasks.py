@@ -128,16 +128,38 @@ def _find_closest_rating(player, date, season):
 
 @app.task(bind=True)
 def update_tv_state(self):
-    games_to_update = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').nocache()
+    games_starting = PlayerPairing.objects.filter(result='', game_link='', scheduled_time__lt=timezone.now()).nocache()
+    games_in_progress = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').nocache()
 
-    for game in games_to_update:
+    for game in games_starting:
+        try:
+            league = game.get_round().season.league
+            for meta in lichessapi.get_latest_game_metas(game.white.lichess_username, 5, priority=1, timeout=300):
+                if meta['players']['white']['userId'].lower() == game.white.lichess_username.lower() and \
+                        meta['players']['black']['userId'].lower() == game.black.lichess_username.lower() and \
+                        meta['clock']['initial'] == league.time_control_initial() and \
+                        meta['clock']['increment'] == league.time_control_increment() and \
+                        meta['rated'] == True:
+                    game.game_link = get_gamelink_from_gameid(meta['id'])
+                    game.save()
+        except Exception as e:
+            logger.warning('Error updating tv state for %s: %s' % (game, e))
+
+    for game in games_in_progress:
         gameid = get_gameid_from_gamelink(game.game_link)
         if gameid is not None:
             try:
                 meta = lichessapi.get_game_meta(gameid, priority=1, timeout=300)
                 if 'status' not in meta or meta['status'] != 'started':
                     game.tv_state = 'hide'
-                    game.save()
+                if 'status' in meta and meta['status'] == 'draw':
+                    game.result = '1/2-1/2'
+                elif 'winner' in meta:
+                    if meta['winner'] == 'white':
+                        game.result = '1-0'
+                    elif meta['winner'] == 'black':
+                        game.result = '0-1'
+                game.save()
             except Exception as e:
                 logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
 

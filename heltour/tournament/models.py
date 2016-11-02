@@ -73,10 +73,23 @@ class League(_BaseModel):
     tag = models.SlugField(unique=True, help_text='The league will be accessible at /{league_tag}/')
     theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
     display_order = models.PositiveIntegerField(default=0)
+    time_control = models.CharField(max_length=32, blank=True)
     competitor_type = models.CharField(max_length=32, choices=COMPETITOR_TYPE_OPTIONS)
     pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
+
+    def time_control_initial(self):
+        parts = self.time_control.split('+')
+        if len(parts) != 2:
+            return None
+        return int(parts[0]) * 60
+
+    def time_control_increment(self):
+        parts = self.time_control.split('+')
+        if len(parts) != 2:
+            return None
+        return int(parts[1])
 
     def __unicode__(self):
         return self.name
