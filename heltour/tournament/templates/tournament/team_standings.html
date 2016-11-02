@@ -42,7 +42,7 @@
 								<td class="text-center">{{ team_score.game_points_display }}</td>
 								{% for score, opp_score, round_num in team_score.round_scores %}
 								<td class="text-center cell-score {% resultclass score opp_score %}">
-									{% if score %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>{% endif %}
+									{% if score != None %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>{% endif %}
 								</td>
 								{% endfor %}
 							</tr>
