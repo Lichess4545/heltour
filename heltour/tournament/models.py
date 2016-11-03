@@ -723,11 +723,12 @@ class TeamScore(_BaseModel):
                 opp_points = black_pairing.white_points
             yield points, opp_points, round_.number
 
-    def cross_scores(self):
-        other_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
+    def cross_scores(self, sorted_teams=None):
+        if sorted_teams is None:
+            sorted_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
         white_pairings = self.team.pairings_as_white.all()
         black_pairings = self.team.pairings_as_black.all()
-        for other_team in other_teams:
+        for other_team in sorted_teams:
             white_pairing = find(white_pairings, black_team_id=other_team.pk)
             black_pairing = find(black_pairings, white_team_id=other_team.pk)
             points = None

@@ -22,8 +22,8 @@
 							<tr>
 								<th></th>
 								<th>Team</th>
-								{% for team_score in team_scores %}
-								<td class="cell-teamnumber cell-score">{{ team_score.team.number }}</td>
+								{% for number, team_score, cross_scores in team_scores %}
+								<td class="cell-teamnumber cell-score">{{ number }}</td>
 								{% endfor %}
 								<th class="text-center">Match Pts</th>
 								<th class="text-center">Game Pts</th>
@@ -31,13 +31,13 @@
 							</tr>
 						</thead>
 						<tbody>
-							{% for team_score in team_scores %}
+							{% for number, team_score, cross_scores in team_scores %}
 							<tr>
-								<td class="cell-teamnumber">{{ team_score.team.number }}</td>
+								<td class="cell-teamnumber">{{ number }}</td>
 								<td>
 									<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
 								</td>
-								{% for number, score, opp_score, round_num in team_score.cross_scores %}
+								{% for number, score, opp_score, round_num in cross_scores %}
 								{% if number == team_score.team.number %}
 								<td class="cell-score cell-cross">x</td>
 								{% elif score == None %}

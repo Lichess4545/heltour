@@ -644,7 +644,9 @@ class CrosstableView(SeasonView):
         def _view(league_tag, season_tag, is_staff):
             if self.league.competitor_type != 'team':
                 raise Http404
-            team_scores = TeamScore.objects.filter(team__season=self.season).order_by('team__number').select_related('team').nocache()
+            team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
+            teams = [ts.team for _, ts in team_scores]
+            team_scores = [(n, ts, ts.cross_scores(teams)) for n, ts in team_scores]
             context = {
                 'team_scores': team_scores,
             }
