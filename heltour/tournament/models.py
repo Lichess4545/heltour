@@ -969,6 +969,7 @@ class PlayerPairing(_BaseModel):
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
+            self.tv_state = 'default'
         if white_changed or black_changed or game_link_changed:
             self.white_rating = None
             self.black_rating = None

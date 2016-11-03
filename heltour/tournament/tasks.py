@@ -129,6 +129,8 @@ def _find_closest_rating(player, date, season):
 @app.task(bind=True)
 def update_tv_state(self):
     games_starting = PlayerPairing.objects.filter(result='', game_link='', scheduled_time__lt=timezone.now()).nocache()
+    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
+                     games_starting.filter(teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
     games_in_progress = PlayerPairing.objects.filter(result='', tv_state='default').exclude(game_link='').nocache()
 
     for game in games_starting:
