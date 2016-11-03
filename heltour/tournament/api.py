@@ -2,6 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import re
 import json
+import reversion
 from models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
@@ -131,7 +132,10 @@ def update_pairing(request):
         pairing.result = result
     if datetime is not None:
         pairing.scheduled_time = datetime
-    pairing.save()
+
+    with reversion.create_revision():
+        reversion.set_comment('API: update_pairing')
+        pairing.save()
 
     return JsonResponse({'updated': 1, 'reversed': reversed})
 
@@ -433,6 +437,9 @@ def player_joined_slack(request):
         return JsonResponse({'updated': 0, 'error': 'not_found'})
 
     player.in_slack_group = True
-    player.save()
+
+    with reversion.create_revision():
+        reversion.set_comment('API: player_joined_slack')
+        player.save()
 
     return JsonResponse({'updated': 1})
