@@ -1212,7 +1212,9 @@ def _tv_json(league, board=None, team=None):
             return {
                 'id': game.game_id(),
                 'white': str(game.white),
+                'white_name': game.white.lichess_username,
                 'black': str(game.black),
+                'black_name': game.black.lichess_username,
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game.loneplayerpairing.round.season.league.tag,
                 'season': game.loneplayerpairing.round.season.tag,
