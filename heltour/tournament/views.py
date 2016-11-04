@@ -16,9 +16,14 @@ import json
 import reversion
 import math
 
+# Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
 common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing, PlayerPairing, PlayerBye, SeasonPlayer,
                       Player, SeasonPrize, SeasonPrizeWinner]
+
+
+#-------------------------------------------------------------------------------
+# Base classes
 
 class BaseView(View):
     def get(self, request, *args, **kwargs):
@@ -91,6 +96,9 @@ class UrlAuthMixin:
         for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
             expired_auth.delete()
         return username, player
+
+#-------------------------------------------------------------------------------
+# Actual views
 
 class HomeView(BaseView):
     def view(self):
@@ -1232,6 +1240,9 @@ def _tv_json(league, board=None, team=None):
                                                          'loneplayerpairing__round__season__league').nocache()
     return {'games': [export_game(g, league, board, team) for g in current_games],
             'schedule': [export_game(g, league, board, team) for g in scheduled_games]}
+
+#-------------------------------------------------------------------------------
+# Helper functions
 
 def _get_league(league_tag, allow_none=False):
     if league_tag is None:
