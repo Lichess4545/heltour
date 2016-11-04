@@ -7,13 +7,17 @@ from django.utils.crypto import get_random_string
 
 def _do_lichess_api_call(redis_key, path, params, priority, max_retries, retry_count=0):
     url = "https://en.lichess.org/%s" % path
-    r = requests.get(url, params)
 
-    if r.status_code == 200:
-        # Success
-        cache.set(redis_key, r.text, timeout=60)
-        time.sleep(2)
-        return
+    try:
+        r = requests.get(url, params)
+
+        if r.status_code == 200:
+            # Success
+            cache.set(redis_key, r.text, timeout=60)
+            time.sleep(2)
+            return
+    except:
+        r = None
 
     # Failure
     if retry_count >= max_retries:
@@ -22,7 +26,7 @@ def _do_lichess_api_call(redis_key, path, params, priority, max_retries, retry_c
         # Retry
         worker.queue_work(priority, _do_lichess_api_call, redis_key, path, params, priority, max_retries, retry_count + 1)
 
-    if r.status_code == 429:
+    if r is not None and r.status_code == 429:
         # Too many requests
         time.sleep(60)
     else:

@@ -23,7 +23,7 @@ def update_player_ratings(self):
                 p.save()
 
     # Any players not found above will be queried individually
-    for username, p in player_dict.items():
+    for username, p in sorted(player_dict.items()):
         try:
             p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, priority=0, timeout=300)
             p.save()

@@ -4,7 +4,10 @@ import threading
 def _run_worker():
     while True:
         _, fn, args = _work_queue.get()
-        fn(*args)
+        try:
+            fn(*args)
+        except:
+            pass
 
 _work_queue = Queue.PriorityQueue()
 _worker_thread = threading.Thread(target=_run_worker)
