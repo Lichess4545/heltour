@@ -79,10 +79,11 @@
 					</tr>
 					{% for pairing in pairing_list %}
 					<tr>
-						<td class="pairing-player player-{{ pairing.white_team_color }}{% if pairing.white in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+						<td class="pairing-player player-{{ pairing.white_team_color }}">
 							{% if pairing.white_team_player %}
-							<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
-								<span class="color-dot left hidden-xs"></span>{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span>{% if pairing.white_team_player.rating %} ({{ pairing.white_team_player.rating }}){% endif %}
+							<span class="color-dot left hidden-xs"></span>
+							<a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
+								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span>{% if pairing.white_team_player.rating %} ({{ pairing.white_team_player.rating }}){% endif %}
 								{% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							{% endif %}
@@ -113,13 +114,13 @@
 							{% endif %}
 						</td>
 						{% endif %}
-						<td class="text-right pairing-player player-{{ pairing.black_team_color }}{% if pairing.black in unavailable_players %} player-unavailable" title="unavailable{% endif %}">
+						<td class="text-right pairing-player player-{{ pairing.black_team_color }}">
 							{% if pairing.black_team_player %}
-							<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
+							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 								{{ pairing.black_team_player.lichess_username }}{% if pairing.black_team_player.rating %} <span class="visible-xs"></span> ({{ pairing.black_team_player.rating }}){% endif %}
 								{% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
-								<span class="color-dot right"></span>
 							</a>
+							<span class="color-dot right"></span>
 							{% endif %}
 						</td>
 						<td class="text-right cell-time">{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
