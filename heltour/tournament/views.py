@@ -918,6 +918,10 @@ class ContactSuccessView(LeagueView):
         }
         return self.render('tournament/contact_success.html', context)
 
+class AboutView(LeagueView):
+    def view(self):
+        return self.render('tournament/about.html', {})
+
 class PlayerProfileView(LeagueView):
     def view(self, username):
         player = get_object_or_404(Player, lichess_username__iexact=username)

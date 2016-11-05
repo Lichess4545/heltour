@@ -53,6 +53,7 @@ league_urlpatterns = [
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
     url(r'^contact/$', views.ContactView.as_view(), name='contact'),
     url(r'^contact_success/$', views.ContactSuccessView.as_view(), name='contact_success'),
+    url(r'^about/$', views.AboutView.as_view(), name='about'),
 ]
 
 api_urlpatterns = [

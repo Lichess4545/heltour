@@ -34,7 +34,12 @@
     {% if league %}
     <footer class="footer">
       <div class="container-fluid">
-        <p class="text-muted">{{ league.name }} &middot; <a href="{% url 'home' %}">Change</a> &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a></p>
+        <p class="text-muted">
+	        {{ league.name }}
+	        &middot; <a href="{% url 'home' %}">Change</a>
+	        &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a>
+	        &middot; <a href="{% leagueurl 'about' league.tag %}">About</a>
+        </p>
       </div>
     </footer>
     {% endif %}
