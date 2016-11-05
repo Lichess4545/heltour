@@ -38,7 +38,7 @@
 				<div><a href="https://lichess.org/inbox/new?user={{ player.lichess_username }}">Message {{ player.lichess_username }} on Lichess</a></div>
 			</div>
 		</div>
-		{% if other_season_leagues %}
+		{% if has_other_seasons %}
 		<div class="well">
 			<div class="well-head">
 				<h3>Other Seasons</h3>
@@ -49,7 +49,11 @@
 					<strong>{{ other_season_league.name }}</strong>
 					{% for other_season, game_count, team in other_seasons %}
 					<div>
+						{% if other_season == season %}
+						{{ season.name }}:
+						{% else %}
 						<a href="{% leagueurl 'player_profile' other_season_league.tag other_season.tag player.lichess_username %}">{{ other_season.name }}</a>:
+						{% endif %}
 						{{ game_count }} game{% if game_count != 1 %}s{% endif %} {% if team %} for <a class="team-link" href="{% leagueurl 'team_profile' other_season_league.tag other_season.tag team.number %}">{{ team.name }}</a>{% endif %}
 					</div>
 					{% endfor %}

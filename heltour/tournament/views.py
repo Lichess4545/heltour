@@ -936,9 +936,9 @@ class PlayerProfileView(LeagueView):
                     return team_member.team
             return None
 
+        has_other_seasons = player.seasonplayer_set.exclude(season=self.season).exists()
         other_season_leagues = [(l, [(sp.season, game_count(sp.season), team(sp.season)) for sp in player.seasonplayer_set \
                                                                                                          .filter(season__league=l, season__is_active=True) \
-                                                                                                         .exclude(season=self.season) \
                                                                                                          .order_by('-season__start_date')]) \
                          for l in League.objects.order_by('display_order')]
         other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
@@ -1024,6 +1024,7 @@ class PlayerProfileView(LeagueView):
 
         context = {
             'player': player,
+            'has_other_seasons': has_other_seasons,
             'other_season_leagues': other_season_leagues,
             'season_player': season_player,
             'games': games,
