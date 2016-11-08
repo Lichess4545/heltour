@@ -1003,8 +1003,8 @@ class PlayerPairing(_BaseModel):
             if black_changed and lpp.round.is_completed:
                 lpp.black_rank = None
                 lpp.save()
-            if result_changed and (result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
-                slacknotify.lonepairing_forfeit_changed(lpp)
+        if result_changed and (result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
+            slacknotify.pairing_forfeit_changed(self)
 
     def delete(self, *args, **kwargs):
         team_pairing = None

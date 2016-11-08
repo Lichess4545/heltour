@@ -5,7 +5,7 @@ import slackapi
 from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
-_events = {'mod': ['user_registered', 'user_latereg_created', 'user_withdrawl_created', 'lonepairing_forfeit_changed']}
+_events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed']}
 
 def _send_notification(event_type, league, text):
     for ln in league.leaguenotification_set.all():
@@ -28,17 +28,20 @@ def latereg_created(latereg):
     league = latereg.round.season.league
     manage_url = _abs_url(reverse('admin:manage_players', args=[latereg.round.season.pk]))
     message = '@%s <%s|added> for round %d' % (latereg.player.lichess_username, manage_url, latereg.round.number)
-    _send_notification('user_latereg_created', league, message)
+    _send_notification('latereg_created', league, message)
 
 def withdrawl_created(withdrawl):
     league = withdrawl.round.season.league
     manage_url = _abs_url(reverse('admin:manage_players', args=[withdrawl.round.season.pk]))
     message = '@%s <%s|withdrawn> for round %d' % (withdrawl.player.lichess_username, manage_url, withdrawl.round.number)
-    _send_notification('user_withdrawl_created', league, message)
+    _send_notification('withdrawl_created', league, message)
 
-def lonepairing_forfeit_changed(pairing):
-    league = pairing.round.season.league
-    white = pairing.white.lichess_username if pairing.white is not None else '?'
-    black = pairing.black.lichess_username if pairing.black is not None else '?'
+def pairing_forfeit_changed(pairing):
+    round_ = pairing.get_round()
+    if round_ is None:
+        return
+    league = round_.season.league
+    white = pairing.white.lichess_username.lower() if pairing.white is not None else '?'
+    black = pairing.black.lichess_username.lower() if pairing.black is not None else '?'
     message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
-    _send_notification('lonepairing_forfeit_changed', league, message)
+    _send_notification('pairing_forfeit_changed', league, message)

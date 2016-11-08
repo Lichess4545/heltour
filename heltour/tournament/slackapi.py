@@ -7,8 +7,11 @@ def _get_slack_token():
         return fin.read().strip()
 
 def _get_slack_webhook():
-    with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
-        return fin.read().strip()
+    try:
+        with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
+            return fin.read().strip()
+    except IOError:
+        return None
 
 def invite_user(email):
     url = 'https://slack.com/api/users.admin.invite'
@@ -38,8 +41,7 @@ def send_message(channel, text):
         if settings.DEBUG:
             print 'Sending slack notification: ', text
         return
-    r = requests.post(url, json={'channel': channel, 'text': text})
-    print r
+    requests.post(url, json={'channel': channel, 'text': text})
 
 class SlackError(Exception):
     pass
