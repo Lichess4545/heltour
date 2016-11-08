@@ -2,6 +2,9 @@ from heltour.tournament.models import *
 from heltour.tournament import lichessapi, slackapi
 from heltour.celery import app
 from celery.utils.log import get_task_logger
+from datetime import datetime
+from django.core.cache import cache
+from heltour import settings
 
 logger = get_task_logger(__name__)
 
@@ -174,3 +177,45 @@ def update_slack_users(self):
         if in_slack_group != p.in_slack_group:
             p.in_slack_group = in_slack_group
             p.save()
+
+# How late an event is allowed to run before it's discarded instead
+_max_lateness = timedelta(hours=1)
+
+@app.task(bind=True)
+def run_scheduled_events(self):
+    with cache.lock('run_scheduled_events'):
+        for event in ScheduledEvent.objects.all():
+            # Determine a range of times to search
+            # If the comparison point (e.g. round start) is in the range, we run the event
+            upper_bound = timezone.now() - event.offset
+            lower_bound = max(event.last_run or event.date_created, timezone.now() - _max_lateness) - event.offset
+
+            # Determine an upper bound for events that should be run before the next task execution
+            # The idea is that we want events to be run as close to their scheduled time as possible,
+            # not just at whatever interval this task happens to be run
+            future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
+            future_event_time = None
+
+            def matching_rounds(**kwargs):
+                result = Round.objects.filter(**kwargs).filter(season__is_active=True)
+                if event.league is not None:
+                    result = result.filter(season__league=event.league)
+                if event.season is not None:
+                    result = result.filter(season=event.season)
+                return result
+
+            if event.relative_to == 'round_start':
+                for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
+                    event.run(obj)
+                for obj in matching_rounds(start_date__gt=upper_bound, start_date__lte=future_bound):
+                    future_event_time = obj.start_date + event.offset if future_event_time is None else min(future_event_time, obj.start_date + event.offset)
+            elif event.relative_to == 'round_end':
+                for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
+                    event.run(obj)
+                for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
+                    future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
+
+            # Schedule this task to be run again at the next event's scheduled time
+            # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
+            if future_event_time is not None:
+                run_scheduled_events.apply_async(args=[], eta=future_event_time)

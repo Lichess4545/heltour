@@ -5,7 +5,7 @@ import slackapi
 from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
-_events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed']}
+_events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed', 'unscheduled_games', 'no_result_games']}
 
 def _send_notification(event_type, league, text):
     for ln in league.leaguenotification_set.all():
@@ -45,3 +45,18 @@ def pairing_forfeit_changed(pairing):
     black = pairing.black.lichess_username.lower() if pairing.black is not None else '?'
     message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
     _send_notification('pairing_forfeit_changed', league, message)
+
+def unscheduled_games(round_, player_list):
+    if len(player_list) == 0:
+        message = 'All games in round %d are scheduled.' % round_.number
+    else:
+        message = 'The following players have unscheduled games: @%s' % (', @'.join(player_list))
+    _send_notification('unscheduled_games', round_.season.league, message)
+
+def no_result_games(round_, pairings):
+    if len(pairings) == 0:
+        message = 'All games in round %d have results.' % round_.number
+    else:
+        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
+        message = 'The following games are missing results: %s' % (', '.join(pairing_strs))
+    _send_notification('no_result_games', round_.season.league, message)

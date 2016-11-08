@@ -1398,3 +1398,10 @@ class LeagueNotificationAdmin(VersionAdmin):
     list_display = ('league', 'type', 'slack_channel')
     search_fields = ('league__name', 'slack_channel')
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
+@admin.register(ScheduledEvent)
+class ScheduledEventAdmin(VersionAdmin):
+    list_display = ('type', 'offset', 'relative_to', 'league', 'season')
+    search_fields = ('league__name', 'season__name')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'

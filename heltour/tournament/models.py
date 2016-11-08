@@ -446,6 +446,9 @@ class Player(_BaseModel):
         else:
             return "%s (%d)" % (self.lichess_username, self.rating)
 
+    def __cmp__(self, other):
+        return cmp(self.lichess_username.lower(), other.lichess_username.lower())
+
 #-------------------------------------------------------------------------------
 class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League)
@@ -1591,3 +1594,46 @@ class LeagueNotification(_BaseModel):
 
     def __unicode__(self):
         return '%s - %s' % (self.league, self.get_type_display())
+
+SCHEDULED_EVENT_TYPES = (
+    ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
+    ('notify_mods_no_result', 'Notify mods of games without results'),
+)
+
+SCHEDULED_EVENT_RELATIVE_TO = (
+    ('round_start', 'Round start'),
+    ('round_end', 'Round end'),
+)
+
+#-------------------------------------------------------------------------------
+class ScheduledEvent(_BaseModel):
+    league = models.ForeignKey(League, blank=True, null=True)
+    season = models.ForeignKey(Season, blank=True, null=True)
+    type = models.CharField(max_length=255, choices=SCHEDULED_EVENT_TYPES)
+    offset = models.DurationField()
+    relative_to = models.CharField(max_length=255, choices=SCHEDULED_EVENT_RELATIVE_TO)
+    last_run = models.DateTimeField(blank=True, null=True)
+
+    def __unicode__(self):
+        return '%s' % (self.get_type_display())
+
+    def clean(self):
+        if self.league is not None and self.season is not None and self.season.league != self.league:
+            raise ValidationError('League and season must be compatible')
+
+    def run(self, obj):
+        self.last_run = timezone.now()
+        self.save()
+
+        if self.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
+            round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
+            unscheduled_pairings = round_pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
+            player_list = []
+            for p in unscheduled_pairings:
+                player_list.append(p.white.lichess_username.lower())
+                player_list.append(p.black.lichess_username.lower())
+            slacknotify.unscheduled_games(obj, player_list)
+        elif self.type == 'notify_mods_no_result' and isinstance(obj, Round):
+            round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
+            no_result_pairings = round_pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
+            slacknotify.no_result_games(obj, no_result_pairings)
