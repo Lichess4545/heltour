@@ -15,6 +15,7 @@ from django.core.mail.message import EmailMessage
 import json
 import reversion
 import math
+from heltour.tournament import slackapi
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]

@@ -29,7 +29,7 @@ from django.utils.html import format_html
 
 # Customize which sections are visible
 # admin.site.register(Comment)
-admin.site.unregister(Site)
+# admin.site.unregister(Site)
 
 def redirect_with_params(*args, **kwargs):
     params = kwargs.pop('params')
@@ -1391,3 +1391,10 @@ class SeasonDocumentAdmin(VersionAdmin):
         _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
         return '<a href="%s">%s</a>' % (_url, _url)
     url.allow_tags = True
+
+#-------------------------------------------------------------------------------
+@admin.register(LeagueNotification)
+class LeagueNotificationAdmin(VersionAdmin):
+    list_display = ('league', 'type', 'slack_channel')
+    search_fields = ('league__name', 'slack_channel')
+    change_form_template = 'tournament/admin/change_form_with_comments.html'
