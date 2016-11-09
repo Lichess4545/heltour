@@ -71,7 +71,7 @@ def populate_historical_ratings(self):
         if not b.round.is_completed:
             b.player_rating = b.player.rating
         else:
-            b.player_rating = _find_closest_rating(b.player, p.get_round().end_date, p.get_round().season)
+            b.player_rating = _find_closest_rating(b.player, b.round.end_date, b.round.season)
         b.save()
 
     for tm in TeamMember.objects.filter(player_rating=None, team__season__is_completed=True).nocache():
