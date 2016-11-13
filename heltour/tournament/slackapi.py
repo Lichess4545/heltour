@@ -6,11 +6,11 @@ def _get_slack_token():
     with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
         return fin.read().strip()
 
-def _get_slack_webhook():
+def _get_slack_webhook(hook=0):
     try:
         with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
-            return fin.read().strip()
-    except IOError:
+            return fin.read().strip().split('\n')[hook]
+    except (IOError, IndexError):
         return None
 
 def invite_user(email):
@@ -34,14 +34,17 @@ def get_user_list():
         raise SlackError(json['error'])
     return [SlackUser(m['name'], m['profile'].get('email', '')) for m in json['members']]
 
-def send_message(channel, text):
-    url = _get_slack_webhook()
+def send_message(channel, text, hook=0):
+    url = _get_slack_webhook(hook)
     if not url:
         # Not configured
         if settings.DEBUG:
             print 'Sending slack notification: ', text
         return
-    requests.post(url, json={'channel': channel, 'text': text})
+    r = requests.post(url, json={'channel': channel, 'text': text})
+    if r.text == 'channel_not_found':
+        # TODO: Try and find a better way to do this
+        send_message(channel, text, hook + 1)
 
 class SlackError(Exception):
     pass
