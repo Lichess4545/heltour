@@ -34,17 +34,17 @@ def get_user_list():
         raise SlackError(json['error'])
     return [SlackUser(m['name'], m['profile'].get('email', '')) for m in json['members']]
 
-def send_message(channel, text, hook=0):
+def send_message(channel, text, username='heltour', hook=0):
     url = _get_slack_webhook(hook)
     if not url:
         # Not configured
         if settings.DEBUG:
             print 'Sending slack notification: ', text
         return
-    r = requests.post(url, json={'channel': channel, 'text': text})
+    r = requests.post(url, json={'channel': channel, 'text': text, 'username': username})
     if r.text == 'channel_not_found':
         # TODO: Try and find a better way to do this
-        send_message(channel, text, hook + 1)
+        send_message(channel, text, username, hook + 1)
 
 class SlackError(Exception):
     pass
