@@ -159,6 +159,7 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
 # Celery (tasks)
 
 BROKER_URL = 'redis://localhost:6379/2'
+CELERY_DEFAULT_QUEUE = 'heltour.staging'
 
 CELERYBEAT_SCHEDULE = {
 #     'update-ratings': {
