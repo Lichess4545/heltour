@@ -1,10 +1,11 @@
 from heltour.tournament.models import *
-from heltour.tournament import lichessapi, slackapi
+from heltour.tournament import lichessapi, slackapi, pairinggen
 from heltour.celery import app
 from celery.utils.log import get_task_logger
 from datetime import datetime
 from django.core.cache import cache
 from heltour import settings
+import reversion
 
 logger = get_task_logger(__name__)
 
@@ -219,3 +220,13 @@ def run_scheduled_events(self):
             # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
             if future_event_time is not None:
                 run_scheduled_events.apply_async(args=[], eta=future_event_time)
+
+@app.task(bind=True)
+def generate_pairings(self, round_id, overwrite=False):
+    with reversion.create_revision():
+        reversion.set_comment('Generate pairings')
+        round_ = Round.objects.get(pk=round_id)
+        pairinggen.generate_pairings(round_, overwrite)
+        round_.publish_pairings = False
+        round_.save()
+        slacknotify.pairings_generated(round_)

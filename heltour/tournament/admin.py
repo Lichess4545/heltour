@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import lichessapi, slackapi, views, forms
+from heltour.tournament import lichessapi, slackapi, views, forms, tasks
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
@@ -710,16 +710,21 @@ class RoundAdmin(VersionAdmin):
             form = forms.GeneratePairingsForm(request.POST)
             if form.is_valid():
                 try:
-                    with reversion.create_revision():
-                        reversion.set_user(request.user)
-                        reversion.set_comment('Generate pairings')
+                    if form.cleaned_data['run_in_background']:
+                        tasks.generate_pairings.apply_async(args=[round_.pk, form.cleaned_data['overwrite_existing']])
+                        self.message_user(request, 'Generating pairings in background.', messages.INFO)
+                        return redirect('admin:review_pairings', object_id)
+                    else:
+                        with reversion.create_revision():
+                            reversion.set_user(request.user)
+                            reversion.set_comment('Generate pairings')
 
-                        pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
-                        round_.publish_pairings = False
-                        round_.save()
+                            pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
+                            round_.publish_pairings = False
+                            round_.save()
 
-                    self.message_user(request, 'Pairings generated.', messages.INFO)
-                    return redirect('admin:review_pairings', object_id)
+                        self.message_user(request, 'Pairings generated.', messages.INFO)
+                        return redirect('admin:review_pairings', object_id)
                 except pairinggen.PairingsExistException:
                     if not round_.publish_pairings:
                         self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)

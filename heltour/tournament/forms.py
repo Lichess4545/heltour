@@ -130,6 +130,7 @@ class ImportSeasonForm(forms.Form):
 
 class GeneratePairingsForm(forms.Form):
     overwrite_existing = forms.BooleanField(required=False, label='Overwrite existing pairings')
+    run_in_background = forms.BooleanField(required=False, label='Run in background')
 
 class ReviewPairingsForm(forms.Form):
     pass
