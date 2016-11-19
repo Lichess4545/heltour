@@ -6,6 +6,7 @@ from datetime import datetime
 from django.core.cache import cache
 from heltour import settings
 import reversion
+from django.contrib import messages
 
 logger = get_task_logger(__name__)
 
@@ -207,12 +208,12 @@ def run_scheduled_events(self):
 
             if event.relative_to == 'round_start':
                 for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
-                    event.run(obj)
+                    run_event(event, obj)
                 for obj in matching_rounds(start_date__gt=upper_bound, start_date__lte=future_bound):
                     future_event_time = obj.start_date + event.offset if future_event_time is None else min(future_event_time, obj.start_date + event.offset)
             elif event.relative_to == 'round_end':
                 for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
-                    event.run(obj)
+                    run_event(event, obj)
                 for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
                     future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
 
@@ -220,6 +221,31 @@ def run_scheduled_events(self):
             # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
             if future_event_time is not None:
                 run_scheduled_events.apply_async(args=[], eta=future_event_time)
+
+def run_event(event, obj):
+    event.last_run = timezone.now()
+    event.save()
+
+    if event.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
+        round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
+        unscheduled_pairings = round_pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
+        player_list = []
+        for p in unscheduled_pairings:
+            player_list.append(p.white.lichess_username.lower())
+            player_list.append(p.black.lichess_username.lower())
+        slacknotify.unscheduled_games(obj, player_list)
+    elif event.type == 'notify_mods_no_result' and isinstance(obj, Round):
+        round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
+        no_result_pairings = round_pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
+        slacknotify.no_result_games(obj, no_result_pairings)
+    elif event.type == 'start_round_transition' and isinstance(obj, Round):
+        workflow = RoundTransitionWorkflow(obj.season)
+        warnings = workflow.warnings
+        if len(warnings) > 0:
+            slacknotify.no_transition(obj.season, warnings)
+        else:
+            msg_list = workflow.run(complete_round=True, complete_season=True, update_board_order=True, generate_pairings=True, background=True)
+            slacknotify.starting_transition(obj.season, msg_list)
 
 @app.task(bind=True)
 def generate_pairings(self, round_id, overwrite=False):
@@ -230,3 +256,93 @@ def generate_pairings(self, round_id, overwrite=False):
         round_.publish_pairings = False
         round_.save()
         slacknotify.pairings_generated(round_)
+
+class RoundTransitionWorkflow():
+
+    def __init__(self, season):
+        self.season = season
+
+    @property
+    def round_to_close(self):
+        return self.season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
+
+    @property
+    def round_to_open(self):
+        return self.season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
+
+    @property
+    def season_to_close(self):
+        round_to_close = self.round_to_close
+        round_to_open = self.round_to_open
+        return self.season if not self.season.is_completed and round_to_open is None and (round_to_close is None or round_to_close.number == self.season.rounds) else None
+
+    def run(self, complete_round=False, complete_season=False, update_board_order=False, generate_pairings=False, background=False, user=None):
+        msg_list = []
+        round_to_close = self.round_to_close
+        round_to_open = self.round_to_open
+        season_to_close = self.season_to_close
+
+        with transaction.atomic():
+            if complete_round and round_to_close is not None:
+                with reversion.create_revision():
+                    reversion.set_user(user)
+                    reversion.set_comment('Close round')
+                    round_to_close.is_completed = True
+                    round_to_close.save()
+                msg_list.append(('Round %d set as completed.' % round_to_close.number, messages.INFO))
+            if complete_season and season_to_close is not None and (round_to_close is None or round_to_close.is_completed):
+                with reversion.create_revision():
+                    reversion.set_user(user)
+                    reversion.set_comment('Close season')
+                    season_to_close.is_completed = True
+                    season_to_close.save()
+                msg_list.append(('%s set as completed.' % season_to_close.name, messages.INFO))
+            if update_board_order and round_to_open is not None and self.season.league.competitor_type == 'team':
+                try:
+                    with reversion.create_revision():
+                        reversion.set_user(user)
+                        reversion.set_comment('Update board order')
+                        self.do_update_board_order(self.season)
+                    msg_list.append(('Board order updated.', messages.INFO))
+                except IndexError:
+                    msg_list.append(('Error updating board order.', messages.ERROR))
+                    return msg_list
+            if generate_pairings and round_to_open is not None:
+                if background:
+                    generate_pairings.apply_async(args=[round_to_open.pk])
+                    msg_list.append(('Generating pairings in background.', messages.INFO))
+                else:
+                    try:
+                        with reversion.create_revision():
+                            reversion.set_user(user)
+                            reversion.set_comment('Generate pairings')
+                            pairinggen.generate_pairings(round_to_open, overwrite=False)
+                            round_to_open.publish_pairings = False
+                            round_to_open.save()
+                        msg_list.append(('Pairings generated.', messages.INFO))
+                    except pairinggen.PairingsExistException:
+                        msg_list.append(('Unpublished pairings already exist.', messages.WARNING))
+                    except pairinggen.PairingHasResultException:
+                        msg_list.append(('Pairings with results can\'t be overwritten.', messages.ERROR))
+        return msg_list
+
+    @property
+    def warnings(self):
+        msg_list = []
+        round_to_close = self.round_to_close
+        round_to_open = self.round_to_open
+
+        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
+            time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
+            msg_list.append(('The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING))
+        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+            time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
+            msg_list.append(('The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING))
+
+        if round_to_close is not None:
+            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close).nocache() | \
+                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close).nocache()
+            if len(incomplete_pairings) > 0:
+                msg_list.append(('Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING))
+
+        return msg_list
