@@ -47,11 +47,12 @@ def pairing_forfeit_changed(pairing):
     message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
     _send_notification('pairing_forfeit_changed', league, message)
 
-def unscheduled_games(round_, player_list):
-    if len(player_list) == 0:
+def unscheduled_games(round_, pairings):
+    if len(pairings) == 0:
         message = 'All games in round %d are scheduled.' % round_.number
     else:
-        message = 'The following players have unscheduled games: @%s' % (', @'.join(player_list))
+        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
+        message = 'The following games are unscheduled: %s' % (', '.join(pairing_strs))
     _send_notification('unscheduled_games', round_.season.league, message)
 
 def no_result_games(round_, pairings):
