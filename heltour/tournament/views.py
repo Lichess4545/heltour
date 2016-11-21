@@ -803,6 +803,62 @@ class StatsView(SeasonView):
             return self.render('tournament/lone_stats.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
 
+class BoardScoresView(SeasonView):
+    def view(self, board_number):
+        if self.league.competitor_type == 'team':
+            return self.team_view(board_number)
+        else:
+            raise Http404
+
+    def team_view(self, board_number):
+        @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
+        def _view(league_tag, season_tag, is_staff, board_number):
+            board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season, \
+                                                        teamplayerpairing__board_number=board_number) \
+                                                .select_related('teamplayerpairing', 'white', 'black') \
+                                                .nocache()
+
+            class PlayerScore():
+                def __init__(self, name):
+                    self.name = name
+                    self.score = 0
+                    self.score_total = 0
+                    self.perf = PerfRatingCalc()
+                    self.perf_rating = None
+
+            scores = {}
+
+            for p in board_pairings:
+                white_ps = scores[p.white] = scores.get(p.white, PlayerScore(p.white.lichess_username))
+                black_ps = scores[p.black] = scores.get(p.black, PlayerScore(p.black.lichess_username))
+
+                white_game_score = p.white_score()
+                if white_game_score is not None:
+                    white_ps.score += white_game_score
+                    white_ps.score_total += 1
+                    if p.game_played():
+                        white_ps.perf.add_game(white_game_score, p.black_rating_display())
+
+                black_game_score = p.black_score()
+                if black_game_score is not None:
+                    black_ps.score += black_game_score
+                    black_ps.score_total += 1
+                    if p.game_played():
+                        black_ps.perf.add_game(black_game_score, p.white_rating_display())
+
+            score_list = [ps for ps in scores.values()]
+            for ps in score_list:
+                ps.perf_rating = ps.perf.calculate()
+            score_list = [ps for ps in score_list if ps.perf_rating is not None]
+            score_list.sort(key=lambda ps: ps.perf_rating, reverse=True)
+
+            context = {
+                'board_number': board_number,
+                'player_scores': score_list
+            }
+            return self.render('tournament/team_board_scores.html', context)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, board_number)
+
 class LeagueDashboardView(LeagueView):
     def view(self):
         if self.league.competitor_type == 'team':

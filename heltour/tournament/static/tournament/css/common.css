@@ -454,6 +454,10 @@ div.inline {
 	table-layout: fixed;
 }
 
+.table-board-scores {
+	max-width: 500px;
+}
+
 .dashboard-season-action {
 	margin-bottom: 10px;
 }
