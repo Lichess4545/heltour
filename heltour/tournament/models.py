@@ -280,21 +280,19 @@ class Season(_BaseModel):
                 bye = find(byes, player_id=sp.player_id)
 
                 def increment_score(round_opponent, round_score, round_played):
-                    total, mm_total, cumul, perf_total_rating, perf_score, perf_n, _, _ = score_dict[(sp.player_id, last_round.number)] if last_round is not None else (0, 0, 0, 0, 0, 0, None, False)
+                    total, mm_total, cumul, perf, _, _ = score_dict[(sp.player_id, last_round.number)] if last_round is not None else (0, 0, 0, PerfRatingCalc(), None, False)
                     total += round_score
                     cumul += total
                     if round_played:
                         mm_total += round_score
                         opp_rating = seed_rating_dict.get(round_opponent, None)
                         if opp_rating is not None:
-                            perf_total_rating += opp_rating
-                            perf_score += round_score
-                            perf_n += 1
+                            perf.add_game(round_score, opp_rating)
                     else:
                         # Special cases for unplayed games
                         mm_total += 0.5
                         cumul -= round_score
-                    score_dict[(sp.player_id, round_.number)] = _LoneScoreState(total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played)
+                    score_dict[(sp.player_id, round_.number)] = _LoneScoreState(total, mm_total, cumul, perf, round_opponent, round_played)
 
                 if white_pairing is not None:
                     increment_score(white_pairing.black_id, white_pairing.white_score() or 0, white_pairing.game_played())
@@ -352,12 +350,7 @@ class Season(_BaseModel):
                 score.tiebreak4 = sum(opponent_cumuls)
 
                 # Performance rating
-                if score_state.perf_n >= 5:
-                    average_opp_rating = int(round(score_state.perf_total_rating / float(score_state.perf_n)))
-                    dp = get_fide_dp(score_state.perf_score, score_state.perf_n)
-                    score.perf_rating = average_opp_rating + dp
-                else:
-                    score.perf_rating = None
+                score.perf_rating = score_state.perf.calculate()
 
             score.save()
 
@@ -379,7 +372,7 @@ class Season(_BaseModel):
         return self.name
 
 _TeamScoreState = namedtuple('_TeamScoreState', 'playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
-_LoneScoreState = namedtuple('_LoneScoreState', 'total, mm_total, cumul, perf_total_rating, perf_score, perf_n, round_opponent, round_played')
+_LoneScoreState = namedtuple('_LoneScoreState', 'total, mm_total, cumul, perf, round_opponent, round_played')
 
 # From https://www.fide.com/component/handbook/?id=174&view=article
 # Used for performance rating calculations
@@ -394,6 +387,24 @@ def get_fide_dp(score, total):
     lookup_index = max(min(int(round(100.0 * score / total)), 100), 0)
     # Use that number to get a rating difference from the FIDE lookup table
     return fide_dp_lookup[lookup_index]
+
+class PerfRatingCalc():
+    def __init__(self):
+        self._score = 0
+        self._game_count = 0
+        self._opponent_ratings = []
+
+    def add_game(self, score, opponent_rating):
+        self._score += score
+        self._game_count += 1
+        self._opponent_ratings.append(opponent_rating)
+
+    def calculate(self):
+        if self._game_count < 5:
+            return None
+        average_opp_rating = int(round(sum(self._opponent_ratings) / float(self._game_count)))
+        dp = get_fide_dp(self._score, self._game_count)
+        return average_opp_rating + dp
 
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
