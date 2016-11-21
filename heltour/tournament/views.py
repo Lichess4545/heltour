@@ -77,7 +77,7 @@ class UrlAuthMixin:
     def persist_url_auth(self, secret_token):
         if secret_token is not None:
             auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
-            if auth is not None and not auth.is_expired() and not auth.used:
+            if auth is not None and not auth.is_expired():
                 self.request.session['url_auth_token'] = secret_token
                 auth.used = True
                 auth.save()

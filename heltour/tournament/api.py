@@ -403,7 +403,7 @@ def get_private_url(request):
         if not season_tag:
             url = reverse('by_league:nominate_with_token', args=[league_tag, auth.secret_token])
         else:
-            url = reverse('by_league:by_season:nominate', args=[league_tag, season_tag, auth.secret_token])
+            url = reverse('by_league:by_season:nominate_with_token', args=[league_tag, season_tag, auth.secret_token])
         url = request.build_absolute_uri(url)
 
         return JsonResponse({'url': url, 'expires': auth.expires})
