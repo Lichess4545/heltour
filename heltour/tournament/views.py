@@ -815,6 +815,7 @@ class BoardScoresView(SeasonView):
         def _view(league_tag, season_tag, is_staff, board_number):
             board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season, \
                                                         teamplayerpairing__board_number=board_number) \
+                                                .exclude(white=None).exclude(black=None) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
                                                 .nocache()
 
