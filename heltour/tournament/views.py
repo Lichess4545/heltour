@@ -826,35 +826,35 @@ class BoardScoresView(SeasonView):
                     self.perf = PerfRatingCalc()
                     self.perf_rating = None
 
-            scores = {}
+            ps_dict = {} # Player -> PlayerScore
 
-            for p in board_pairings:
-                white_ps = scores[p.white] = scores.get(p.white, PlayerScore(p.white.lichess_username))
-                black_ps = scores[p.black] = scores.get(p.black, PlayerScore(p.black.lichess_username))
+            for pairing in board_pairings:
+                white_ps = ps_dict[pairing.white] = ps_dict.get(pairing.white, PlayerScore(pairing.white.lichess_username))
+                black_ps = ps_dict[pairing.black] = ps_dict.get(pairing.black, PlayerScore(pairing.black.lichess_username))
 
-                white_game_score = p.white_score()
+                white_game_score = pairing.white_score()
                 if white_game_score is not None:
                     white_ps.score += white_game_score
                     white_ps.score_total += 1
-                    if p.game_played():
-                        white_ps.perf.add_game(white_game_score, p.black_rating_display())
+                    if pairing.game_played():
+                        white_ps.perf.add_game(white_game_score, pairing.black_rating_display())
 
-                black_game_score = p.black_score()
+                black_game_score = pairing.black_score()
                 if black_game_score is not None:
                     black_ps.score += black_game_score
                     black_ps.score_total += 1
-                    if p.game_played():
-                        black_ps.perf.add_game(black_game_score, p.white_rating_display())
+                    if pairing.game_played():
+                        black_ps.perf.add_game(black_game_score, pairing.white_rating_display())
 
-            score_list = [ps for ps in scores.values()]
-            for ps in score_list:
+            ps_list = [ps for ps in ps_dict.values()]
+            for ps in ps_list:
                 ps.perf_rating = ps.perf.calculate()
-            score_list = [ps for ps in score_list if ps.perf_rating is not None]
-            score_list.sort(key=lambda ps: ps.perf_rating, reverse=True)
+            ps_list = [ps for ps in ps_list if ps.perf_rating is not None]
+            ps_list.sort(key=lambda ps: ps.perf_rating, reverse=True)
 
             context = {
                 'board_number': board_number,
-                'player_scores': score_list
+                'player_scores': ps_list
             }
             return self.render('tournament/team_board_scores.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff, board_number)
