@@ -816,6 +816,7 @@ class BoardScoresView(SeasonView):
             board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .exclude(white=None).exclude(black=None) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
+                                                .order_by('teamplayerpairing__team_pairing__round__number') \
                                                 .nocache()
 
             class PlayerScore():
@@ -1043,7 +1044,7 @@ class PlayerProfileView(LeagueView):
         # Calculate performance rating
         season_score = 0
         season_score_total = 0
-        perf = PerfRatingCalc()
+        season_perf = PerfRatingCalc()
         if games:
             for round_, p, team in games:
                 game_score = p.white_score() if p.white == player else p.black_score()
@@ -1057,8 +1058,8 @@ class PlayerProfileView(LeagueView):
                         opp_rating = sp.seed_rating
                     else:
                         opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display()
-                    perf.add_game(game_score, opp_rating)
-        season_perf_rating = perf.calculate()
+                    season_perf.add_game(game_score, opp_rating)
+        season_perf_rating = season_perf.calculate()
 
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
         alternate = Alternate.objects.filter(season_player=season_player).first()
@@ -1113,6 +1114,7 @@ class PlayerProfileView(LeagueView):
             'team_member': team_member,
             'alternate': alternate,
             'schedule': schedule,
+            'season_perf': season_perf,
             'season_perf_rating': season_perf_rating,
             'season_score': season_score,
             'season_score_total': season_score_total,

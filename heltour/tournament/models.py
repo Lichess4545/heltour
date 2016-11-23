@@ -406,6 +406,9 @@ class PerfRatingCalc():
         dp = get_fide_dp(self._score, self._game_count)
         return average_opp_rating + dp
 
+    def debug(self):
+        return '%.1f / %d [%s]' % (self._score, self._game_count, ', '.join((str(r) for r in self._opponent_ratings)))
+
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
     season = models.ForeignKey(Season)

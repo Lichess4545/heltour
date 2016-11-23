@@ -112,7 +112,7 @@
 					<table>
 						<tr>
 							<td><strong>Score:</strong> {{ season_score|floatformat }}/{{ season_score_total }}</td>
-							{% if season_perf_rating %}<td><strong>Perf rating:</strong> {{ season_perf_rating }}</td>{% endif %}
+							{% if season_perf_rating %}<td><strong>Perf rating:</strong> <span title="{{ season_perf.debug }}">{{ season_perf_rating }}</span></td>{% endif %}
 						</tr>
 					</table>
 				</div>

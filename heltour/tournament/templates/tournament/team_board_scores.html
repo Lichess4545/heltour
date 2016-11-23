@@ -36,7 +36,9 @@
 						<tr>
 							<td><a href="{% leagueurl 'player_profile' league.tag season.tag ps.name %}">{{ ps.name }}</a></td>
 							<td>{{ ps.score|floatformat:1 }} / {{ ps.score_total }}</td>
-							<td>{{ ps.perf_rating|default_if_none:'---' }}{% if not ps.eligible and ps.perf_rating %}*{% endif %}</td>
+							<td>
+								<span title="{{ ps.perf.debug }}">{{ ps.perf_rating|default_if_none:'---' }}{% if not ps.eligible and ps.perf_rating %}*{% endif %}</span>
+							</td>
 						</tr>
 						{% endfor %}
 					</table>
