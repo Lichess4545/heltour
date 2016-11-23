@@ -813,25 +813,32 @@ class BoardScoresView(SeasonView):
     def team_view(self, board_number):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
         def _view(league_tag, season_tag, is_staff, board_number):
-            board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season, \
-                                                        teamplayerpairing__board_number=board_number) \
+            board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .exclude(white=None).exclude(black=None) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
                                                 .nocache()
 
             class PlayerScore():
-                def __init__(self, name):
-                    self.name = name
+                def __init__(self, player):
+                    self.player = player
+                    self.name = player.lichess_username
                     self.score = 0
                     self.score_total = 0
                     self.perf = PerfRatingCalc()
                     self.perf_rating = None
+                    self.eligible = True
 
             ps_dict = {} # Player -> PlayerScore
+            games_dict = defaultdict(list) # Player -> list of PlayerPairing
 
             for pairing in board_pairings:
-                white_ps = ps_dict[pairing.white] = ps_dict.get(pairing.white, PlayerScore(pairing.white.lichess_username))
-                black_ps = ps_dict[pairing.black] = ps_dict.get(pairing.black, PlayerScore(pairing.black.lichess_username))
+                games_dict[pairing.white].append(pairing)
+                games_dict[pairing.black].append(pairing)
+
+                if pairing.teamplayerpairing.board_number != int(board_number):
+                    continue
+                white_ps = ps_dict[pairing.white] = ps_dict.get(pairing.white, PlayerScore(pairing.white))
+                black_ps = ps_dict[pairing.black] = ps_dict.get(pairing.black, PlayerScore(pairing.black))
 
                 white_game_score = pairing.white_score()
                 if white_game_score is not None:
@@ -847,11 +854,28 @@ class BoardScoresView(SeasonView):
                     if pairing.game_played():
                         black_ps.perf.add_game(black_game_score, pairing.white_rating_display())
 
-            ps_list = [ps for ps in ps_dict.values()]
-            for ps in ps_list:
+            def process_playerscore(ps):
+                # Exclude players that played primarily on other boards
+                total_game_count = len(games_dict[ps.player])
+                if ps.score_total < total_game_count / 2.0 or ps.score_total < 2:
+                    return False
+                # Precalculate perf rating
                 ps.perf_rating = ps.perf.calculate()
-            ps_list = [ps for ps in ps_list if ps.perf_rating is not None]
-            ps_list.sort(key=lambda ps: ps.perf_rating, reverse=True)
+                # Try to calculate an overall perf rating if you can't get one just for the board
+                if ps.perf_rating is None:
+                    ps.perf = PerfRatingCalc()
+                    for g in games_dict[ps.player]:
+                        if g.game_played():
+                            if g.white == ps.player:
+                                ps.perf.add_game(g.white_score(), g.black_rating_display())
+                            else:
+                                ps.perf.add_game(g.black_score(), g.white_rating_display())
+                    ps.perf_rating = ps.perf.calculate()
+                    ps.eligible = False
+                return True
+
+            ps_list = [ps for ps in ps_dict.values() if process_playerscore(ps)]
+            ps_list.sort(key=lambda ps: (ps.perf_rating, ps.score, ps.score_total), reverse=True)
 
             context = {
                 'board_number': board_number,
