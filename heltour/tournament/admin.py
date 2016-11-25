@@ -39,10 +39,13 @@ def redirect_with_params(*args, **kwargs):
     return response
 
 #-------------------------------------------------------------------------------
-@admin.register(League)
-class LeagueAdmin(VersionAdmin):
-    actions = ['import_season']
+class _BaseAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+
+#-------------------------------------------------------------------------------
+@admin.register(League)
+class LeagueAdmin(_BaseAdmin):
+    actions = ['import_season']
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -92,12 +95,11 @@ class LeagueAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(Season)
-class SeasonAdmin(VersionAdmin):
+class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'manage_players', 'round_transition']
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
@@ -680,10 +682,9 @@ class SeasonAdmin(VersionAdmin):
         return render(request, 'tournament/admin/manage_lone_players.html', context)
 
 @admin.register(Round)
-class RoundAdmin(VersionAdmin):
+class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings']
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
@@ -860,39 +861,35 @@ class RoundAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerLateRegistration)
-class PlayerLateRegistrationAdmin(VersionAdmin):
+class PlayerLateRegistrationAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'retroactive_byes', 'late_join_points')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawl)
-class PlayerWithdrawlAdmin(VersionAdmin):
+class PlayerWithdrawlAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerBye)
-class PlayerByeAdmin(VersionAdmin):
+class PlayerByeAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'type')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
     exclude = ('player_rating',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(Player)
-class PlayerAdmin(VersionAdmin):
+class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email')
     list_filter = ('is_active',)
     actions = ['update_selected_player_ratings']
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def update_selected_player_ratings(self, request, queryset):
 #         try:
@@ -907,12 +904,11 @@ class PlayerAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
-class LeagueModeratorAdmin(VersionAdmin):
+class LeagueModeratorAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'send_contact_emails')
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 class TeamMemberInline(admin.TabularInline):
@@ -924,13 +920,12 @@ class TeamMemberInline(admin.TabularInline):
 
 #-------------------------------------------------------------------------------
 @admin.register(Team)
-class TeamAdmin(VersionAdmin):
+class TeamAdmin(_BaseAdmin):
     list_display = ('name', 'season')
     search_fields = ('name',)
     list_filter = ('season',)
     inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
@@ -942,67 +937,60 @@ class TeamAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamMember)
-class TeamMemberAdmin(VersionAdmin):
+class TeamMemberAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
     exclude = ('player_rating',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamScore)
-class TeamScoreAdmin(VersionAdmin):
+class TeamScoreAdmin(_BaseAdmin):
     list_display = ('team', 'match_points', 'game_points')
     search_fields = ('team__name',)
     list_filter = ('team__season',)
     raw_id_fields = ('team',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(Alternate)
-class AlternateAdmin(VersionAdmin):
+class AlternateAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'board_number')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
     raw_id_fields = ('season_player',)
     exclude = ('player_rating',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateAssignment)
-class AlternateAssignmentAdmin(VersionAdmin):
+class AlternateAssignmentAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateBucket)
-class AlternateBucketAdmin(VersionAdmin):
+class AlternateBucketAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'season')
     search_fields = ()
     list_filter = ('season', 'board_number')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamPairing)
-class TeamPairingAdmin(VersionAdmin):
+class TeamPairingAdmin(_BaseAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white_team', 'black_team', 'round')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
-class PlayerPairingAdmin(VersionAdmin):
+class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'scheduled_time', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
     exclude = ('white_rating', 'black_rating', 'tv_state')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1011,13 +999,12 @@ class PlayerPairingAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamPlayerPairing)
-class TeamPlayerPairingAdmin(VersionAdmin):
+class TeamPlayerPairingAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'team_pairing', 'board_number', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username',
                      'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1026,12 +1013,11 @@ class TeamPlayerPairingAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
-class LonePlayerPairingAdmin(VersionAdmin):
+class LonePlayerPairingAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'round', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1040,7 +1026,7 @@ class LonePlayerPairingAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
-class RegistrationAdmin(VersionAdmin):
+class RegistrationAdmin(_BaseAdmin):
     list_display = ('review', 'email', 'status', 'season', 'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
@@ -1279,12 +1265,11 @@ class RegistrationAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
-class SeasonPlayerAdmin(VersionAdmin):
+class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season', 'is_active', 'player__in_slack_group')
     raw_id_fields = ('player', 'registration')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def in_slack(self, sp):
         return sp.player.in_slack_group
@@ -1292,93 +1277,81 @@ class SeasonPlayerAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerScore)
-class LonePlayerScoreAdmin(VersionAdmin):
+class LonePlayerScoreAdmin(_BaseAdmin):
     list_display = ('season_player', 'points', 'late_join_points')
     search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
     list_filter = ('season_player__season',)
     raw_id_fields = ('season_player',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerAvailability)
-class PlayerAvailabilityAdmin(VersionAdmin):
+class PlayerAvailabilityAdmin(_BaseAdmin):
     list_display = ('player', 'round', 'is_available')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('player', 'round')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPrize)
-class SeasonPrizeAdmin(VersionAdmin):
+class SeasonPrizeAdmin(_BaseAdmin):
     list_display = ('season', 'rank', 'max_rating')
     search_fields = ('season__name',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPrizeWinner)
-class SeasonPrizeWinnerAdmin(VersionAdmin):
+class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
     search_fields = ('season_prize__name', 'player__lichess_username')
     raw_id_fields = ('season_prize', 'player')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(GameNomination)
-class GameNominationAdmin(VersionAdmin):
+class GameNominationAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name', 'nominating_player__name')
     raw_id_fields = ('nominating_player',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(GameSelection)
-class GameSelectionAdmin(VersionAdmin):
+class GameSelectionAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(AvailableTime)
-class AvailableTimeAdmin(VersionAdmin):
+class AvailableTimeAdmin(_BaseAdmin):
     list_display = ('player', 'time', 'league')
     search_fields = ('player__lichess_username',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(NavItem)
-class NavItemAdmin(VersionAdmin):
+class NavItemAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'parent')
     search_fields = ('text',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(ApiKey)
-class ApiKeyAdmin(VersionAdmin):
+class ApiKeyAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(PrivateUrlAuth)
-class PrivateUrlAuthAdmin(VersionAdmin):
+class PrivateUrlAuthAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'expires')
     search_fields = ('authenticated_user',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(Document)
-class DocumentAdmin(VersionAdmin):
+class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
-class LeagueDocumentAdmin(VersionAdmin):
+class LeagueDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'league', 'tag', 'type', 'url')
     search_fields = ('league__name', 'tag', 'document__name')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def url(self, obj):
         _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
@@ -1387,10 +1360,9 @@ class LeagueDocumentAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonDocument)
-class SeasonDocumentAdmin(VersionAdmin):
+class SeasonDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'season', 'tag', 'type', 'url')
     search_fields = ('season__name', 'tag', 'document__name')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
     def url(self, obj):
         _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
@@ -1399,14 +1371,12 @@ class SeasonDocumentAdmin(VersionAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueNotification)
-class LeagueNotificationAdmin(VersionAdmin):
+class LeagueNotificationAdmin(_BaseAdmin):
     list_display = ('league', 'type', 'slack_channel')
     search_fields = ('league__name', 'slack_channel')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
 
 #-------------------------------------------------------------------------------
 @admin.register(ScheduledEvent)
-class ScheduledEventAdmin(VersionAdmin):
+class ScheduledEventAdmin(_BaseAdmin):
     list_display = ('type', 'offset', 'relative_to', 'league', 'season')
     search_fields = ('league__name', 'season__name')
-    change_form_template = 'tournament/admin/change_form_with_comments.html'
