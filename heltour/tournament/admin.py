@@ -41,6 +41,7 @@ def redirect_with_params(*args, **kwargs):
 #-------------------------------------------------------------------------------
 class _BaseAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
+    history_latest_first = True
 
 #-------------------------------------------------------------------------------
 @admin.register(League)
