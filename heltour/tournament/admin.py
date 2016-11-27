@@ -241,70 +241,37 @@ class SeasonAdmin(_BaseAdmin):
     def round_transition_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
 
-        round_to_close = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
-        round_to_open = season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
+        workflow = tasks.RoundTransitionWorkflow(season)
 
-        season_to_close = season if not season.is_completed and round_to_open is None and (round_to_close is None or round_to_close.number == season.rounds) else None
+        round_to_close = workflow.round_to_close
+        round_to_open = workflow.round_to_open
+        season_to_close = workflow.season_to_close
 
         if request.method == 'POST':
             form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close, request.POST)
             if form.is_valid():
-                with transaction.atomic():
-                    if 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number:
-                        if form.cleaned_data['complete_round']:
-                            with reversion.create_revision():
-                                reversion.set_user(request.user)
-                                reversion.set_comment('Closed round.')
-                                round_to_close.is_completed = True
-                                round_to_close.save()
-                            self.message_user(request, 'Round %d set as completed.' % round_to_close.number, messages.INFO)
-                    if 'complete_season' in form.cleaned_data and season_to_close is not None and form.cleaned_data['complete_season'] \
-                            and (round_to_close is None or round_to_close.is_completed):
-                        with reversion.create_revision():
-                            reversion.set_user(request.user)
-                            reversion.set_comment('Closed season.')
-                            season_to_close.is_completed = True
-                            season_to_close.save()
-                        self.message_user(request, '%s set as completed.' % season_to_close.name, messages.INFO)
-                    if 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number:
-                        if 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']:
-                            try:
-                                self.do_update_board_order(season)
-                                self.message_user(request, 'Board order updated.', messages.INFO)
-                            except IndexError:
-                                self.message_user(request, 'Error updating board order.', messages.ERROR)
-                                return redirect('admin:round_transition', object_id)
-                        if form.cleaned_data['generate_pairings']:
-                            try:
-                                pairinggen.generate_pairings(round_to_open, overwrite=False)
-                                with reversion.create_revision():
-                                    reversion.set_user(request.user)
-                                    reversion.set_comment('Generated pairings.')
-                                    round_to_open.publish_pairings = False
-                                    round_to_open.save()
-                                self.message_user(request, 'Pairings generated.', messages.INFO)
-                                return redirect('admin:review_pairings', round_to_open.pk)
-                            except pairinggen.PairingsExistException:
-                                self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)
-                                return redirect('admin:review_pairings', round_to_open.pk)
-                            except pairinggen.PairingHasResultException:
-                                self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
+                complete_round = 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number \
+                                 and form.cleaned_data['complete_round']
+                complete_season = 'complete_season' in form.cleaned_data and form.cleaned_data['complete_season']
+                update_board_order = 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number \
+                                     and 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']
+                generate_pairings = 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number \
+                                    and form.cleaned_data['generate_pairings']
+
+                msg_list = workflow.run(complete_round=complete_round, complete_season=complete_season, update_board_order=update_board_order, generate_pairings=generate_pairings)
+
+                for text, level in msg_list:
+                    self.message_user(request, text, level)
+
+                if generate_pairings:
+                    return redirect('admin:review_pairings', round_to_open.pk)
+                else:
                     return redirect('admin:tournament_season_changelist')
         else:
             form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close)
 
-        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
-            time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
-            self.message_user(request, 'The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING)
-        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
-            time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
-            self.message_user(request, 'The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING)
-
-        if round_to_close is not None:
-            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close).nocache() | \
-                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close).nocache()
-            if len(incomplete_pairings) > 0:
-                self.message_user(request, 'Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING)
+        for text, level in workflow.warnings:
+            self.message_user(request, text, level)
 
         context = {
             'has_permission': True,
@@ -360,19 +327,6 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/bulk_email.html', context)
-
-    def _time_from_now(self, delta):
-        if delta.days > 0:
-            if delta.days == 1:
-                return '1 day'
-            else:
-                return '%d days' % delta.days
-        else:
-            hours = delta.seconds / 3600
-            if hours == 1:
-                return '1 hour'
-            else:
-                return '%d hours' % hours
 
     def update_board_order_by_rating(self, request, queryset):
         try:

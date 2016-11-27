@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 _events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed', 'unscheduled_games', 'no_result_games',
-                   'pairings_generated']}
+                   'pairings_generated', 'no_transition', 'starting_transition']}
 
 def _send_notification(event_type, league, text):
     for ln in league.leaguenotification_set.all():
@@ -47,11 +47,12 @@ def pairing_forfeit_changed(pairing):
     message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
     _send_notification('pairing_forfeit_changed', league, message)
 
-def unscheduled_games(round_, player_list):
-    if len(player_list) == 0:
+def unscheduled_games(round_, pairings):
+    if len(pairings) == 0:
         message = 'All games in round %d are scheduled.' % round_.number
     else:
-        message = 'The following players have unscheduled games: @%s' % (', @'.join(player_list))
+        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
+        message = 'The following games are unscheduled: %s' % (', '.join(pairing_strs))
     _send_notification('unscheduled_games', round_.season.league, message)
 
 def no_result_games(round_, pairings):
@@ -67,3 +68,13 @@ def pairings_generated(round_):
     review_url = _abs_url(reverse('admin:review_pairings', args=[round_.pk]))
     message = 'Pairings generated for round %d. <%s|Review>' % (round_.number, review_url)
     _send_notification('pairings_generated', league, message)
+
+def no_transition(season, warnings):
+    league = season.league
+    message = 'Can\'t start the round transition.' + ''.join(['\n' + text for text, _ in warnings])
+    _send_notification('no_transition', league, message)
+
+def starting_transition(season, msg_list):
+    league = season.league
+    message = 'Starting automatic round transition...' + ''.join(['\n' + text for text, _ in msg_list])
+    _send_notification('starting_transition', league, message)

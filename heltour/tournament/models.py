@@ -1619,6 +1619,7 @@ class LeagueNotification(_BaseModel):
 SCHEDULED_EVENT_TYPES = (
     ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
     ('notify_mods_no_result', 'Notify mods of games without results'),
+    ('start_round_transition', 'Start round transition'),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
@@ -1641,20 +1642,3 @@ class ScheduledEvent(_BaseModel):
     def clean(self):
         if self.league is not None and self.season is not None and self.season.league != self.league:
             raise ValidationError('League and season must be compatible')
-
-    def run(self, obj):
-        self.last_run = timezone.now()
-        self.save()
-
-        if self.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
-            round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
-            unscheduled_pairings = round_pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
-            player_list = []
-            for p in unscheduled_pairings:
-                player_list.append(p.white.lichess_username.lower())
-                player_list.append(p.black.lichess_username.lower())
-            slacknotify.unscheduled_games(obj, player_list)
-        elif self.type == 'notify_mods_no_result' and isinstance(obj, Round):
-            round_pairings = PlayerPairing.objects.filter(loneplayerpairing__round=obj) | PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=obj)
-            no_result_pairings = round_pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
-            slacknotify.no_result_games(obj, no_result_pairings)
