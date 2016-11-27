@@ -185,7 +185,9 @@ _max_lateness = timedelta(hours=1)
 
 @app.task(bind=True)
 def run_scheduled_events(self):
+    logger.warning('RSE: start')
     with cache.lock('run_scheduled_events'):
+        logger.warning('RSE: passed lock')
         for event in ScheduledEvent.objects.all():
             # Determine a range of times to search
             # If the comparison point (e.g. round start) is in the range, we run the event
@@ -208,19 +210,23 @@ def run_scheduled_events(self):
 
             if event.relative_to == 'round_start':
                 for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
+                    logger.warning('RSE: running event %s' % event.type)
                     run_event(event, obj)
                 for obj in matching_rounds(start_date__gt=upper_bound, start_date__lte=future_bound):
                     future_event_time = obj.start_date + event.offset if future_event_time is None else min(future_event_time, obj.start_date + event.offset)
             elif event.relative_to == 'round_end':
                 for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
                     run_event(event, obj)
+                    logger.warning('RSE: running event %s' % event.type)
                 for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
                     future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
 
             # Schedule this task to be run again at the next event's scheduled time
             # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
             if future_event_time is not None:
+                logger.warning('RSE: next event at %s' % future_event_time)
                 run_scheduled_events.apply_async(args=[], eta=future_event_time)
+    logger.warning('RSE: done')
 
 def run_event(event, obj):
     event.last_run = timezone.now()
