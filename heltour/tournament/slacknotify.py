@@ -93,8 +93,8 @@ def alternate_search_started(season, team, board_number, round_):
     # Send a DM to the player being replaced
     if team_member is not None:
         message_to_replaced_player = '@%s: I am searching for an alternate to replace you for this round, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
-                                     % team_member.player.lichess_username
-        _message_user(team_member.player.lichess_username, message_to_replaced_player, _alternates_manager_identity)
+                                     % _slack_user(team_member)
+        _message_user(_slack_user(team_member), message_to_replaced_player, _alternates_manager_identity)
 
     # Send a DM to the opponent
     opposing_team = team.get_opponent(round_)
@@ -102,18 +102,18 @@ def alternate_search_started(season, team, board_number, round_):
         opponent = opposing_team.teammember_set.filter(board_number=board_number).first()
         if opponent is not None and team_member is not None:
             message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
-                                  % (opponent.player.lichess_username, team_member.player.lichess_username)
-            _message_user(team_member.player.lichess_username, message_to_opponent, _alternates_manager_identity)
+                                  % (_slack_user(opponent), _slack_user(team_member))
+            _message_user(_slack_user(team_member), message_to_opponent, _alternates_manager_identity)
 
     # Broadcast a message to both team captains
-    message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), team_member, board_number, team.name)
-    _send_notification('alternate_search_started', league, message)
+    message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
+    _send_notification('alternate_search_started', league, message, _alternates_manager_identity)
 
 def alternate_search_failed(season, team, board_number, round_):
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". No responses yet.' % (_captains_ping(team, round_), board_number, team.name)
-    _send_notification('alternate_search_failed', league, message)
+    _send_notification('alternate_search_failed', league, message, _alternates_manager_identity)
 
 def alternate_assigned(season, alt_assignment):
     league = season.league
@@ -126,40 +126,55 @@ def alternate_assigned(season, alt_assignment):
             # Send a DM to the alternate
             captain = aa.team.captain()
             if captain is not None:
-                captain_text = ' The team captain is @%s.' % captain.player.lichess_username
+                captain_text = ' The team captain is @%s.' % _slack_user(captain)
             else:
                 captain_text = ''
             message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                                    + 'Please contact your opponent, @%s, as soon as possible.') \
-                                   % (aa.player.lichess_username, aa.board_number, aa.team.name, captain_text, opponent.player.lichess_username)
-            _message_user(aa.player.lichess_username, message_to_alternate, _alternates_manager_identity)
+                                   % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text, _slack_user(opponent))
+            _message_user(_slack_user(aa.player), message_to_alternate, _alternates_manager_identity)
 
             # Send a DM to the opponent
-            if aa.replaced_player is not None:
+            if aa.player == aa.replaced_player:
+                message_to_opponent = '@%s: Your opponent, @%s, no longer requires an alternate. Please contact @%s as soon as possible.' \
+                                      % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player))
+            elif aa.replaced_player is not None:
                 message_to_opponent = '@%s: Your opponent, @%s, has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
-                                      % (opponent.player.lichess_username, aa.replaced_player.lichess_username, aa.player.lichess_username)
+                                      % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player))
             else:
                 message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
-                                      % (opponent.player.lichess_username, aa.player.lichess_username)
-            _message_user(opponent.player.lichess_username, message_to_opponent, _alternates_manager_identity)
-            opponent_notified = 'Their opponent, @%s, has been notified.' % opponent
+                                      % (_slack_user(opponent), _slack_user(aa.player))
+            _message_user(_slack_user(opponent), message_to_opponent, _alternates_manager_identity)
+            opponent_notified = ' Their opponent, @%s, has been notified.' % _slack_user(opponent)
         else:
             opponent_notified = ''
 
     # Broadcast a message
-    message = '%sI have assigned @%s to play on board %d of "%s" in place of %s.%s' % (_captains_ping(aa.team, aa.round_), aa.player, aa.board_number, aa.team.name, aa.replaced_player, opponent_notified)
-    _send_notification('alternate_assigned', league, message)
+    if aa.player == aa.replaced_player:
+        message = '%sI have reassigned @%s to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
+    else:
+        message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
+    _send_notification('alternate_assigned', league, message, _alternates_manager_identity)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
+
+def _slack_user(obj):
+    if obj is None:
+        return '?'
+    if hasattr(obj, 'player'):
+        return obj.player.lichess_username.lower()
+    if hasattr(obj, 'lichess_username'):
+        return obj.lichess_username.lower()
+    return str(obj).lower()
 
 def _captains_ping(team, round_):
     captains = []
     captain = team.captain()
     if captain is not None:
-        captains.append(captain.player.lichess_username)
+        captains.append(captain)
     opp = team.get_opponent(round_)
     if opp is not None:
         opp_captain = opp.captain()
         if opp_captain is not None:
-            captains.append(opp_captain.player.lichess_username)
-    return '' if len(captains) == 0 else '@%s: ' % captains[0] if len(captains) == 1 else '@%s, @%s: ' % (captains[0], captains[1])
+            captains.append(opp_captain)
+    return '' if len(captains) == 0 else '@%s: ' % _slack_user(captains[0]) if len(captains) == 1 else '@%s, @%s: ' % (_slack_user(captains[0]), _slack_user(captains[1]))

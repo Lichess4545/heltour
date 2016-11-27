@@ -39,7 +39,7 @@ def send_message(channel, text, username='heltour', icon=None, hook=0):
     if not url:
         # Not configured
         if settings.DEBUG:
-            print 'Sending slack notification: ', text
+            print '[%s -> %s]: %s' % (username, channel, text)
         return
     r = requests.post(url, json={'channel': channel, 'text': text, 'username': username, 'icon_emoji': icon})
     if r.text == 'channel_not_found':

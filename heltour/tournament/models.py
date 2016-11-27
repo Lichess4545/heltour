@@ -1421,6 +1421,12 @@ class AlternateAssignment(_BaseModel):
     class Meta:
         unique_together = ('round', 'team', 'board_number')
 
+    def __init__(self, *args, **kwargs):
+        super(AlternateAssignment, self).__init__(*args, **kwargs)
+        self.initial_player_id = self.player_id
+        self.initial_team_id = self.team_id
+        self.initial_board_number = self.board_number
+
     def clean(self):
         if self.round.season != self.team.season:
             raise ValidationError('Round and team seasons must match')
@@ -1428,6 +1434,9 @@ class AlternateAssignment(_BaseModel):
             raise ValidationError('Assigned player must be a player in the season')
 
     def save(self, *args, **kwargs):
+        player_changed = self.pk is None or self.player_id != self.initial_player_id
+        team_changed = self.pk is None or self.team_id != self.initial_team_id
+        board_number_changed = self.pk is None or self.board_number != self.initial_board_number
         if self.replaced_player is None:
             tm = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
             if tm is not None:
@@ -1454,6 +1463,9 @@ class AlternateAssignment(_BaseModel):
                 else:
                     pairing.white = self.player
                 pairing.save()
+
+        if (player_changed or team_changed or board_number_changed) and self.round.publish_pairings and not self.round.is_completed:
+            slacknotify.alternate_assigned(self.round.season, self)
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
@@ -1615,6 +1627,7 @@ class SeasonDocument(_BaseModel):
 
 LEAGUE_NOTIFICATION_TYPES = (
     ('mod', 'Moderation stream'),
+    ('captains', 'Captains stream'),
 )
 
 #-------------------------------------------------------------------------------
