@@ -46,7 +46,7 @@ class _BaseAdmin(VersionAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(League)
 class LeagueAdmin(_BaseAdmin):
-    actions = ['import_season']
+    actions = ['import_season', 'export_forfeit_data']
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -54,11 +54,17 @@ class LeagueAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/import_season/$',
                 permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)),
                 name='import_season'),
+            url(r'^(?P<object_id>[0-9]+)/export_forfeit_data/$',
+                permission_required('tournament.change_league')(self.admin_site.admin_view(self.export_forfeit_data_view)),
+                name='export_forfeit_data'),
         ]
         return my_urls + urls
 
     def import_season(self, request, queryset):
         return redirect('admin:import_season', object_id=queryset[0].pk)
+
+    def export_forfeit_data(self, request, queryset):
+        return redirect('admin:export_forfeit_data', object_id=queryset[0].pk)
 
     def import_season_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
@@ -93,6 +99,54 @@ class LeagueAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/import_season.html', context)
+
+    def export_forfeit_data_view(self, request, object_id):
+        league = get_object_or_404(League, pk=object_id)
+
+        pairings = LonePlayerPairing.objects.exclude(result='').exclude(white=None).exclude(black=None).filter(round__season__league=league) \
+                                    .order_by('round__start_date').select_related('white', 'black', 'round').nocache()
+        rows = []
+
+        for p in pairings:
+            rows.append({
+                'forfeit': 'SELF' if p.result == '0F-1X' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '1X-0F' else 'NO',
+                'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
+                'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
+                'timezone_delta': 'TODO',
+                'round_joined': 'TODO',
+                'player_games_played': 'TODO',
+                'player_games_forfeited': 'TODO',
+                'player_byes': 'TODO',
+                'player_seasons_participated': 'TODO',
+                'player_team_seasons_participated': 'TODO',
+                'player_games_on_lichess': p.white.games_played,
+                'round_start_date': p.round.start_date
+            })
+            rows.append({
+                'forfeit': 'SELF' if p.result == '1X-0F' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '0F-1X' else 'NO',
+                'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
+                'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
+                'timezone_delta': 'TODO',
+                'round_joined': 'TODO',
+                'player_games_played': 'TODO',
+                'player_games_forfeited': 'TODO',
+                'player_byes': 'TODO',
+                'player_seasons_participated': 'TODO',
+                'player_team_seasons_participated': 'TODO',
+                'player_games_on_lichess': p.black.games_played,
+                'round_start_date': p.round.start_date
+            })
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': league,
+            'title': 'Export forfeit data',
+            'rows': rows
+        }
+
+        return render(request, 'tournament/admin/export_forfeit_data.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(Season)
