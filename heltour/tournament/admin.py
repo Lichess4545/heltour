@@ -109,7 +109,7 @@ class LeagueAdmin(_BaseAdmin):
 
         for p in pairings:
             rows.append({
-                'forfeit': 'SELF' if p.result == '0F-1X' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '1X-0F' else 'NO',
+                'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '0F-1X' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '1X-0F' else 'NO',
                 'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
                 'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
                 'timezone_delta': 'TODO',
@@ -123,7 +123,7 @@ class LeagueAdmin(_BaseAdmin):
                 'round_start_date': p.round.start_date
             })
             rows.append({
-                'forfeit': 'SELF' if p.result == '1X-0F' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '0F-1X' else 'NO',
+                'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '1X-0F' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '0F-1X' else 'NO',
                 'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
                 'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
                 'timezone_delta': 'TODO',
