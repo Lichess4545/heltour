@@ -65,6 +65,7 @@ function detect_changes(initial) {
 		if (!old_team) {
 			changes.push({
 				action: 'create-team',
+				team_number: new_team.number,
 				model: new_team
 			});
 		} else {

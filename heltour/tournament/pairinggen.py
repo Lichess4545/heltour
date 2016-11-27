@@ -4,6 +4,7 @@ from django.db import transaction
 import tempfile
 import subprocess
 import os
+import reversion
 
 def generate_pairings(round_, overwrite=False):
     if round_.season.league.competitor_type == 'team':
@@ -25,7 +26,9 @@ def _generate_team_pairings(round_, overwrite=False):
         for team in teams:
             if team.seed_rating is None:
                 team.seed_rating = team.average_rating()
-                team.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Set seed rating.')
+                    team.save()
         teams = sorted(teams, key=lambda team: team.get_teamscore().pairing_sort_key(), reverse=True)
 
         previous_pairings = TeamPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
@@ -37,7 +40,9 @@ def _generate_team_pairings(round_, overwrite=False):
         # Save the team pairings and create the individual pairings based on the team pairings
         board_count = round_.season.boards
         for team_pairing in team_pairings:
-            team_pairing.save()
+            with reversion.create_revision():
+                reversion.set_comment('Generated pairings.')
+                team_pairing.save()
 
             white_player_list = _get_player_list(team_pairing.white_team, round_, board_count)
             black_player_list = _get_player_list(team_pairing.black_team, round_, board_count)
@@ -46,7 +51,9 @@ def _generate_team_pairings(round_, overwrite=False):
                 black_player = black_player_list[board_number - 1]
                 if board_number % 2 == 0:
                     white_player, black_player = black_player, white_player
-                TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
+                with reversion.create_revision():
+                    reversion.set_comment('Generated pairings.')
+                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
 
 
 # Create a list of players playing for the team this round
@@ -99,14 +106,18 @@ def _generate_lone_pairings(round_, overwrite=False):
         for sp in season_players:
             if sp.seed_rating is None:
                 sp.seed_rating = sp.player.rating
-                sp.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Set seed rating.')
+                    sp.save()
         season_players = sorted(season_players, key=lambda sp: sp.get_loneplayerscore().pairing_sort_key(), reverse=True)
 
         # Create byes for unavailable players
         current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_)}
         unavailable_players = {avail.player for avail in PlayerAvailability.objects.filter(round=round_, is_available=False)}
         for p in unavailable_players - current_byes:
-            PlayerBye.objects.create(round=round_, player=p, type='half-point-bye')
+            with reversion.create_revision():
+                reversion.set_comment('Generated pairings.')
+                PlayerBye.objects.create(round=round_, player=p, type='half-point-bye')
 
         # Don't generate pairings for players that have been withdrawn or have byes
         include_players = {sp for sp in season_players if sp.is_active and sp.player not in current_byes and sp.player not in unavailable_players}
@@ -122,12 +133,16 @@ def _generate_lone_pairings(round_, overwrite=False):
         rank_dict = lone_player_pairing_rank_dict(round_.season)
         for lone_pairing in lone_pairings:
             lone_pairing.refresh_ranks(rank_dict)
-            lone_pairing.save()
+            with reversion.create_revision():
+                reversion.set_comment('Generated pairings.')
+                lone_pairing.save()
 
         # Save pairing byes and update player ranks for all byes
         for bye in byes + list(PlayerBye.objects.filter(round=round_)):
             bye.refresh_rank(rank_dict)
-            bye.save()
+            with reversion.create_revision():
+                reversion.set_comment('Generated pairings.')
+                bye.save()
 
 def delete_pairings(round_):
     if round_.season.league.competitor_type == 'team':

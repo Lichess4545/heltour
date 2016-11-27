@@ -460,7 +460,7 @@ class RegisterView(LeagueView):
             form = RegistrationForm(self.request.POST, season=reg_season)
             if form.is_valid():
                 with reversion.create_revision():
-                    reversion.set_comment('Submit registration')
+                    reversion.set_comment('Submitted registration.')
                     form.save()
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:

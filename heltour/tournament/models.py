@@ -700,12 +700,19 @@ class TeamMember(_BaseModel):
             self.player_rating = None
         super(TeamMember, self).save(*args, **kwargs)
 
+        # A little trick here to add a corresponding entry to the team model's history when using reversion
+        self.team.save()
+
+    def delete(self, *args, **kwargs):
+        super(TeamMember, self).delete(*args, **kwargs)
+        self.team.save()
+
     def clean(self):
         if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
             raise ValidationError('Team member must be a player in the season')
 
     def __unicode__(self):
-        return "%s" % self.player
+        return "%s%s" % (self.player, ' (C)' if self.is_captain else ' (V)' if self.is_vice_captain else '')
 
 #-------------------------------------------------------------------------------
 class TeamScore(_BaseModel):

@@ -254,7 +254,7 @@ class SeasonAdmin(_BaseAdmin):
                         if form.cleaned_data['complete_round']:
                             with reversion.create_revision():
                                 reversion.set_user(request.user)
-                                reversion.set_comment('Close round')
+                                reversion.set_comment('Closed round.')
                                 round_to_close.is_completed = True
                                 round_to_close.save()
                             self.message_user(request, 'Round %d set as completed.' % round_to_close.number, messages.INFO)
@@ -262,27 +262,24 @@ class SeasonAdmin(_BaseAdmin):
                             and (round_to_close is None or round_to_close.is_completed):
                         with reversion.create_revision():
                             reversion.set_user(request.user)
-                            reversion.set_comment('Close season')
+                            reversion.set_comment('Closed season.')
                             season_to_close.is_completed = True
                             season_to_close.save()
                         self.message_user(request, '%s set as completed.' % season_to_close.name, messages.INFO)
                     if 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number:
                         if 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']:
                             try:
-                                with reversion.create_revision():
-                                    reversion.set_user(request.user)
-                                    reversion.set_comment('Update board order')
-                                    self.do_update_board_order(season)
+                                self.do_update_board_order(season)
                                 self.message_user(request, 'Board order updated.', messages.INFO)
                             except IndexError:
                                 self.message_user(request, 'Error updating board order.', messages.ERROR)
                                 return redirect('admin:round_transition', object_id)
                         if form.cleaned_data['generate_pairings']:
                             try:
+                                pairinggen.generate_pairings(round_to_open, overwrite=False)
                                 with reversion.create_revision():
                                     reversion.set_user(request.user)
-                                    reversion.set_comment('Generate pairings')
-                                    pairinggen.generate_pairings(round_to_open, overwrite=False)
+                                    reversion.set_comment('Generated pairings.')
                                     round_to_open.publish_pairings = False
                                     round_to_open.save()
                                 self.message_user(request, 'Pairings generated.', messages.INFO)
@@ -380,11 +377,7 @@ class SeasonAdmin(_BaseAdmin):
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
-                with reversion.create_revision():
-                    reversion.set_user(request.user)
-                    reversion.set_comment('Update board order')
-
-                    self.do_update_board_order(season)
+                self.do_update_board_order(season)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)
@@ -395,16 +388,21 @@ class SeasonAdmin(_BaseAdmin):
 
         # Update board order in teams
         for team in season.team_set.all():
-            members = list(team.teammember_set.all())
-            members.sort(key=lambda m: m.player.rating, reverse=True)
-            occupied_boards = [m.board_number for m in members]
-            occupied_boards.sort()
-            for i, board_number in enumerate(occupied_boards):
-                m = members[i]
-                if m.board_number != board_number:
-                    TeamMember.objects.update_or_create(team=team, board_number=board_number, \
-                                                           defaults={ 'player': m.player, 'is_captain': m.is_captain,
-                                                                      'is_vice_captain': m.is_vice_captain })
+            with reversion.create_revision():
+                change_descriptions = []
+                members = list(team.teammember_set.all())
+                members.sort(key=lambda m: m.player.rating, reverse=True)
+                occupied_boards = [m.board_number for m in members]
+                occupied_boards.sort()
+                for i, board_number in enumerate(occupied_boards):
+                    m = members[i]
+                    if m.board_number != board_number:
+                        old_member = TeamMember.objects.filter(team=team, board_number=board_number).first()
+                        new_member, _ = TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                                                               defaults={ 'player': m.player, 'is_captain': m.is_captain,
+                                                                          'is_vice_captain': m.is_vice_captain })
+                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_member, new_member))
+                reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
         # Update alternate buckets
         members_by_board = [TeamMember.objects.filter(team__season=season, board_number=n + 1) for n in range(season.boards)]
@@ -480,62 +478,77 @@ class SeasonAdmin(_BaseAdmin):
             form = forms.EditRostersForm(request.POST)
             if form.is_valid():
                 changes = json.loads(form.cleaned_data['changes'])
-                # raise ValueError(changes)
                 has_error = False
+
+                # Group changes by team
+                changes_by_team_number = defaultdict(list)
+                nonteam_changes = []
                 for change in changes:
+                    if 'team_number' in change:
+                        changes_by_team_number[change['team_number']].append(change)
+                    else:
+                        nonteam_changes.append(change)
+
+                for _, team_changes in changes_by_team_number.items():
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        change_descriptions = []
+                        for change in team_changes:
+                            try:
+                                if change['action'] == 'change-member':
+                                    team_num = change['team_number']
+                                    team = Team.objects.get(season=season, number=team_num)
+
+                                    board_num = change['board_number']
+                                    player_info = change['player']
+
+                                    teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
+                                    original_teammember = str(teammember)
+                                    if teammember == None:
+                                        teammember = TeamMember(team=team, board_number=board_num)
+                                    if player_info is None:
+                                        teammember.delete()
+                                        teammember = None
+                                    else:
+                                        teammember.player = Player.objects.get(lichess_username=player_info['name'])
+                                        teammember.is_captain = player_info['is_captain']
+                                        teammember.is_vice_captain = player_info['is_vice_captain']
+                                        teammember.save()
+
+                                    change_descriptions.append('changed board %d from "%s" to "%s"' % (board_num, original_teammember, teammember))
+
+                                if change['action'] == 'change-team' and not teams_locked:
+                                    team_num = change['team_number']
+                                    team = Team.objects.get(season=season, number=team_num)
+
+                                    team_name = change['team_name']
+                                    team.name = team_name
+                                    team.save()
+
+                                    change_descriptions.append('changed team name to "%s"' % team_name)
+
+                                if change['action'] == 'create-team' and not teams_locked:
+                                    model = change['model']
+                                    team = Team.objects.create(season=season, number=model['number'], name=model['name'])
+
+                                    for board_num, player_info in enumerate(model['boards'], 1):
+                                        if player_info is not None:
+                                            player = Player.objects.get(lichess_username=player_info['name'])
+                                            is_captain = player_info['is_captain']
+                                            with reversion.create_revision():
+                                                TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
+
+                                    change_descriptions.append('created team "%s"' % model['name'])
+                            except Exception:
+                                has_error = True
+                        reversion.set_comment('Edit rosters - %s.' % ', '.join(change_descriptions))
+
+                for change in nonteam_changes:
                     try:
-                        if change['action'] == 'change-member':
-                            with reversion.create_revision():
-                                reversion.set_user(request.user)
-                                reversion.set_comment('Edit rosters - change team member')
-
-                                team_num = change['team_number']
-                                team = Team.objects.get(season=season, number=team_num)
-
-                                board_num = change['board_number']
-                                player_info = change['player']
-
-                                teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
-                                if teammember == None:
-                                    teammember = TeamMember(team=team, board_number=board_num)
-                                if player_info is None:
-                                    teammember.delete()
-                                else:
-                                    teammember.player = Player.objects.get(lichess_username=player_info['name'])
-                                    teammember.is_captain = player_info['is_captain']
-                                    teammember.is_vice_captain = player_info['is_vice_captain']
-                                    teammember.save()
-
-                        if change['action'] == 'change-team' and not teams_locked:
-                            with reversion.create_revision():
-                                reversion.set_user(request.user)
-                                reversion.set_comment('Edit rosters - change team')
-
-                                team_num = change['team_number']
-                                team = Team.objects.get(season=season, number=team_num)
-
-                                team_name = change['team_name']
-                                team.name = team_name
-                                team.save()
-
-                        if change['action'] == 'create-team' and not teams_locked:
-                            with reversion.create_revision():
-                                reversion.set_user(request.user)
-                                reversion.set_comment('Edit rosters - create team')
-
-                                model = change['model']
-                                team = Team.objects.create(season=season, number=model['number'], name=model['name'])
-
-                                for board_num, player_info in enumerate(model['boards'], 1):
-                                    if player_info is not None:
-                                        player = Player.objects.get(lichess_username=player_info['name'])
-                                        is_captain = player_info['is_captain']
-                                        TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
-
                         if change['action'] == 'create-alternate':
                             with reversion.create_revision():
                                 reversion.set_user(request.user)
-                                reversion.set_comment('Edit rosters - create alternate')
+                                reversion.set_comment('Edit rosters - created alternate.')
 
                                 board_num = change['board_number']
                                 season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
@@ -544,7 +557,7 @@ class SeasonAdmin(_BaseAdmin):
                         if change['action'] == 'delete-alternate':
                             with reversion.create_revision():
                                 reversion.set_user(request.user)
-                                reversion.set_comment('Edit rosters - delete alternate')
+                                reversion.set_comment('Edit rosters - deleted alternate.')
 
                                 board_num = change['board_number']
                                 season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
@@ -564,6 +577,9 @@ class SeasonAdmin(_BaseAdmin):
         else:
             form = forms.EditRostersForm()
 
+        if not season.boards:
+            self.message_user(request, 'Number of boards must be specified for %s' % season.name, messages.ERROR)
+            return redirect('admin:tournament_season_changelist')
         board_numbers = list(range(1, season.boards + 1))
         teams = list(Team.objects.filter(season=season).order_by('number').prefetch_related(
             Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player').nocache())
@@ -717,11 +733,10 @@ class RoundAdmin(_BaseAdmin):
                         self.message_user(request, 'Generating pairings in background.', messages.INFO)
                         return redirect('admin:review_pairings', object_id)
                     else:
+                        pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
                         with reversion.create_revision():
                             reversion.set_user(request.user)
-                            reversion.set_comment('Generate pairings')
-
-                            pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
+                            reversion.set_comment('Generated pairings.')
                             round_.publish_pairings = False
                             round_.save()
 
@@ -756,29 +771,27 @@ class RoundAdmin(_BaseAdmin):
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
                 if 'publish' in form.data:
-                    with reversion.create_revision():
-                        reversion.set_user(request.user)
-                        reversion.set_comment('Publish pairings')
-
-                        round_.publish_pairings = True
-                        round_.save()
-                        # Update ranks in case of manual edits
-                        rank_dict = lone_player_pairing_rank_dict(round_.season)
-                        for lpp in round_.loneplayerpairing_set.all().nocache():
-                            lpp.refresh_ranks(rank_dict)
+                    round_.publish_pairings = True
+                    round_.save()
+                    # Update ranks in case of manual edits
+                    rank_dict = lone_player_pairing_rank_dict(round_.season)
+                    for lpp in round_.loneplayerpairing_set.all().nocache():
+                        lpp.refresh_ranks(rank_dict)
+                        with reversion.create_revision():
+                            reversion.set_user(request.user)
+                            reversion.set_comment('Published pairings.')
                             lpp.save()
-                        for bye in round_.playerbye_set.all():
-                            bye.refresh_rank(rank_dict)
+                    for bye in round_.playerbye_set.all():
+                        bye.refresh_rank(rank_dict)
+                        with reversion.create_revision():
+                            reversion.set_user(request.user)
+                            reversion.set_comment('Published pairings.')
                             bye.save()
                     self.message_user(request, 'Pairings published.', messages.INFO)
                 elif 'delete' in form.data:
                     try:
-                        with reversion.create_revision():
-                            reversion.set_user(request.user)
-                            reversion.set_comment('Delete pairings')
-
-                            pairinggen.delete_pairings(round_)
-
+                        # Note: no reversion required for deleting things
+                        pairinggen.delete_pairings(round_)
                         self.message_user(request, 'Pairings deleted.', messages.INFO)
                     except pairinggen.PairingHasResultException:
                         self.message_user(request, 'Pairings with results can\'t be deleted.', messages.ERROR)
@@ -1107,16 +1120,16 @@ class RegistrationAdmin(_BaseAdmin):
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
+                    # Limit changes to moderators
+                    mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+                    if mod is not None and mod.player.email and mod.player.email != reg.email:
+                        reg.email = mod.player.email
+
+                    # Add or update the player in the DB
                     with reversion.create_revision():
                         reversion.set_user(request.user)
-                        reversion.set_comment('Approve registration')
+                        reversion.set_comment('Approved registration.')
 
-                        # Limit changes to moderators
-                        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
-                        if mod is not None and mod.player.email and mod.player.email != reg.email:
-                            reg.email = mod.player.email
-
-                        # Add or update the player in the DB
                         player, created = Player.objects.update_or_create(
                             lichess_username__iexact=reg.lichess_username,
                             defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
@@ -1130,65 +1143,71 @@ class RegistrationAdmin(_BaseAdmin):
                             player.in_slack_group = True
                             player.save()
 
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Approved registration.')
+
                         SeasonPlayer.objects.update_or_create(
                             player=player,
                             season=reg.season,
                             defaults={'registration': reg, 'is_active': True}
                         )
 
-                        if reg.season.league.competitor_type == 'team':
-                            # Set availability
-                            for week_number in reg.weeks_unavailable.split(','):
-                                if week_number != '':
-                                    round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
-                                    if round_ is not None:
-                                        PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                    # Set availability
+                    for week_number in reg.weeks_unavailable.split(','):
+                        if week_number != '':
+                            round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                            if round_ is not None:
+                                with reversion.create_revision():
+                                    reversion.set_user(request.user)
+                                    reversion.set_comment('Approved registration.')
+                                    PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
 
-                            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
-                            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
-                            msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
-                        else:
-                            # Create byes
-                            for week_number in reg.weeks_unavailable.split(','):
-                                if week_number != '':
-                                    round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
-                                    if round_ is not None and not round_.publish_pairings:
-                                        PlayerBye.objects.update_or_create(player=player, round=round_, defaults={'type': 'half-point-bye'})
-
-                            if Round.objects.filter(season=reg.season, publish_pairings=True).count() > 0:
-                                # Late registration
-                                next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
-                                if next_round is not None:
+                    if reg.season.league.competitor_type == 'team':
+                        subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
+                        msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
+                        msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+                    else:
+                        if Round.objects.filter(season=reg.season, publish_pairings=True).count() > 0:
+                            # Late registration
+                            next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+                            if next_round is not None:
+                                with reversion.create_revision():
+                                    reversion.set_user(request.user)
+                                    reversion.set_comment('Approved registration.')
                                     PlayerLateRegistration.objects.update_or_create(round=next_round, player=player,
-                                                                          defaults={'retroactive_byes': form.cleaned_data['retroactive_byes'],
-                                                                          'late_join_points': form.cleaned_data['late_join_points']})
+                                                                      defaults={'retroactive_byes': form.cleaned_data['retroactive_byes'],
+                                                                      'late_join_points': form.cleaned_data['late_join_points']})
 
-                            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
-                            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
-                            msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
+                        subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
+                        msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
+                        msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
 
-                        if form.cleaned_data['send_confirm_email']:
-                            try:
-                                send_mail(
-                                    subject,
-                                    msg_plain,
-                                    settings.DEFAULT_FROM_EMAIL,
-                                    [reg.email],
-                                    html_message=msg_html,
-                                )
-                                self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
-                            except SMTPException:
-                                self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
+                    if form.cleaned_data['send_confirm_email']:
+                        try:
+                            send_mail(
+                                subject,
+                                msg_plain,
+                                settings.DEFAULT_FROM_EMAIL,
+                                [reg.email],
+                                html_message=msg_html,
+                            )
+                            self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
+                        except SMTPException:
+                            self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
 
-                        if form.cleaned_data['invite_to_slack']:
-                            try:
-                                slackapi.invite_user(reg.email)
-                                self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
-                            except slackapi.AlreadyInTeam:
-                                self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
-                            except slackapi.AlreadyInvited:
-                                self.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
+                    if form.cleaned_data['invite_to_slack']:
+                        try:
+                            slackapi.invite_user(reg.email)
+                            self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                        except slackapi.AlreadyInTeam:
+                            self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
+                        except slackapi.AlreadyInvited:
+                            self.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
 
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Approved registration.')
                         reg.status = 'approved'
                         reg.status_changed_by = request.user.username
                         reg.status_changed_date = timezone.now()
@@ -1236,7 +1255,7 @@ class RegistrationAdmin(_BaseAdmin):
                 if 'confirm' in form.data:
                     with reversion.create_revision():
                         reversion.set_user(request.user)
-                        reversion.set_comment('Reject registration')
+                        reversion.set_comment('Rejected registration.')
 
                         reg.status = 'rejected'
                         reg.status_changed_by = request.user.username

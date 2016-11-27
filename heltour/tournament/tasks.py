@@ -223,10 +223,10 @@ def run_scheduled_events(self):
 
 @app.task(bind=True)
 def generate_pairings(self, round_id, overwrite=False):
+    round_ = Round.objects.get(pk=round_id)
+    pairinggen.generate_pairings(round_, overwrite)
+    round_.publish_pairings = False
     with reversion.create_revision():
-        reversion.set_comment('Generate pairings')
-        round_ = Round.objects.get(pk=round_id)
-        pairinggen.generate_pairings(round_, overwrite)
-        round_.publish_pairings = False
+        reversion.set_comment('Generated pairings.')
         round_.save()
-        slacknotify.pairings_generated(round_)
+    slacknotify.pairings_generated(round_)
