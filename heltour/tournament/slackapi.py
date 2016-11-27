@@ -1,6 +1,9 @@
 import requests
 from heltour import settings
 from collections import namedtuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 def _get_slack_token():
     with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
@@ -40,11 +43,18 @@ def send_message(channel, text, username='heltour', icon=None, hook=0):
         # Not configured
         if settings.DEBUG:
             print '[%s -> %s]: %s' % (username, channel, text)
+        logger.error('Could not send slack message to %s' % channel)
         return
     r = requests.post(url, json={'channel': channel, 'text': text, 'username': username, 'icon_emoji': icon})
     if r.text == 'channel_not_found':
         # TODO: Try and find a better way to do this
         send_message(channel, text, username, icon, hook + 1)
+    elif r.text == '':
+        # OK
+        logger.info('Slack [%s -> %s]: %s' % (username, channel, text))
+    else:
+        # Unexpected error
+        logger.error('Could not send slack message to %s, error %s' % (channel, r.text))
 
 class SlackError(Exception):
     pass
