@@ -659,6 +659,19 @@ class Team(_BaseModel):
                 total += board.player.rating
         return total / n if n > 0 else None
 
+    def captain(self):
+        return self.teammember_set.filter(is_captain=True).first()
+
+    def get_opponent(self, round_):
+        team_pairing = (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(black_team=self)).first()
+        if team_pairing is None:
+            return None
+        if team_pairing.white_team != self:
+            return team_pairing.white_team
+        if team_pairing.black_team != self:
+            return team_pairing.black_team
+        return None
+
     def __unicode__(self):
         return "%s - %s" % (self.season, self.name)
 

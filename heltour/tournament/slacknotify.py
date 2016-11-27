@@ -6,12 +6,19 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 _events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed', 'unscheduled_games', 'no_result_games',
-                   'pairings_generated', 'no_transition', 'starting_transition']}
+                   'pairings_generated', 'no_transition', 'starting_transition'],
+           'captains': ['alternate_search_started', 'alternate_search_failed', 'alternate_assigned']}
 
-def _send_notification(event_type, league, text):
+_heltour_identity = {'username': 'heltour'}
+_alternates_manager_identity = {'username': 'alternates-manager', 'icon': ':busts_in_silhouette:'}
+
+def _send_notification(event_type, league, text, identity=_heltour_identity):
     for ln in league.leaguenotification_set.all():
         if event_type in _events[ln.type]:
-            slackapi.send_message(ln.slack_channel, text)
+            slackapi.send_message(ln.slack_channel, text, **identity)
+
+def _message_user(username, text, identity=_heltour_identity):
+    slackapi.send_message('@%s' % username, text, **identity)
 
 def _abs_url(url):
     site = Site.objects.get_current().domain
@@ -78,3 +85,81 @@ def starting_transition(season, msg_list):
     league = season.league
     message = 'Starting automatic round transition...' + ''.join(['\n' + text for text, _ in msg_list])
     _send_notification('starting_transition', league, message)
+
+def alternate_search_started(season, team, board_number, round_):
+    league = season.league
+    team_member = team.teammember_set.filter(board_number=board_number).first()
+
+    # Send a DM to the player being replaced
+    if team_member is not None:
+        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for this round, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
+                                     % team_member.player.lichess_username
+        _message_user(team_member.player.lichess_username, message_to_replaced_player, _alternates_manager_identity)
+
+    # Send a DM to the opponent
+    opposing_team = team.get_opponent(round_)
+    if opposing_team is not None:
+        opponent = opposing_team.teammember_set.filter(board_number=board_number).first()
+        if opponent is not None and team_member is not None:
+            message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
+                                  % (opponent.player.lichess_username, team_member.player.lichess_username)
+            _message_user(team_member.player.lichess_username, message_to_opponent, _alternates_manager_identity)
+
+    # Broadcast a message to both team captains
+    message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), team_member, board_number, team.name)
+    _send_notification('alternate_search_started', league, message)
+
+def alternate_search_failed(season, team, board_number, round_):
+    league = season.league
+    # Broadcast a message to both team captains
+    message = '%sI have messaged every eligible alternate for board %d of "%s". No responses yet.' % (_captains_ping(team, round_), board_number, team.name)
+    _send_notification('alternate_search_failed', league, message)
+
+def alternate_assigned(season, alt_assignment):
+    league = season.league
+    aa = alt_assignment
+
+    opposing_team = aa.team.get_opponent(aa.round)
+    if opposing_team is not None:
+        opponent = opposing_team.teammember_set.filter(board_number=aa.board_number).first()
+        if opponent is not None:
+            # Send a DM to the alternate
+            captain = aa.team.captain()
+            if captain is not None:
+                captain_text = ' The team captain is @%s.' % captain.player.lichess_username
+            else:
+                captain_text = ''
+            message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
+                                   + 'Please contact your opponent, @%s, as soon as possible.') \
+                                   % (aa.player.lichess_username, aa.board_number, aa.team.name, captain_text, opponent.player.lichess_username)
+            _message_user(aa.player.lichess_username, message_to_alternate, _alternates_manager_identity)
+
+            # Send a DM to the opponent
+            if aa.replaced_player is not None:
+                message_to_opponent = '@%s: Your opponent, @%s, has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
+                                      % (opponent.player.lichess_username, aa.replaced_player.lichess_username, aa.player.lichess_username)
+            else:
+                message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
+                                      % (opponent.player.lichess_username, aa.player.lichess_username)
+            _message_user(opponent.player.lichess_username, message_to_opponent, _alternates_manager_identity)
+            opponent_notified = 'Their opponent, @%s, has been notified.' % opponent
+        else:
+            opponent_notified = ''
+
+    # Broadcast a message
+    message = '%sI have assigned @%s to play on board %d of "%s" in place of %s.%s' % (_captains_ping(aa.team, aa.round_), aa.player, aa.board_number, aa.team.name, aa.replaced_player, opponent_notified)
+    _send_notification('alternate_assigned', league, message)
+
+# TODO: Special notification for cancelling a search/reassigning the original player?
+
+def _captains_ping(team, round_):
+    captains = []
+    captain = team.captain()
+    if captain is not None:
+        captains.append(captain.player.lichess_username)
+    opp = team.get_opponent(round_)
+    if opp is not None:
+        opp_captain = opp.captain()
+        if opp_captain is not None:
+            captains.append(opp_captain.player.lichess_username)
+    return '' if len(captains) == 0 else '@%s: ' % captains[0] if len(captains) == 1 else '@%s, @%s: ' % (captains[0], captains[1])
