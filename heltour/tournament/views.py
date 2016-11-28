@@ -491,9 +491,8 @@ class RegistrationSuccessView(SeasonView):
 
 class RostersView(SeasonView):
     def view(self):
-        @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models,
-                        vary_request=lambda r: (r.user.is_staff, r.user.has_perm('tournament.manage_players')))
-        def _view(league_tag, season_tag, is_staff):
+        @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models)
+        def _view(league_tag, season_tag, is_staff, can_edit):
             if self.league.competitor_type != 'team':
                 raise Http404
             if self.season is None:
@@ -547,10 +546,10 @@ class RostersView(SeasonView):
                 'yellow_card_players': yellow_card_players,
                 'red_card_players': red_card_players,
                 'show_legend': show_legend,
-                'can_edit': self.request.user.has_perm('tournament.manage_players'),
+                'can_edit': can_edit,
             }
             return self.render('tournament/team_rosters.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.has_perm('tournament.manage_players'))
 
 class StandingsView(SeasonView):
     def view(self, section=None):
