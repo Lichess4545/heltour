@@ -370,7 +370,7 @@ def alternates_manager_tick(self):
             alternates_manager.do_alternate_search(board_number)
 
 class AlternatesManager():
-    alternate_contact_interval = timedelta(minutes=1)
+    alternate_contact_interval = timedelta(seconds=30)
 
     def __init__(self, season):
         self.season = season
@@ -384,7 +384,9 @@ class AlternatesManager():
             return
         print 'Alternate search on bd %d' % board_number
         player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False)
-        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number)
+        round_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round).nocache()
+        players_in_round = {p.white for p in round_pairings} | {p.black for p in round_pairings}
+        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number, result='', game_link='').nocache()
         players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
         teams_by_player = {p.white: p.white_team() for p in board_pairings}
         teams_by_player.update({p.black: p.black_team() for p in board_pairings})
@@ -412,7 +414,12 @@ class AlternatesManager():
 
             if do_contact:
                 try:
-                    alt_to_contact = alternates_not_contacted.pop(0)
+                    while True:
+                        alt_to_contact = alternates_not_contacted.pop(0)
+                        if alt_to_contact.season_player.player not in unavailable_players and \
+                                alt_to_contact.season_player.player not in players_in_round and \
+                                alt_to_contact.season_player.games_missed < 2:
+                            break
                     slacknotify.alternate_needed(alt_to_contact)
                     alt_to_contact.status = 'contacted'
                     alt_to_contact.save()
