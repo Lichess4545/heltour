@@ -45,6 +45,10 @@ season_urlpatterns = [
     url(r'^schedule/edit/$', views.ScheduleView.as_view(), name='edit_schedule'),
     url(r'^schedule/edit/(?P<secret_token>\w+)/$', views.ScheduleView.as_view(), name='edit_schedule_with_token'),
     url(r'^board/(?P<board_number>[0-9]+)/scores/$', views.BoardScoresView.as_view(), name='board_scores'),
+    url(r'^alternate/accept/$', views.AlternateAcceptView.as_view(), name='alternate_accept'),
+    url(r'^alternate/accept/(?P<secret_token>\w+)/$', views.AlternateAcceptView.as_view(), name='alternate_accept_with_token'),
+    url(r'^alternate/decline/$', views.AlternateDeclineView.as_view(), name='alternate_decline'),
+    url(r'^alternate/decline/(?P<secret_token>\w+)/$', views.AlternateDeclineView.as_view(), name='alternate_decline_with_token'),
 ]
 
 league_urlpatterns = [

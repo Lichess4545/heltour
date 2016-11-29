@@ -8,6 +8,7 @@ from heltour import settings
 import reversion
 from django.contrib import messages
 from math import ceil
+from django.core.urlresolvers import reverse
 
 logger = get_task_logger(__name__)
 
@@ -375,7 +376,7 @@ class AlternatesManager():
     def __init__(self, season):
         self.season = season
         if self.season.enable_alternates_manager:
-            self.round = season.round_set.filter(publish_pairings=True, is_completed=False).first()
+            self.round = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
         else:
             self.round = None
 
@@ -395,6 +396,10 @@ class AlternatesManager():
         players_that_need_replacements = players_on_board & unavailable_players
         number_of_alternates_contacted = len(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='contacted'))
         alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting'), key=lambda a: a.priority_date())
+
+        # TODO: Detect when all searches are complete and:
+        # 1. Set alternates contacted->waiting
+        # 2. Message those alternates
 
         for p in players_that_need_replacements:
             search, _ = AlternateSearch.objects.get_or_create(round=self.round, team=teams_by_player[p], board_number=board_number)
@@ -420,7 +425,14 @@ class AlternatesManager():
                                 alt_to_contact.season_player.player not in players_in_round and \
                                 alt_to_contact.season_player.games_missed < 2:
                             break
-                    slacknotify.alternate_needed(alt_to_contact)
+
+                    alt_username = alt_to_contact.season_player.player.lichess_username
+                    league_tag = self.season.league.tag
+                    season_tag = self.season.tag
+                    auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=self.round.end_date)
+                    accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
+                    decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
+                    slacknotify.alternate_needed(alt_to_contact, accept_url, decline_url)
                     alt_to_contact.status = 'contacted'
                     alt_to_contact.save()
                     search.last_alternate_contact_date = timezone.now()

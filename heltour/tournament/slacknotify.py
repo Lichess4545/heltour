@@ -156,9 +156,9 @@ def alternate_assigned(season, alt_assignment):
         message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
     _send_notification('alternate_assigned', league, message, _alternates_manager_identity)
 
-def alternate_needed(alt):
+def alternate_needed(alt, accept_url, decline_url):
     # Send a DM to the alternate
-    message = '@%s: A team needs an alternate this round. Would you like to play?' % _slack_user(alt.season_player)
+    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within 48 hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alt.season_player), _abs_url(accept_url), _abs_url(decline_url))
     _message_user(_slack_user(alt.season_player), message, _alternates_manager_identity)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
