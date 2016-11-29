@@ -7,7 +7,7 @@ from django.contrib.sites.models import Site
 
 _events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed', 'unscheduled_games', 'no_result_games',
                    'pairings_generated', 'no_transition', 'starting_transition'],
-           'captains': ['alternate_search_started', 'alternate_search_failed', 'alternate_assigned']}
+           'captains': ['alternate_search_started', 'alternate_search_all_contacted', 'alternate_assigned']}
 
 _heltour_identity = {'username': 'heltour'}
 _alternates_manager_identity = {'username': 'alternates-manager', 'icon': ':busts_in_silhouette:'}
@@ -103,17 +103,17 @@ def alternate_search_started(season, team, board_number, round_):
         if opponent is not None and team_member is not None:
             message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
                                   % (_slack_user(opponent), _slack_user(team_member))
-            _message_user(_slack_user(team_member), message_to_opponent, _alternates_manager_identity)
+            _message_user(_slack_user(opponent), message_to_opponent, _alternates_manager_identity)
 
     # Broadcast a message to both team captains
     message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
     _send_notification('alternate_search_started', league, message, _alternates_manager_identity)
 
-def alternate_search_failed(season, team, board_number, round_):
+def alternate_search_all_contacted(season, team, board_number, round_):
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". No responses yet.' % (_captains_ping(team, round_), board_number, team.name)
-    _send_notification('alternate_search_failed', league, message, _alternates_manager_identity)
+    _send_notification('alternate_search_all_contacted', league, message, _alternates_manager_identity)
 
 def alternate_assigned(season, alt_assignment):
     league = season.league
@@ -155,6 +155,11 @@ def alternate_assigned(season, alt_assignment):
     else:
         message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
     _send_notification('alternate_assigned', league, message, _alternates_manager_identity)
+
+def alternate_needed(alt):
+    # Send a DM to the alternate
+    message = '@%s: A team needs an alternate this round. Would you like to play?' % _slack_user(alt.season_player)
+    _message_user(_slack_user(alt.season_player), message, _alternates_manager_identity)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
 

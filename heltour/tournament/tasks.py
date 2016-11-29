@@ -7,6 +7,7 @@ from django.core.cache import cache
 from heltour import settings
 import reversion
 from django.contrib import messages
+from math import ceil
 
 logger = get_task_logger(__name__)
 
@@ -358,3 +359,68 @@ class RoundTransitionWorkflow():
                 return '1 hour'
             else:
                 return '%d hours' % hours
+
+
+@app.task(bind=True)
+def alternates_manager_tick(self):
+    print 'tick'
+    for season in Season.objects.filter(enable_alternates_manager=True):
+        alternates_manager = AlternatesManager(season)
+        for board_number in season.board_number_list():
+            alternates_manager.do_alternate_search(board_number)
+
+class AlternatesManager():
+    alternate_contact_interval = timedelta(minutes=1)
+
+    def __init__(self, season):
+        self.season = season
+        if self.season.enable_alternates_manager:
+            self.round = season.round_set.filter(publish_pairings=True, is_completed=False).first()
+        else:
+            self.round = None
+
+    def do_alternate_search(self, board_number):
+        if self.round is None:
+            return
+        print 'Alternate search on bd %d' % board_number
+        player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False)
+        team_members_on_board = TeamMember.objects.filter(team__season=self.season, board_number=board_number)
+
+        availability_by_player = {pa.player: pa for pa in player_availabilities}
+        teams_by_player = {tm.player: tm.team for tm in team_members_on_board}
+        players_on_board = {tm.player for tm in team_members_on_board}
+        unavailable_players = {pa.player for pa in player_availabilities}
+        replaced_players = {aa.replaced_player for aa in AlternateAssignment.objects.filter(round=self.round, board_number=board_number)}
+        players_that_need_replacements = (players_on_board & unavailable_players) - replaced_players
+
+        alternates_contacted = Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status__in=('contacted', 'accepted', 'declined', 'unresponsive'))
+        alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting'), key=lambda a: a.priority_date())
+
+        number_of_alternates_that_should_be_contacted = 0
+        for p in players_that_need_replacements:
+            search_start_date = availability_by_player[p].date_modified
+            time_since_search_start = timezone.now() - search_start_date
+            number_of_alternates_that_should_be_contacted += ceil(time_since_search_start.total_seconds() / self.alternate_contact_interval.total_seconds())
+            if availability_by_player[p].alternate_status == '':
+                # Send search start notifications
+                slacknotify.alternate_search_started(self.season, teams_by_player[p], board_number, self.round)
+                availability_by_player[p].alternate_status = 'search_started'
+                availability_by_player[p].save()
+            if availability_by_player[p].alternate_status == 'search_started' and len(alternates_not_contacted) == 0:
+                # Send all alternates contacted notifications
+                slacknotify.alternate_search_all_contacted(self.season, teams_by_player[p], board_number, self.round)
+                availability_by_player[p].alternate_status = 'all_contacted'
+                availability_by_player[p].save()
+
+        alternates_to_contact = alternates_not_contacted[:int(number_of_alternates_that_should_be_contacted - len(alternates_contacted))]
+        for alt in alternates_to_contact:
+            # Message the alternate, offering a game
+            slacknotify.alternate_needed(alt)
+            alt.status = 'contacted'
+            alt.save()
+
+    def alternate_accepted(self, alternate):
+        pass
+
+    def alternate_declined(self, alternate):
+        pass

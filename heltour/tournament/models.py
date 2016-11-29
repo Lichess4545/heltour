@@ -116,6 +116,7 @@ class Season(_BaseModel):
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
+    enable_alternates_manager = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
@@ -427,12 +428,18 @@ class Round(_BaseModel):
     def __init__(self, *args, **kwargs):
         super(Round, self).__init__(*args, **kwargs)
         self.initial_is_completed = self.is_completed
+        self.initial_publish_pairings = self.publish_pairings
 
     def save(self, *args, **kwargs):
         is_completed_changed = self.pk is None and self.is_completed or self.is_completed != self.initial_is_completed
+        publish_pairings_changed = self.pk is None and self.publish_pairings or self.publish_pairings != self.initial_publish_pairings
         super(Round, self).save(*args, **kwargs)
         if is_completed_changed:
             self.season.calculate_scores()
+        if publish_pairings_changed and self.publish_pairings and not self.is_completed:
+            for alt in Alternate.objects.filter(season_player__season=self.season):
+                alt.status = 'waiting'
+                alt.save()
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -1344,11 +1351,19 @@ def lone_player_pairing_rank_dict(season):
     player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
     return {p.season_player.player_id: n for n, p in player_scores}
 
+
+AVAILABILITY_ALTERNATE_STATUS_OPTIONS = (
+    ('search_started', 'Search started'),
+    ('all_contacted', 'All alternates contacted'),
+)
+
 #-------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):
     round = models.ForeignKey(Round)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     is_available = models.BooleanField(default=True)
+
+    alternate_status = models.CharField(blank=True, max_length=31, choices=AVAILABILITY_ALTERNATE_STATUS_OPTIONS)
 
     class Meta:
         verbose_name_plural = 'player availabilities'
@@ -1356,12 +1371,22 @@ class PlayerAvailability(_BaseModel):
     def __unicode__(self):
         return "%s" % self.player
 
+
+ALTERNATE_STATUS_OPTIONS = (
+    ('waiting', 'Waiting'),
+    ('contacted', 'Contacted'),
+    ('accepted', 'Accepted'),
+    ('declined', 'Declined'),
+    ('unresponsive', 'Unresponsive'),
+)
+
 #-------------------------------------------------------------------------------
 class Alternate(_BaseModel):
     season_player = models.OneToOneField(SeasonPlayer)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     priority_date_override = models.DateTimeField(null=True, blank=True)
 
+    status = models.CharField(blank=True, max_length=31, choices=ALTERNATE_STATUS_OPTIONS)
     player_rating = models.PositiveIntegerField(null=True, blank=True)
 
     def __init__(self, *args, **kwargs):
