@@ -384,40 +384,44 @@ class AlternatesManager():
             return
         print 'Alternate search on bd %d' % board_number
         player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False)
-        team_members_on_board = TeamMember.objects.filter(team__season=self.season, board_number=board_number)
+        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number)
+        players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
+        teams_by_player = {p.white: p.white_team() for p in board_pairings}
+        teams_by_player.update({p.black: p.black_team() for p in board_pairings})
 
-        availability_by_player = {pa.player: pa for pa in player_availabilities}
-        teams_by_player = {tm.player: tm.team for tm in team_members_on_board}
-        players_on_board = {tm.player for tm in team_members_on_board}
         unavailable_players = {pa.player for pa in player_availabilities}
-        replaced_players = {aa.replaced_player for aa in AlternateAssignment.objects.filter(round=self.round, board_number=board_number)}
-        players_that_need_replacements = (players_on_board & unavailable_players) - replaced_players
-
-        alternates_contacted = Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status__in=('contacted', 'accepted', 'declined', 'unresponsive'))
+        players_that_need_replacements = players_on_board & unavailable_players
+        number_of_alternates_contacted = len(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='contacted'))
         alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting'), key=lambda a: a.priority_date())
 
-        number_of_alternates_that_should_be_contacted = 0
         for p in players_that_need_replacements:
-            search_start_date = availability_by_player[p].date_modified
-            time_since_search_start = timezone.now() - search_start_date
-            number_of_alternates_that_should_be_contacted += ceil(time_since_search_start.total_seconds() / self.alternate_contact_interval.total_seconds())
-            if availability_by_player[p].alternate_status == '':
-                # Send search start notifications
-                slacknotify.alternate_search_started(self.season, teams_by_player[p], board_number, self.round)
-                availability_by_player[p].alternate_status = 'search_started'
-                availability_by_player[p].save()
-            if availability_by_player[p].alternate_status == 'search_started' and len(alternates_not_contacted) == 0:
-                # Send all alternates contacted notifications
-                slacknotify.alternate_search_all_contacted(self.season, teams_by_player[p], board_number, self.round)
-                availability_by_player[p].alternate_status = 'all_contacted'
-                availability_by_player[p].save()
+            search, _ = AlternateSearch.objects.get_or_create(round=self.round, team=teams_by_player[p], board_number=board_number)
+            if not search.is_active or search.status == 'all_contacted':
+                continue
 
-        alternates_to_contact = alternates_not_contacted[:int(number_of_alternates_that_should_be_contacted - len(alternates_contacted))]
-        for alt in alternates_to_contact:
-            # Message the alternate, offering a game
-            slacknotify.alternate_needed(alt)
-            alt.status = 'contacted'
-            alt.save()
+            if search.status == '':
+                slacknotify.alternate_search_started(self.season, teams_by_player[p], board_number, self.round)
+                search.status = 'started'
+                search.save()
+
+            if search.last_alternate_contact_date is None:
+                do_contact = True
+            else:
+                time_since_last_contact = timezone.now() - search.last_alternate_contact_date
+                do_contact = time_since_last_contact >= self.alternate_contact_interval
+
+            if do_contact:
+                try:
+                    alt_to_contact = alternates_not_contacted.pop(0)
+                    slacknotify.alternate_needed(alt_to_contact)
+                    alt_to_contact.status = 'contacted'
+                    alt_to_contact.save()
+                    search.last_alternate_contact_date = timezone.now()
+                    search.save()
+                except IndexError:
+                    slacknotify.alternate_search_all_contacted(self.season, teams_by_player[p], board_number, self.round, number_of_alternates_contacted)
+                    search.status = 'all_contacted'
+                    search.save()
 
     def alternate_accepted(self, alternate):
         pass

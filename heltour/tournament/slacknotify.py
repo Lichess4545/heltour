@@ -109,10 +109,10 @@ def alternate_search_started(season, team, board_number, round_):
     message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
     _send_notification('alternate_search_started', league, message, _alternates_manager_identity)
 
-def alternate_search_all_contacted(season, team, board_number, round_):
+def alternate_search_all_contacted(season, team, board_number, round_, number_contacted):
     league = season.league
     # Broadcast a message to both team captains
-    message = '%sI have messaged every eligible alternate for board %d of "%s". No responses yet.' % (_captains_ping(team, round_), board_number, team.name)
+    message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (_captains_ping(team, round_), board_number, team.name, number_contacted)
     _send_notification('alternate_search_all_contacted', league, message, _alternates_manager_identity)
 
 def alternate_assigned(season, alt_assignment):

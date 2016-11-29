@@ -1351,19 +1351,11 @@ def lone_player_pairing_rank_dict(season):
     player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
     return {p.season_player.player_id: n for n, p in player_scores}
 
-
-AVAILABILITY_ALTERNATE_STATUS_OPTIONS = (
-    ('search_started', 'Search started'),
-    ('all_contacted', 'All alternates contacted'),
-)
-
 #-------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):
     round = models.ForeignKey(Round)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     is_available = models.BooleanField(default=True)
-
-    alternate_status = models.CharField(blank=True, max_length=31, choices=AVAILABILITY_ALTERNATE_STATUS_OPTIONS)
 
     class Meta:
         verbose_name_plural = 'player availabilities'
@@ -1509,6 +1501,37 @@ class AlternateBucket(_BaseModel):
 
 def create_api_token():
     return get_random_string(length=32)
+
+
+ALTERNATE_SEARCH_STATUS_OPTIONS = (
+    ('started', 'Started'),
+    ('all_contacted', 'All alternates contacted'),
+)
+
+#-------------------------------------------------------------------------------
+class AlternateSearch(_BaseModel):
+    round = models.ForeignKey(Round)
+    team = models.ForeignKey(Team)
+    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+
+    is_active = models.BooleanField(default=True)
+    status = models.CharField(blank=True, max_length=31, choices=ALTERNATE_SEARCH_STATUS_OPTIONS)
+    last_alternate_contact_date = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('round', 'team', 'board_number')
+
+    def clean(self):
+        if self.round.season != self.team.season:
+            raise ValidationError('Round and team seasons must match')
+
+    def contains(self, rating):
+        if rating is None:
+            return self.min_rating is None
+        return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
+
+    def __unicode__(self):
+        return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
 
 #-------------------------------------------------------------------------------
 class SeasonPrize(_BaseModel):

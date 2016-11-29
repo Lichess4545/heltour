@@ -977,7 +977,7 @@ class TeamScoreAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Alternate)
 class AlternateAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'board_number')
+    list_display = ('__unicode__', 'board_number', 'status')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number')
     raw_id_fields = ('season_player',)
@@ -997,6 +997,13 @@ class AlternateBucketAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'season')
     search_fields = ()
     list_filter = ('season', 'board_number')
+
+#-------------------------------------------------------------------------------
+@admin.register(AlternateSearch)
+class AlternateSearchAdmin(_BaseAdmin):
+    list_display = ('__unicode__', 'status')
+    search_fields = ('team__name',)
+    list_filter = ('round__season', 'round__number', 'board_number', 'status')
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamPairing)
