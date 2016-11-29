@@ -979,7 +979,7 @@ class TeamScoreAdmin(_BaseAdmin):
 class AlternateAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'board_number', 'status')
     search_fields = ('season_player__player__lichess_username',)
-    list_filter = ('season_player__season', 'board_number')
+    list_filter = ('season_player__season', 'board_number', 'status')
     raw_id_fields = ('season_player',)
     exclude = ('player_rating',)
 

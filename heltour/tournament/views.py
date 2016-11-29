@@ -1255,8 +1255,6 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             msg = 'You have already declined a game this round.'
         elif alt.status == 'unresponsive':
             msg = 'You did not respond in time this round. Please make sure to accept or decline a game within 48 hours of being messaged to maintain your priority on the alternate list.'
-        elif alt.status == 'waiting':
-            msg = 'Sorry, no games are currently available.'
         elif alt.status == 'contacted':
             # OK
             if post:
@@ -1267,6 +1265,8 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             else:
                 msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between now and %s (UTC).' % (alternates_manager.round.number, alternates_manager.round.end_date.strftime('%Y-%m-%d %H:%M'))
                 show_button = True
+        else:
+            msg = 'Sorry, no games are currently available.'
 
         context = {
             'username': username,

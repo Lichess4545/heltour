@@ -669,8 +669,11 @@ class Team(_BaseModel):
     def captain(self):
         return self.teammember_set.filter(is_captain=True).first()
 
+    def get_teampairing(self, round_):
+        return (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(black_team=self)).first()
+
     def get_opponent(self, round_):
-        team_pairing = (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(black_team=self)).first()
+        team_pairing = self.get_teampairing(round_)
         if team_pairing is None:
             return None
         if team_pairing.white_team != self:
@@ -1525,10 +1528,12 @@ class AlternateSearch(_BaseModel):
         if self.round.season != self.team.season:
             raise ValidationError('Round and team seasons must match')
 
-    def contains(self, rating):
-        if rating is None:
-            return self.min_rating is None
-        return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
+    def still_needs_alternate(self):
+        team_pairing = self.team.get_teampairing(self.round)
+        player_pairing = TeamPlayerPairing.objects.filter(team_pairing=team_pairing, board_number=self.board_number, result='', game_link='').nocache().first()
+        return player_pairing is not None and \
+                player_pairing.white_team() == self.team and PlayerAvailability.objects.filter(round=self.round, player=player_pairing.white, is_available=False).exists() or \
+                player_pairing.black_team() == self.team and PlayerAvailability.objects.filter(round=self.round, player=player_pairing.black, is_available=False).exists()
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)

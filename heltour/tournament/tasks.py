@@ -443,7 +443,22 @@ class AlternatesManager():
                     search.save()
 
     def alternate_accepted(self, alternate):
-        pass
+        if alternate.status != 'contacted':
+            return False
+        if (TeamPlayerPairing.objects.filter(team_pairing__round=self.round, white=alternate.season_player.player) | \
+            TeamPlayerPairing.objects.filter(team_pairing__round=self.round, black=alternate.season_player.player)).nocache().exists():
+            return False
+        active_searches = AlternateSearch.objects.filter(round=self.round, board_number=alternate.board_number, is_active=True).order_by('date_created')
+        for search in active_searches:
+            if search.still_needs_alternate():
+                assignment, _ = AlternateAssignment.objects.update_or_create(round=self.round, team=search.team, board_number=search.board_number, defaults={'player': alternate.season_player.player, 'replaced_player': None})
+                alternate.status = 'accepted'
+                alternate.save()
+                slacknotify.alternate_assigned(self.season, assignment)
+                return True
+        return False
 
     def alternate_declined(self, alternate):
-        pass
+        if alternate.status == 'waiting' or alternate.status == 'contacted':
+            alternate.status = 'declined'
+            alternate.save()
