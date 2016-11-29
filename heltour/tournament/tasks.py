@@ -384,10 +384,13 @@ class AlternatesManager():
         if self.round is None:
             return
         print 'Alternate search on bd %d' % board_number
-        player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False)
-        round_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round).nocache()
+        player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False) \
+                                                          .select_related('player').nocache()
+        round_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round) \
+                                                  .select_related('white', 'black').nocache()
         players_in_round = {p.white for p in round_pairings} | {p.black for p in round_pairings}
-        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number, result='', game_link='').nocache()
+        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number, result='', game_link='') \
+                                                  .select_related('white', 'black').nocache()
         players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
         teams_by_player = {p.white: p.white_team() for p in board_pairings}
         teams_by_player.update({p.black: p.black_team() for p in board_pairings})
@@ -395,7 +398,9 @@ class AlternatesManager():
         unavailable_players = {pa.player for pa in player_availabilities}
         players_that_need_replacements = players_on_board & unavailable_players
         number_of_alternates_contacted = len(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='contacted'))
-        alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting'), key=lambda a: a.priority_date())
+        alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting') \
+                                                           .select_related('season_player__registration', 'season_player__player').nocache(), \
+                                          key=lambda a: a.priority_date())
 
         # TODO: Detect when all searches are complete and:
         # 1. Set alternates contacted->waiting
@@ -448,10 +453,12 @@ class AlternatesManager():
         if (TeamPlayerPairing.objects.filter(team_pairing__round=self.round, white=alternate.season_player.player) | \
             TeamPlayerPairing.objects.filter(team_pairing__round=self.round, black=alternate.season_player.player)).nocache().exists():
             return False
-        active_searches = AlternateSearch.objects.filter(round=self.round, board_number=alternate.board_number, is_active=True).order_by('date_created')
+        active_searches = AlternateSearch.objects.filter(round=self.round, board_number=alternate.board_number, is_active=True) \
+                                                 .order_by('date_created').select_related('team').nocache()
         for search in active_searches:
             if search.still_needs_alternate():
-                assignment, _ = AlternateAssignment.objects.update_or_create(round=self.round, team=search.team, board_number=search.board_number, defaults={'player': alternate.season_player.player, 'replaced_player': None})
+                assignment, _ = AlternateAssignment.objects.update_or_create(round=self.round, team=search.team, board_number=search.board_number, \
+                                                                             defaults={'player': alternate.season_player.player, 'replaced_player': None})
                 alternate.status = 'accepted'
                 alternate.save()
                 slacknotify.alternate_assigned(self.season, assignment)
