@@ -125,6 +125,8 @@ def update_pairing(request):
         return JsonResponse({'updated': 0, 'error': 'ambiguous'})
 
     pairing = pairings[0]
+    initial_game_link = pairing.game_link
+    initial_result = pairing.result
 
     if game_link is not None:
         pairing.game_link = game_link
@@ -137,7 +139,9 @@ def update_pairing(request):
         reversion.set_comment('API: update_pairing')
         pairing.save()
 
-    return JsonResponse({'updated': 1, 'reversed': reversed})
+    return JsonResponse({'updated': 1, 'reversed': reversed,
+                         'game_link_changed': initial_game_link != pairing.game_link,
+                         'result_changed': initial_result != pairing.result})
 
 def _get_active_rounds(league_tag, season_tag):
     rounds = Round.objects.filter(season__is_active=True, publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
