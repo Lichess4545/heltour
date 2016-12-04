@@ -53,19 +53,23 @@
 						<td class="text-center hidden-xs">{{ pairing.pairing_order }}</td>
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
+							{% if pairing.white %}
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }}{% if pairing.white_rating_display %} <span class="visible-xs"></span> ({{ pairing.white_rating_display }}){% endif %}
 								</a>
 							</div>
+							{% endif %}
 						</td>
 						<td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
 						<td>
+							{% if pairing.black %}
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }}{% if pairing.black_rating_display %} <span class="visible-xs"></span> ({{ pairing.black_rating_display }}){% endif %}
 								</a>
 							</div>
+							{% endif %}
 						</td>
 						<td class="text-center text-nowrap">
 							{% if pairing.game_link %}

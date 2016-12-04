@@ -170,6 +170,7 @@ def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
     return pairings
 
 def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
+    pairings = pairings.exclude(white=None).exclude(black=None)
     if player is not None:
         white_pairings = pairings.filter(white__lichess_username__iexact=player)
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
