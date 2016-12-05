@@ -213,16 +213,20 @@ def get_roster(request):
         return _lone_roster(season)
 
 def _team_roster(season):
-    season_players = season.seasonplayer_set.select_related('player').nocache()
     teams = season.team_set.order_by('number').all()
+
+    all_alternates = sorted(Alternate.objects.filter(season_player__season=season).select_related('season_player__player', 'season_player__registration').nocache(),
+                            key=lambda alt: alt.priority_date())
+    all_teammembers = TeamMember.objects.filter(team__season=season).select_related('player').order_by('board_number').nocache()
+    players = sorted({alt.season_player.player for alt in all_alternates} | {tm.player for tm in all_teammembers})
 
     return JsonResponse({
         'league': season.league.tag,
         'season': season.tag,
         'players': [{
-            'username': season_player.player.lichess_username,
-            'rating': season_player.player.rating
-        } for season_player in season_players],
+            'username': player.lichess_username,
+            'rating': player.rating
+        } for player in players],
         'teams': [{
             'name': team.name,
             'number': team.number,
@@ -230,14 +234,11 @@ def _team_roster(season):
                 'board_number': team_member.board_number,
                 'username': team_member.player.lichess_username,
                 'is_captain': team_member.is_captain
-            } for team_member in team.teammember_set.order_by('board_number')]
+            } for team_member in all_teammembers if team_member.team_id == team.pk]
         } for team in teams],
         'alternates': [{
             'board_number': board_number,
-            'usernames': [alt.season_player.player.lichess_username for alt in sorted(
-                             Alternate.objects.filter(season_player__season=season, board_number=board_number),
-                             key=lambda alt: alt.priority_date()
-                         )]
+            'usernames': [alt.season_player.player.lichess_username for alt in all_alternates if alt.board_number == board_number]
         } for board_number in season.board_number_list()]
     })
 
