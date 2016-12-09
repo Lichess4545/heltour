@@ -165,8 +165,15 @@ def _get_next_round(league_tag, season_tag, round_num):
         return season.round_set.filter(number=round_num)[0]
 
 def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
-    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_).nocache(), player, white, black, scheduled)
-    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_).nocache(), player, white, black, scheduled)
+    pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_)
+                                    .select_related('white', 'black', 'team_pairing__round__season__league',
+                                                    'team_pairing__white_team', 'team_pairing__black_team')
+                                    .nocache(),
+                                player, white, black, scheduled)
+    pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_)
+                                    .select_related('white', 'black', 'round__season__league')
+                                    .nocache(),
+                                player, white, black, scheduled)
     return pairings
 
 def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
