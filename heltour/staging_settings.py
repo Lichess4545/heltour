@@ -250,6 +250,7 @@ CACHEOPS = {
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
 SLACK_WEBHOOK_FILE_PATH = '/etc/heltour/slack-webhook.conf'
+LICHESS_CREDS_FILE_PATH = '/etc/heltour/lichess-creds.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
 # Testing overrides
@@ -284,6 +285,7 @@ if os.path.exists("/etc/heltour/staging.json"):
     GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
     SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
     SLACK_WEBHOOK_FILE_PATH = overrides.get("SLACK_WEBHOOK_FILE_PATH", SLACK_WEBHOOK_FILE_PATH)
+    LICHESS_CREDS_FILE_PATH = overrides.get("LICHESS_CREDS_FILE_PATH", LICHESS_CREDS_FILE_PATH)
     MEDIA_ROOT = overrides.get("MEDIA_ROOT", MEDIA_ROOT)
     SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
     RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)

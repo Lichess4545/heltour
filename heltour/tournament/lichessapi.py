@@ -2,8 +2,10 @@ import requests
 import time
 import json
 from django.core.cache import cache
-
+import logging
 from heltour import settings
+
+logger = logging.getLogger(__name__)
 
 def _apicall(url, timeout=120, check_interval=0.1):
     # Make a request to the local API worker to put the result of a lichess API call into the redis cache
@@ -77,6 +79,36 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
     if result == '':
         raise ApiWorkerError('API failure')
     return json.loads(result)['currentPageResults']
+
+def send_mail(lichess_username, subject, text):
+    # This doesn't actually use the API proper, so it doesn't need the worker
+    # TODO: Cache login cookies for a brief period
+    try:
+        with open(settings.LICHESS_CREDS_FILE_PATH) as creds_file:
+            lines = creds_file.readlines()
+            creds = {'username': lines[0].strip(), 'password': lines[1].strip()}
+
+        headers = {'Accept': 'application/vnd.lichess.v1+json'}
+        login_response = requests.post('https://en.lichess.org/login', data=creds, headers=headers)
+        if login_response.status_code != 200:
+            logger.error('Received status %s when trying to log in to lichess' % login_response.status_code)
+            return False
+        login_cookies = login_response.cookies
+
+        mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
+        mail_response = requests.post('https://en.lichess.org/inbox/new', data=mail_data, headers=headers, cookies=login_cookies)
+        if mail_response.status_code != 200:
+            logger.error('Received status %s when trying to send mail on lichess: %s' % (mail_response.status_code, mail_response.text))
+            return False
+        mail_json = mail_response.json()
+        if 'ok' not in mail_json or mail_json['ok'] != True:
+            logger.error('Error sending mail on lichess: %s' % (mail_response.text))
+            return False
+
+        return True
+    except Exception:
+        logger.exception('Error sending lichess mail')
+        return False
 
 class ApiWorkerError(Exception):
     pass
