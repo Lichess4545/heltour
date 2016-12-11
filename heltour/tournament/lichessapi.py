@@ -80,23 +80,40 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
         raise ApiWorkerError('API failure')
     return json.loads(result)['currentPageResults']
 
-def send_mail(lichess_username, subject, text):
-    # This doesn't actually use the API proper, so it doesn't need the worker
-    # TODO: Cache login cookies for a brief period
-    try:
+# HTTP headers used to send non-API requests to lichess
+_headers = {'Accept': 'application/vnd.lichess.v1+json'}
+
+# Gets authentication cookies for the lichess service account
+# Used to send lichess mails to players
+def _login_cookies():
+    login_cookies = cache.get('lichess_login_cookies')
+    if login_cookies is None:
+        # Read the credentials
         with open(settings.LICHESS_CREDS_FILE_PATH) as creds_file:
             lines = creds_file.readlines()
             creds = {'username': lines[0].strip(), 'password': lines[1].strip()}
 
-        headers = {'Accept': 'application/vnd.lichess.v1+json'}
-        login_response = requests.post('https://en.lichess.org/login', data=creds, headers=headers)
+        # Send a login request
+        login_response = requests.post('https://en.lichess.org/login', data=creds, headers=_headers)
         if login_response.status_code != 200:
             logger.error('Received status %s when trying to log in to lichess' % login_response.status_code)
+            return None
+
+        # Save the cookies
+        login_cookies = dict(login_response.cookies)
+        cache.set('lichess_login_cookies', login_cookies, 60) # Cache cookies for 1 minute
+    return login_cookies
+
+# Sends a mail on lichess
+def send_mail(lichess_username, subject, text):
+    # This doesn't actually use the API proper, so it doesn't need the worker
+    try:
+        login_cookies = _login_cookies()
+        if login_cookies is None:
             return False
-        login_cookies = login_response.cookies
 
         mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
-        mail_response = requests.post('https://en.lichess.org/inbox/new', data=mail_data, headers=headers, cookies=login_cookies)
+        mail_response = requests.post('https://en.lichess.org/inbox/new', data=mail_data, headers=_headers, cookies=login_cookies)
         if mail_response.status_code != 200:
             logger.error('Received status %s when trying to send mail on lichess: %s' % (mail_response.status_code, mail_response.text))
             return False
