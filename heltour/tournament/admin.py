@@ -1343,7 +1343,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
 @admin.register(GameNomination)
 class GameNominationAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
-    search_fields = ('season__name', 'nominating_player__name')
+    search_fields = ('season__name', 'nominating_player__lichess_username')
     raw_id_fields = ('nominating_player',)
 
 #-------------------------------------------------------------------------------
