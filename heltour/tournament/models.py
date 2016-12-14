@@ -441,6 +441,11 @@ class Round(_BaseModel):
                 alt.status = 'waiting'
                 alt.save()
 
+    @property
+    def pairings(self):
+        return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=self)
+              | PlayerPairing.objects.filter(loneplayerpairing__round=self)).nocache()
+
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
 
