@@ -15,8 +15,7 @@ from django.core.mail.message import EmailMessage
 import json
 import reversion
 import math
-from heltour.tournament import slackapi
-from heltour.tournament.tasks import AlternatesManager
+from heltour.tournament import slackapi, alternates_manager
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
@@ -1239,7 +1238,7 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             return redirect('by_league:by_season:alternate_accept', self.league.tag, self.season.tag)
         username, player = self.get_authenticated_user()
 
-        alternates_manager = AlternatesManager(self.season)
+        round_ = alternates_manager.current_round(self.season)
 
         alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=player).first()
         show_button = False
@@ -1247,7 +1246,7 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             msg = ''
         elif alt is None:
             msg = 'You are not an alternate in %s.' % self.season
-        elif alternates_manager.round is None:
+        elif round_ is None:
             msg = 'There is no round currently in progress.'
         elif alt.status == 'accepted':
             msg = 'You have already accepted a game this round.'
@@ -1259,11 +1258,11 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             # OK
             if post:
                 if alternates_manager.alternate_accepted(alt):
-                    msg = 'You have been assigned to a team for round %d. Please check Slack for more info.' % alternates_manager.round.number
+                    msg = 'You have been assigned to a team for round %d. Please check Slack for more info.' % round_.number
                 else:
                     msg = 'Sorry, no games are currently available.'
             else:
-                msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between now and %s (UTC).' % (alternates_manager.round.number, alternates_manager.round.end_date.strftime('%Y-%m-%d %H:%M'))
+                msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between now and %s (UTC).' % (round_.number, round_.end_date.strftime('%Y-%m-%d %H:%M'))
                 show_button = True
         else:
             msg = 'Sorry, no games are currently available.'
@@ -1284,7 +1283,7 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
             return redirect('by_league:by_season:alternate_decline', self.league.tag, self.season.tag)
         username, player = self.get_authenticated_user()
 
-        alternates_manager = AlternatesManager(self.season)
+        round_ = alternates_manager.current_round(self.season)
 
         alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=player).first()
         show_button = False
@@ -1292,7 +1291,7 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
             msg = ''
         elif alt is None:
             msg = 'You are not an alternate in %s.' % self.season
-        elif alternates_manager.round is None:
+        elif round_ is None:
             msg = 'There is no round currently in progress.'
         elif alt.status == 'accepted':
             msg = 'You have already accepted a game this round.'
@@ -1304,9 +1303,9 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
             # OK
             if post:
                 alternates_manager.alternate_declined(alt)
-                msg = 'You will not receive any more game offers for round %d. Thank you for your response.' % alternates_manager.round.number
+                msg = 'You will not receive any more game offers for round %d. Thank you for your response.' % round_.number
             else:
-                msg = 'Please confirm you do not want to play a game during round %d.' % (alternates_manager.round.number)
+                msg = 'Please confirm you do not want to play a game during round %d.' % (round_.number)
                 show_button = True
 
         context = {

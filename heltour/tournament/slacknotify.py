@@ -4,18 +4,16 @@ from collections import namedtuple
 import slackapi
 from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
-
-_events = {'mod': ['user_registered', 'latereg_created', 'withdrawl_created', 'pairing_forfeit_changed', 'unscheduled_games', 'no_result_games',
-                   'pairings_generated', 'no_transition', 'starting_transition'],
-           'captains': ['alternate_search_started', 'alternate_search_all_contacted', 'alternate_assigned']}
+from heltour.tournament.models import *
+from django.db.models.signals import post_save
+from django.dispatch.dispatcher import receiver
 
 _heltour_identity = {'username': 'heltour'}
 _alternates_manager_identity = {'username': 'alternates-manager', 'icon': ':busts_in_silhouette:'}
 
-def _send_notification(event_type, league, text, identity=_heltour_identity):
-    for ln in league.leaguenotification_set.all():
-        if event_type in _events[ln.type]:
-            slackapi.send_message(ln.slack_channel, text, **identity)
+def _send_notification(notification_type, league, text, identity=_heltour_identity):
+    for ln in league.leaguenotification_set.filter(type=notification_type):
+        slackapi.send_message(ln.slack_channel, text, **identity)
 
 def _message_user(username, text, identity=_heltour_identity):
     slackapi.send_message('@%s' % username, text, **identity)
@@ -24,27 +22,37 @@ def _abs_url(url):
     site = Site.objects.get_current().domain
     return 'https://%s%s' % (site, url)
 
-def user_registered(reg):
-    league = reg.season.league
-    reg_url = _abs_url(reverse('admin:review_registration', args=[reg.pk]) + '?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D' + str(reg.season.pk))
-    list_url = _abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(reg.season.pk))
-    pending_count = reg.season.registration_set.filter(status='pending', season=reg.season).count()
-    message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (reg.lichess_username, reg.classical_rating, reg_url, league.name, list_url, pending_count)
-    _send_notification('user_registered', league, message)
+@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.slacknotify')
+def registration_saved(instance, created, **kwargs):
+    if not created:
+        return
+    league = instance.season.league
+    reg_url = _abs_url(reverse('admin:review_registration', args=[instance.pk]) + '?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D' + str(instance.season.pk))
+    list_url = _abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(instance.season.pk))
+    pending_count = instance.season.registration_set.filter(status='pending', season=instance.season).count()
+    message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url, pending_count)
+    _send_notification('mod', league, message)
 
-def latereg_created(latereg):
-    league = latereg.round.season.league
-    manage_url = _abs_url(reverse('admin:manage_players', args=[latereg.round.season.pk]))
-    message = '@%s <%s|added> for round %d' % (latereg.player, manage_url, latereg.round.number)
-    _send_notification('latereg_created', league, message)
+@receiver(post_save, sender=PlayerLateRegistration, dispatch_uid='heltour.tournament.slacknotify')
+def latereg_saved(instance, created, **kwargs):
+    if not created:
+        return
+    league = instance.round.season.league
+    manage_url = _abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
+    message = '@%s <%s|added> for round %d' % (instance.player, manage_url, instance.round.number)
+    _send_notification('mod', league, message)
 
-def withdrawl_created(withdrawl):
-    league = withdrawl.round.season.league
-    manage_url = _abs_url(reverse('admin:manage_players', args=[withdrawl.round.season.pk]))
-    message = '@%s <%s|withdrawn> for round %d' % (withdrawl.player, manage_url, withdrawl.round.number)
-    _send_notification('withdrawl_created', league, message)
+@receiver(post_save, sender=PlayerWithdrawl, dispatch_uid='heltour.tournament.slacknotify')
+def withdrawl_saved(instance, created, **kwargs):
+    if not created:
+        return
+    league = instance.round.season.league
+    manage_url = _abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
+    message = '@%s <%s|withdrawn> for round %d' % (instance.player, manage_url, instance.round.number)
+    _send_notification('mod', league, message)
 
-def pairing_forfeit_changed(pairing):
+@receiver(signals.pairing_forfeit_changed, dispatch_uid='heltour.tournament.slacknotify')
+def pairing_forfeit_changed(pairing, **kwargs):
     round_ = pairing.get_round()
     if round_ is None:
         return
@@ -52,7 +60,7 @@ def pairing_forfeit_changed(pairing):
     white = pairing.white.lichess_username.lower() if pairing.white is not None else '?'
     black = pairing.black.lichess_username.lower() if pairing.black is not None else '?'
     message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
-    _send_notification('pairing_forfeit_changed', league, message)
+    _send_notification('mod', league, message)
 
 def unscheduled_games(round_, pairings):
     if len(pairings) == 0:
@@ -60,7 +68,7 @@ def unscheduled_games(round_, pairings):
     else:
         pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
         message = 'The following games are unscheduled: %s' % (', '.join(pairing_strs))
-    _send_notification('unscheduled_games', round_.season.league, message)
+    _send_notification('mod', round_.season.league, message)
 
 def no_result_games(round_, pairings):
     if len(pairings) == 0:
@@ -68,13 +76,13 @@ def no_result_games(round_, pairings):
     else:
         pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
         message = 'The following games are missing results: %s' % (', '.join(pairing_strs))
-    _send_notification('no_result_games', round_.season.league, message)
+    _send_notification('mod', round_.season.league, message)
 
 def pairings_generated(round_):
     league = round_.season.league
     review_url = _abs_url(reverse('admin:review_pairings', args=[round_.pk]))
     message = 'Pairings generated for round %d. <%s|Review>' % (round_.number, review_url)
-    _send_notification('pairings_generated', league, message)
+    _send_notification('mod', league, message)
 
 def no_transition(season, warnings):
     league = season.league
@@ -84,7 +92,7 @@ def no_transition(season, warnings):
 def starting_transition(season, msg_list):
     league = season.league
     message = 'Starting automatic round transition...' + ''.join(['\n' + text for text, _ in msg_list])
-    _send_notification('starting_transition', league, message)
+    _send_notification('mod', league, message)
 
 def alternate_search_started(season, team, board_number, round_):
     league = season.league
@@ -107,13 +115,13 @@ def alternate_search_started(season, team, board_number, round_):
 
     # Broadcast a message to both team captains
     message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
-    _send_notification('alternate_search_started', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message, _alternates_manager_identity)
 
 def alternate_search_all_contacted(season, team, board_number, round_, number_contacted):
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (_captains_ping(team, round_), board_number, team.name, number_contacted)
-    _send_notification('alternate_search_all_contacted', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message, _alternates_manager_identity)
 
 def alternate_assigned(season, alt_assignment):
     league = season.league
@@ -154,7 +162,7 @@ def alternate_assigned(season, alt_assignment):
         message = '%sI have reassigned @%s to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
     else:
         message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
-    _send_notification('alternate_assigned', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message, _alternates_manager_identity)
 
 def alternate_needed(alt, accept_url, decline_url):
     # Send a DM to the alternate

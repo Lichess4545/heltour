@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import lichessapi, slackapi, views, forms, tasks
+from heltour.tournament import lichessapi, slackapi, views, forms, signals
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
@@ -26,6 +26,7 @@ from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
 from django.utils.html import format_html
+from heltour.tournament.workflows import RoundTransitionWorkflow
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -295,7 +296,7 @@ class SeasonAdmin(_BaseAdmin):
     def round_transition_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
 
-        workflow = tasks.RoundTransitionWorkflow(season)
+        workflow = RoundTransitionWorkflow(season)
 
         round_to_close = workflow.round_to_close
         round_to_open = workflow.round_to_open
@@ -737,7 +738,7 @@ class RoundAdmin(_BaseAdmin):
             if form.is_valid():
                 try:
                     if form.cleaned_data['run_in_background']:
-                        tasks.generate_pairings.apply_async(args=[round_.pk, form.cleaned_data['overwrite_existing']])
+                        signals.generate_pairings.send(sender=self.__class__, round_id=round_.pk, overwrite=form.cleaned_data['overwrite_existing'])
                         self.message_user(request, 'Generating pairings in background.', messages.INFO)
                         return redirect('admin:review_pairings', object_id)
                     else:

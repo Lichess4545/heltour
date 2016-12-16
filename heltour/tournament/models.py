@@ -11,7 +11,7 @@ from collections import namedtuple, defaultdict
 import re
 from django.core.exceptions import ValidationError
 import select2.fields
-from heltour.tournament import slacknotify
+from heltour.tournament import signals
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -529,12 +529,9 @@ class PlayerLateRegistration(_BaseModel):
             score.save()
 
     def save(self, *args, **kwargs):
-        created = self.pk is None
         super(PlayerLateRegistration, self).save(*args, **kwargs)
         if self.round.publish_pairings and not self.round.is_completed:
             self.perform_registration()
-        if created:
-            slacknotify.latereg_created(self)
 
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
@@ -563,12 +560,9 @@ class PlayerWithdrawl(_BaseModel):
                 pairing.delete()
 
     def save(self, *args, **kwargs):
-        created = self.pk is None
         super(PlayerWithdrawl, self).save(*args, **kwargs)
         if self.round.publish_pairings and not self.round.is_completed:
             self.perform_withdrawl()
-        if created:
-            slacknotify.withdrawl_created(self)
 
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
@@ -1056,7 +1050,7 @@ class PlayerPairing(_BaseModel):
                 lpp.black_rank = None
                 lpp.save()
         if result_changed and (result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
-            slacknotify.pairing_forfeit_changed(self)
+            signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
 
     def delete(self, *args, **kwargs):
         team_pairing = None
@@ -1184,10 +1178,8 @@ class Registration(_BaseModel):
         return "%s" % (self.lichess_username)
 
     def save(self, *args, **kwargs):
-        created = self.pk is None
+        print 'SAVING REG'
         super(Registration, self).save(*args, **kwargs)
-        if created:
-            slacknotify.user_registered(self)
 
     def previous_registrations(self):
         return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)

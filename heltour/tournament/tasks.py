@@ -1,5 +1,6 @@
 from heltour.tournament.models import *
-from heltour.tournament import lichessapi, slackapi, pairinggen
+from heltour.tournament import lichessapi, slackapi, pairinggen, \
+    alternates_manager, signals, slacknotify
 from heltour.celery import app
 from celery.utils.log import get_task_logger
 from datetime import datetime
@@ -9,6 +10,8 @@ import reversion
 from django.contrib import messages
 from math import ceil
 from django.core.urlresolvers import reverse
+from heltour.tournament.workflows import RoundTransitionWorkflow
+from django.dispatch.dispatcher import receiver
 
 logger = get_task_logger(__name__)
 
@@ -259,211 +262,13 @@ def generate_pairings(self, round_id, overwrite=False):
         round_.save()
     slacknotify.pairings_generated(round_)
 
-class RoundTransitionWorkflow():
-
-    def __init__(self, season):
-        self.season = season
-
-    @property
-    def round_to_close(self):
-        return self.season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
-
-    @property
-    def round_to_open(self):
-        return self.season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
-
-    @property
-    def season_to_close(self):
-        round_to_close = self.round_to_close
-        round_to_open = self.round_to_open
-        return self.season if not self.season.is_completed and round_to_open is None and (round_to_close is None or round_to_close.number == self.season.rounds) else None
-
-    def run(self, complete_round=False, complete_season=False, update_board_order=False, generate_pairings=False, background=False, user=None):
-        msg_list = []
-        round_to_close = self.round_to_close
-        round_to_open = self.round_to_open
-        season_to_close = self.season_to_close
-
-        with transaction.atomic():
-            if complete_round and round_to_close is not None:
-                with reversion.create_revision():
-                    reversion.set_user(user)
-                    reversion.set_comment('Closed round.')
-                    round_to_close.is_completed = True
-                    round_to_close.save()
-                msg_list.append(('Round %d set as completed.' % round_to_close.number, messages.INFO))
-            if complete_season and season_to_close is not None and (round_to_close is None or round_to_close.is_completed):
-                with reversion.create_revision():
-                    reversion.set_user(user)
-                    reversion.set_comment('Closed season.')
-                    season_to_close.is_completed = True
-                    season_to_close.save()
-                msg_list.append(('%s set as completed.' % season_to_close.name, messages.INFO))
-            if update_board_order and round_to_open is not None and self.season.league.competitor_type == 'team':
-                try:
-                    self.do_update_board_order(self.season)
-                    msg_list.append(('Board order updated.', messages.INFO))
-                except IndexError:
-                    msg_list.append(('Error updating board order.', messages.ERROR))
-                    return msg_list
-            if generate_pairings and round_to_open is not None:
-                if background:
-                    generate_pairings.apply_async(args=[round_to_open.pk])
-                    msg_list.append(('Generating pairings in background.', messages.INFO))
-                else:
-                    try:
-                        pairinggen.generate_pairings(round_to_open, overwrite=False)
-                        with reversion.create_revision():
-                            reversion.set_user(user)
-                            reversion.set_comment('Generated pairings.')
-                            round_to_open.publish_pairings = False
-                            round_to_open.save()
-                        msg_list.append(('Pairings generated.', messages.INFO))
-                    except pairinggen.PairingsExistException:
-                        msg_list.append(('Unpublished pairings already exist.', messages.WARNING))
-                    except pairinggen.PairingHasResultException:
-                        msg_list.append(('Pairings with results can\'t be overwritten.', messages.ERROR))
-        return msg_list
-
-    @property
-    def warnings(self):
-        msg_list = []
-        round_to_close = self.round_to_close
-        round_to_open = self.round_to_open
-
-        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
-            time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
-            msg_list.append(('The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING))
-        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
-            time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
-            msg_list.append(('The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING))
-
-        if round_to_close is not None:
-            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close).nocache() | \
-                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close).nocache()
-            if len(incomplete_pairings) > 0:
-                msg_list.append(('Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING))
-
-        return msg_list
-
-    def _time_from_now(self, delta):
-        if delta.days > 0:
-            if delta.days == 1:
-                return '1 day'
-            else:
-                return '%d days' % delta.days
-        else:
-            hours = delta.seconds / 3600
-            if hours == 1:
-                return '1 hour'
-            else:
-                return '%d hours' % hours
-
+@receiver(signals.generate_pairings, dispatch_uid='heltour.tournament.tasks')
+def start_generate_pairings(sender, round_id, overwrite=False, **kwargs):
+    generate_pairings.apply_async(args=[round_id, overwrite])
 
 @app.task(bind=True)
 def alternates_manager_tick(self):
-    print 'tick'
     for season in Season.objects.filter(enable_alternates_manager=True):
-        alternates_manager = AlternatesManager(season)
         for board_number in season.board_number_list():
-            alternates_manager.do_alternate_search(board_number)
+            alternates_manager.do_alternate_search(season, board_number)
 
-class AlternatesManager():
-    alternate_contact_interval = timedelta(seconds=30)
-
-    def __init__(self, season):
-        self.season = season
-        if self.season.enable_alternates_manager:
-            self.round = season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
-        else:
-            self.round = None
-
-    def do_alternate_search(self, board_number):
-        if self.round is None:
-            return
-        print 'Alternate search on bd %d' % board_number
-        player_availabilities = PlayerAvailability.objects.filter(round=self.round, is_available=False) \
-                                                          .select_related('player').nocache()
-        round_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round) \
-                                                  .select_related('white', 'black').nocache()
-        players_in_round = {p.white for p in round_pairings} | {p.black for p in round_pairings}
-        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=self.round, board_number=board_number, result='', game_link='') \
-                                                  .select_related('white', 'black').nocache()
-        players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
-        teams_by_player = {p.white: p.white_team() for p in board_pairings}
-        teams_by_player.update({p.black: p.black_team() for p in board_pairings})
-
-        unavailable_players = {pa.player for pa in player_availabilities}
-        players_that_need_replacements = players_on_board & unavailable_players
-        number_of_alternates_contacted = len(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='contacted'))
-        alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=self.season, board_number=board_number, status='waiting') \
-                                                           .select_related('season_player__registration', 'season_player__player').nocache(), \
-                                          key=lambda a: a.priority_date())
-
-        # TODO: Detect when all searches are complete and:
-        # 1. Set alternates contacted->waiting
-        # 2. Message those alternates
-
-        for p in players_that_need_replacements:
-            search, _ = AlternateSearch.objects.get_or_create(round=self.round, team=teams_by_player[p], board_number=board_number)
-            if not search.is_active or search.status == 'all_contacted':
-                continue
-
-            if search.status == '':
-                slacknotify.alternate_search_started(self.season, teams_by_player[p], board_number, self.round)
-                search.status = 'started'
-                search.save()
-
-            if search.last_alternate_contact_date is None:
-                do_contact = True
-            else:
-                time_since_last_contact = timezone.now() - search.last_alternate_contact_date
-                do_contact = time_since_last_contact >= self.alternate_contact_interval
-
-            if do_contact:
-                try:
-                    while True:
-                        alt_to_contact = alternates_not_contacted.pop(0)
-                        if alt_to_contact.season_player.player not in unavailable_players and \
-                                alt_to_contact.season_player.player not in players_in_round and \
-                                alt_to_contact.season_player.games_missed < 2:
-                            break
-
-                    alt_username = alt_to_contact.season_player.player.lichess_username
-                    league_tag = self.season.league.tag
-                    season_tag = self.season.tag
-                    auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=self.round.end_date)
-                    accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
-                    decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
-                    slacknotify.alternate_needed(alt_to_contact, accept_url, decline_url)
-                    alt_to_contact.status = 'contacted'
-                    alt_to_contact.save()
-                    search.last_alternate_contact_date = timezone.now()
-                    search.save()
-                except IndexError:
-                    slacknotify.alternate_search_all_contacted(self.season, teams_by_player[p], board_number, self.round, number_of_alternates_contacted)
-                    search.status = 'all_contacted'
-                    search.save()
-
-    def alternate_accepted(self, alternate):
-        if alternate.status != 'contacted':
-            return False
-        if (TeamPlayerPairing.objects.filter(team_pairing__round=self.round, white=alternate.season_player.player) | \
-            TeamPlayerPairing.objects.filter(team_pairing__round=self.round, black=alternate.season_player.player)).nocache().exists():
-            return False
-        active_searches = AlternateSearch.objects.filter(round=self.round, board_number=alternate.board_number, is_active=True) \
-                                                 .order_by('date_created').select_related('team').nocache()
-        for search in active_searches:
-            if search.still_needs_alternate():
-                assignment, _ = AlternateAssignment.objects.update_or_create(round=self.round, team=search.team, board_number=search.board_number, \
-                                                                             defaults={'player': alternate.season_player.player, 'replaced_player': None})
-                alternate.status = 'accepted'
-                alternate.save()
-                slacknotify.alternate_assigned(self.season, assignment)
-                return True
-        return False
-
-    def alternate_declined(self, alternate):
-        if alternate.status == 'waiting' or alternate.status == 'contacted':
-            alternate.status = 'declined'
-            alternate.save()
