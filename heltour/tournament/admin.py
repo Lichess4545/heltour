@@ -447,6 +447,52 @@ class SeasonAdmin(_BaseAdmin):
                 boundaries.append(None)
             else:
                 boundaries.append((left + right) / 2)
+
+        # If we have enough data, modify the boundaries to try and smooth out the number of players per board
+        if all((len(r_list) >= 4 for r_list in ratings_by_board)):
+            iter_count = 20
+
+            # Calculate how much each boundary should be changed per iteration
+            up_step_sizes = []
+            down_step_sizes = []
+            for i in range(season.boards - 1):
+                boundary = boundaries[i + 1]
+                # Split the difference between the highest/lowest 2 players on each board to determine
+                # the absolute most we're willing the change the boundary
+                higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2
+                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2
+                if boundary < higher_board_min and boundary < lower_board_max:
+                    delta_up = min(higher_board_min, lower_board_max) - boundary
+                    delta_down = 0
+                elif boundary > higher_board_min and boundary > lower_board_max:
+                    delta_up = 0
+                    delta_down = boundary - max(higher_board_min, lower_board_max)
+                else:
+                    delta_up = max(higher_board_min, lower_board_max) - boundary
+                    delta_down = boundary - min(higher_board_min, lower_board_max)
+                up_step_sizes.append(delta_up / float(iter_count))
+                down_step_sizes.append(delta_down / float(iter_count))
+
+            alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+            # Start iterating the smoothing algorithm
+            for _ in range(iter_count):
+                # Calculate the number of alternates in each bucket
+                bucket_counts = [0] * season.boards
+                for alt in alternates:
+                    r = alt.season_player.player.rating
+                    for i in range(season.boards):
+                        if r > boundaries[i + 1] or boundaries[i + 1] == None:
+                            bucket_counts[i] += 1
+                            break
+
+                # Move the boundaries of uneven buckets
+                for i in range(season.boards - 1):
+                    if bucket_counts[i] > bucket_counts[i + 1] + 1:
+                        boundaries[i + 1] += up_step_sizes[i]
+                    if bucket_counts[i] < bucket_counts[i + 1] - 1:
+                        boundaries[i + 1] -= down_step_sizes[i]
+
+        # Update the buckets
         for board_num in range(1, season.boards + 1):
             min_rating = boundaries[board_num]
             max_rating = boundaries[board_num - 1]
