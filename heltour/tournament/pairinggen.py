@@ -212,7 +212,7 @@ class DutchLonePairingSystem:
             # Ensure each player is in the correct acceleration group
             if round_.number == 1:
                 # Calculate all groups from scratch
-                group_1_size = 2 * math.ceil(len(season_players) / 4)
+                group_1_size = int(2 * math.ceil(len(season_players) / 4))
                 sorted_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
                 for sp in sorted_players[:group_1_size]:
                     sp.loneplayerscore.acceleration_group = 1
@@ -340,7 +340,7 @@ class JavafoInstance:
                 input_file.write(line)
             for n, player in enumerate(self.players, 1):
                 if player.acceleration_scores:
-                    line = 'XXA {0: >4} {1}\n'.format(n, ' '.join('{0: >3.1f}'.format(s) for s in player.acceleration_scores))
+                    line = 'XXA {0: >4} {1}\n'.format(n, ' '.join('{0: >4.1f}'.format(s) for s in player.acceleration_scores))
                     print line.strip()
                     input_file.write(line)
                     pass

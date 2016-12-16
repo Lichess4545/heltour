@@ -205,7 +205,6 @@ class Season(_BaseModel):
                             game_points += self.boards / 2
                     else:
                         if is_playoffs:
-                            print 'Playoff', round_points
                             if round_points > round_opponent_points:
                                 playoff_score += 2 ** (self.rounds - round_.number)
                             # TODO: Handle ties/tiebreaks somehow?
@@ -1177,10 +1176,6 @@ class Registration(_BaseModel):
 
     def __unicode__(self):
         return "%s" % (self.lichess_username)
-
-    def save(self, *args, **kwargs):
-        print 'SAVING REG'
-        super(Registration, self).save(*args, **kwargs)
 
     def previous_registrations(self):
         return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)

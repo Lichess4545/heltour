@@ -52,14 +52,14 @@ def withdrawl_saved(instance, created, **kwargs):
     _send_notification('mod', league, message)
 
 @receiver(signals.pairing_forfeit_changed, dispatch_uid='heltour.tournament.slacknotify')
-def pairing_forfeit_changed(pairing, **kwargs):
-    round_ = pairing.get_round()
+def pairing_forfeit_changed(instance, **kwargs):
+    round_ = instance.get_round()
     if round_ is None:
         return
     league = round_.season.league
-    white = pairing.white.lichess_username.lower() if pairing.white is not None else '?'
-    black = pairing.black.lichess_username.lower() if pairing.black is not None else '?'
-    message = '@%s vs @%s %s' % (white, black, pairing.result or '*')
+    white = instance.white.lichess_username.lower() if instance.white is not None else '?'
+    black = instance.black.lichess_username.lower() if instance.black is not None else '?'
+    message = '@%s vs @%s %s' % (white, black, instance.result or '*')
     _send_notification('mod', league, message)
 
 def unscheduled_games(round_, pairings):

@@ -47,6 +47,13 @@ def simulate_season(season):
     TeamPlayerPairing.objects.filter(team_pairing__round__season=season).delete()
     LonePlayerScore.objects.filter(season_player__season=season).delete()
     TeamScore.objects.filter(team__season=season).delete()
+    latereg_players = {latereg.player_id for latereg in PlayerLateRegistration.objects.filter(round__season=season)}
+    for sp in season.seasonplayer_set.all():
+        if sp.player_id in latereg_players:
+            sp.delete()
+        else:
+            sp.is_active = True
+            sp.save()
 
     # Run each round
     for r in season.round_set.order_by('number'):
