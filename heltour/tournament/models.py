@@ -1411,7 +1411,7 @@ class Alternate(_BaseModel):
         most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').first()
 
         if most_recent_assign is not None:
-            round_date = most_recent_assign.round.start_date
+            round_date = most_recent_assign.round.end_date
             if round_date is not None:
                 return round_date
 
