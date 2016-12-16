@@ -66,6 +66,7 @@ COMPETITOR_TYPE_OPTIONS = (
 )
 PAIRING_TYPE_OPTIONS = (
     ('swiss-dutch', 'Swiss Tournament: Dutch Algorithm'),
+    ('swiss-dutch-baku-accel', 'Swiss Tournament: Dutch Algorithm + Baku Acceleration'),
 )
 
 #-------------------------------------------------------------------------------
@@ -1261,6 +1262,7 @@ class LonePlayerScore(_BaseModel):
     tiebreak2 = ScoreField(default=0)
     tiebreak3 = ScoreField(default=0)
     tiebreak4 = ScoreField(default=0)
+    acceleration_group = models.PositiveIntegerField(default=0)
 
     perf_rating = models.PositiveIntegerField(blank=True, null=True)
 

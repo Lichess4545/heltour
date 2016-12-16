@@ -5,6 +5,7 @@ import tempfile
 import subprocess
 import os
 import reversion
+import math
 
 def generate_pairings(round_, overwrite=False):
     if round_.season.league.competitor_type == 'team':
@@ -126,7 +127,10 @@ def _generate_lone_pairings(round_, overwrite=False):
         previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
 
         # Run the pairing algorithm
-        pairing_system = DutchLonePairingSystem()
+        if round_.season.league.pairing_type == 'swiss-dutch-baku-accel':
+            pairing_system = DutchLonePairingSystem(accel='baku')
+        else:
+            pairing_system = DutchLonePairingSystem()
         lone_pairings, byes = pairing_system.create_lone_pairings(round_, season_players, include_players, previous_pairings, previous_byes)
 
         # Save the lone pairings
@@ -198,14 +202,45 @@ class DutchTeamPairingSystem:
                 yield JavafoPairing(p.white_team, 'black', 1.0 if p.black_points > p.white_points else 0.5 if p.white_points == p.black_points else 0)
 
 class DutchLonePairingSystem:
+    def __init__(self, accel=None):
+        self.accel = accel
+
     def create_lone_pairings(self, round_, season_players, include_players, previous_pairings, previous_byes):
         # Note: Assumes season_players is sorted by seed and previous_pairings/previous_byes are sorted by round
+
+        if self.accel == 'baku':
+            # Ensure each player is in the correct acceleration group
+            if round_.number == 1:
+                # Calculate all groups from scratch
+                group_1_size = 2 * math.ceil(len(season_players) / 4)
+                sorted_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
+                for sp in sorted_players[:group_1_size]:
+                    sp.loneplayerscore.acceleration_group = 1
+                    sp.loneplayerscore.save()
+                for sp in sorted_players[group_1_size:]:
+                    sp.loneplayerscore.acceleration_group = 2
+                    sp.loneplayerscore.save()
+            else:
+                # Update groups only for players that don't already have one
+                min_rating_for_group_1 = min((sp.seed_rating for sp in season_players if sp.loneplayerscore.acceleration_group == 1))
+                for sp in season_players:
+                    if sp.loneplayerscore.acceleration_group == 0:
+                        if sp.seed_rating >= min_rating_for_group_1:
+                            sp.loneplayerscore.acceleration_group = 1
+                        else:
+                            sp.loneplayerscore.acceleration_group = 2
+                        sp.loneplayerscore.save()
+
+        def acceleration_scores(sp):
+            if self.accel == 'baku' and sp.loneplayerscore.acceleration_group == 1:
+                return [1, 1, 1, 0.5, 0.5]
+            return None
 
         players = [
             JavafoPlayer(
                          sp.player, sp.get_loneplayerscore().pairing_points(),
                          list(self._process_pairings(sp, previous_pairings, previous_byes, round_.number, sp.loneplayerscore.late_join_points)),
-                         sp in include_players
+                         sp in include_players, acceleration_scores=acceleration_scores(sp)
             ) for sp in season_players
         ]
         javafo = JavafoInstance(round_.season.rounds, players)
@@ -244,11 +279,12 @@ class DutchLonePairingSystem:
                 yield JavafoPairing(None, None, None, forfeit=True)
 
 class JavafoPlayer:
-    def __init__(self, player, score, pairings, include=True):
+    def __init__(self, player, score, pairings, include=True, acceleration_scores=None):
         self.player = player
         self.score = score
         self.pairings = pairings
         self.include = include
+        self.acceleration_scores = acceleration_scores
 
 class JavafoPairing:
     def __init__(self, opponent, color, score, forfeit=False):
@@ -302,6 +338,12 @@ class JavafoInstance:
                     line += '{0: >6} {1} {2}'.format('0000', '-', '-')
                 line += '\n'
                 input_file.write(line)
+            for n, player in enumerate(self.players, 1):
+                if player.acceleration_scores:
+                    line = 'XXA {0: >4} {1}\n'.format(n, ' '.join('{0: >3.1f}'.format(s) for s in player.acceleration_scores))
+                    print line.strip()
+                    input_file.write(line)
+                    pass
             input_file.flush()
 
             self._call_proc(input_file.name, output_file_name, '-q 10000')
