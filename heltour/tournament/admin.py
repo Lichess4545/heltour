@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import lichessapi, slackapi, views, forms, signals
+from heltour.tournament import lichessapi, slackapi, views, forms, signals, simulation
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
@@ -155,7 +155,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'manage_players', 'round_transition']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'manage_players', 'round_transition', 'simulate_tournament']
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
@@ -186,6 +186,19 @@ class SeasonAdmin(_BaseAdmin):
                 name='bulk_email'),
         ]
         return my_urls + urls
+
+
+    def simulate_tournament(self, request, queryset):
+        if not settings.DEBUG and not settings.STAGING:
+            self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
+            return
+        if queryset.count() > 1:
+            self.message_user(request, 'Results can only be simulated one season at a time', messages.ERROR)
+            return
+        season = queryset[0]
+        simulation.simulate_season(season)
+        self.message_user(request, 'Simulation complete.', messages.INFO)
+        return redirect('admin:tournament_season_changelist')
 
     def recalculate_scores(self, request, queryset):
         for season in queryset:
@@ -710,7 +723,7 @@ class SeasonAdmin(_BaseAdmin):
 @admin.register(Round)
 class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
-    actions = ['generate_pairings']
+    actions = ['generate_pairings', 'simulate_results']
 
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
@@ -729,6 +742,18 @@ class RoundAdmin(_BaseAdmin):
             self.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
             return
         return redirect('admin:generate_pairings', object_id=queryset[0].pk)
+
+    def simulate_results(self, request, queryset):
+        if not settings.DEBUG and not settings.STAGING:
+            self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
+            return
+        if queryset.count() > 1:
+            self.message_user(request, 'Results can only be simulated one round at a time', messages.ERROR)
+            return
+        round_ = queryset[0]
+        simulation.simulate_round(round_)
+        self.message_user(request, 'Simulation complete.', messages.INFO)
+        return redirect('admin:tournament_round_changelist')
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
