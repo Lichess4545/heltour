@@ -62,39 +62,47 @@ def pairing_forfeit_changed(instance, **kwargs):
     message = '@%s vs @%s %s' % (white, black, instance.result or '*')
     _send_notification('mod', league, message)
 
-def unscheduled_games(round_, pairings):
-    if len(pairings) == 0:
+@receiver(signals.notify_mods_unscheduled, dispatch_uid='heltour.tournament.notify')
+def notify_mods_unscheduled(round_, **kwargs):
+    unscheduled_pairings = round_.pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
+    if len(unscheduled_pairings) == 0:
         message = 'All games in round %d are scheduled.' % round_.number
     else:
-        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
+        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in unscheduled_pairings)
         message = 'The following games are unscheduled: %s' % (', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
-def no_result_games(round_, pairings):
-    if len(pairings) == 0:
+@receiver(signals.notify_mods_no_result, dispatch_uid='heltour.tournament.notify')
+def notify_mods_no_result(round_, **kwargs):
+    no_result_pairings = round_.pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
+    if len(no_result_pairings) == 0:
         message = 'All games in round %d have results.' % round_.number
     else:
-        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in pairings)
+        pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in no_result_pairings)
         message = 'The following games are missing results: %s' % (', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
-def pairings_generated(round_):
+@receiver(signals.pairings_generated, dispatch_uid='heltour.tournament.notify')
+def pairings_generated(round_, **kwargs):
     league = round_.season.league
     review_url = _abs_url(reverse('admin:review_pairings', args=[round_.pk]))
     message = 'Pairings generated for round %d. <%s|Review>' % (round_.number, review_url)
     _send_notification('mod', league, message)
 
-def no_transition(season, warnings):
+@receiver(signals.no_round_transition, dispatch_uid='heltour.tournament.notify')
+def no_round_transition(season, warnings, **kwargs):
     league = season.league
     message = 'Can\'t start the round transition.' + ''.join(['\n' + text for text, _ in warnings])
     _send_notification('no_transition', league, message)
 
-def starting_transition(season, msg_list):
+@receiver(signals.starting_round_transition, dispatch_uid='heltour.tournament.notify')
+def starting_round_transition(season, msg_list, **kwargs):
     league = season.league
     message = 'Starting automatic round transition...' + ''.join(['\n' + text for text, _ in msg_list])
     _send_notification('mod', league, message)
 
-def alternate_search_started(season, team, board_number, round_):
+@receiver(signals.alternate_search_started, dispatch_uid='heltour.tournament.notify')
+def alternate_search_started(season, team, board_number, round_, **kwargs):
     league = season.league
     team_member = team.teammember_set.filter(board_number=board_number).first()
 
@@ -117,13 +125,15 @@ def alternate_search_started(season, team, board_number, round_):
     message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
     _send_notification('captains', league, message, _alternates_manager_identity)
 
-def alternate_search_all_contacted(season, team, board_number, round_, number_contacted):
+@receiver(signals.alternate_search_all_contacted, dispatch_uid='heltour.tournament.notify')
+def alternate_search_all_contacted(season, team, board_number, round_, number_contacted, **kwargs):
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (_captains_ping(team, round_), board_number, team.name, number_contacted)
     _send_notification('captains', league, message, _alternates_manager_identity)
 
-def alternate_assigned(season, alt_assignment):
+@receiver(signals.alternate_assigned, dispatch_uid='heltour.tournament.notify')
+def alternate_assigned(season, alt_assignment, **kwargs):
     league = season.league
     aa = alt_assignment
 
@@ -164,10 +174,11 @@ def alternate_assigned(season, alt_assignment):
         message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
     _send_notification('captains', league, message, _alternates_manager_identity)
 
-def alternate_needed(alt, accept_url, decline_url):
+@receiver(signals.alternate_needed, dispatch_uid='heltour.tournament.notify')
+def alternate_needed(alternate, accept_url, decline_url, **kwargs):
     # Send a DM to the alternate
-    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within 48 hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alt.season_player), _abs_url(accept_url), _abs_url(decline_url))
-    _message_user(_slack_user(alt.season_player), message, _alternates_manager_identity)
+    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within 48 hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _abs_url(accept_url), _abs_url(decline_url))
+    _message_user(_slack_user(alternate.season_player), message, _alternates_manager_identity)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
 

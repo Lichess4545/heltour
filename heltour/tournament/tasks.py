@@ -1,6 +1,6 @@
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi, slackapi, pairinggen, \
-    alternates_manager, signals, notify
+    alternates_manager, signals
 from heltour.celery import app
 from celery.utils.log import get_task_logger
 from datetime import datetime
@@ -238,19 +238,17 @@ def run_event(event, obj):
     event.save()
 
     if event.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
-        unscheduled_pairings = obj.pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
-        notify.unscheduled_games(obj, unscheduled_pairings)
+        signals.notify_mods_unscheduled.send(sender=event.__class__, round_=obj)
     elif event.type == 'notify_mods_no_result' and isinstance(obj, Round):
-        no_result_pairings = obj.pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
-        notify.no_result_games(obj, no_result_pairings)
+        signals.notify_mods_no_result.send(sender=event.__class__, round_=obj)
     elif event.type == 'start_round_transition' and isinstance(obj, Round):
         workflow = RoundTransitionWorkflow(obj.season)
         warnings = workflow.warnings
         if len(warnings) > 0:
-            notify.no_transition(obj.season, warnings)
+            signals.no_round_transition.send(sender=event.__class__, season=obj.season, warnings=warnings)
         else:
             msg_list = workflow.run(complete_round=True, complete_season=True, update_board_order=True, generate_pairings=True, background=True)
-            notify.starting_transition(obj.season, msg_list)
+            signals.starting_round_transition.send(sender=event.__class__, season=obj.season, msg_list=msg_list)
 
 @app.task(bind=True)
 def generate_pairings(self, round_id, overwrite=False):
@@ -260,7 +258,7 @@ def generate_pairings(self, round_id, overwrite=False):
     with reversion.create_revision():
         reversion.set_comment('Generated pairings.')
         round_.save()
-    notify.pairings_generated(round_)
+    signals.pairings_generated.send(sender=generate_pairings, round_=round_)
 
 @receiver(signals.generate_pairings, dispatch_uid='heltour.tournament.tasks')
 def start_generate_pairings(sender, round_id, overwrite=False, **kwargs):

@@ -1,6 +1,5 @@
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
-from heltour.tournament import notify
 
 _alternate_contact_interval = timedelta(seconds=30)
 
@@ -49,7 +48,8 @@ def do_alternate_search(season, board_number):
 
         if created:
             # Search has just started
-            notify.alternate_search_started(season, teams_by_player[p], board_number, round_)
+            signals.alternate_search_started.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
+                                                  board_number=board_number, round_=round_)
             search.status = 'started'
             search.save()
 
@@ -81,7 +81,7 @@ def do_alternate_search(season, board_number):
                 auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=round_.end_date)
                 accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
-                notify.alternate_needed(alt_to_contact, accept_url, decline_url)
+                signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, accept_url=accept_url, decline_url=decline_url)
                 alt_to_contact.status = 'contacted'
                 alt_to_contact.save()
                 search.last_alternate_contact_date = timezone.now()
@@ -89,7 +89,8 @@ def do_alternate_search(season, board_number):
             except IndexError:
                 # No alternates left, so the search is over
                 # The spot can still be filled if previously-contacted alternates end up responding
-                notify.alternate_search_all_contacted(season, teams_by_player[p], board_number, round_, number_of_alternates_contacted)
+                signals.alternate_search_all_contacted.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
+                                            board_number=board_number, round_=round_, number_contacted=number_of_alternates_contacted)
                 search.status = 'all_contacted'
                 search.save()
 
@@ -115,7 +116,7 @@ def alternate_accepted(alternate):
                                                                          defaults={'player': alternate.season_player.player, 'replaced_player': None})
             alternate.status = 'accepted'
             alternate.save()
-            notify.alternate_assigned(season, assignment)
+            signals.alternate_assigned.send(sender=alternate_accepted, season=season, alt_assignment=assignment)
             return True
     return False
 
