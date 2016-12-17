@@ -7,5 +7,5 @@ class TournamentConfig(AppConfig):
 
     def ready(self):
         # Make sure signal handlers are registered
-        import slacknotify # @UnusedImport
+        import notify # @UnusedImport
         import tasks # @UnusedImport

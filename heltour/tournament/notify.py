@@ -22,7 +22,7 @@ def _abs_url(url):
     site = Site.objects.get_current().domain
     return 'https://%s%s' % (site, url)
 
-@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.slacknotify')
+@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.notify')
 def registration_saved(instance, created, **kwargs):
     if not created:
         return
@@ -33,7 +33,7 @@ def registration_saved(instance, created, **kwargs):
     message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url, pending_count)
     _send_notification('mod', league, message)
 
-@receiver(post_save, sender=PlayerLateRegistration, dispatch_uid='heltour.tournament.slacknotify')
+@receiver(post_save, sender=PlayerLateRegistration, dispatch_uid='heltour.tournament.notify')
 def latereg_saved(instance, created, **kwargs):
     if not created:
         return
@@ -42,7 +42,7 @@ def latereg_saved(instance, created, **kwargs):
     message = '@%s <%s|added> for round %d' % (instance.player, manage_url, instance.round.number)
     _send_notification('mod', league, message)
 
-@receiver(post_save, sender=PlayerWithdrawl, dispatch_uid='heltour.tournament.slacknotify')
+@receiver(post_save, sender=PlayerWithdrawl, dispatch_uid='heltour.tournament.notify')
 def withdrawl_saved(instance, created, **kwargs):
     if not created:
         return
@@ -51,7 +51,7 @@ def withdrawl_saved(instance, created, **kwargs):
     message = '@%s <%s|withdrawn> for round %d' % (instance.player, manage_url, instance.round.number)
     _send_notification('mod', league, message)
 
-@receiver(signals.pairing_forfeit_changed, dispatch_uid='heltour.tournament.slacknotify')
+@receiver(signals.pairing_forfeit_changed, dispatch_uid='heltour.tournament.notify')
 def pairing_forfeit_changed(instance, **kwargs):
     round_ = instance.get_round()
     if round_ is None:

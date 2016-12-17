@@ -1,6 +1,6 @@
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
-from heltour.tournament import slacknotify
+from heltour.tournament import notify
 
 _alternate_contact_interval = timedelta(seconds=30)
 
@@ -49,7 +49,7 @@ def do_alternate_search(season, board_number):
 
         if created:
             # Search has just started
-            slacknotify.alternate_search_started(season, teams_by_player[p], board_number, round_)
+            notify.alternate_search_started(season, teams_by_player[p], board_number, round_)
             search.status = 'started'
             search.save()
 
@@ -81,7 +81,7 @@ def do_alternate_search(season, board_number):
                 auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=round_.end_date)
                 accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
-                slacknotify.alternate_needed(alt_to_contact, accept_url, decline_url)
+                notify.alternate_needed(alt_to_contact, accept_url, decline_url)
                 alt_to_contact.status = 'contacted'
                 alt_to_contact.save()
                 search.last_alternate_contact_date = timezone.now()
@@ -89,7 +89,7 @@ def do_alternate_search(season, board_number):
             except IndexError:
                 # No alternates left, so the search is over
                 # The spot can still be filled if previously-contacted alternates end up responding
-                slacknotify.alternate_search_all_contacted(season, teams_by_player[p], board_number, round_, number_of_alternates_contacted)
+                notify.alternate_search_all_contacted(season, teams_by_player[p], board_number, round_, number_of_alternates_contacted)
                 search.status = 'all_contacted'
                 search.save()
 
@@ -115,7 +115,7 @@ def alternate_accepted(alternate):
                                                                          defaults={'player': alternate.season_player.player, 'replaced_player': None})
             alternate.status = 'accepted'
             alternate.save()
-            slacknotify.alternate_assigned(season, assignment)
+            notify.alternate_assigned(season, assignment)
             return True
     return False
 
