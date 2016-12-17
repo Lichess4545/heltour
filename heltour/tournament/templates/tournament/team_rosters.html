@@ -70,7 +70,8 @@
 							<tr>
 								<td colspan="3">&nbsp;</td>
 								{% for alt in row %}
-								<td class="cell-player" colspan="2">
+								{% with priority_date_and_reason=alt.priority_date_and_reason %}
+								<td class="cell-player" colspan="2" title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
 									{% if alt == None %}
 									{% if row_num == 1 %}
 									-
@@ -86,7 +87,10 @@
 									</span>
 									{% endif %}
 								</td>
-								<td class="cell-rating">{{ alt.player_rating_display|default_if_none:"" }}</td>
+								<td class="cell-rating" title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
+									{{ alt.player_rating_display|default_if_none:"" }}
+								</td>
+								{% endwith %}
 								{% endfor %}
 								<td>&nbsp;</td>
 							</tr>

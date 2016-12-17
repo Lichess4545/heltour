@@ -1405,20 +1405,25 @@ class Alternate(_BaseModel):
                     self.save()
 
     def priority_date(self):
-        if self.priority_date_override is not None:
-            return self.priority_date_override
+        return self.priority_date_and_reason()[0]
 
+    def priority_date_and_reason(self):
+        if self.priority_date_override is not None:
+            return max((self.priority_date_override, 'Was unresponsive'), self._priority_date_without_override())
+        return self._priority_date_without_override()
+
+    def _priority_date_without_override(self):
         most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').first()
 
         if most_recent_assign is not None:
             round_date = most_recent_assign.round.end_date
             if round_date is not None:
-                return round_date
+                return (round_date, 'Assigned game')
 
         if self.season_player.registration is not None:
-            return self.season_player.registration.date_created
+            return (self.season_player.registration.date_created, 'Registered')
 
-        return self.date_created
+        return (self.date_created, 'Made alternate')
 
     def __unicode__(self):
         return "%s" % self.season_player
