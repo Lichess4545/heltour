@@ -1,7 +1,7 @@
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
 
-_alternate_contact_interval = timedelta(seconds=30)
+_alternate_contact_interval = timedelta(hours=8)
 
 def current_round(season):
     if not season.enable_alternates_manager:
