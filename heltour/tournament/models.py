@@ -1711,6 +1711,17 @@ class ScheduledEvent(_BaseModel):
     def __unicode__(self):
         return '%s' % (self.get_type_display())
 
+    def run(self, obj):
+        self.last_run = timezone.now()
+        self.save()
+
+        if self.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
+            signals.notify_mods_unscheduled.send(sender=self.__class__, round_=obj)
+        elif self.type == 'notify_mods_no_result' and isinstance(obj, Round):
+            signals.notify_mods_no_result.send(sender=self.__class__, round_=obj)
+        elif self.type == 'start_round_transition' and isinstance(obj, Round):
+            signals.do_round_transition.send(sender=self.__class__, round_id=obj.pk)
+
     def clean(self):
         if self.league is not None and self.season is not None and self.season.league != self.league:
             raise ValidationError('League and season must be compatible')

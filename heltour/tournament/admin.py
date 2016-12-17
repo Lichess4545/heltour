@@ -809,7 +809,7 @@ class RoundAdmin(_BaseAdmin):
             if form.is_valid():
                 try:
                     if form.cleaned_data['run_in_background']:
-                        signals.generate_pairings.send(sender=self.__class__, round_id=round_.pk, overwrite=form.cleaned_data['overwrite_existing'])
+                        signals.do_generate_pairings.send(sender=self.__class__, round_id=round_.pk, overwrite=form.cleaned_data['overwrite_existing'])
                         self.message_user(request, 'Generating pairings in background.', messages.INFO)
                         return redirect('admin:review_pairings', object_id)
                     else:

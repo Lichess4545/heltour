@@ -216,12 +216,12 @@ def run_scheduled_events(self):
             if event.relative_to == 'round_start':
                 for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
                     logger.warning('RSE: running event %s' % event.type)
-                    run_event(event, obj)
+                    event.run(obj)
                 for obj in matching_rounds(start_date__gt=upper_bound, start_date__lte=future_bound):
                     future_event_time = obj.start_date + event.offset if future_event_time is None else min(future_event_time, obj.start_date + event.offset)
             elif event.relative_to == 'round_end':
                 for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
-                    run_event(event, obj)
+                    event.run(obj)
                     logger.warning('RSE: running event %s' % event.type)
                 for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
                     future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
@@ -233,22 +233,20 @@ def run_scheduled_events(self):
                 run_scheduled_events.apply_async(args=[], eta=future_event_time)
     logger.warning('RSE: done')
 
-def run_event(event, obj):
-    event.last_run = timezone.now()
-    event.save()
+@app.task(bind=True)
+def round_transition(self, round_id):
+    season = Round.objects.get(pk=round_id).season
+    workflow = RoundTransitionWorkflow(season)
+    warnings = workflow.warnings
+    if len(warnings) > 0:
+        signals.no_round_transition.send(sender=round_transition, season=season, warnings=warnings)
+    else:
+        msg_list = workflow.run(complete_round=True, complete_season=True, update_board_order=True, generate_pairings=True, background=True)
+        signals.starting_round_transition.send(sender=round_transition, season=season, msg_list=msg_list)
 
-    if event.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
-        signals.notify_mods_unscheduled.send(sender=event.__class__, round_=obj)
-    elif event.type == 'notify_mods_no_result' and isinstance(obj, Round):
-        signals.notify_mods_no_result.send(sender=event.__class__, round_=obj)
-    elif event.type == 'start_round_transition' and isinstance(obj, Round):
-        workflow = RoundTransitionWorkflow(obj.season)
-        warnings = workflow.warnings
-        if len(warnings) > 0:
-            signals.no_round_transition.send(sender=event.__class__, season=obj.season, warnings=warnings)
-        else:
-            msg_list = workflow.run(complete_round=True, complete_season=True, update_board_order=True, generate_pairings=True, background=True)
-            signals.starting_round_transition.send(sender=event.__class__, season=obj.season, msg_list=msg_list)
+@receiver(signals.do_round_transition, dispatch_uid='heltour.tournament.tasks')
+def do_round_transition(sender, round_id, **kwargs):
+    round_transition.apply_async(args=[round_id])
 
 @app.task(bind=True)
 def generate_pairings(self, round_id, overwrite=False):
@@ -260,8 +258,8 @@ def generate_pairings(self, round_id, overwrite=False):
         round_.save()
     signals.pairings_generated.send(sender=generate_pairings, round_=round_)
 
-@receiver(signals.generate_pairings, dispatch_uid='heltour.tournament.tasks')
-def start_generate_pairings(sender, round_id, overwrite=False, **kwargs):
+@receiver(signals.do_generate_pairings, dispatch_uid='heltour.tournament.tasks')
+def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
     generate_pairings.apply_async(args=[round_id, overwrite])
 
 @app.task(bind=True)

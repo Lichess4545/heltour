@@ -52,7 +52,7 @@ class RoundTransitionWorkflow():
                     return msg_list
             if generate_pairings and round_to_open is not None:
                 if background:
-                    signals.generate_pairings.send(sender=self.__class__, round_id=round_to_open.pk)
+                    signals.do_generate_pairings.send(sender=self.__class__, round_id=round_to_open.pk)
                     msg_list.append(('Generating pairings in background.', messages.INFO))
                 else:
                     try:
