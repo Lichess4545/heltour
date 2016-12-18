@@ -8,15 +8,12 @@ from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 
-_heltour_identity = {'username': 'heltour'}
-_alternates_manager_identity = {'username': 'alternates-manager', 'icon': ':busts_in_silhouette:'}
-
-def _send_notification(notification_type, league, text, identity=_heltour_identity):
+def _send_notification(notification_type, league, text):
     for ln in league.leaguenotification_set.filter(type=notification_type):
-        slackapi.send_message(ln.slack_channel, text, **identity)
+        slackapi.send_message(ln.slack_channel, text)
 
-def _message_user(username, text, identity=_heltour_identity):
-    slackapi.send_message('@%s' % username, text, **identity)
+def _message_user(username, text):
+    slackapi.send_message('@%s' % username, text)
 
 def _abs_url(url):
     site = Site.objects.get_current().domain
@@ -110,7 +107,7 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
     if team_member is not None:
         message_to_replaced_player = '@%s: I am searching for an alternate to replace you for this round, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
                                      % _slack_user(team_member)
-        _message_user(_slack_user(team_member), message_to_replaced_player, _alternates_manager_identity)
+        _message_user(_slack_user(team_member), message_to_replaced_player)
 
     # Send a DM to the opponent
     opposing_team = team.get_opponent(round_)
@@ -119,18 +116,18 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
         if opponent is not None and team_member is not None:
             message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
                                   % (_slack_user(opponent), _slack_user(team_member))
-            _message_user(_slack_user(opponent), message_to_opponent, _alternates_manager_identity)
+            _message_user(_slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
     message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
-    _send_notification('captains', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message)
 
 @receiver(signals.alternate_search_all_contacted, dispatch_uid='heltour.tournament.notify')
 def alternate_search_all_contacted(season, team, board_number, round_, number_contacted, **kwargs):
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (_captains_ping(team, round_), board_number, team.name, number_contacted)
-    _send_notification('captains', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message)
 
 @receiver(signals.alternate_assigned, dispatch_uid='heltour.tournament.notify')
 def alternate_assigned(season, alt_assignment, **kwargs):
@@ -150,7 +147,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
             message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                                    + 'Please contact your opponent, @%s, as soon as possible.') \
                                    % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text, _slack_user(opponent))
-            _message_user(_slack_user(aa.player), message_to_alternate, _alternates_manager_identity)
+            _message_user(_slack_user(aa.player), message_to_alternate)
 
             # Send a DM to the opponent
             if aa.player == aa.replaced_player:
@@ -162,7 +159,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
             else:
                 message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
                                       % (_slack_user(opponent), _slack_user(aa.player))
-            _message_user(_slack_user(opponent), message_to_opponent, _alternates_manager_identity)
+            _message_user(_slack_user(opponent), message_to_opponent)
             opponent_notified = ' Their opponent, @%s, has been notified.' % _slack_user(opponent)
         else:
             opponent_notified = ''
@@ -172,13 +169,13 @@ def alternate_assigned(season, alt_assignment, **kwargs):
         message = '%sI have reassigned @%s to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
     else:
         message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
-    _send_notification('captains', league, message, _alternates_manager_identity)
+    _send_notification('captains', league, message)
 
 @receiver(signals.alternate_needed, dispatch_uid='heltour.tournament.notify')
 def alternate_needed(alternate, accept_url, decline_url, **kwargs):
     # Send a DM to the alternate
     message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within 48 hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _abs_url(accept_url), _abs_url(decline_url))
-    _message_user(_slack_user(alternate.season_player), message, _alternates_manager_identity)
+    _message_user(_slack_user(alternate.season_player), message)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
 

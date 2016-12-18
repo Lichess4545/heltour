@@ -9,10 +9,10 @@ def _get_slack_token():
     with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
         return fin.read().strip()
 
-def _get_slack_webhook(hook=0):
+def _get_slack_webhook():
     try:
         with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
-            return fin.read().strip().split('\n')[hook]
+            return fin.read().strip()
     except (IOError, IndexError):
         return None
 
@@ -37,21 +37,19 @@ def get_user_list():
         raise SlackError(json['error'])
     return [SlackUser(m['name'], m['profile'].get('email', '')) for m in json['members']]
 
-def send_message(channel, text, username='heltour', icon=None, hook=0):
-    url = _get_slack_webhook(hook)
+def send_message(channel, text):
+    url = _get_slack_webhook()
     if not url:
         # Not configured
         if settings.DEBUG:
-            print '[%s -> %s]: %s' % (username, channel, text)
+            print '[%s]: %s' % (channel, text)
         logger.error('Could not send slack message to %s' % channel)
         return
-    r = requests.post(url, json={'channel': channel, 'text': text, 'username': username, 'icon_emoji': icon})
-    if r.text == 'channel_not_found':
-        # TODO: Try and find a better way to do this
-        send_message(channel, text, username, icon, hook + 1)
-    elif r.text == '':
+    forward_message = 'forward to %s %s' % (channel, text)
+    r = requests.post(url, json={'text': forward_message})
+    if r.text == '':
         # OK
-        logger.info('Slack [%s -> %s]: %s' % (username, channel, text))
+        logger.info('Slack [%s]: %s' % (channel, text))
     else:
         # Unexpected error
         logger.error('Could not send slack message to %s, error %s' % (channel, r.text))
