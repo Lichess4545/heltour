@@ -466,6 +466,10 @@ class Player(_BaseModel):
     class Meta:
         ordering = ['lichess_username']
 
+    @property
+    def pairings(self):
+        return (self.pairings_as_white | self.pairings_as_black).nocache()
+
     def __unicode__(self):
         if self.rating is None:
             return self.lichess_username
@@ -680,6 +684,10 @@ class Team(_BaseModel):
         if team_pairing.black_team != self:
             return team_pairing.black_team
         return None
+
+    @property
+    def pairings(self):
+        return self.pairings_as_white | self.pairings_as_black
 
     def __unicode__(self):
         return "%s - %s" % (self.season, self.name)

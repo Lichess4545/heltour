@@ -1128,7 +1128,7 @@ class TeamProfileView(LeagueView):
         member_players = {tm.player for tm in team.teammember_set.all()}
         game_counts = defaultdict(int)
         display_ratings = {}
-        for tp in (team.pairings_as_white.all() | team.pairings_as_black.all()).order_by('round__start_date'):
+        for tp in team.pairings.order_by('round__start_date'):
             for p in tp.teamplayerpairing_set.nocache():
                 if p.board_number % 2 == (1 if tp.white_team == team else 0):
                     if p.white is not None:
@@ -1144,7 +1144,7 @@ class TeamProfileView(LeagueView):
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
             if self.season.league.competitor_type == 'team':
-                pairing = (team.pairings_as_white.all() | team.pairings_as_black.all()).filter(round=round_).first()
+                pairing = team.pairings.filter(round=round_).first()
             if pairing is not None:
                 matches.append((round_, pairing))
 
