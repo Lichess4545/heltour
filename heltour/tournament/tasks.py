@@ -211,6 +211,17 @@ def run_scheduled_events(self):
                     result = result.filter(season=event.season)
                 return result
 
+            def matching_pairings(**kwargs):
+                team_result = PlayerPairing.objects.filter(**kwargs).filter(teamplayerpairing__team_pairing__round__season__is_active=True)
+                lone_result = PlayerPairing.objects.filter(**kwargs).filter(loneplayerpairing__round__season__is_active=True)
+                if event.league is not None:
+                    team_result = team_result.filter(teamplayerpairing__team_pairing__round__season__league=event.league)
+                    lone_result = lone_result.filter(loneplayerpairing__round__season__league=event.league)
+                if event.season is not None:
+                    team_result = team_result.filter(teamplayerpairing__team_pairing__round__season=event.season)
+                    lone_result = lone_result.filter(loneplayerpairing__round__season=event.season)
+                return team_result | lone_result
+
             if event.relative_to == 'round_start':
                 for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
                     event.run(obj)
@@ -221,6 +232,11 @@ def run_scheduled_events(self):
                     event.run(obj)
                 for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
                     future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
+            elif event.relative_to == 'game_scheduled_time':
+                for obj in matching_pairings(scheduled_time__gt=lower_bound, scheduled_time__lte=upper_bound):
+                    event.run(obj)
+                for obj in matching_pairings(scheduled_time__gt=upper_bound, scheduled_time__lte=future_bound):
+                    future_event_time = obj.scheduled_time + event.offset if future_event_time is None else min(future_event_time, obj.scheduled_time + event.offset)
 
             # Schedule this task to be run again at the next event's scheduled time
             # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock

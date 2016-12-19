@@ -1682,10 +1682,12 @@ class SeasonDocument(_BaseModel):
 LEAGUE_NOTIFICATION_TYPES = (
     ('mod', 'Moderation stream'),
     ('captains', 'Captains stream'),
+    ('scheduling', 'Scheduling'),
 )
 
 #-------------------------------------------------------------------------------
 class LeagueNotification(_BaseModel):
+    # TODO: Rename to LeagueChannel
     league = models.ForeignKey(League)
     type = models.CharField(max_length=255, choices=LEAGUE_NOTIFICATION_TYPES)
     slack_channel = models.CharField(max_length=255)
@@ -1700,11 +1702,15 @@ SCHEDULED_EVENT_TYPES = (
     ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
     ('notify_mods_no_result', 'Notify mods of games without results'),
     ('start_round_transition', 'Start round transition'),
+    ('notify_players_round_start', 'Notify players of the round start'),
+    ('notify_players_unscheduled', 'Notify players of unscheduled games'),
+    ('notify_players_game_time', 'Notify players of their game time'),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
     ('round_start', 'Round start'),
     ('round_end', 'Round end'),
+    ('game_scheduled_time', 'Game scheduled time'),
 )
 
 #-------------------------------------------------------------------------------
@@ -1729,7 +1735,56 @@ class ScheduledEvent(_BaseModel):
             signals.notify_mods_no_result.send(sender=self.__class__, round_=obj)
         elif self.type == 'start_round_transition' and isinstance(obj, Round):
             signals.do_round_transition.send(sender=self.__class__, round_id=obj.pk)
+        elif self.type == 'notify_players_round_start' and isinstance(obj, Round):
+            signals.notify_players_round_start.send(sender=self.__class__, round_=obj)
+        elif self.type == 'notify_players_unscheduled' and isinstance(obj, Round):
+            signals.notify_players_unscheduled.send(sender=self.__class__, round_=obj)
+        elif self.type == 'notify_players_game_time' and isinstance(obj, PlayerPairing):
+            signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
 
     def clean(self):
         if self.league is not None and self.season is not None and self.season.league != self.league:
             raise ValidationError('League and season must be compatible')
+
+PLAYER_NOTIFICATION_TYPES = (
+    ('round_started', 'Round started'),
+    ('before_game_time', 'Before game time'),
+    ('game_time', 'Game time'),
+    ('unscheduled_game', 'Unscheduled game'),
+    ('game_warning', 'Game warning'),
+)
+
+#-------------------------------------------------------------------------------
+class PlayerNotificationSetting(_BaseModel):
+    player = models.ForeignKey(Player)
+    type = models.CharField(max_length=255, choices=PLAYER_NOTIFICATION_TYPES)
+    league = models.ForeignKey(League, blank=True, null=True)
+    offset = models.DurationField(blank=True, null=True)
+    enable_lichess_mail = models.BooleanField()
+    enable_slack_im = models.BooleanField()
+    enable_slack_mpim = models.BooleanField()
+
+    class Meta:
+        unique_together = ('player', 'type', 'offset')
+
+    def __unicode__(self):
+        return '%s' % (self.get_type_display())
+
+    @classmethod
+    def get_or_default(cls, **kwargs):
+        # Try and find a league-specific setting
+        obj = PlayerNotificationSetting.objects.filter(**kwargs).first()
+        if obj is not None:
+            return obj
+        # Try and find a non-league-specific setting
+        kwargs['league'] = None
+        obj = PlayerNotificationSetting.objects.filter(**kwargs).first()
+        if obj is not None:
+            return obj
+        # Return (but don't create) the default setting based on the type
+        obj = PlayerNotificationSetting(**kwargs)
+        type_ = kwargs.get('type')
+        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning')
+        obj.enable_slack_im = type_ in ('round_started', 'game_time', 'unscheduled_game')
+        obj.enable_slack_mpim = type_ in ('round_started', 'game_time', 'unscheduled_game')
+        return obj
