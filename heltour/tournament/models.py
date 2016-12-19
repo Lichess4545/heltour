@@ -1787,6 +1787,8 @@ class PlayerNotificationSetting(_BaseModel):
             # Rebuild scheduled notifications based on offset
             self.schedulednotification_set.all().delete()
             upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
+            upcoming_pairings = upcoming_pairings.filter(teamplayerpairing__team_pairing__round__season__league=self.league) | \
+                                upcoming_pairings.filter(loneplayerpairing__round__season__league=self.league)
             for p in upcoming_pairings:
                 notification_time = p.scheduled_time - self.offset
                 ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)

@@ -14,6 +14,17 @@
 				{% if not player %}
 				<p>This link is invalid or expired.</p>
 				{% else %}
+				<div class="dropdown round-switcher">
+				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+				        {{ league.name }}
+				        <span class="caret"></span>
+				    </button>
+				    <ul class="dropdown-menu">
+					    {% for l in other_leagues %}
+					    <li><a href="{% leagueurl 'notifications' l.tag %}">{{ l.name }}</a></li>
+					    {% endfor %}
+				    </ul>
+				</div>
 				<p>Welcome, {{ username }}! Edit your notification settings here.</p>
 				<form action="" method="post">
 				    {% csrf_token %}
