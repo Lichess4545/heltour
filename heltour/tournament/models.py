@@ -1788,7 +1788,7 @@ class PlayerNotificationSetting(_BaseModel):
             self.schedulednotification_set.all().delete()
             upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
             for p in upcoming_pairings:
-                notification_time = p.scheduled_time + self.offset
+                notification_time = p.scheduled_time - self.offset
                 ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)
 
     @classmethod
@@ -1803,7 +1803,7 @@ class PlayerNotificationSetting(_BaseModel):
         obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
-            obj.offset = timedelta(minutes=-60)
+            obj.offset = timedelta(minutes=60)
         return obj
 
     def clean(self):

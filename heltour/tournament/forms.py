@@ -247,5 +247,5 @@ class NotificationsForm(forms.Form):
             self.fields[type_ + "_slack"] = forms.BooleanField(required=False, label="Slack", initial=setting.enable_slack_im)
             self.fields[type_ + "_slack_wo"] = forms.BooleanField(required=False, label="Slack (with opponent)", initial=setting.enable_slack_mpim)
             if type_ == 'before_game_time':
-                offset_options = [(-5, '5 minutes'), (-10, '10 minutes'), (-20, '20 minutes'), (-30, '30 minutes'), (-60, '1 hour'), (-120, '2 hours')]
+                offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'), (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]
                 self.fields[type_ + '_offset'] = forms.TypedChoiceField(choices=offset_options, initial=int(setting.offset.total_seconds()) / 60, coerce=int)
