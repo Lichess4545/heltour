@@ -303,6 +303,47 @@ def before_game_time(player, pairing, offset, **kwargs):
 
     send_pairing_notification('before_game_time', pairing, im_msg, mp_msg, li_subject, li_msg, offset, player)
 
+@receiver(signals.notify_players_unscheduled, dispatch_uid='heltour.tournament.notify')
+def notify_players_unscheduled(round_, **kwargs):
+    im_msg = 'Your game is currently unscheduled.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.' \
+           + 'If you have any issues, contact a mod.'
+
+    mp_msg = 'Your game is currently unscheduled.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.' \
+           + 'If you have any issues, contact a mod.'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'Your game is currently unscheduled.\n' \
+           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel}.' \
+           + 'If you have any issues, contact a mod.'
+
+    if not round_.publish_pairings or round_.is_completed:
+        logger.error('Could not send unscheduled notifications due to incorrect round state: %s' % round_)
+        return
+    for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
+        send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+@receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')
+def game_warning(pairing, warning, **kwargs):
+    im_msg = 'Your game is not valid because *%s*.\n' % warning \
+           + 'If this was a mistake, please correct it and try again.\n' \
+           + 'If this is not a league game, you may ignore this message.'
+
+    mp_msg = 'Your game is not valid because *%s*.\n' % warning \
+           + 'If this was a mistake, please correct it and try again.\n' \
+           + 'If this is not a league game, you may ignore this message.'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'Your game is not valid because %s.\n' % warning \
+           + 'If this was a mistake, please correct it and try again.\n' \
+           + 'If this is not a league game, you may ignore this message.'
+
+    send_pairing_notification('game_warning', pairing, im_msg, mp_msg, li_subject, li_msg)
+
 def _slack_user(obj):
     if obj is None:
         return '?'
