@@ -183,7 +183,16 @@ def alternate_needed(alternate, accept_url, decline_url, **kwargs):
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
 
-def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg, offset=None):
+def _offset_str(offset):
+    if offset is None:
+        return '?'
+    s = offset.total_seconds()
+    if s % 3600 == 0:
+        return '%d hours' % (s / 3600)
+    else:
+        return '%d minutes' % (s / 60)
+
+def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg, offset=None, player=None):
     if pairing.white is None or pairing.black is None:
         return
     round_ = pairing.get_round()
@@ -195,6 +204,8 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     white_setting = PlayerNotificationSetting.get_or_default(player=pairing.white, type=type_, league=league, offset=offset)
     black_setting = PlayerNotificationSetting.get_or_default(player=pairing.black, type=type_, league=league, offset=offset)
     use_mpim = white_setting.enable_slack_mpim and black_setting.enable_slack_mpim and mp_msg
+    send_to_white = player is None or player == pairing.white
+    send_to_black = player is None or player == pairing.black
 
     common_params = {
         'white': white,
@@ -203,6 +214,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'season': season.name,
         'league': league.name,
         'time_control': league.time_control,
+        'offset': _offset_str(offset),
         'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling'
     }
     white_params = {
@@ -221,17 +233,17 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     black_params.update(common_params)
 
     # Send lichess mails
-    if white_setting.enable_lichess_mail and li_subject and li_msg:
+    if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
         lichessapi.send_mail(white, li_subject.format(**white_params), li_msg.format(**white_params))
-    if black_setting.enable_lichess_mail and li_subject and li_msg:
+    if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
         lichessapi.send_mail(black, li_subject.format(**black_params), li_msg.format(**black_params))
     # Send slack ims
-    if (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
+    if send_to_white and (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
         slackapi.send_message('@%s' % white, im_msg.format(**white_params))
-    if (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
+    if send_to_black and (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
         slackapi.send_message('@%s' % black, im_msg.format(**black_params))
     # Send slack mpim
-    if use_mpim:
+    if send_to_white and use_mpim:
         slackapi.send_message('@%s+@%s' % (white, black), mp_msg.format(**common_params))
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
@@ -271,10 +283,25 @@ def notify_players_game_time(pairing, **kwargs):
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'Your game is about to start.\n' \
+           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
            + 'Send a challenge for a rated {time_control} game as {color}.\n' \
            + 'https://en.lichess.org/?user={opponent}#friend' \
 
     send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+@receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
+def before_game_time(player, pairing, offset, **kwargs):
+    im_msg = 'Your game will start in {offset}.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)'
+
+    mp_msg = 'Your game will start in {offset}.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'Your game will start in {offset}.\n' \
+           + '@{white} (white pieces) vs @{black} (black pieces)'
+
+    send_pairing_notification('before_game_time', pairing, im_msg, mp_msg, li_subject, li_msg, offset, player)
 
 def _slack_user(obj):
     if obj is None:
