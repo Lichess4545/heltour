@@ -7,6 +7,10 @@ from django.contrib.sites.models import Site
 from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+import logging
+from heltour.tournament import lichessapi
+
+logger = logging.getLogger(__name__)
 
 def _send_notification(notification_type, league, text):
     for ln in league.leaguenotification_set.filter(type=notification_type):
@@ -178,6 +182,99 @@ def alternate_needed(alternate, accept_url, decline_url, **kwargs):
     _message_user(_slack_user(alternate.season_player), message)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
+
+def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg, offset=None):
+    if pairing.white is None or pairing.black is None:
+        return
+    round_ = pairing.get_round()
+    season = round_.season
+    league = season.league
+    scheduling = LeagueNotification.objects.filter(league=league, type='scheduling').first()
+    white = pairing.white.lichess_username.lower()
+    black = pairing.black.lichess_username.lower()
+    white_setting = PlayerNotificationSetting.get_or_default(player=pairing.white, type=type_, league=league, offset=offset)
+    black_setting = PlayerNotificationSetting.get_or_default(player=pairing.black, type=type_, league=league, offset=offset)
+    use_mpim = white_setting.enable_slack_mpim and black_setting.enable_slack_mpim and mp_msg
+
+    common_params = {
+        'white': white,
+        'black': black,
+        'round': round_.number,
+        'season': season.name,
+        'league': league.name,
+        'time_control': league.time_control,
+        'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling'
+    }
+    white_params = {
+        'self': white,
+        'opponent': black,
+        'color': 'white',
+        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % ('@chesster,' if use_mpim else '@', black)
+    }
+    white_params.update(common_params)
+    black_params = {
+        'self': black,
+        'opponent': white,
+        'color': 'black',
+        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % ('@chesster,' if use_mpim else '@', white)
+    }
+    black_params.update(common_params)
+
+    # Send lichess mails
+    if white_setting.enable_lichess_mail and li_subject and li_msg:
+        lichessapi.send_mail(white, li_subject.format(**white_params), li_msg.format(**white_params))
+    if black_setting.enable_lichess_mail and li_subject and li_msg:
+        lichessapi.send_mail(black, li_subject.format(**black_params), li_msg.format(**black_params))
+    # Send slack ims
+    if (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
+        slackapi.send_message('@%s' % white, im_msg.format(**white_params))
+    if (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
+        slackapi.send_message('@%s' % black, im_msg.format(**black_params))
+    # Send slack mpim
+    if use_mpim:
+        slackapi.send_message('@%s+@%s' % (white, black), mp_msg.format(**common_params))
+
+@receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
+def notify_players_round_start(round_, **kwargs):
+    im_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'Send a direct message to your opponent, @{opponent}, within 48 hours.\n' \
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.'
+
+    mp_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'Message your opponent here within 48 hours.\n' \
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
+           + 'Message your opponent on Slack within 48 hours.\n' \
+           + '{slack_url}\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel}.'
+
+    if not round_.publish_pairings or round_.is_completed:
+        logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
+        return
+    for pairing in round_.pairings.select_related('white', 'black'):
+        send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+@receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
+def notify_players_game_time(pairing, **kwargs):
+    im_msg = 'Your game is about to start.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'Send a <lichess challenge|https://en.lichess.org/?user={opponent}#friend> for a rated {time_control} game as {color}.'
+
+    mp_msg = 'Your game is about to start.\n' \
+           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + 'Send a lichess challenge for a rated {time_control} game.'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'Your game is about to start.\n' \
+           + 'Send a challenge for a rated {time_control} game as {color}.\n' \
+           + 'https://en.lichess.org/?user={opponent}#friend' \
+
+    send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 def _slack_user(obj):
     if obj is None:

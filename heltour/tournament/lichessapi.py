@@ -124,7 +124,10 @@ def send_mail(lichess_username, subject, text):
 
         return True
     except Exception:
-        logger.exception('Error sending lichess mail')
+        # Probably a configuration error
+        if settings.DEBUG:
+            print 'Lichess mail to %s - [%s]:\n%s' % (lichess_username, subject, text)
+        logger.exception('Error sending lichess mail to %s' % lichess_username)
         return False
 
 class ApiWorkerError(Exception):
