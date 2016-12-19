@@ -191,6 +191,7 @@ _max_lateness = timedelta(hours=1)
 @app.task(bind=True)
 def run_scheduled_events(self):
     with cache.lock('run_scheduled_events'):
+        future_event_time = None
         for event in ScheduledEvent.objects.all():
             # Determine a range of times to search
             # If the comparison point (e.g. round start) is in the range, we run the event
@@ -201,7 +202,6 @@ def run_scheduled_events(self):
             # The idea is that we want events to be run as close to their scheduled time as possible,
             # not just at whatever interval this task happens to be run
             future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
-            future_event_time = None
 
             def matching_rounds(**kwargs):
                 result = Round.objects.filter(**kwargs).filter(season__is_active=True)
@@ -238,10 +238,22 @@ def run_scheduled_events(self):
                 for obj in matching_pairings(scheduled_time__gt=upper_bound, scheduled_time__lte=future_bound):
                     future_event_time = obj.scheduled_time + event.offset if future_event_time is None else min(future_event_time, obj.scheduled_time + event.offset)
 
-            # Schedule this task to be run again at the next event's scheduled time
-            # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
-            if future_event_time is not None:
-                run_scheduled_events.apply_async(args=[], eta=future_event_time)
+        # Run ScheduledNotifications now
+        upper_bound = timezone.now()
+        lower_bound = timezone.now() - _max_lateness
+
+        future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
+        future_event_time = None
+
+        for n in ScheduledNotification.objects.filter(notification_time__gt=lower_bound, notification_time__lte=upper_bound):
+            n.run()
+        for n in ScheduledNotification.objects.filter(notification_time__gt=upper_bound, notification_time__lte=future_bound):
+            future_event_time = n.notification_time if future_event_time is None else min(future_event_time, n.notification_time)
+
+        # Schedule this task to be run again at the next event's scheduled time
+        # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
+        if future_event_time is not None:
+            run_scheduled_events.apply_async(args=[], eta=future_event_time)
 
 @app.task(bind=True)
 def round_transition(self, round_id):

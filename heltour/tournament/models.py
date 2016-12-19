@@ -1834,8 +1834,9 @@ class ScheduledNotification(_BaseModel):
 
     def run(self):
         if self.setting.type == 'before_game_time':
-            if self.pairing.scheduled_time is not None:
-                signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=self.pairing, offset=self.setting.offset)
+            pairing = PlayerPairing.objects.nocache().get(pk=self.pairing_id)
+            if pairing.scheduled_time is not None:
+                signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=pairing, offset=self.setting.offset)
 
     def clean(self):
         if self.setting.offset is None:
