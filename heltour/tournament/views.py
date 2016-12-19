@@ -1318,6 +1318,39 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
     def view_post(self):
         return self.view(post=True)
 
+class NotificationsView(SeasonView, UrlAuthMixin):
+    def view(self, secret_token=None, post=False):
+        if self.persist_url_auth(secret_token):
+            return redirect('by_league:by_season:notifications', self.league.tag, self.season.tag)
+        username, player = self.get_authenticated_user()
+
+        if player is not None:
+            if post:
+                form = NotificationsForm(self.league, player, self.request.POST)
+                if form.is_valid():
+                    PlayerNotificationSetting.objects.filter(player=player, league=self.league).delete()
+                    for type_, _ in PLAYER_NOTIFICATION_TYPES:
+                        setting = PlayerNotificationSetting(player=player, league=self.league, type=type_)
+                        setting.enable_lichess_mail = form.cleaned_data[type_ + '_lichess']
+                        setting.enable_slack_im = form.cleaned_data[type_ + '_slack']
+                        setting.enable_slack_mpim = form.cleaned_data[type_ + '_slack_wo']
+                        setting.offset = timedelta(minutes=form.cleaned_data[type_ + '_offset']) if (type_ + '_offset') in form.cleaned_data else None
+                        setting.save()
+            else:
+                form = NotificationsForm(self.league, player)
+        else:
+            form = None
+
+        context = {
+            'username': username,
+            'player': player,
+            'form': form
+        }
+        return self.render('tournament/notifications.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
 class TvView(LeagueView):
     def view(self):
         leagues = list(League.objects.order_by('display_order'))

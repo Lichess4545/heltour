@@ -421,6 +421,19 @@ def get_private_url(request):
 
         return JsonResponse({'url': url, 'expires': auth.expires})
 
+    if page == 'notifications':
+        if not league_tag:
+            return HttpResponse('Bad request', status=400)
+
+        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
+        if not season_tag:
+            url = reverse('by_league:notifications', args=[league_tag, auth.secret_token])
+        else:
+            url = reverse('by_league:by_season:notifications_with_token', args=[league_tag, season_tag, auth.secret_token])
+        url = request.build_absolute_uri(url)
+
+        return JsonResponse({'url': url, 'expires': auth.expires})
+
     if page == 'schedule':
         if not league_tag:
             return HttpResponse('Bad request', status=400)

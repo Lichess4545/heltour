@@ -1,5 +1,6 @@
 from django import template
 from django.core.urlresolvers import reverse
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -52,6 +53,10 @@ def date_or_q(datetime):
     if datetime is None:
         return '?'
     return datetime.date()
+
+@register.filter
+def label_right(input_element):
+    return mark_safe('%s<label for="id_%s">%s</label></td>' % (input_element, input_element.name, input_element.label))
 
 @register.filter
 def percent(number, decimal_digits=0):

@@ -599,6 +599,20 @@ div.inline {
 	width: 30px;
 }
 
+#table-notifications {
+	max-width: 600px;
+}
+
+#table-notifications td {
+	white-space: nowrap;
+}
+
+#table-notifications label {
+	font-weight: normal;
+	padding-left: 5px;
+	vertical-align: middle;
+}
+
 .player-gold {
 	background-color: #ffd700;
 }

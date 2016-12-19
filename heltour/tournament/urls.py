@@ -49,6 +49,8 @@ season_urlpatterns = [
     url(r'^alternate/accept/(?P<secret_token>\w+)/$', views.AlternateAcceptView.as_view(), name='alternate_accept_with_token'),
     url(r'^alternate/decline/$', views.AlternateDeclineView.as_view(), name='alternate_decline'),
     url(r'^alternate/decline/(?P<secret_token>\w+)/$', views.AlternateDeclineView.as_view(), name='alternate_decline_with_token'),
+    url(r'^notifications/$', views.NotificationsView.as_view(), name='notifications'),
+    url(r'^notifications/(?P<secret_token>\w+)/$', views.NotificationsView.as_view(), name='notifications_with_token'),
 ]
 
 league_urlpatterns = [

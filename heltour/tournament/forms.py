@@ -237,3 +237,14 @@ class TvFilterForm(forms.Form):
 
 class TvTimezoneForm(forms.Form):
     timezone = forms.ChoiceField(choices=[('local', 'Local'), ('utc', 'UTC')])
+
+class NotificationsForm(forms.Form):
+    def __init__(self, league, player, *args, **kwargs):
+        super(NotificationsForm, self).__init__(*args, **kwargs)
+        for type, label in PLAYER_NOTIFICATION_TYPES:
+            setting = PlayerNotificationSetting.get_or_default(player=player, league=league, type=type)
+            self.fields[type + "_lichess"] = forms.BooleanField(required=False, label="Lichess", initial=setting.enable_lichess_mail)
+            self.fields[type + "_slack"] = forms.BooleanField(required=False, label="Slack", initial=setting.enable_slack_im)
+            self.fields[type + "_slack_wo"] = forms.BooleanField(required=False, label="Slack (with opponent)", initial=setting.enable_slack_mpim)
+        offset_options = [(-5, '5 minutes'), (-10, '10 minutes'), (-20, '20 minutes'), (-30, '30 minutes'), (-60, '1 hour'), (-120, '2 hours')]
+        self.fields['before_game_time_offset'] = forms.TypedChoiceField(choices=offset_options, initial=-60, coerce=int)

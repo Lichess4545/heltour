@@ -1491,7 +1491,7 @@ class ScheduledEventAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerNotificationSetting)
 class PlayerNotificationSettingAdmin(_BaseAdmin):
-    list_display = ('player', 'type', 'league', 'offset')
+    list_display = ('player', 'type', 'league', 'offset', 'enable_lichess_mail', 'enable_slack_im', 'enable_slack_mpim')
     list_filter = ('league', 'type')
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('player',)
