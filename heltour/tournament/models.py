@@ -1065,16 +1065,11 @@ class PlayerPairing(_BaseModel):
         # Update scheduled notifications based on the scheduled time
         if scheduled_time_changed:
             league = self.get_round().season.league
-            white_settings = PlayerNotificationSetting.objects.filter(player_id=self.white_id, type='before_game_time', league=league)
-            black_settings = PlayerNotificationSetting.objects.filter(player_id=self.black_id, type='before_game_time', league=league)
-            ScheduledNotification.objects.filter(setting__type='before_game_time', pairing=self).delete()
-            if self.scheduled_time is not None:
-                for s in white_settings:
-                    notification_time = self.scheduled_time + s.offset
-                    ScheduledNotification.objects.create(setting=s, pairing=self, notification_time=notification_time)
-                for s in black_settings:
-                    notification_time = self.scheduled_time + s.offset
-                    ScheduledNotification.objects.create(setting=s, pairing=self, notification_time=notification_time)
+            # Calling the save method triggers the logic to recreate notifications
+            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id, type='before_game_time', league=league)
+            white_setting.save()
+            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id, type='before_game_time', league=league)
+            black_setting.save()
 
     def delete(self, *args, **kwargs):
         team_pairing = None
@@ -1781,19 +1776,20 @@ class PlayerNotificationSetting(_BaseModel):
     enable_slack_mpim = models.BooleanField()
 
     class Meta:
-        unique_together = ('player', 'type', 'league', 'offset')
+        unique_together = ('player', 'type', 'league')
 
     def __unicode__(self):
         return '%s - %s' % (self.player, self.get_type_display())
 
     def save(self, *args, **kwargs):
         super(PlayerNotificationSetting, self).save(*args, **kwargs)
-        # Rebuild scheduled notifications based on offset
-        self.schedulednotification_set.all().delete()
-        upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
-        for p in upcoming_pairings:
-            notification_time = p.scheduled_time + self.offset
-            ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)
+        if self.type == 'before_game_time':
+            # Rebuild scheduled notifications based on offset
+            self.schedulednotification_set.all().delete()
+            upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
+            for p in upcoming_pairings:
+                notification_time = p.scheduled_time + self.offset
+                ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)
 
     @classmethod
     def get_or_default(cls, **kwargs):
@@ -1804,8 +1800,10 @@ class PlayerNotificationSetting(_BaseModel):
         obj = PlayerNotificationSetting(**kwargs)
         type_ = kwargs.get('type')
         obj.enable_lichess_mail = type_ in ('round_started', 'game_warning')
-        obj.enable_slack_im = type_ in ('round_started', 'game_time', 'unscheduled_game')
-        obj.enable_slack_mpim = type_ in ('round_started', 'game_time', 'unscheduled_game')
+        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        if type_ == 'before_game_time':
+            obj.offset = timedelta(minutes=-60)
         return obj
 
     def clean(self):
