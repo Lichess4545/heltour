@@ -468,7 +468,7 @@ class Player(_BaseModel):
 
     @property
     def pairings(self):
-        return (self.pairings_as_white | self.pairings_as_black).nocache()
+        return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
 
     def __unicode__(self):
         if self.rating is None:
@@ -687,7 +687,7 @@ class Team(_BaseModel):
 
     @property
     def pairings(self):
-        return self.pairings_as_white | self.pairings_as_black
+        return self.pairings_as_white.all() | self.pairings_as_black.all()
 
     def __unicode__(self):
         return "%s - %s" % (self.season, self.name)
@@ -948,6 +948,7 @@ class PlayerPairing(_BaseModel):
         self.initial_white_id = self.white_id
         self.initial_black_id = self.black_id
         self.initial_game_link = self.game_link
+        self.initial_scheduled_time = self.scheduled_time
 
     def white_rating_display(self):
         if self.white_rating is not None:
@@ -1028,6 +1029,7 @@ class PlayerPairing(_BaseModel):
         white_changed = self.pk is None or self.white_id != self.initial_white_id
         black_changed = self.pk is None or self.black_id != self.initial_black_id
         game_link_changed = self.pk is None or self.game_link != self.initial_game_link
+        scheduled_time_changed = self.pk is None or self.scheduled_time != self.initial_scheduled_time
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
@@ -1059,6 +1061,20 @@ class PlayerPairing(_BaseModel):
                 lpp.save()
         if result_changed and (result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
+
+        # Update scheduled notifications based on the scheduled time
+        if scheduled_time_changed:
+            league = self.get_round().season.league
+            white_settings = PlayerNotificationSetting.objects.filter(player_id=self.white_id, type='before_game_time', league=league)
+            black_settings = PlayerNotificationSetting.objects.filter(player_id=self.black_id, type='before_game_time', league=league)
+            ScheduledNotification.objects.filter(setting__type='before_game_time', pairing=self).delete()
+            if self.scheduled_time is not None:
+                for s in white_settings:
+                    notification_time = self.scheduled_time + s.offset
+                    ScheduledNotification.objects.create(setting=s, pairing=self, notification_time=notification_time)
+                for s in black_settings:
+                    notification_time = self.scheduled_time + s.offset
+                    ScheduledNotification.objects.create(setting=s, pairing=self, notification_time=notification_time)
 
     def delete(self, *args, **kwargs):
         team_pairing = None
@@ -1756,28 +1772,31 @@ PLAYER_NOTIFICATION_TYPES = (
 
 #-------------------------------------------------------------------------------
 class PlayerNotificationSetting(_BaseModel):
-    player = models.ForeignKey(Player)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     type = models.CharField(max_length=255, choices=PLAYER_NOTIFICATION_TYPES)
-    league = models.ForeignKey(League, blank=True, null=True)
+    league = models.ForeignKey(League)
     offset = models.DurationField(blank=True, null=True)
     enable_lichess_mail = models.BooleanField()
     enable_slack_im = models.BooleanField()
     enable_slack_mpim = models.BooleanField()
 
     class Meta:
-        unique_together = ('player', 'type', 'offset')
+        unique_together = ('player', 'type', 'league', 'offset')
 
     def __unicode__(self):
-        return '%s' % (self.get_type_display())
+        return '%s - %s' % (self.player, self.get_type_display())
+
+    def save(self, *args, **kwargs):
+        super(PlayerNotificationSetting, self).save(*args, **kwargs)
+        # Rebuild scheduled notifications based on offset
+        self.schedulednotification_set.all().delete()
+        upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
+        for p in upcoming_pairings:
+            notification_time = p.scheduled_time + self.offset
+            ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)
 
     @classmethod
     def get_or_default(cls, **kwargs):
-        # Try and find a league-specific setting
-        obj = PlayerNotificationSetting.objects.filter(**kwargs).first()
-        if obj is not None:
-            return obj
-        # Try and find a non-league-specific setting
-        kwargs['league'] = None
         obj = PlayerNotificationSetting.objects.filter(**kwargs).first()
         if obj is not None:
             return obj
@@ -1788,3 +1807,36 @@ class PlayerNotificationSetting(_BaseModel):
         obj.enable_slack_im = type_ in ('round_started', 'game_time', 'unscheduled_game')
         obj.enable_slack_mpim = type_ in ('round_started', 'game_time', 'unscheduled_game')
         return obj
+
+    def clean(self):
+        if self.type in ('before_game_time',):
+            if self.offset is None:
+                raise ValidationError('Offset is required for this type')
+        else:
+            if self.offset is not None:
+                raise ValidationError('Offset is not applicable for this type')
+
+#-------------------------------------------------------------------------------
+class ScheduledNotification(_BaseModel):
+    setting = models.ForeignKey(PlayerNotificationSetting)
+    pairing = models.ForeignKey(PlayerPairing)
+    notification_time = models.DateTimeField()
+
+    def __unicode__(self):
+        return '%s' % (self.setting)
+
+    def save(self, *args, **kwargs):
+        if self.notification_time < timezone.now():
+            if self.pk:
+                self.delete()
+        else:
+            super(ScheduledNotification, self).save(*args, **kwargs)
+
+    def run(self):
+        if self.setting.type == 'before_game_time':
+            if self.pairing.scheduled_time is not None:
+                signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=self.pairing, offset=self.setting.offset)
+
+    def clean(self):
+        if self.setting.offset is None:
+            raise ValidationError('Setting must have an offset')

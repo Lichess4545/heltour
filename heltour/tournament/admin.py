@@ -1487,3 +1487,17 @@ class LeagueNotificationAdmin(_BaseAdmin):
 class ScheduledEventAdmin(_BaseAdmin):
     list_display = ('type', 'offset', 'relative_to', 'league', 'season')
     search_fields = ('league__name', 'season__name')
+
+#-------------------------------------------------------------------------------
+@admin.register(PlayerNotificationSetting)
+class PlayerNotificationSettingAdmin(_BaseAdmin):
+    list_display = ('player', 'type', 'league', 'offset')
+    list_filter = ('league', 'type')
+    search_fields = ('player__lichess_username',)
+
+#-------------------------------------------------------------------------------
+@admin.register(ScheduledNotification)
+class ScheduledNotificationAdmin(_BaseAdmin):
+    list_display = ('setting', 'pairing', 'notification_time')
+    list_filter = ('setting__type',)
+    search_fields = ('player__lichess_username',)

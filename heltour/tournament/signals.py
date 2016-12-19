@@ -18,5 +18,5 @@ alternate_needed = Signal(providing_args=['alternate', 'accept_url', 'decline_ur
 notify_players_round_start = Signal(providing_args=['round_'])
 notify_players_unscheduled = Signal(providing_args=['round_'])
 notify_players_game_time = Signal(providing_args=['pairing'])
-before_game_time = Signal(providing_args=['pairing', 'offset'])
+before_game_time = Signal(providing_args=['player', 'pairing', 'offset'])
 game_warning = Signal(providing_args=['pairing', 'warning'])
