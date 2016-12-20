@@ -1693,21 +1693,28 @@ class SeasonDocument(_BaseModel):
     def __unicode__(self):
         return self.document.name
 
-LEAGUE_NOTIFICATION_TYPES = (
-    ('mod', 'Moderation stream'),
-    ('captains', 'Captains stream'),
+LEAGUE_CHANNEL_TYPES = (
+    ('mod', 'Mods'),
+    ('captains', 'Captains'),
     ('scheduling', 'Scheduling'),
 )
 
 #-------------------------------------------------------------------------------
-class LeagueNotification(_BaseModel):
+class LeagueChannel(_BaseModel):
     # TODO: Rename to LeagueChannel
     league = models.ForeignKey(League)
-    type = models.CharField(max_length=255, choices=LEAGUE_NOTIFICATION_TYPES)
+    type = models.CharField(max_length=255, choices=LEAGUE_CHANNEL_TYPES)
     slack_channel = models.CharField(max_length=255)
+    slack_channel_id = models.CharField(max_length=255, blank=True)
+    send_messages = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('league', 'slack_channel', 'type')
+
+    def channel_link(self):
+        if not self.slack_channel_id:
+            return self.slack_channel
+        return '<%s%s|%s>' % (self.slack_channel[0], self.slack_channel_id, self.slack_channel[1:])
 
     def __unicode__(self):
         return '%s - %s' % (self.league, self.get_type_display())

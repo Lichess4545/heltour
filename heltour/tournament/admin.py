@@ -1477,8 +1477,8 @@ class SeasonDocumentAdmin(_BaseAdmin):
     url.allow_tags = True
 
 #-------------------------------------------------------------------------------
-@admin.register(LeagueNotification)
-class LeagueNotificationAdmin(_BaseAdmin):
+@admin.register(LeagueChannel)
+class LeagueChannelAdmin(_BaseAdmin):
     list_display = ('league', 'type', 'slack_channel')
     search_fields = ('league__name', 'slack_channel')
 

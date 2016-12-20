@@ -13,7 +13,7 @@ from heltour.tournament import lichessapi
 logger = logging.getLogger(__name__)
 
 def _send_notification(notification_type, league, text):
-    for ln in league.leaguenotification_set.filter(type=notification_type):
+    for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
         slackapi.send_message(ln.slack_channel, text)
 
 def _message_user(username, text):
@@ -200,7 +200,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     round_ = pairing.get_round()
     season = round_.season
     league = season.league
-    scheduling = LeagueNotification.objects.filter(league=league, type='scheduling').first()
+    scheduling = LeagueChannel.objects.filter(league=league, type='scheduling').first()
     white = pairing.white.lichess_username.lower()
     black = pairing.black.lichess_username.lower()
     white_setting = PlayerNotificationSetting.get_or_default(player=pairing.white, type=type_, league=league, offset=offset)
@@ -217,7 +217,8 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'league': league.name,
         'time_control': league.time_control,
         'offset': _offset_str(offset),
-        'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling'
+        'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling',
+        'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
     }
     white_params = {
         'self': white,
@@ -253,12 +254,12 @@ def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
            + 'Send a direct message to your opponent, @{opponent}, within 48 hours.\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.'
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
            + 'Message your opponent here within 48 hours.\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.'
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -308,11 +309,11 @@ def before_game_time(player, pairing, offset, **kwargs):
 def notify_players_unscheduled(round_, **kwargs):
     im_msg = 'Reminder: Your game is currently unscheduled.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.\n' \
            + 'If you have any issues, please contact a mod.'
 
     mp_msg = 'Reminder: Your game is currently unscheduled.\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.\n' \
            + 'If you have any issues, please contact a mod.'
 
     li_subject = 'Round {round} - {league}'
@@ -324,9 +325,7 @@ def notify_players_unscheduled(round_, **kwargs):
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send unscheduled notifications due to incorrect round state: %s' % round_)
         return
-    print 'received and good state'
     for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
-        print 'sending'
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')
