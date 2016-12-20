@@ -253,6 +253,8 @@ SLACK_WEBHOOK_FILE_PATH = '/etc/heltour/slack-webhook.conf'
 LICHESS_CREDS_FILE_PATH = '/etc/heltour/lichess-creds.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
 
+LICHESS_DOMAIN = 'https://en.stage.lichess.org/'
+
 # Testing overrides
 import sys
 TESTING = 'test' in sys.argv

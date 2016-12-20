@@ -94,7 +94,7 @@ def _login_cookies():
             creds = {'username': lines[0].strip(), 'password': lines[1].strip()}
 
         # Send a login request
-        login_response = requests.post('https://en.lichess.org/login', data=creds, headers=_headers)
+        login_response = requests.post(settings.LICHESS_DOMAIN + 'login', data=creds, headers=_headers)
         if login_response.status_code != 200:
             logger.error('Received status %s when trying to log in to lichess' % login_response.status_code)
             return None
@@ -113,7 +113,7 @@ def send_mail(lichess_username, subject, text):
             return False
 
         mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
-        mail_response = requests.post('https://en.lichess.org/inbox/new', data=mail_data, headers=_headers, cookies=login_cookies)
+        mail_response = requests.post(settings.LICHESS_DOMAIN + 'inbox/new', data=mail_data, headers=_headers, cookies=login_cookies)
         if mail_response.status_code != 200:
             logger.error('Received status %s when trying to send mail on lichess: %s' % (mail_response.status_code, mail_response.text))
             return False
