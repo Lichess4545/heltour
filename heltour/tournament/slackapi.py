@@ -45,9 +45,8 @@ def send_message(channel, text):
             print '[%s]: %s' % (channel, text)
         logger.error('Could not send slack message to %s' % channel)
         return
-    forward_message = 'forward to %s %s' % (channel, text)
-    r = requests.post(url, json={'text': forward_message})
-    if r.text == '':
+    r = requests.post(url, json={'text': 'forward to %s' % channel, 'attachments': [{'text': text}]})
+    if r.text == '' or r.text == 'ok':
         # OK
         logger.info('Slack [%s]: %s' % (channel, text))
     else:
