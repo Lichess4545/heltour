@@ -187,7 +187,9 @@ def _offset_str(offset):
     if offset is None:
         return '?'
     s = offset.total_seconds()
-    if s % 3600 == 0:
+    if s == 3600:
+        return '1 hour'
+    elif s % 3600 == 0:
         return '%d hours' % (s / 3600)
     else:
         return '%d minutes' % (s / 60)
@@ -275,7 +277,7 @@ def notify_players_round_start(round_, **kwargs):
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'Send a <lichess challenge|https://en.lichess.org/?user={opponent}#friend> for a rated {time_control} game as {color}.'
+           + 'Send a <https://en.lichess.org/?user={opponent}#friend|lichess challenge> for a rated {time_control} game as {color}.'
 
     mp_msg = 'Your game is about to start.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
@@ -291,54 +293,54 @@ def notify_players_game_time(pairing, **kwargs):
 
 @receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
 def before_game_time(player, pairing, offset, **kwargs):
-    im_msg = 'Your game will start in {offset}.\n' \
+    im_msg = 'Reminder: Your game will start in {offset}.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)'
 
-    mp_msg = 'Your game will start in {offset}.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)'
+    mp_msg = 'Reminder: Your game will start in {offset}.'
 
     li_subject = 'Round {round} - {league}'
-    li_msg = 'Your game will start in {offset}.\n' \
+    li_msg = 'Reminder: Your game will start in {offset}.\n' \
            + '@{white} (white pieces) vs @{black} (black pieces)'
 
     send_pairing_notification('before_game_time', pairing, im_msg, mp_msg, li_subject, li_msg, offset, player)
 
 @receiver(signals.notify_players_unscheduled, dispatch_uid='heltour.tournament.notify')
 def notify_players_unscheduled(round_, **kwargs):
-    im_msg = 'Your game is currently unscheduled.\n' \
+    im_msg = 'Reminder: Your game is currently unscheduled.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.' \
-           + 'If you have any issues, contact a mod.'
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.\n' \
+           + 'If you have any issues, please contact a mod.'
 
-    mp_msg = 'Your game is currently unscheduled.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'When you have agreed on a time, post it in <{scheduling_channel}>.' \
-           + 'If you have any issues, contact a mod.'
+    mp_msg = 'Reminder: Your game is currently unscheduled.\n' \
+           + 'When you have agreed on a time, post it in <{scheduling_channel}>.\n' \
+           + 'If you have any issues, please contact a mod.'
 
     li_subject = 'Round {round} - {league}'
-    li_msg = 'Your game is currently unscheduled.\n' \
+    li_msg = 'Reminder: Your game is currently unscheduled.\n' \
            + '@{white} (white pieces) vs @{black} (black pieces)\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel}.' \
-           + 'If you have any issues, contact a mod.'
+           + 'When you have agreed on a time, post it in {scheduling_channel}.\n' \
+           + 'If you have any issues, please contact a mod.'
 
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send unscheduled notifications due to incorrect round state: %s' % round_)
         return
+    print 'received and good state'
     for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
+        print 'sending'
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')
 def game_warning(pairing, warning, **kwargs):
-    im_msg = 'Your game is not valid because *%s*.\n' % warning \
+    im_msg = 'Important: Your game is not valid because *%s*.\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 
-    mp_msg = 'Your game is not valid because *%s*.\n' % warning \
+    mp_msg = 'Important: Your game is not valid because *%s*.\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 
     li_subject = 'Round {round} - {league}'
-    li_msg = 'Your game is not valid because %s.\n' % warning \
+    li_msg = 'Important: Your game is not valid because %s.\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 

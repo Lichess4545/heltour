@@ -12,6 +12,9 @@ import re
 from django.core.exceptions import ValidationError
 import select2.fields
 from heltour.tournament import signals
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
@@ -1836,10 +1839,14 @@ class ScheduledNotification(_BaseModel):
             super(ScheduledNotification, self).save(*args, **kwargs)
 
     def run(self):
-        if self.setting.type == 'before_game_time':
-            pairing = PlayerPairing.objects.nocache().get(pk=self.pairing_id)
-            if pairing.scheduled_time is not None:
-                signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=pairing, offset=self.setting.offset)
+        try:
+            if self.setting.type == 'before_game_time':
+                pairing = PlayerPairing.objects.nocache().get(pk=self.pairing_id)
+                if pairing.scheduled_time is not None:
+                    signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=pairing, offset=self.setting.offset)
+        except Exception:
+            logger.exception('Error running scheduled notification')
+        self.delete()
 
     def clean(self):
         if self.setting.offset is None:
