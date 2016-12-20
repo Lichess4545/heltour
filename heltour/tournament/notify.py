@@ -330,16 +330,16 @@ def notify_players_unscheduled(round_, **kwargs):
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')
 def game_warning(pairing, warning, **kwargs):
-    im_msg = 'Important: Your game is not valid because *%s*.\n' % warning \
+    im_msg = 'Important: Your game is not valid because *%s*\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 
-    mp_msg = 'Important: Your game is not valid because *%s*.\n' % warning \
+    mp_msg = 'Important: Your game is not valid because *%s*\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 
     li_subject = 'Round {round} - {league}'
-    li_msg = 'Important: Your game is not valid because %s.\n' % warning \
+    li_msg = 'Important: Your game is not valid because %s\n' % warning \
            + 'If this was a mistake, please correct it and try again.\n' \
            + 'If this is not a league game, you may ignore this message.'
 
