@@ -469,3 +469,38 @@ def player_joined_slack(request):
         player.save()
 
     return JsonResponse({'updated': 1})
+
+@csrf_exempt
+@require_POST
+@require_api_token
+def game_warning(request):
+    try:
+        league_tag = request.POST.get('league', None)
+        season_tag = request.POST.get('season', None)
+        white = request.POST.get('white', None)
+        black = request.POST.get('black', None)
+        reason = request.POST.get('reason', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    rounds = _get_active_rounds(league_tag, season_tag)
+    if len(rounds) == 0:
+        return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
+
+    pairings = []
+    for r in rounds:
+        pairings += _get_pairings(r, None, white, black)
+
+    if len(pairings) == 0:
+        # Try alternate colors
+        for r in rounds:
+            pairings += list(_get_pairings(r, None, black, white))
+
+    if len(pairings) == 0:
+        return JsonResponse({'updated': 0, 'error': 'not_found'})
+    if len(pairings) > 1:
+        return JsonResponse({'updated': 0, 'error': 'ambiguous'})
+
+    signals.game_warning.send(sender=game_warning, pairing=pairings[0], warning=reason)
+
+    return JsonResponse({'updated': 1})
