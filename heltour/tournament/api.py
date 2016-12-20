@@ -427,7 +427,7 @@ def get_private_url(request):
 
         auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
         if not season_tag:
-            url = reverse('by_league:notifications', args=[league_tag, auth.secret_token])
+            url = reverse('by_league:notifications_with_token', args=[league_tag, auth.secret_token])
         else:
             url = reverse('by_league:by_season:notifications_with_token', args=[league_tag, season_tag, auth.secret_token])
         url = request.build_absolute_uri(url)
