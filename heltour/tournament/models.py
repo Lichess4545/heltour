@@ -540,6 +540,10 @@ class PlayerLateRegistration(_BaseModel):
         if self.round.publish_pairings and not self.round.is_completed:
             self.perform_registration()
 
+    def clean(self):
+        if self.round.season.league.competitor_type == 'team':
+            raise ValidationError('Player late registrations can only be created for lone leagues')
+
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
 
@@ -570,6 +574,10 @@ class PlayerWithdrawl(_BaseModel):
         super(PlayerWithdrawl, self).save(*args, **kwargs)
         if self.round.publish_pairings and not self.round.is_completed:
             self.perform_withdrawl()
+
+    def clean(self):
+        if self.round.season.league.competitor_type == 'team':
+            raise ValidationError('Player withdrawals can only be created for lone leagues')
 
     def __unicode__(self):
         return "%s - %s" % (self.round, self.player)
@@ -640,6 +648,10 @@ class PlayerBye(_BaseModel):
         super(PlayerBye, self).delete(*args, **kwargs)
         if round_.is_completed:
             round_.season.calculate_scores()
+
+    def clean(self):
+        if self.round.season.league.competitor_type == 'team':
+            raise ValidationError('Player byes can only be created for lone leagues')
 
 #-------------------------------------------------------------------------------
 class Team(_BaseModel):
