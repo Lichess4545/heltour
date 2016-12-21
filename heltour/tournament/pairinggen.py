@@ -96,11 +96,11 @@ def _generate_lone_pairings(round_, overwrite=False):
             # Always overwrite pairing byes
             PlayerBye.objects.filter(round=round_, type='full-point-pairing-bye').delete()
 
-        # Perform any registrations and withdrawls
+        # Perform any registrations and withdrawals
         for reg in round_.playerlateregistration_set.all():
             reg.perform_registration()
-        for wd in round_.playerwithdrawl_set.all():
-            wd.perform_withdrawl()
+        for wd in round_.playerwithdrawal_set.all():
+            wd.perform_withdrawal()
 
         # Sort by seed rating/score
         season_players = SeasonPlayer.objects.filter(season=round_.season).select_related('player', 'loneplayerscore').nocache()

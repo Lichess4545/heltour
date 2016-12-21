@@ -414,7 +414,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 if action == 'register':
                     PlayerLateRegistration.objects.create(round=season.round_set.get(number=round_number), player=player)
                 elif action == 'withdraw':
-                    PlayerWithdrawl.objects.create(round=season.round_set.get(number=round_number), player=player)
+                    PlayerWithdrawal.objects.create(round=season.round_set.get(number=round_number), player=player)
                 elif action == 'half-point-bye':
                     PlayerBye.objects.create(round=season.round_set.get(number=round_number), player=player, type='half-point-bye')
 

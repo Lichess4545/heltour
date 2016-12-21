@@ -113,12 +113,12 @@
 				<td></td>
 				<td></td>
 				<td>
-					<a href="{% url 'admin:tournament_playerwithdrawl_change' wd.pk %}?_popup=1" id="change-tournament_playerwithdrawl_change-{{ wd.pk }}" class="change-link popup-link" title="Change selected player withdrawl">
+					<a href="{% url 'admin:tournament_playerwithdrawal_change' wd.pk %}?_popup=1" id="change-tournament_playerwithdrawal_change-{{ wd.pk }}" class="change-link popup-link" title="Change selected player withdrawal">
 			            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
 			        </a>
 		        </td>
 				<td>
-					<a href="{% url 'admin:tournament_playerwithdrawl_delete' wd.pk %}?_popup=1" id="delete-tournament_playerwithdrawl_delete-{{ wd.pk }}" class="delete-link popup-link" title="Delete selected player withdrawl">
+					<a href="{% url 'admin:tournament_playerwithdrawal_delete' wd.pk %}?_popup=1" id="delete-tournament_playerwithdrawal_delete-{{ wd.pk }}" class="delete-link popup-link" title="Delete selected player withdrawal">
 			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete">
 			        </a>
 		        </td>
@@ -159,7 +159,7 @@
 					<a href="{% url 'admin:tournament_playerlateregistration_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerlateregistration" class="inline-create-link popup-link" title="Add player late registration">
 			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Register
 			        </a>
-					<a href="{% url 'admin:tournament_playerwithdrawl_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerwithdrawl" class="inline-create-link popup-link" title="Add player withdrawl">
+					<a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
 			            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
 			        </a>
 					<a href="{% url 'admin:tournament_playerbye_add' %}?_popup=1&round={{ round_.pk }}" id="add-playerbye" class="inline-create-link popup-link" title="Add player bye">

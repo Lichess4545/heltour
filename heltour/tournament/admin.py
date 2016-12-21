@@ -747,7 +747,7 @@ class SeasonAdmin(_BaseAdmin):
 
         def get_data(r):
             regs = r.playerlateregistration_set.order_by('player__lichess_username')
-            wds = r.playerwithdrawl_set.order_by('player__lichess_username')
+            wds = r.playerwithdrawal_set.order_by('player__lichess_username')
             byes = r.playerbye_set.order_by('player__lichess_username')
             unavailables = r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username')
 
@@ -969,8 +969,8 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     raw_id_fields = ('round', 'player')
 
 #-------------------------------------------------------------------------------
-@admin.register(PlayerWithdrawl)
-class PlayerWithdrawlAdmin(_BaseAdmin):
+@admin.register(PlayerWithdrawal)
+class PlayerWithdrawalAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')

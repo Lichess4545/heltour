@@ -43,8 +43,8 @@ def latereg_saved(instance, created, **kwargs):
     message = '@%s <%s|added> for round %d' % (instance.player, manage_url, instance.round.number)
     _send_notification('mod', league, message)
 
-@receiver(post_save, sender=PlayerWithdrawl, dispatch_uid='heltour.tournament.notify')
-def withdrawl_saved(instance, created, **kwargs):
+@receiver(post_save, sender=PlayerWithdrawal, dispatch_uid='heltour.tournament.notify')
+def withdrawal_saved(instance, created, **kwargs):
     if not created:
         return
     league = instance.round.season.league

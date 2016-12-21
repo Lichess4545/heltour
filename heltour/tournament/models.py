@@ -548,14 +548,14 @@ class PlayerLateRegistration(_BaseModel):
         return "%s - %s" % (self.round, self.player)
 
 #-------------------------------------------------------------------------------
-class PlayerWithdrawl(_BaseModel):
+class PlayerWithdrawal(_BaseModel):
     round = models.ForeignKey(Round)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
     class Meta:
         unique_together = ('round', 'player')
 
-    def perform_withdrawl(self):
+    def perform_withdrawal(self):
         with transaction.atomic():
             # Set the SeasonPlayer as inactive
             sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
@@ -571,9 +571,9 @@ class PlayerWithdrawl(_BaseModel):
                 pairing.delete()
 
     def save(self, *args, **kwargs):
-        super(PlayerWithdrawl, self).save(*args, **kwargs)
+        super(PlayerWithdrawal, self).save(*args, **kwargs)
         if self.round.publish_pairings and not self.round.is_completed:
-            self.perform_withdrawl()
+            self.perform_withdrawal()
 
     def clean(self):
         if self.round.season.league.competitor_type == 'team':
