@@ -663,6 +663,9 @@ class SeasonAdmin(_BaseAdmin):
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
+        last_season = Season.objects.filter(league=season.league, start_date__lt=season.start_date).order_by('-start_date').first()
+        old_alternates = {alt.season_player.player for alt in Alternate.objects.filter(season_player__season=last_season) \
+                                                                               .select_related('season_player__player').nocache()}
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating, reverse=True))
@@ -695,6 +698,7 @@ class SeasonAdmin(_BaseAdmin):
         # Player highlights
         red_players = set()
         blue_players = set()
+        purple_players = set()
         for sp in season_player_objs:
             reg = sp.registration
             if sp.player.games_played is not None:
@@ -707,7 +711,9 @@ class SeasonAdmin(_BaseAdmin):
             if sp.games_missed >= 2:
                 red_players.add(sp.player)
             if reg is not None and reg.alternate_preference == 'alternate':
-                    blue_players.add(sp.player)
+                blue_players.add(sp.player)
+            if sp.player in old_alternates:
+                purple_players.add(sp.player)
 
         expected_ratings = {sp.player: sp.expected_rating() for sp in season_player_objs}
 
@@ -727,6 +733,7 @@ class SeasonAdmin(_BaseAdmin):
             'board_count': season.boards,
             'red_players': red_players,
             'blue_players': blue_players,
+            'purple_players': purple_players,
             'expected_ratings': expected_ratings,
         }
 
