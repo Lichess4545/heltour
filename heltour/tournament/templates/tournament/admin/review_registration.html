@@ -1,5 +1,5 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
-{% load tournament_extras comments %}
+{% load staticfiles tournament_extras comments %}
 
 {% block content %}
 <form action="" method="post">
@@ -30,6 +30,11 @@
 		<div class="form-row">
 			<label>Lichess username:</label>
 		    {{ original.lichess_username }}
+		    {% if original.username_exists == True %}
+		    <img src="{% static 'admin/img/icon-yes.svg' %}"/>
+		    {% elif original.username_exists == False %}
+		    <img src="{% static 'admin/img/icon-no.svg' %}"/>
+		    {% endif %}
 		</div>
 		
 		<div class="form-row">

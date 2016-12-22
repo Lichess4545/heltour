@@ -1208,6 +1208,8 @@ class Registration(_BaseModel):
     alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
+    username_exists = models.NullBooleanField(blank=True, null=True, default=None)
+
     def __unicode__(self):
         return "%s" % (self.lichess_username)
 

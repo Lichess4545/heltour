@@ -12,6 +12,7 @@ from math import ceil
 from django.core.urlresolvers import reverse
 from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
+from django.db.models.signals import post_save
 
 logger = get_task_logger(__name__)
 
@@ -283,6 +284,32 @@ def generate_pairings(self, round_id, overwrite=False):
 @receiver(signals.do_generate_pairings, dispatch_uid='heltour.tournament.tasks')
 def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
     generate_pairings.apply_async(args=[round_id, overwrite])
+
+@app.task(bind=True)
+def validate_registration(self, reg_id):
+    reg = Registration.objects.get(pk=reg_id)
+
+    slack_user = slackapi.get_user(reg.slack_username.lower())
+    if slack_user == None:
+        reg.already_in_slack_group = False
+
+    try:
+        rating, games_played = lichessapi.get_user_classical_rating_and_games_played(reg.lichess_username, 1)
+        reg.classical_rating = rating
+        reg.has_played_20_games = games_played >= 20
+        reg.username_exists = True
+    except lichessapi.ApiWorkerError:
+        reg.username_exists = False
+
+    with reversion.create_revision():
+        reversion.set_comment('Validated registration.')
+        reg.save()
+
+@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
+def do_validate_registration(instance, created, **kwargs):
+    if not created:
+        return
+    validate_registration.apply_async(args=[instance.pk])
 
 @app.task(bind=True)
 def alternates_manager_tick(self):

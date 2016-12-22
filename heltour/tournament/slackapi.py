@@ -37,6 +37,12 @@ def get_user_list():
         raise SlackError(json['error'])
     return [SlackUser(m['name'], m['profile'].get('email', '')) for m in json['members']]
 
+def get_user(name):
+    for u in get_user_list():
+        if u.name == name:
+            return u
+    return None
+
 def send_message(channel, text):
     url = _get_slack_webhook()
     if not url:
