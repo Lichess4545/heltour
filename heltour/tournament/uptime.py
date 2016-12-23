@@ -21,4 +21,4 @@ class UptimeIndicator(object):
     def is_down(self):
         return timezone.now() - self.ping_interval > _start_time and not self.is_up
 
-celery = UptimeIndicator('celery_up', ping_interval=timedelta(seconds=10))
+celery = UptimeIndicator('celery_up', ping_interval=timedelta(minutes=15))
