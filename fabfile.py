@@ -161,6 +161,26 @@ def deploystaging():
             sudo("service nginx reload")
 
 #-------------------------------------------------------------------------------
+def restartlive():
+    if confirm(colors.red("Would you like to invalidate the caches?")):
+        run("/var/www/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
+
+    if confirm(colors.red("Would you like to restart the server?")):
+        sudo("service heltour-live restart")
+        sudo("service heltour-live-api restart")
+        sudo("service heltour-live-celery restart")
+
+#-------------------------------------------------------------------------------
+def restartstaging():
+    if confirm(colors.red("Would you like to invalidate the caches?")):
+        run("/var/www/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
+
+    if confirm(colors.red("Would you like to restart the server?")):
+        sudo("service heltour-staging restart")
+        sudo("service heltour-staging-api restart")
+        sudo("service heltour-staging-celery restart")
+
+#-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
