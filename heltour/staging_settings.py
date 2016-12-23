@@ -187,6 +187,16 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=10),
         'args': ()
     },
+    'alternates_manager_tick': {
+        'task': 'heltour.tournament.tasks.alternates_manager_tick',
+        'schedule': timedelta(minutes=5),
+        'args': ()
+    },
+    'celery_is_up': {
+        'task': 'heltour.tournament.tasks.celery_is_up',
+        'schedule': timedelta(minutes=5),
+        'args': ()
+    },
 }
 
 CELERY_TIMEZONE = 'UTC'

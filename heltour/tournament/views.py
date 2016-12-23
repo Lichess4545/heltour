@@ -15,7 +15,7 @@ from django.core.mail.message import EmailMessage
 import json
 import reversion
 import math
-from heltour.tournament import slackapi, alternates_manager
+from heltour.tournament import slackapi, alternates_manager, uptime
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
@@ -915,7 +915,8 @@ class LeagueDashboardView(LeagueView):
             'pending_reg_count': pending_reg_count,
             'unassigned_player_count': unassigned_player_count,
             'last_round': last_round,
-            'next_round': next_round
+            'next_round': next_round,
+            'celery_down': uptime.celery.is_down
         }
         return self.render('tournament/team_league_dashboard.html', context)
 
@@ -943,7 +944,8 @@ class LeagueDashboardView(LeagueView):
             'pending_reg_count': pending_reg_count,
             'unassigned_player_count': unassigned_player_count,
             'last_round': last_round,
-            'next_round': next_round
+            'next_round': next_round,
+            'celery_down': uptime.celery.is_down
         }
         return self.render('tournament/lone_league_dashboard.html', context)
 

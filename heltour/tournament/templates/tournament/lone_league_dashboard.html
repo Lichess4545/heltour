@@ -81,6 +81,9 @@
 		    <div class="well-body">
 				<div class="inline"><a href="{% url 'admin:app_list' 'tournament' %}" class="btn btn-default">Tournament Admin</a></div>
 				<div class="inline"><a href="{% url 'admin:app_list' 'auth' %}" class="btn btn-default">User Admin</a></div>
+				{% if celery_down %}
+				<div style="color: #c00; margin-top: 10px">Celery is down</div>
+				{% endif %}
 			</div>
 		</div>
 	</div>

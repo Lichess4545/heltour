@@ -1,6 +1,6 @@
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi, slackapi, pairinggen, \
-    alternates_manager, signals
+    alternates_manager, signals, uptime
 from heltour.celery import app
 from celery.utils.log import get_task_logger
 from datetime import datetime
@@ -317,3 +317,6 @@ def alternates_manager_tick(self):
         for board_number in season.board_number_list():
             alternates_manager.do_alternate_search(season, board_number)
 
+@app.task(bind=True)
+def celery_is_up(self):
+    uptime.celery.is_up = True
