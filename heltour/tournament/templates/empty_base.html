@@ -28,6 +28,12 @@
         <p style="color: #fff; margin: 5px 0;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
       </div>
     </header>
+    {% elif DEBUG %}
+    <header style="background-color: #00c; height: 30px; text-align: center;">
+      <div class="container-fluid">
+        <p style="color: #fff; margin: 5px 0;">DEBUG</p>
+      </div>
+    </header>
     {% endif %}
     {% block body %}{% endblock %}
 
