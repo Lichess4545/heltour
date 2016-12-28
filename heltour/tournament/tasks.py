@@ -13,6 +13,8 @@ from django.core.urlresolvers import reverse
 from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
+from django.contrib.sites.models import Site
+from django_comments.models import Comment
 
 logger = get_task_logger(__name__)
 
@@ -289,27 +291,41 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
 def validate_registration(self, reg_id):
     reg = Registration.objects.get(pk=reg_id)
 
-    slack_user = slackapi.get_user(reg.slack_username.lower())
-    if slack_user == None:
-        reg.already_in_slack_group = False
+    fail_reason = None
+
+    if reg.already_in_slack_group:
+        slack_user = slackapi.get_user(reg.slack_username.lower()) or slackapi.get_user(reg.lichess_username.lower())
+        if slack_user == None:
+            reg.already_in_slack_group = False
 
     try:
         rating, games_played = lichessapi.get_user_classical_rating_and_games_played(reg.lichess_username, 1)
         reg.classical_rating = rating
         reg.has_played_20_games = games_played >= 20
-        reg.username_exists = True
     except lichessapi.ApiWorkerError:
-        reg.username_exists = False
+        fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
+
+    if fail_reason is None:
+        reg.validation_ok = True
+        comment_text = 'Validated.'
+    else:
+        reg.validation_ok = False
+        comment_text = 'Validation error: %s' % fail_reason
+    _add_system_comment(reg, comment_text)
 
     with reversion.create_revision():
         reversion.set_comment('Validated registration.')
         reg.save()
 
+def _add_system_comment(obj, text, user_name='System'):
+    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
+                           comment=text, submit_date=timezone.now(), is_public=True)
+
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
 def do_validate_registration(instance, created, **kwargs):
     if not created:
         return
-    validate_registration.apply_async(args=[instance.pk])
+    validate_registration.apply_async(args=[instance.pk], countdown=1)
 
 @app.task(bind=True)
 def alternates_manager_tick(self):

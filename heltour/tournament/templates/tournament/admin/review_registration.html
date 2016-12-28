@@ -30,9 +30,9 @@
 		<div class="form-row">
 			<label>Lichess username:</label>
 		    {{ original.lichess_username }}
-		    {% if original.username_exists == True %}
+		    {% if original.validation_ok == True %}
 		    <img src="{% static 'admin/img/icon-yes.svg' %}"/>
-		    {% elif original.username_exists == False %}
+		    {% elif original.validation_ok == False %}
 		    <img src="{% static 'admin/img/icon-no.svg' %}"/>
 		    {% endif %}
 		</div>
