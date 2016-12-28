@@ -112,7 +112,18 @@ class UpdateBoardOrderWorkflow():
         if self.season.league.competitor_type != 'team':
             return
 
-        # Update board order in teams
+        self.update_teammember_order()
+
+        members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
+        ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+        alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
+
+        boundaries = self.calc_alternate_boundaries(ratings_by_board)
+        self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board)
+        self.update_alternate_buckets(boundaries)
+        self.assign_alternates_to_buckets()
+
+    def update_teammember_order(self):
         for team in self.season.team_set.all():
             with reversion.create_revision():
                 change_descriptions = []
@@ -130,9 +141,7 @@ class UpdateBoardOrderWorkflow():
                         change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_member, new_member))
                 reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
-        # Update alternate buckets
-        members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
-        ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+    def calc_alternate_boundaries(self, ratings_by_board):
         # Calculate the average of the upper/lower half of each board (minus the most extreme value to avoid outliers skewing the average)
         left_average_by_board = [sum(r_list[1:int(len(r_list) / 2)]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
         right_average_by_board = [sum(r_list[int((len(r_list) + 1) / 2):-1]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
@@ -151,7 +160,9 @@ class UpdateBoardOrderWorkflow():
                 boundaries.append(None)
             else:
                 boundaries.append((left + right) / 2)
+        return boundaries
 
+    def smooth_alternate_boundaries(self, boundaries, alternates, ratings_by_board):
         # If we have enough data, modify the boundaries to try and smooth out the number of players per board
         if all((len(r_list) >= 4 for r_list in ratings_by_board)):
             iter_count = 20
@@ -177,7 +188,6 @@ class UpdateBoardOrderWorkflow():
                 up_step_sizes.append(delta_up / float(iter_count))
                 down_step_sizes.append(delta_down / float(iter_count))
 
-            alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
             # Start iterating the smoothing algorithm
             for _ in range(iter_count):
                 # Calculate the number of alternates in each bucket
@@ -196,6 +206,7 @@ class UpdateBoardOrderWorkflow():
                     if bucket_counts[i] < bucket_counts[i + 1] - 1:
                         boundaries[i + 1] -= down_step_sizes[i]
 
+    def update_alternate_buckets(self, boundaries):
         # Update the buckets
         for board_num in range(1, self.season.boards + 1):
             min_rating = boundaries[board_num]
@@ -205,6 +216,6 @@ class UpdateBoardOrderWorkflow():
             else:
                 AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
 
-        # Assign alternates to buckets
+    def assign_alternates_to_buckets(self):
         for alt in Alternate.objects.filter(season_player__season=self.season):
             alt.update_board_number()
