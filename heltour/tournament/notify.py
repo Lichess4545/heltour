@@ -181,6 +181,12 @@ def alternate_needed(alternate, accept_url, decline_url, **kwargs):
     message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within 48 hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _abs_url(accept_url), _abs_url(decline_url))
     _message_user(_slack_user(alternate.season_player), message)
 
+@receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
+def alternate_spots_filled(alternate, **kwargs):
+    # Send a DM to the alternate
+    message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
+    _message_user(_slack_user(alternate.season_player), message)
+
 # TODO: Special notification for cancelling a search/reassigning the original player?
 
 def _offset_str(offset):

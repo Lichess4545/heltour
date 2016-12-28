@@ -29,7 +29,7 @@ def do_alternate_search(season, board_number):
 
     unavailable_players = {pa.player for pa in player_availabilities}
     players_that_need_replacements = sorted(players_on_board & unavailable_players, key=lambda p: availability_modified_dates[p])
-    number_of_alternates_contacted = len(Alternate.objects.filter(season_player__season=season, board_number=board_number, status='contacted'))
+    alternates_contacted = Alternate.objects.filter(season_player__season=season, board_number=board_number, status='contacted')
     alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=season, board_number=board_number, status='waiting') \
                                                        .select_related('season_player__registration', 'season_player__player').nocache(), \
                                       key=lambda a: a.priority_date())
@@ -38,6 +38,13 @@ def do_alternate_search(season, board_number):
     # 1. Set alternates contacted->waiting
     # 2. Message those alternates
     # TODO: Set the unresponsive status as appropriate
+
+    if len(players_that_need_replacements) == 0:
+        for alt in alternates_contacted:
+            alt.status = 'waiting'
+            alt.save()
+            signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt)
+        return
 
     # Continue the search for an alternate to fill each open spot
     for p in players_that_need_replacements:
@@ -90,7 +97,7 @@ def do_alternate_search(season, board_number):
                 # No alternates left, so the search is over
                 # The spot can still be filled if previously-contacted alternates end up responding
                 signals.alternate_search_all_contacted.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
-                                            board_number=board_number, round_=round_, number_contacted=number_of_alternates_contacted)
+                                            board_number=board_number, round_=round_, number_contacted=len(alternates_contacted))
                 search.status = 'all_contacted'
                 search.save()
 
