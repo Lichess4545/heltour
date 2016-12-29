@@ -9,6 +9,7 @@ from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 import logging
 from heltour.tournament import lichessapi
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +302,7 @@ def notify_players_round_start(round_, **kwargs):
         return
     for pairing in round_.pairings.select_related('white', 'black'):
         send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+        time.sleep(1)
 
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
 def notify_players_game_time(pairing, **kwargs):
@@ -355,6 +357,7 @@ def notify_players_unscheduled(round_, **kwargs):
         return
     for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
+        time.sleep(1)
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')
 def game_warning(pairing, warning, **kwargs):
