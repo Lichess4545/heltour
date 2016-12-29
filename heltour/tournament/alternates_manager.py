@@ -1,5 +1,6 @@
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
+import reversion
 
 _alternate_contact_interval = timedelta(hours=8)
 _unresponsive_interval = timedelta(hours=48)
@@ -48,7 +49,9 @@ def do_alternate_search(season, board_number):
                 alt.status = 'unresponsive'
             else:
                 alt.status = 'waiting'
-            alt.save()
+            with reversion.create_revision():
+                reversion.set_comment('Alternate spots filled')
+                alt.save()
             signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt)
         return
 
@@ -63,8 +66,10 @@ def do_alternate_search(season, board_number):
             # Search has just started
             signals.alternate_search_started.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
                                                   board_number=board_number, round_=round_)
-            search.status = 'started'
-            search.save()
+            with reversion.create_revision():
+                reversion.set_comment('Alternate search started')
+                search.status = 'started'
+                search.save()
 
         # Figure out if it's time to contact the next alternate on the list
         # If not, we don't need to do anything for this open spot until the next tick
@@ -99,18 +104,24 @@ def do_alternate_search(season, board_number):
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, accept_url=accept_url, decline_url=decline_url)
                 current_date = timezone.now()
-                alt_to_contact.status = 'contacted'
-                alt_to_contact.last_contact_date = current_date
-                alt_to_contact.save()
-                search.last_alternate_contact_date = current_date
-                search.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Alternate contacted')
+                    alt_to_contact.status = 'contacted'
+                    alt_to_contact.last_contact_date = current_date
+                    alt_to_contact.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Alternate contacted')
+                    search.last_alternate_contact_date = current_date
+                    search.save()
             except IndexError:
                 # No alternates left, so the search is over
                 # The spot can still be filled if previously-contacted alternates end up responding
                 signals.alternate_search_all_contacted.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
                                             board_number=board_number, round_=round_, number_contacted=len(alternates_contacted))
-                search.status = 'all_contacted'
-                search.save()
+                with reversion.create_revision():
+                    reversion.set_comment('All alternates contacted')
+                    search.status = 'all_contacted'
+                    search.save()
 
 def alternate_accepted(alternate):
     # This is called by the alternate_accept endpoint
@@ -130,10 +141,14 @@ def alternate_accepted(alternate):
                                              .order_by('date_created').select_related('team').nocache()
     for search in active_searches:
         if search.still_needs_alternate():
-            assignment, _ = AlternateAssignment.objects.update_or_create(round=round_, team=search.team, board_number=search.board_number, \
+            with reversion.create_revision():
+                reversion.set_comment('Alternate assigned')
+                assignment, _ = AlternateAssignment.objects.update_or_create(round=round_, team=search.team, board_number=search.board_number, \
                                                                          defaults={'player': alternate.season_player.player, 'replaced_player': None})
-            alternate.status = 'accepted'
-            alternate.save()
+            with reversion.create_revision():
+                reversion.set_comment('Alternate assigned')
+                alternate.status = 'accepted'
+                alternate.save()
             signals.alternate_assigned.send(sender=alternate_accepted, season=season, alt_assignment=assignment)
             return True
     return False
@@ -142,5 +157,7 @@ def alternate_declined(alternate):
     # This is called by the alternate_decline endpoint
     # The alternate gets there via a private link sent to their slack
     if alternate.status == 'waiting' or alternate.status == 'contacted':
-        alternate.status = 'declined'
-        alternate.save()
+        with reversion.create_revision():
+            reversion.set_comment('Alternate declined')
+            alternate.status = 'declined'
+            alternate.save()
