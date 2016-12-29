@@ -288,7 +288,7 @@ def generate_pairings(self, round_id, overwrite=False):
 
 @receiver(signals.do_generate_pairings, dispatch_uid='heltour.tournament.tasks')
 def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
-    generate_pairings.apply_async(args=[round_id, overwrite])
+    generate_pairings.apply_async(args=[round_id, overwrite], countdown=1)
 
 @app.task(bind=True)
 def validate_registration(self, reg_id):
@@ -331,6 +331,20 @@ def do_validate_registration(instance, created, **kwargs):
     if not created:
         return
     validate_registration.apply_async(args=[instance.pk], countdown=1)
+
+@app.task(bind=True)
+def pairings_published(self, round_id, overwrite=False):
+    round_ = Round.objects.get(pk=round_id)
+    for alt in Alternate.objects.filter(season_player__season=round_.season):
+        with reversion.create_revision():
+            reversion.set_comment('Reset alternate status')
+            alt.status = 'waiting'
+            alt.save()
+    signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
+
+@receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
+def do_pairings_published(sender, round_id, **kwargs):
+    pairings_published.apply_async(args=[round_id], countdown=1)
 
 @app.task(bind=True)
 def alternates_manager_tick(self):

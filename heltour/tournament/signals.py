@@ -3,6 +3,7 @@ from django.dispatch.dispatcher import Signal
 # Signals that run tasks
 do_generate_pairings = Signal(providing_args=['round_id', 'overwrite'])
 do_round_transition = Signal(providing_args=['round_id'])
+do_pairings_published = Signal(providing_args=['round_id'])
 
 # Signals that send notifications
 pairing_forfeit_changed = Signal(providing_args=['instance'])

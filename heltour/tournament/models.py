@@ -440,9 +440,7 @@ class Round(_BaseModel):
         if is_completed_changed:
             self.season.calculate_scores()
         if publish_pairings_changed and self.publish_pairings and not self.is_completed:
-            for alt in Alternate.objects.filter(season_player__season=self.season):
-                alt.status = 'waiting'
-                alt.save()
+            signals.do_pairings_published.send(Round, round_id=self.pk)
 
     @property
     def pairings(self):
@@ -1761,7 +1759,6 @@ SCHEDULED_EVENT_TYPES = (
     ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
     ('notify_mods_no_result', 'Notify mods of games without results'),
     ('start_round_transition', 'Start round transition'),
-    ('notify_players_round_start', 'Notify players of the round start'),
     ('notify_players_unscheduled', 'Notify players of unscheduled games'),
     ('notify_players_game_time', 'Notify players of their game time'),
 )
@@ -1794,8 +1791,6 @@ class ScheduledEvent(_BaseModel):
             signals.notify_mods_no_result.send(sender=self.__class__, round_=obj)
         elif self.type == 'start_round_transition' and isinstance(obj, Round):
             signals.do_round_transition.send(sender=self.__class__, round_id=obj.pk)
-        elif self.type == 'notify_players_round_start' and isinstance(obj, Round):
-            signals.notify_players_round_start.send(sender=self.__class__, round_=obj)
         elif self.type == 'notify_players_unscheduled' and isinstance(obj, Round):
             signals.notify_players_unscheduled.send(sender=self.__class__, round_=obj)
         elif self.type == 'notify_players_game_time' and isinstance(obj, PlayerPairing):
