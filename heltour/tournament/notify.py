@@ -63,6 +63,25 @@ def pairing_forfeit_changed(instance, **kwargs):
     message = '@%s vs @%s %s' % (white, black, instance.result or '*')
     _send_notification('mod', league, message)
 
+@receiver(signals.player_account_status_changed, dispatch_uid='heltour.tournament.notify')
+def player_account_status_changed(instance, old_value, new_value, **kwargs):
+    season_players = instance.seasonplayer_set.select_related('season__league').nocache()
+    pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username, status='pending') \
+                                       .select_related('season__league').nocache()
+    league_set = set((sp.season.league for sp in season_players)) | set((reg.season.league for reg in pending_regs))
+    for league in league_set:
+        latest_season = league.season_set.filter(is_active=True).order_by('-start_date', '-id').first()
+        lichess_profile_url = 'https://en.lichess.org/@/%s' % instance.lichess_username
+        if latest_season is not None:
+            player_profile_url = _abs_url(reverse('by_league:by_season:player_profile', args=[league.tag, latest_season.tag, instance.lichess_username]))
+        else:
+            player_profile_url = _abs_url(reverse('by_league:player_profile', args=[league.tag, instance.lichess_username]))
+        if old_value == 'normal':
+            message = '@%s marked as %s on <%s|lichess>. <%s|Player profile>' % (_slack_user(instance), new_value, lichess_profile_url, player_profile_url)
+        else:
+            message = '@%s <%s|lichess> account status changed from %s to %s. <%s|Player profile>' % (_slack_user(instance), lichess_profile_url, old_value, new_value, player_profile_url)
+        _send_notification('mod', league, message)
+
 @receiver(signals.notify_mods_unscheduled, dispatch_uid='heltour.tournament.notify')
 def notify_mods_unscheduled(round_, **kwargs):
     unscheduled_pairings = round_.pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()

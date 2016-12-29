@@ -6,6 +6,7 @@ do_round_transition = Signal(providing_args=['round_id'])
 
 # Signals that send notifications
 pairing_forfeit_changed = Signal(providing_args=['instance'])
+player_account_status_changed = Signal(providing_args=['instance', 'old_value', 'new_value'])
 notify_mods_unscheduled = Signal(providing_args=['round_'])
 notify_mods_no_result = Signal(providing_args=['round_'])
 pairings_generated = Signal(providing_args=['round_'])

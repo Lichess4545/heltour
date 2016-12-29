@@ -476,6 +476,16 @@ class Player(_BaseModel):
     class Meta:
         ordering = ['lichess_username']
 
+    def __init__(self, *args, **kwargs):
+        super(Player, self).__init__(*args, **kwargs)
+        self.initial_account_status = self.account_status
+
+    def save(self, *args, **kwargs):
+        account_status_changed = self.pk and self.account_status != self.initial_account_status
+        super(Player, self).save(*args, **kwargs)
+        if account_status_changed:
+            signals.player_account_status_changed.send(Player, instance=self, old_value=self.initial_account_status, new_value=self.account_status)
+
     @property
     def pairings(self):
         return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
