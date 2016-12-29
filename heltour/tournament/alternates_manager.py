@@ -31,6 +31,8 @@ def do_alternate_search(season, board_number):
     unavailable_players = {pa.player for pa in player_availabilities}
     players_that_need_replacements = sorted(players_on_board & unavailable_players, key=lambda p: availability_modified_dates[p])
     alternates_contacted = Alternate.objects.filter(season_player__season=season, board_number=board_number, status='contacted')
+    last_declined_alternate = Alternate.objects.filter(season_player__season=season, board_number=board_number, status='declined') \
+                                               .order_by('-last_contact_date').first()
     alternates_not_contacted = sorted(Alternate.objects.filter(season_player__season=season, board_number=board_number, status='waiting') \
                                                        .select_related('season_player__registration', 'season_player__player').nocache(), \
                                       key=lambda a: a.priority_date())
@@ -68,6 +70,9 @@ def do_alternate_search(season, board_number):
         # If not, we don't need to do anything for this open spot until the next tick
         if search.last_alternate_contact_date is None:
             do_contact = True
+        elif last_declined_alternate is not None and search.last_alternate_contact_date == last_declined_alternate.last_contact_date:
+            # The most-recently-contacted alternate declined
+            do_contact = True
         else:
             time_since_last_contact = timezone.now() - search.last_alternate_contact_date
             do_contact = time_since_last_contact >= _alternate_contact_interval
@@ -93,10 +98,11 @@ def do_alternate_search(season, board_number):
                 accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, accept_url=accept_url, decline_url=decline_url)
+                current_date = timezone.now()
                 alt_to_contact.status = 'contacted'
-                alt_to_contact.last_contact_date = timezone.now()
+                alt_to_contact.last_contact_date = current_date
                 alt_to_contact.save()
-                search.last_alternate_contact_date = timezone.now()
+                search.last_alternate_contact_date = current_date
                 search.save()
             except IndexError:
                 # No alternates left, so the search is over
@@ -132,7 +138,7 @@ def alternate_accepted(alternate):
             return True
     return False
 
-def alternate_declined(season, alternate):
+def alternate_declined(alternate):
     # This is called by the alternate_decline endpoint
     # The alternate gets there via a private link sent to their slack
     if alternate.status == 'waiting' or alternate.status == 'contacted':
