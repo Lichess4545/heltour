@@ -38,11 +38,6 @@ def do_alternate_search(season, board_number):
                                                        .select_related('season_player__registration', 'season_player__player').nocache(), \
                                       key=lambda a: a.priority_date())
 
-    # TODO: Use reversion for all or some state changes etc.
-    # particularly accept/decline/unresponsive
-    # TODO: Consider whether alternate searches (and the initial 'waiting' set) should start at the moment of publish, or e.g. 30 minutes after
-    # Along the same lines as the round start notifications
-
     if len(players_that_need_replacements) == 0:
         for alt in alternates_contacted:
             if alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > _unresponsive_interval:
