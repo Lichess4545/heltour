@@ -38,7 +38,10 @@ def update_player_ratings(self):
     # Any players not found above will be queried individually
     for username, p in sorted(player_dict.items()):
         try:
-            p.rating, p.games_played = lichessapi.get_user_classical_rating_and_games_played(username, priority=0, timeout=300)
+            user_info = lichessapi.get_user_info(username, priority=0, timeout=300)
+            p.rating = user_info.rating
+            p.games_played = user_info.games_played
+            p.account_status = user_info.status
             p.save()
         except Exception as e:
             logger.warning('Error getting rating for %s: %s' % (username, e))
@@ -299,9 +302,11 @@ def validate_registration(self, reg_id):
             reg.already_in_slack_group = False
 
     try:
-        rating, games_played = lichessapi.get_user_classical_rating_and_games_played(reg.lichess_username, 1)
-        reg.classical_rating = rating
-        reg.has_played_20_games = games_played >= 20
+        user_info = lichessapi.get_user_info(reg.lichess_username, 1)
+        reg.classical_rating = user_info.rating
+        reg.has_played_20_games = user_info.games_played >= 20
+        if user_info.status != 'normal':
+            fail_reason = 'The lichess user "%s" has the "%s" mark.' % (reg.lichess_username, user_info.status)
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 

@@ -454,6 +454,12 @@ class Round(_BaseModel):
 
 username_validator = RegexValidator('^[\w-]+$')
 
+ACCOUNT_STATUS_OPTIONS = (
+    ('normal', 'Normal'),
+    ('engine', 'Engine'),
+    ('booster', 'Booster')
+)
+
 #-------------------------------------------------------------------------------
 class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
@@ -465,6 +471,7 @@ class Player(_BaseModel):
     email = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
     in_slack_group = models.BooleanField(default=False)
+    account_status = models.CharField(default='normal', max_length=31, choices=ACCOUNT_STATUS_OPTIONS)
 
     class Meta:
         ordering = ['lichess_username']

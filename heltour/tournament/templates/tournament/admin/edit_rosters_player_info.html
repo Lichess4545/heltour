@@ -12,6 +12,9 @@
 <tr><td>20 games:</td><td class="{% if not has_played_20_games %}text-rejected{% endif %}">{{ has_played_20_games|yesno:'Yes,No' }}</td></tr>
 <tr><td>In slack group:</td><td class="{% if not player.in_slack_group %}text-rejected{% endif %}">{{ player.in_slack_group|yesno:'Yes,No' }}</td></tr>
 <tr><td>Missed games:</td><td class="{% if season_player.games_missed >= 2 %}text-rejected{% endif %}">{{ season_player.games_missed }}</td></tr>
+{% if player.account_status != 'normal' %}
+<tr><td>Account status:</td><td class="text-rejected">{{ player.get_account_status_display }}</td></tr>
+{% endif %}
 {% get_comment_list for player as comments %}
 {% if comments %}
 <tr><td>{% render_comment_list for player %}</td></tr>

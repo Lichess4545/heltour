@@ -610,6 +610,8 @@ class SeasonAdmin(_BaseAdmin):
                 red_players.add(sp.player)
             if sp.games_missed >= 2:
                 red_players.add(sp.player)
+            if sp.player.account_status != 'normal':
+                red_players.add(sp.player)
             if reg is not None and reg.alternate_preference == 'alternate':
                 blue_players.add(sp.player)
             if sp.player in old_alternates:
@@ -895,9 +897,10 @@ class PlayerAdmin(_BaseAdmin):
     def update_selected_player_ratings(self, request, queryset):
 #         try:
         for player in queryset.all():
-            rating, games_played = lichessapi.get_user_classical_rating_and_games_played(player.lichess_username, priority=1)
-            player.rating = rating
-            player.games_played = games_played
+            user_info = lichessapi.get_user_info(player.lichess_username, priority=1)
+            player.rating = user_info.rating
+            player.games_played = user_info.games_played
+            player.account_status = user_info.status
             player.save()
         self.message_user(request, 'Rating(s) updated', messages.INFO)
 #         except:
