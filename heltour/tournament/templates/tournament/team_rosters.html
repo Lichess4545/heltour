@@ -77,7 +77,7 @@
 									-
 									{% endif %}
 									{% else %}
-									<span class="player-name{% if alt.season_player.player in unresponsive_players %} player-unresponsive" title="unresponsive"
+									<span class="player-name{% if alt.season_player.player in unresponsive_players or alt.status == 'unresponsive' %} player-unresponsive" title="unresponsive"
 									                           {% elif alt.season_player.player in unavailable_players %} player-unavailable" title="unavailable"
 									                           {% elif alt.season_player.player in scheduled_alternates %} player-scheduled" title="scheduled"
 									                           {% elif alt.season_player.player in yellow_card_players %} player-yellow-card" title="1 game missed"

@@ -1435,6 +1435,7 @@ class Alternate(_BaseModel):
     def __init__(self, *args, **kwargs):
         super(Alternate, self).__init__(*args, **kwargs)
         self.initial_season_player_id = self.season_player_id
+        self.initial_status = self.status
 
     def player_rating_display(self):
         if self.player_rating is not None:
@@ -1444,8 +1445,13 @@ class Alternate(_BaseModel):
 
     def save(self, *args, **kwargs):
         season_player_changed = self.pk is None or self.season_player_id != self.initial_season_player_id
+        status_changed = self.pk is None or self.status != self.initial_status
         if season_player_changed:
             self.player_rating = None
+        if status_changed and self.status == 'unresponsive':
+            current_date = timezone.now()
+            if self.priority_date_override is None or self.priority_date_override < current_date:
+                self.priority_date_override = current_date
         super(Alternate, self).save(*args, **kwargs)
 
     def update_board_number(self):
