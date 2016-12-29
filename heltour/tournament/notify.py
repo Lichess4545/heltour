@@ -68,7 +68,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
     season_players = instance.seasonplayer_set.select_related('season__league').nocache()
     pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username, status='pending') \
                                        .select_related('season__league').nocache()
-    league_set = set((sp.season.league for sp in season_players)) | set((reg.season.league for reg in pending_regs))
+    league_set = {sp.season.league for sp in season_players} | {reg.season.league for reg in pending_regs}
     for league in league_set:
         latest_season = league.season_set.filter(is_active=True).order_by('-start_date', '-id').first()
         lichess_profile_url = 'https://en.lichess.org/@/%s' % instance.lichess_username
