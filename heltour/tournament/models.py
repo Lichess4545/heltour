@@ -1429,6 +1429,7 @@ class Alternate(_BaseModel):
     priority_date_override = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(blank=True, max_length=31, choices=ALTERNATE_STATUS_OPTIONS)
+    last_contact_date = models.DateTimeField(null=True, blank=True)
     player_rating = models.PositiveIntegerField(null=True, blank=True)
 
     def __init__(self, *args, **kwargs):

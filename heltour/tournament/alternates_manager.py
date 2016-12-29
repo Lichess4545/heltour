@@ -2,6 +2,7 @@ from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
 
 _alternate_contact_interval = timedelta(hours=8)
+_unresponsive_interval = timedelta(hours=48)
 
 def current_round(season):
     if not season.enable_alternates_manager:
@@ -34,14 +35,17 @@ def do_alternate_search(season, board_number):
                                                        .select_related('season_player__registration', 'season_player__player').nocache(), \
                                       key=lambda a: a.priority_date())
 
-    # TODO: Detect when all searches are complete and:
-    # 1. Set alternates contacted->waiting
-    # 2. Message those alternates
-    # TODO: Set the unresponsive status as appropriate
+    # TODO: Use reversion for all or some state changes etc.
+    # particularly accept/decline/unresponsive
+    # TODO: Consider whether alternate searches (and the initial 'waiting' set) should start at the moment of publish, or e.g. 30 minutes after
+    # Along the same lines as the round start notifications
 
     if len(players_that_need_replacements) == 0:
         for alt in alternates_contacted:
-            alt.status = 'waiting'
+            if alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > _unresponsive_interval:
+                alt.status = 'unresponsive'
+            else:
+                alt.status = 'waiting'
             alt.save()
             signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt)
         return
@@ -90,6 +94,7 @@ def do_alternate_search(season, board_number):
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, accept_url=accept_url, decline_url=decline_url)
                 alt_to_contact.status = 'contacted'
+                alt_to_contact.last_contact_date = timezone.now()
                 alt_to_contact.save()
                 search.last_alternate_contact_date = timezone.now()
                 search.save()

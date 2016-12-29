@@ -203,7 +203,10 @@ def alternate_needed(alternate, accept_url, decline_url, **kwargs):
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
 def alternate_spots_filled(alternate, **kwargs):
     # Send a DM to the alternate
-    message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
+    if alternate.status == 'unresponsive':
+        message = 'All available alternate spots have now been filled. You\'ve been moved to the bottom of the list since you didn\'t respond within 48 hours.'
+    else:
+        message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
     _message_user(_slack_user(alternate.season_player), message)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
