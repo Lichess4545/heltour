@@ -1426,7 +1426,7 @@ class Alternate(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     priority_date_override = models.DateTimeField(null=True, blank=True)
 
-    status = models.CharField(blank=True, max_length=31, choices=ALTERNATE_STATUS_OPTIONS)
+    status = models.CharField(blank=True, default='waiting', max_length=31, choices=ALTERNATE_STATUS_OPTIONS)
     last_contact_date = models.DateTimeField(null=True, blank=True)
     player_rating = models.PositiveIntegerField(null=True, blank=True)
 
