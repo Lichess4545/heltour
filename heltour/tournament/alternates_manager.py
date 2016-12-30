@@ -30,6 +30,7 @@ def do_alternate_search(season, board_number):
     teams_by_player.update({p.black: p.black_team() for p in board_pairings})
 
     unavailable_players = {pa.player for pa in player_availabilities}
+    # Prioritize open spots by the date the player was marked as unavailable
     players_that_need_replacements = sorted(players_on_board & unavailable_players, key=lambda p: availability_modified_dates[p])
     alternates_contacted = Alternate.objects.filter(season_player__season=season, board_number=board_number, status='contacted')
     last_declined_alternate = Alternate.objects.filter(season_player__season=season, board_number=board_number, status='declined') \
@@ -39,6 +40,7 @@ def do_alternate_search(season, board_number):
                                       key=lambda a: a.priority_date())
 
     if len(players_that_need_replacements) == 0:
+        # No searches in progress, so notify and update the status of previously-contacted alternates
         for alt in alternates_contacted:
             if alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > _unresponsive_interval:
                 alt.status = 'unresponsive'
@@ -69,11 +71,13 @@ def do_alternate_search(season, board_number):
         # Figure out if it's time to contact the next alternate on the list
         # If not, we don't need to do anything for this open spot until the next tick
         if search.last_alternate_contact_date is None:
+            # The search has just started
             do_contact = True
         elif last_declined_alternate is not None and search.last_alternate_contact_date == last_declined_alternate.last_contact_date:
             # The most-recently-contacted alternate declined
             do_contact = True
         else:
+            # Check if it has been long enough since the last alternate was contacted
             time_since_last_contact = timezone.now() - search.last_alternate_contact_date
             do_contact = time_since_last_contact >= _alternate_contact_interval
 
