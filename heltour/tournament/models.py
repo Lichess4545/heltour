@@ -1566,6 +1566,7 @@ def create_api_token():
 ALTERNATE_SEARCH_STATUS_OPTIONS = (
     ('started', 'Started'),
     ('all_contacted', 'All alternates contacted'),
+    ('completed', 'Completed')
 )
 
 #-------------------------------------------------------------------------------

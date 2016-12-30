@@ -57,8 +57,8 @@ def do_alternate_search(season, board_number):
             # Search is over (or was manually disabled), move on to the next open spot
             continue
 
-        if created:
-            # Search has just started
+        if created or search.status == 'completed':
+            # Search has just (re)started
             signals.alternate_search_started.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
                                                   board_number=board_number, round_=round_)
             with reversion.create_revision():
@@ -144,6 +144,10 @@ def alternate_accepted(alternate):
                 reversion.set_comment('Alternate assigned')
                 alternate.status = 'accepted'
                 alternate.save()
+            with reversion.create_revision():
+                reversion.set_comment('Alternate search completed')
+                search.status = 'completed'
+                search.save()
             signals.alternate_assigned.send(sender=alternate_accepted, season=season, alt_assignment=assignment)
             return True
     return False
