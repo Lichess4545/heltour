@@ -156,7 +156,24 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
 
     # Broadcast a message to both team captains
     message = '%sI have started searching for an alternate for <@%s> on board %d of "%s" in round %d.' \
-              % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name, round_.number)
+              % (_captains_ping(team, round_), _slack_user(player), board_number, team.name, round_.number)
+    _send_notification('captains', league, message)
+
+@receiver(signals.alternate_search_reminder, dispatch_uid='heltour.tournament.notify')
+def alternate_search_reminder(season, team, board_number, round_, **kwargs):
+    league = season.league
+
+    team_pairing = team.get_teampairing(round_)
+    if team_pairing is None:
+        return
+    pairing = team_pairing.teamplayerpairing_set.filter(board_number=board_number).exclude(white=None).exclude(black=None).nocache().first()
+    if pairing is None:
+        return
+    player = pairing.white if pairing.white_team() == team else pairing.black
+
+    # Broadcast a reminder to both team captains
+    message = '%sI am still searching for an alternate for <@%s> on board %d of "%s" in round %d.' \
+              % (_captains_ping(team, round_), _slack_user(player), board_number, team.name, round_.number)
     _send_notification('captains', league, message)
 
 @receiver(signals.alternate_search_all_contacted, dispatch_uid='heltour.tournament.notify')
@@ -164,6 +181,14 @@ def alternate_search_all_contacted(season, team, board_number, round_, number_co
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (_captains_ping(team, round_), board_number, team.name, number_contacted)
+    _send_notification('captains', league, message)
+
+@receiver(signals.alternate_search_failed, dispatch_uid='heltour.tournament.notify')
+def alternate_search_failed(season, team, board_number, round_, **kwargs):
+    league = season.league
+    # Broadcast a message to both team captains
+    message = '%sSorry, I could not find an alternate for board %d of "%s" in round %d.' \
+              % (_captains_ping(team, round_), board_number, team.name, round_.number)
     _send_notification('captains', league, message)
 
 @receiver(signals.alternate_assigned, dispatch_uid='heltour.tournament.notify')

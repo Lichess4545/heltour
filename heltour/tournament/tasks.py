@@ -335,11 +335,7 @@ def do_validate_registration(instance, created, **kwargs):
 @app.task(bind=True)
 def pairings_published(self, round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
-    for alt in Alternate.objects.filter(season_player__season=round_.season):
-        with reversion.create_revision():
-            reversion.set_comment('Reset alternate status')
-            alt.status = 'waiting'
-            alt.save()
+    alternates_manager.round_pairings_published(round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
@@ -350,8 +346,7 @@ def do_pairings_published(sender, round_id, **kwargs):
 def alternates_manager_tick(self):
     for season in Season.objects.filter(is_active=True, is_completed=False):
         if season.alternates_manager_enabled():
-            for board_number in season.board_number_list():
-                alternates_manager.do_alternate_search(season, board_number)
+            alternates_manager.tick(season)
 
 @app.task(bind=True)
 def celery_is_up(self):

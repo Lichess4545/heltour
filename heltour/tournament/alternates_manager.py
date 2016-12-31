@@ -21,11 +21,44 @@ def current_round(season):
         return None
     return current
 
-def do_alternate_search(season, board_number):
+def tick(season):
     round_ = current_round(season)
     if round_ is None:
         return
     setting = season.alternates_manager_setting()
+
+    if not AlternateSearch.objects.filter(round=round_).exists():
+        # TODO: Figure out a better way of determining the first tick of a round
+        # This might be run multiple times
+        reset_alternate_search(season, round_, setting)
+
+    for board_number in season.board_number_list():
+        do_alternate_search(season, round_, board_number, setting)
+
+def reset_alternate_search(season, round_, setting):
+    # Reset the alternate states
+    for alt in Alternate.objects.filter(season_player__season=season):
+        if alt.status == 'contacted' and alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > setting.unresponsive_interval:
+            with reversion.create_revision():
+                reversion.set_comment('Alternate search over')
+                alt.status = 'unresponsive'
+                alt.save()
+        if alt.status != 'waiting':
+            with reversion.create_revision():
+                reversion.set_comment('Reset alternate status')
+                alt.status = 'waiting'
+                alt.save()
+
+    # Fail any ongoing searches from last round
+    last_round = season.round_set.filter(number=round_.number - 1).first()
+    if last_round is not None:
+        for search in AlternateSearch.objects.filter(round=last_round, status__in=('started', 'all_contacted')):
+            search.status = 'failed'
+            search.save()
+            signals.alternate_search_failed.send(sender=do_alternate_search, season=season, team=search.team, \
+                                                 board_number=search.board_number, round_=last_round)
+
+def do_alternate_search(season, round_, board_number, setting):
     print 'Alternate search on bd %d for round %d' % (board_number, round_.number)
 
     # Figure out which players need to be replaced and which alternates have/haven't been contacted
@@ -135,6 +168,15 @@ def do_alternate_search(season, board_number):
                     reversion.set_comment('All alternates contacted')
                     search.status = 'all_contacted'
                     search.save()
+
+def round_pairings_published(round_):
+    if round_ != current_round(round_.season):
+        return
+    active_searches = AlternateSearch.objects.filter(round=round_, is_active=True).order_by('date_created').select_related('team').nocache()
+    for search in active_searches:
+        if search.still_needs_alternate():
+            signals.alternate_search_reminder.send(sender=round_pairings_published, season=round_.season, team=search.team, \
+                                                   board_number=search.board_number, round_=round_)
 
 def alternate_accepted(alternate):
     # This is called by the alternate_accept endpoint
