@@ -139,12 +139,12 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
         opponent = opposing_team.teammember_set.filter(board_number=board_number).first()
         if opponent is not None and team_member is not None and \
                 not PlayerAvailability.objects.filter(player=opponent.player, round=round_, is_available=False).exists():
-            message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
+            message_to_opponent = '@%s: Your opponent, <@%s>, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
                                   % (_slack_user(opponent), _slack_user(team_member))
             _message_user(_slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
-    message = '%sI have started searching for an alternate for @%s on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
+    message = '%sI have started searching for an alternate for <@%s> on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
     _send_notification('captains', league, message)
 
 @receiver(signals.alternate_search_all_contacted, dispatch_uid='heltour.tournament.notify')
@@ -167,9 +167,9 @@ def alternate_assigned(season, alt_assignment, **kwargs):
 
     # Send a message to the captains
     if aa.player == aa.replaced_player:
-        message = '%sI have reassigned @%s to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
+        message = '%sI have reassigned <@%s> to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
     else:
-        message = '%sI have assigned @%s to play on board %d of "%s" in place of @%s.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
+        message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s>.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
     _send_notification('captains', league, message)
 
 def _notify_alternate_and_opponent(aa):
@@ -197,26 +197,26 @@ def _notify_alternate_and_opponent(aa):
         return None
 
     message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
-                           + 'Please contact your opponent, @%s, as soon as possible.') \
+                           + 'Please contact your opponent, <@%s>, as soon as possible.') \
                            % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text, _slack_user(opponent))
     _message_user(_slack_user(aa.player), message_to_alternate)
 
     # Send a DM to the opponent
     if aa.player == aa.replaced_player:
-        message_to_opponent = '@%s: Your opponent, @%s, no longer requires an alternate. Please contact @%s as soon as possible.' \
+        message_to_opponent = '@%s: Your opponent, <@%s>, no longer requires an alternate. Please contact <@%s> as soon as possible.' \
                               % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player))
     elif aa.replaced_player is not None:
-        message_to_opponent = '@%s: Your opponent, @%s, has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
+        message_to_opponent = '@%s: Your opponent, @%s, has been replaced by an alternate. Please contact your new opponent, <@%s>, as soon as possible.' \
                               % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player))
     else:
-        message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, @%s, as soon as possible.' \
+        message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, <@%s>, as soon as possible.' \
                               % (_slack_user(opponent), _slack_user(aa.player))
     _message_user(_slack_user(opponent), message_to_opponent)
 
     # Send configured notifications
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'Send a direct message to your opponent, @{opponent}, as soon as possible.\n' \
+           + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -322,7 +322,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'Send a direct message to your opponent, @{opponent}, within 48 hours.\n' \
+           + 'Send a direct message to your opponent, <@{opponent}>, within 48 hours.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
