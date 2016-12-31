@@ -125,22 +125,33 @@ def starting_round_transition(season, msg_list, **kwargs):
 @receiver(signals.alternate_search_started, dispatch_uid='heltour.tournament.notify')
 def alternate_search_started(season, team, board_number, round_, **kwargs):
     league = season.league
+
+    team_pairing = team.get_teampairing(round_)
+    if team_pairing is not None:
+        pairing = team_pairing.teamplayerpairing_set.filter(board_number=board_number).exclude(white=None).exclude(black=None).nocache().first()
+    else:
+        pairing = None
+
     team_member = team.teammember_set.filter(board_number=board_number).first()
+    if pairing is not None:
+        player = pairing.white if pairing.white_team() == team else pairing.black
+    elif team_member is not None:
+        player = team_member.player
+    else:
+        player = None
 
     # Send a DM to the player being replaced
-    if team_member is not None:
-        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for this round, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
-                                     % _slack_user(team_member)
-        _message_user(_slack_user(team_member), message_to_replaced_player)
+    if player is not None:
+        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for round %d, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
+                                     % (_slack_user(player), round_.number)
+        _message_user(_slack_user(player), message_to_replaced_player)
 
     # Send a DM to the opponent
-    opposing_team = team.get_opponent(round_)
-    if opposing_team is not None:
-        opponent = opposing_team.teammember_set.filter(board_number=board_number).first()
-        if opponent is not None and team_member is not None and \
-                not PlayerAvailability.objects.filter(player=opponent.player, round=round_, is_available=False).exists():
-            message_to_opponent = '@%s: Your opponent, <@%s>, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
-                                  % (_slack_user(opponent), _slack_user(team_member))
+    if pairing is not None:
+        opponent = pairing.black if pairing.white_team() == team else pairing.white
+        if not PlayerAvailability.objects.filter(player=opponent, round=round_, is_available=False).exists():
+            message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
+                                  % (_slack_user(opponent), _slack_user(player))
             _message_user(_slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
