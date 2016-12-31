@@ -341,10 +341,14 @@ def _add_system_comment(obj, text, user_name='System'):
                            comment=text, submit_date=timezone.now(), is_public=True)
 
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
-def do_validate_registration(instance, created, **kwargs):
+def registration_saved(instance, created, **kwargs):
     if not created:
         return
     validate_registration.apply_async(args=[instance.pk], countdown=1)
+
+@receiver(signals.do_validate_registration, dispatch_uid='heltour.tournament.tasks')
+def do_validate_registration(reg_id, **kwargs):
+    validate_registration.apply_async(args=[reg_id], countdown=1)
 
 @app.task(bind=True)
 def pairings_published(self, round_id, overwrite=False):

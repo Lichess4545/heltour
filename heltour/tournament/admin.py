@@ -1077,6 +1077,7 @@ class RegistrationAdmin(_BaseAdmin):
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
+    actions = ('validate',)
 
     def changelist_view(self, request, extra_context=None):
         self.request = request
@@ -1105,6 +1106,12 @@ class RegistrationAdmin(_BaseAdmin):
                 name='reject_registration')
         ]
         return my_urls + urls
+
+    def validate(self, request, queryset):
+        for reg in queryset:
+            signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
+        self.message_user(request, 'Validation started.', messages.INFO)
+        return redirect('admin:tournament_registration_changelist')
 
     def review_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
