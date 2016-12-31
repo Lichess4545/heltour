@@ -120,7 +120,6 @@ class Season(_BaseModel):
     is_completed = models.BooleanField(default=False)
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
-    enable_alternates_manager = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
@@ -371,6 +370,16 @@ class Season(_BaseModel):
         if self.boards is None:
             raise Exception('Tried to get board list but season.boards is None')
         return [n for n in range(1, self.boards + 1)]
+
+    def alternates_manager_enabled(self):
+        if not hasattr(self.league, 'alternatesmanagersetting'):
+            return False
+        return self.league.alternatesmanagersetting.is_active
+
+    def alternates_manager_setting(self):
+        if not hasattr(self.league, 'alternatesmanagersetting'):
+            return None
+        return self.league.alternatesmanagersetting
 
     def __unicode__(self):
         return self.name
@@ -1595,6 +1604,27 @@ class AlternateSearch(_BaseModel):
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
+
+#-------------------------------------------------------------------------------
+class AlternatesManagerSetting(_BaseModel):
+    league = models.OneToOneField(League)
+    is_active = models.BooleanField(default=True)
+    contact_interval = models.DurationField(default=timedelta(hours=8), help_text='How long before the next alternate will be contacted during the round.')
+    unresponsive_interval = models.DurationField(default=timedelta(hours=24), help_text='How long after being contacted until an alternate will be marked as unresponsive.')
+
+    contact_before_round_start = models.BooleanField(default=True, help_text='If we should search for alternates before the pairings are published. Has no effect for round 1.')
+    contact_offset_before_round_start = models.DurationField(default=timedelta(hours=48), help_text='How long before the round starts we should start searching for alternates. Also ends the previous round searches early.')
+    contact_interval_before_round_start = models.DurationField(default=timedelta(hours=12), help_text='How long before the next alternate will be contacted, if the round hasn\'t started yet.')
+
+    def clean(self):
+        if self.league.competitor_type != 'team':
+            raise ValidationError('Alternates manager settings can only be created for team leagues')
+
+    def unresponsive_hours(self):
+        return self.unresponsive_interval.total_seconds() / 3600
+
+    def __unicode__(self):
+        return "%s" % (self.league)
 
 #-------------------------------------------------------------------------------
 class SeasonPrize(_BaseModel):

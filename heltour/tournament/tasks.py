@@ -348,9 +348,10 @@ def do_pairings_published(sender, round_id, **kwargs):
 
 @app.task(bind=True)
 def alternates_manager_tick(self):
-    for season in Season.objects.filter(enable_alternates_manager=True):
-        for board_number in season.board_number_list():
-            alternates_manager.do_alternate_search(season, board_number)
+    for season in Season.objects.filter(is_active=True, is_completed=False):
+        if season.alternates_manager_enabled():
+            for board_number in season.board_number_list():
+                alternates_manager.do_alternate_search(season, board_number)
 
 @app.task(bind=True)
 def celery_is_up(self):

@@ -988,6 +988,11 @@ class AlternateSearchAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number', 'board_number', 'status')
 
 #-------------------------------------------------------------------------------
+@admin.register(AlternatesManagerSetting)
+class AlternatesManagerSettingAdmin(_BaseAdmin):
+    list_display = ('__unicode__',)
+
+#-------------------------------------------------------------------------------
 @admin.register(TeamPairing)
 class TeamPairingAdmin(_BaseAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')

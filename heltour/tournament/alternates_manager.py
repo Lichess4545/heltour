@@ -2,11 +2,8 @@ from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
 import reversion
 
-_alternate_contact_interval = timedelta(hours=8)
-_unresponsive_interval = timedelta(hours=48)
-
 def current_round(season):
-    if not season.enable_alternates_manager:
+    if not season.alternates_manager_enabled():
         return None
     return season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
 
@@ -14,6 +11,7 @@ def do_alternate_search(season, board_number):
     round_ = current_round(season)
     if round_ is None:
         return
+    setting = season.alternates_manager_setting()
     print 'Alternate search on bd %d' % board_number
 
     # Figure out which players need to be replaced and which alternates have/haven't been contacted
@@ -42,7 +40,7 @@ def do_alternate_search(season, board_number):
     if len(players_that_need_replacements) == 0:
         # No searches in progress, so notify and update the status of previously-contacted alternates
         for alt in alternates_contacted:
-            if alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > _unresponsive_interval:
+            if alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > setting.unresponsive_interval:
                 alt.status = 'unresponsive'
             else:
                 alt.status = 'waiting'
@@ -79,7 +77,8 @@ def do_alternate_search(season, board_number):
         else:
             # Check if it has been long enough since the last alternate was contacted
             time_since_last_contact = timezone.now() - search.last_alternate_contact_date
-            do_contact = time_since_last_contact >= _alternate_contact_interval
+            contact_interval = setting.contact_interval if round_.publish_pairings else setting.contact_interval_before_round_start
+            do_contact = time_since_last_contact >= contact_interval
 
         if do_contact:
             try:

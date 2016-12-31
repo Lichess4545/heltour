@@ -344,7 +344,7 @@ def notify_players_round_start(round_, **kwargs):
     unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round=round_, is_available=False) \
                                                       .select_related('player').nocache()}
     for pairing in round_.pairings.select_related('white', 'black'):
-        if season.enable_alternates_manager and (pairing.white in unavailable_players or pairing.black in unavailable_players):
+        if season.alternates_manager_enabled() and (pairing.white in unavailable_players or pairing.black in unavailable_players):
             # Don't send a notification, since the alternates manager will handle it
             continue
         send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
