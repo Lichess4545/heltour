@@ -236,16 +236,16 @@ def _notify_alternate_and_opponent(aa):
     return opponent
 
 @receiver(signals.alternate_needed, dispatch_uid='heltour.tournament.notify')
-def alternate_needed(alternate, response_hours, accept_url, decline_url, **kwargs):
+def alternate_needed(alternate, response_time, accept_url, decline_url, **kwargs):
     # Send a DM to the alternate
-    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within %d hours.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), response_hours, _abs_url(accept_url), _abs_url(decline_url))
+    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
     _message_user(_slack_user(alternate.season_player), message)
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
-def alternate_spots_filled(alternate, response_hours, **kwargs):
+def alternate_spots_filled(alternate, response_time, **kwargs):
     # Send a DM to the alternate
     if alternate.status == 'unresponsive':
-        message = 'All available alternate spots have now been filled. You\'ve been moved to the bottom of the list since you didn\'t respond within %d hours.' % response_hours
+        message = 'All available alternate spots have now been filled. You\'ve been moved to the bottom of the list since you didn\'t respond within %s.' % _offset_str(response_time)
     else:
         message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
     _message_user(_slack_user(alternate.season_player), message)

@@ -47,7 +47,7 @@ def do_alternate_search(season, board_number):
             with reversion.create_revision():
                 reversion.set_comment('Alternate spots filled')
                 alt.save()
-            signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt, response_hours=setting.unresponsive_hours())
+            signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt, response_time=setting.unresponsive_interval)
         return
 
     # Continue the search for an alternate to fill each open spot
@@ -100,7 +100,7 @@ def do_alternate_search(season, board_number):
                 auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=round_.end_date)
                 accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, auth.secret_token])
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, auth.secret_token])
-                signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, response_hours=setting.unresponsive_hours(), \
+                signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, response_time=setting.unresponsive_interval, \
                                               accept_url=accept_url, decline_url=decline_url)
                 current_date = timezone.now()
                 with reversion.create_revision():

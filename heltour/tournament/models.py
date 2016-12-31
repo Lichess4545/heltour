@@ -1620,9 +1620,6 @@ class AlternatesManagerSetting(_BaseModel):
         if self.league.competitor_type != 'team':
             raise ValidationError('Alternates manager settings can only be created for team leagues')
 
-    def unresponsive_hours(self):
-        return self.unresponsive_interval.total_seconds() / 3600
-
     def __unicode__(self):
         return "%s" % (self.league)
 
