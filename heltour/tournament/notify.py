@@ -155,7 +155,8 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
             _message_user(_slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
-    message = '%sI have started searching for an alternate for <@%s> on board %d of "%s".' % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name)
+    message = '%sI have started searching for an alternate for <@%s> on board %d of "%s" in round %d.' \
+              % (_captains_ping(team, round_), _slack_user(team_member), board_number, team.name, round_.number)
     _send_notification('captains', league, message)
 
 @receiver(signals.alternate_search_all_contacted, dispatch_uid='heltour.tournament.notify')
@@ -178,27 +179,37 @@ def alternate_assigned(season, alt_assignment, **kwargs):
 
     # Send a message to the captains
     if aa.player == aa.replaced_player:
-        message = '%sI have reassigned <@%s> to play on board %d of "%s".%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
+        message = '%sI have reassigned <@%s> to play on board %d of "%s" for round %d.%s' \
+                  % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
     else:
-        message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s>.%s' % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), opponent_notified)
+        message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s> for round %d.%s' \
+                  % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), aa.round.number, opponent_notified)
     _send_notification('captains', league, message)
 
 def _notify_alternate_and_opponent(aa):
-    team_pairing = aa.team.get_teampairing(aa.round)
-    if team_pairing is None:
-        return None
-    pairing = team_pairing.teamplayerpairing_set.filter(board_number=aa.board_number).exclude(white=None).exclude(black=None).nocache().first()
-    if pairing is None:
-        return None
-    opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
-
-    # Send a DM to the alternate
     captain = aa.team.captain()
     if captain is not None:
-        captain_text = ' The team captain is @%s.' % _slack_user(captain)
+        captain_text = ' The team captain is <@%s>.' % _slack_user(captain)
     else:
         captain_text = ''
 
+    team_pairing = aa.team.get_teampairing(aa.round)
+    if team_pairing is None:
+        # Round hasn't started yet
+        message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
+                               % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
+        _message_user(_slack_user(aa.player), message_to_alternate)
+        return None
+
+    pairing = team_pairing.teamplayerpairing_set.filter(board_number=aa.board_number).exclude(white=None).exclude(black=None).nocache().first()
+    if pairing is None:
+        # No pairing yet for some reason
+        message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
+                               % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
+        _message_user(_slack_user(aa.player), message_to_alternate)
+        return None
+
+    opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
     if PlayerAvailability.objects.filter(round=aa.round, player=opponent, is_available=False).exists():
         # Still looking for an alternate for the opponent
         message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
@@ -207,6 +218,7 @@ def _notify_alternate_and_opponent(aa):
         _message_user(_slack_user(aa.player), message_to_alternate)
         return None
 
+    # Normal assignment
     message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                            + 'Please contact your opponent, <@%s>, as soon as possible.') \
                            % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text, _slack_user(opponent))
