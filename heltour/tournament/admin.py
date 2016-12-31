@@ -156,7 +156,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
@@ -185,6 +185,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
                 permission_required('tournament.bulk_email')(self.admin_site.admin_view(self.bulk_email_view)),
                 name='bulk_email'),
+            url(r'^(?P<object_id>[0-9]+)/mod_report/$',
+                permission_required('tournament.change_season')(self.admin_site.admin_view(self.mod_report_view)),
+                name='mod_report'),
         ]
         return my_urls + urls
 
@@ -396,6 +399,33 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/bulk_email.html', context)
+
+    def mod_report(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Can only generate mod report one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:mod_report', object_id=queryset[0].pk)
+
+    def mod_report_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+
+        season_players = season.seasonplayer_set.select_related('player').nocache()
+        players = []
+        for sp in season_players:
+            games = (PlayerPairing.objects.filter(white=sp.player) | PlayerPairing.objects.filter(black=sp.player)).nocache()
+            game_count = games.count()
+            players.append((game_count, sp.player.games_played, sp.player.lichess_username))
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Mod report',
+            'players': sorted(players)
+        }
+
+        return render(request, 'tournament/admin/mod_report.html', context)
 
     def update_board_order_by_rating(self, request, queryset):
         try:
