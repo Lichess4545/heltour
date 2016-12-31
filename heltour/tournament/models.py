@@ -1233,6 +1233,7 @@ class Registration(_BaseModel):
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
+    validation_warning = models.BooleanField(default=False)
 
     def __unicode__(self):
         return "%s" % (self.lichess_username)

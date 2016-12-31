@@ -295,6 +295,7 @@ def validate_registration(self, reg_id):
     reg = Registration.objects.get(pk=reg_id)
 
     fail_reason = None
+    warnings = []
 
     if reg.already_in_slack_group:
         slack_user = slackapi.get_user(reg.slack_username.lower()) or slackapi.get_user(reg.lichess_username.lower())
@@ -310,12 +311,25 @@ def validate_registration(self, reg_id):
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 
-    if fail_reason is None:
-        reg.validation_ok = True
-        comment_text = 'Validated.'
-    else:
+    if not reg.has_played_20_games:
+        warnings.append('Has not played 20 games.')
+    if not reg.can_commit:
+        warnings.append('Can\'t commit to a game per week.')
+    if not reg.agreed_to_rules:
+        warnings.append('Didn\'t agree to rules.')
+
+    if fail_reason:
         reg.validation_ok = False
+        reg.validation_warning = False
         comment_text = 'Validation error: %s' % fail_reason
+    elif warnings:
+        reg.validation_ok = True
+        reg.validation_warning = True
+        comment_text = 'Validation warning: %s' % ' '.join(warnings)
+    else:
+        reg.validation_ok = True
+        reg.validation_warning = False
+        comment_text = 'Validated.'
     _add_system_comment(reg, comment_text)
 
     with reversion.create_revision():

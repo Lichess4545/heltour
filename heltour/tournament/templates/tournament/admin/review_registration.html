@@ -30,7 +30,9 @@
 		<div class="form-row">
 			<label>Lichess username:</label>
 		    {{ original.lichess_username }}
-		    {% if original.validation_ok == True %}
+		    {% if original.validation_warning == True %}
+		    <img src="{% static 'admin/img/icon-alert.svg' %}"/>
+		    {% elif original.validation_ok == True %}
 		    <img src="{% static 'admin/img/icon-yes.svg' %}"/>
 		    {% elif original.validation_ok == False %}
 		    <img src="{% static 'admin/img/icon-no.svg' %}"/>
