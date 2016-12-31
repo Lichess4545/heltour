@@ -38,6 +38,7 @@ def tick(season):
 def reset_alternate_search(season, round_, setting):
     # Reset the alternate states
     for alt in Alternate.objects.filter(season_player__season=season):
+        # TODO: Maybe send a notification to contacted alternates here
         if alt.status == 'contacted' and alt.last_contact_date is not None and timezone.now() - alt.last_contact_date > setting.unresponsive_interval:
             with reversion.create_revision():
                 reversion.set_comment('Alternate search over')

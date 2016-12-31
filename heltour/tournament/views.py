@@ -1251,23 +1251,26 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
         elif round_ is None:
             msg = 'There is no round currently in progress.'
         elif alt.status == 'accepted':
-            msg = 'You have already accepted a game this round.'
+            msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
-            msg = 'You have already declined a game this round.'
+            msg = 'You have already declined a game for round %d.' % round_.number
         elif alt.status == 'unresponsive':
-            msg = 'You did not respond in time this round. Please make sure to accept or decline a game within 48 hours of being messaged to maintain your priority on the alternate list.'
+            msg = 'You did not respond in time this round. Please make sure to accept or decline a game in time to maintain your priority on the alternate list.'
         elif alt.status == 'contacted':
             # OK
             if post:
                 if alternates_manager.alternate_accepted(alt):
                     msg = 'You have been assigned to a team for round %d. Please check Slack for more info.' % round_.number
                 else:
-                    msg = 'Sorry, no games are currently available.'
+                    msg = 'Sorry, no games are currently available for round %d.' % round_.number
             else:
-                msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between now and %s (UTC).' % (round_.number, round_.end_date.strftime('%Y-%m-%d %H:%M'))
+                start_time = round_.start_date.strftime('%Y-%m-%d %H:%M') if not round_.publish_pairings else 'now'
+                end_time = round_.end_date.strftime('%Y-%m-%d %H:%M')
+                msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between %s and %s (UTC).' \
+                      % (round_.number, start_time, end_time)
                 show_button = True
         else:
-            msg = 'Sorry, no games are currently available.'
+            msg = 'Sorry, no games are currently available for round %d.' % round_.number
 
         context = {
             'username': username,
@@ -1296,11 +1299,11 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
         elif round_ is None:
             msg = 'There is no round currently in progress.'
         elif alt.status == 'accepted':
-            msg = 'You have already accepted a game this round.'
+            msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
-            msg = 'You have already declined a game this round.'
+            msg = 'You have already declined a game for round %d.' % round_.number
         elif alt.status == 'unresponsive':
-            msg = 'You did not respond in time this round. Please make sure to accept or decline a game within 48 hours of being messaged to maintain your priority on the alternate list.'
+            msg = 'You did not respond in time this round. Please make sure to accept or decline a game in time to maintain your priority on the alternate list.'
         elif alt.status == 'contacted' or alt.status == 'waiting':
             # OK
             if post:
