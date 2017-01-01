@@ -1113,6 +1113,12 @@ class PlayerPairing(_BaseModel):
             white_setting.save()
             black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id, type='before_game_time', league=league)
             black_setting.save()
+            if white_changed:
+                old_white_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_white_id, type='before_game_time', league=league)
+                old_white_setting.save()
+            if black_changed:
+                old_black_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_black_id, type='before_game_time', league=league)
+                old_black_setting.save()
 
     def delete(self, *args, **kwargs):
         team_pairing = None
