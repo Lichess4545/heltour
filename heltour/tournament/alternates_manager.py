@@ -69,11 +69,17 @@ def do_alternate_search(season, round_, board_number, setting):
     round_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_) \
                                               .select_related('white', 'black').nocache()
     players_in_round = {p.white for p in round_pairings} | {p.black for p in round_pairings}
-    board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_, board_number=board_number, result='', game_link='') \
-                                              .select_related('white', 'black').nocache()
-    players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
-    teams_by_player = {p.white: p.white_team() for p in board_pairings}
-    teams_by_player.update({p.black: p.black_team() for p in board_pairings})
+    if round_.publish_pairings:
+        board_pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round_, board_number=board_number, result='', game_link='') \
+                                                  .select_related('white', 'black').nocache()
+        players_on_board = {p.white for p in board_pairings} | {p.black for p in board_pairings}
+        teams_by_player = {p.white: p.white_team() for p in board_pairings}
+        teams_by_player.update({p.black: p.black_team() for p in board_pairings})
+    else:
+        team_members = TeamMember.objects.filter(team__season=season, board_number=board_number).select_related('team', 'player').nocache()
+        assigned_alts = {aa.team: aa.player for aa in AlternateAssignment.objects.filter(round=round_, board_number=board_number)}
+        players_on_board = {assigned_alts.get(tm.team, tm.player) for tm in team_members}
+        teams_by_player = {tm.player: tm.team for tm in team_members}
 
     unavailable_players = {pa.player for pa in player_availabilities}
     # Prioritize open spots by the date the player was marked as unavailable
