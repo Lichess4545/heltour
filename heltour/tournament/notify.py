@@ -449,7 +449,13 @@ def notify_players_unscheduled(round_, **kwargs):
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send unscheduled notifications due to incorrect round state: %s' % round_)
         return
+    season = round_.season
+    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round=round_, is_available=False) \
+                                                      .select_related('player').nocache()}
     for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
+        if season.alternates_manager_enabled() and (pairing.white in unavailable_players or pairing.black in unavailable_players):
+            # Don't send a notification, since the alternates manager is searching for an alternate
+            continue
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
         time.sleep(1)
 
