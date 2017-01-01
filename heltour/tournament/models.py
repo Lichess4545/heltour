@@ -134,6 +134,10 @@ class Season(_BaseModel):
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
+    def clean(self):
+        if self.league.competitor_type == 'team' and self.boards is None:
+            raise ValidationError('Boards must be specified for a team season')
+
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
         new_obj = self.pk is None
@@ -1481,7 +1485,8 @@ class Alternate(_BaseModel):
         return self._priority_date_without_override()
 
     def _priority_date_without_override(self):
-        most_recent_assign = AlternateAssignment.objects.filter(player=self.season_player.player).order_by('-round__start_date').first()
+        most_recent_assign = AlternateAssignment.objects.filter(team__season_id=self.season_player.season_id, player_id=self.season_player.player_id) \
+                                                        .order_by('-round__start_date').first()
 
         if most_recent_assign is not None:
             round_date = most_recent_assign.round.end_date
