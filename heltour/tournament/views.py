@@ -1235,9 +1235,10 @@ class ScheduleView(LeagueView, UrlAuthMixin):
         return self.view(post=True)
 
 class AlternateAcceptView(SeasonView, UrlAuthMixin):
-    def view(self, secret_token=None, post=False):
+    def view(self, round_number, secret_token=None, post=False):
+        round_number = int(round_number)
         if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:alternate_accept', self.league.tag, self.season.tag)
+            return redirect('by_league:by_season:alternate_accept', self.league.tag, self.season.tag, round_number)
         username, player = self.get_authenticated_user()
 
         round_ = alternates_manager.current_round(self.season)
@@ -1250,6 +1251,8 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             msg = 'You are not an alternate in %s.' % self.season
         elif round_ is None:
             msg = 'There is no round currently in progress.'
+        elif round_.number != round_number:
+            msg = 'The alternate search for round %d is over.' % round_number
         elif alt.status == 'accepted':
             msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
@@ -1279,13 +1282,14 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
         }
         return self.render('tournament/alternate_accept.html', context)
 
-    def view_post(self):
-        return self.view(post=True)
+    def view_post(self, round_number):
+        return self.view(round_number, post=True)
 
 class AlternateDeclineView(SeasonView, UrlAuthMixin):
-    def view(self, secret_token=None, post=False):
+    def view(self, round_number, secret_token=None, post=False):
+        round_number = int(round_number)
         if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:alternate_decline', self.league.tag, self.season.tag)
+            return redirect('by_league:by_season:alternate_decline', self.league.tag, self.season.tag, round_number)
         username, player = self.get_authenticated_user()
 
         round_ = alternates_manager.current_round(self.season)
@@ -1298,6 +1302,8 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
             msg = 'You are not an alternate in %s.' % self.season
         elif round_ is None:
             msg = 'There is no round currently in progress.'
+        elif round_.number != round_number:
+            msg = 'The alternate search for round %d is over.' % round_number
         elif alt.status == 'accepted':
             msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
@@ -1320,8 +1326,8 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
         }
         return self.render('tournament/alternate_decline.html', context)
 
-    def view_post(self):
-        return self.view(post=True)
+    def view_post(self, round_number):
+        return self.view(round_number, post=True)
 
 class NotificationsView(SeasonView, UrlAuthMixin):
     def view(self, secret_token=None, post=False):
