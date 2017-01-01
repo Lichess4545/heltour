@@ -189,7 +189,7 @@ CELERYBEAT_SCHEDULE = {
     },
     'alternates_manager_tick': {
         'task': 'heltour.tournament.tasks.alternates_manager_tick',
-        'schedule': timedelta(minutes=5),
+        'schedule': timedelta(minutes=2),
         'args': ()
     },
     'celery_is_up': {
