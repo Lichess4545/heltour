@@ -414,7 +414,8 @@ def notify_players_game_time(pairing, **kwargs):
            + 'Send a challenge for a rated {time_control} game as {color}.\n' \
            + 'https://en.lichess.org/?user={opponent}#friend' \
 
-    send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
+    if pairing.game_link == '' and pairing.result == '':
+        send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 @receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
 def before_game_time(player, pairing, offset, **kwargs):
@@ -427,7 +428,8 @@ def before_game_time(player, pairing, offset, **kwargs):
     li_msg = 'Reminder: Your game will start in {offset}.\n' \
            + '@{white} (white pieces) vs @{black} (black pieces)'
 
-    send_pairing_notification('before_game_time', pairing, im_msg, mp_msg, li_subject, li_msg, offset, player)
+    if pairing.game_link == '' and pairing.result == '':
+        send_pairing_notification('before_game_time', pairing, im_msg, mp_msg, li_subject, li_msg, offset, player)
 
 @receiver(signals.notify_players_unscheduled, dispatch_uid='heltour.tournament.notify')
 def notify_players_unscheduled(round_, **kwargs):
