@@ -1507,6 +1507,9 @@ class Alternate(_BaseModel):
     def __unicode__(self):
         return "%s" % self.season_player
 
+    def __cmp__(self, other):
+        return cmp(self.priority_date(), other.priority_date())
+
 #-------------------------------------------------------------------------------
 class AlternateAssignment(_BaseModel):
     round = models.ForeignKey(Round)

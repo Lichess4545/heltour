@@ -1234,6 +1234,48 @@ class ScheduleView(LeagueView, UrlAuthMixin):
     def view_post(self):
         return self.view(post=True)
 
+class AlternatesView(SeasonView):
+    def view(self):
+        round_ = alternates_manager.current_round(self.season)
+
+        if round_ is None:
+            context = {
+                'active_round': None
+            }
+            return self.render('tournament/alternates.html', context)
+
+        active_searches = AlternateSearch.objects.filter(round=round_, is_active=True).order_by('date_created').select_related('team').nocache()
+        assignments = AlternateAssignment.objects.filter(round=round_).order_by('date_modified').select_related('team', 'player').nocache()
+
+        def team_member(s):
+            return TeamMember.objects.filter(team=s.team, board_number=s.board_number).first()
+
+        open_spots = [(s.board_number, s.team, team_member(s), s.date_created) for s in active_searches if s.still_needs_alternate()]
+        filled_spots = [(aa.board_number, aa.team, aa.player, aa.date_modified) for aa in assignments]
+
+        def with_status(alt):
+            date = alt.last_contact_date if alt.status == 'contacted' else None
+            return (alt, alt.get_status_display(), date)
+
+        def alternate_board(n):
+            all_alts = sorted(alternates.filter(board_number=n))
+            eligible_alts = [with_status(alt) for alt in all_alts if alt.status in ('waiting', 'contacted')]
+            ineligible_alts = [with_status(alt) for alt in all_alts if alt.status not in ('waiting', 'contacted')]
+            return (n, eligible_alts, ineligible_alts)
+
+        alternates = Alternate.objects.filter(season_player__season=self.season) \
+                                      .select_related('season_player__registration', 'season_player__player') \
+                                      .nocache()
+        alternates_by_board = [alternate_board(n) for n in self.season.board_number_list()]
+
+        context = {
+            'active_round': round_,
+            'open_spots': open_spots,
+            'filled_spots': filled_spots,
+            'alternates_by_board': alternates_by_board
+        }
+        return self.render('tournament/alternates.html', context)
+
 class AlternateAcceptView(SeasonView, UrlAuthMixin):
     def view(self, round_number, secret_token=None, post=False):
         round_number = int(round_number)

@@ -1,6 +1,8 @@
 from django import template
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+from django.utils import timezone
+from datetime import timedelta
 
 register = template.Library()
 
@@ -65,3 +67,31 @@ def percent(number, decimal_digits=0):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+@register.filter
+def time_from_now(datetime):
+    delta = datetime - timezone.now()
+    if delta < timedelta(0):
+        return '0 hours'
+    if delta.days > 0:
+        days = delta.days
+        if delta.seconds > 3600 * 12:
+            days += 1
+        if days == 1:
+            return '1 day'
+        else:
+            return '%d days' % days
+    elif delta.seconds >= 3600:
+        hours = delta.seconds / 3600
+        if delta.seconds > 3600 / 2:
+            hours += 1
+        if hours == 1:
+            return '1 hour'
+        else:
+            return '%d hours' % hours
+    else:
+        minutes = delta.seconds / 60
+        if minutes == 1:
+            return '1 minutes'
+        else:
+            return '%d minutes' % hours

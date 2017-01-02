@@ -376,6 +376,31 @@ div.inline {
 	content: '(C)';
 }
 
+#table-alternates > tbody > tr > td {
+	padding: 0;
+	vertical-align: top;
+}
+
+#table-alternates table {
+	table-layout: fixed;
+	margin-bottom: 0;
+	min-width: 200px;
+}
+
+#table-alternates table td:nth-child(2) {
+	text-align: right;
+	width: 90px;
+}
+
+#table-alternates table .cell-player .player-name {
+	display: inline-block;
+    vertical-align:top;
+    max-width: 100%;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+    overflow: hidden;
+}
+
 .player-unavailable {
 	padding-right: 18px;
 	background: url(/static/tournament/img/cancel.png);
