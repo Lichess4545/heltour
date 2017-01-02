@@ -249,7 +249,6 @@ def run_scheduled_events(self):
         lower_bound = timezone.now() - _max_lateness
 
         future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
-        future_event_time = None
 
         for n in ScheduledNotification.objects.filter(notification_time__gt=lower_bound, notification_time__lte=upper_bound):
             n.run()
