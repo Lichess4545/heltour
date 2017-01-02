@@ -495,4 +495,4 @@ def _captains_ping(team, round_):
         opp_captain = opp.captain()
         if opp_captain is not None:
             captains.append(opp_captain)
-    return '' if len(captains) == 0 else '@%s: ' % _slack_user(captains[0]) if len(captains) == 1 else '@%s, @%s: ' % (_slack_user(captains[0]), _slack_user(captains[1]))
+    return '' if len(captains) == 0 else '<@%s>: ' % _slack_user(captains[0]) if len(captains) == 1 else '<@%s>, <@%s>: ' % (_slack_user(captains[0]), _slack_user(captains[1]))
