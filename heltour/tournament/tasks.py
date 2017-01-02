@@ -196,13 +196,14 @@ _max_lateness = timedelta(hours=1)
 
 @app.task(bind=True)
 def run_scheduled_events(self):
+    now = timezone.now()
     with cache.lock('run_scheduled_events'):
         future_event_time = None
         for event in ScheduledEvent.objects.all():
             # Determine a range of times to search
             # If the comparison point (e.g. round start) is in the range, we run the event
-            upper_bound = timezone.now() - event.offset
-            lower_bound = max(event.last_run or event.date_created, timezone.now() - _max_lateness) - event.offset
+            upper_bound = now - event.offset
+            lower_bound = max(event.last_run or event.date_created, now - _max_lateness) - event.offset
 
             # Determine an upper bound for events that should be run before the next task execution
             # The idea is that we want events to be run as close to their scheduled time as possible,
@@ -245,8 +246,8 @@ def run_scheduled_events(self):
                     future_event_time = obj.scheduled_time + event.offset if future_event_time is None else min(future_event_time, obj.scheduled_time + event.offset)
 
         # Run ScheduledNotifications now
-        upper_bound = timezone.now()
-        lower_bound = timezone.now() - _max_lateness
+        upper_bound = now
+        lower_bound = now - _max_lateness
 
         future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
 
