@@ -55,7 +55,7 @@ class RegistrationForm(forms.ModelForm):
                  for r in self.season.round_set.order_by('number')]
         self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would NOT be able to play?'),
                                                                      choices=weeks, widget=forms.CheckboxSelectMultiple)
-        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 games of classical chess on Lichess?'),
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 rated games of classical chess on Lichess?'),
                                                                     help_text=_(u'If no, this must be fulfilled ASAP.'), choices=YES_NO_OPTIONS,
                                                                     widget=forms.RadioSelect, coerce=lambda x: x == 'True')
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS,
