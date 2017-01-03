@@ -1854,6 +1854,7 @@ PLAYER_NOTIFICATION_TYPES = (
     ('game_time', 'Game time'),
     ('unscheduled_game', 'Unscheduled game'),
     ('game_warning', 'Game warning'),
+    ('alternate_needed', 'Alternate needed'),
 )
 
 #-------------------------------------------------------------------------------
@@ -1895,8 +1896,8 @@ class PlayerNotificationSetting(_BaseModel):
         if type_ == 'before_game_time' and obj.offset is not None and obj.offset != timedelta(minutes=60):
             # Non-default offset, so leave everything disabled
             return obj
-        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning')
-        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
+        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
         obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)

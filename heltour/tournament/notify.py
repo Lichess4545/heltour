@@ -285,15 +285,20 @@ def _notify_alternate_and_opponent(aa):
 
 @receiver(signals.alternate_needed, dispatch_uid='heltour.tournament.notify')
 def alternate_needed(alternate, round_, response_time, accept_url, decline_url, **kwargs):
-    # Send a DM to the alternate
-    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
-    _message_user(_slack_user(alternate.season_player), message)
+    league = round_.season.league
+    player = alternate.season_player.player
+    setting = PlayerNotificationSetting.get_or_default(player=player, type='alternate_needed', league=league, offset=None)
 
-    # Send a lichess message
-    li_subject = 'Round %d - %s' % (round_.number, round_.season.league.name)
-    li_msg = 'A team needs an alternate this round. Please check Slack for more information.\n' \
-           + 'https://lichess4545.slack.com/messages/@chesster/'
-    lichessapi.send_mail(_slack_user(alternate.season_player), li_subject, li_msg)
+    # Send a DM to the alternate, regardless of settings
+    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
+    _message_user(_slack_user(player), message)
+
+    if setting.enable_lichess_mail:
+        # Send a lichess message
+        li_subject = 'Round %d - %s' % (round_.number, league.name)
+        li_msg = 'A team needs an alternate this round. Please check Slack for more information.\n' \
+               + 'https://lichess4545.slack.com/messages/@chesster/'
+        lichessapi.send_mail(_slack_user(player), li_subject, li_msg)
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
 def alternate_spots_filled(alternate, response_time, **kwargs):
