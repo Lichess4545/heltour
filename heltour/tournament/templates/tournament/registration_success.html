@@ -11,7 +11,10 @@
 				<h3>{{ registration_season.name }} Registration ({{ registration_season.start_date|date_or_q }} - {{ registration_season.end_date|date_or_q }})</h3>
 			</div>
 			<div class="well-body">
-				Successfully registered.
+				<p>Successfully registered.</p>
+				{% if email %}
+				<p>A confirmation email will be sent to <strong>{{ email }}</strong> once a moderator approves your registration.</p>
+				{% endif %}
 			</div>
 		</div>
 	</div>

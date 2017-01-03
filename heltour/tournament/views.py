@@ -462,6 +462,7 @@ class RegisterView(LeagueView):
                 with reversion.create_revision():
                     reversion.set_comment('Submitted registration.')
                     form.save()
+                self.request.session['reg_email'] = form.cleaned_data['email']
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:
             form = RegistrationForm(season=reg_season)
@@ -485,7 +486,8 @@ class RegistrationSuccessView(SeasonView):
             return self.render('tournament/registration_closed.html', {})
 
         context = {
-            'registration_season': reg_season
+            'registration_season': reg_season,
+            'email': self.request.session.get('reg_email')
         }
         return self.render('tournament/registration_success.html', context)
 
