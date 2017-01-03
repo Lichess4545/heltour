@@ -1383,6 +1383,8 @@ class NotificationsView(SeasonView, UrlAuthMixin):
                 if form.is_valid():
                     PlayerNotificationSetting.objects.filter(player=player, league=self.league).delete()
                     for type_, _ in PLAYER_NOTIFICATION_TYPES:
+                        if type_ == 'alternate_needed' and self.league.competitor_type != 'team':
+                            continue
                         setting = PlayerNotificationSetting(player=player, league=self.league, type=type_)
                         setting.enable_lichess_mail = form.cleaned_data[type_ + '_lichess']
                         setting.enable_slack_im = form.cleaned_data[type_ + '_slack']
