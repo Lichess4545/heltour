@@ -19,7 +19,7 @@ alternate_search_reminder = Signal(providing_args=['season', 'team', 'board_numb
 alternate_search_all_contacted = Signal(providing_args=['season', 'team', 'board_number', 'round_', 'number_contacted'])
 alternate_search_failed = Signal(providing_args=['season', 'team', 'board_number', 'round_'])
 alternate_assigned = Signal(providing_args=['season', 'alt_assignment'])
-alternate_needed = Signal(providing_args=['alternate', 'response_time', 'accept_url', 'decline_url'])
+alternate_needed = Signal(providing_args=['alternate', 'round_', 'response_time', 'accept_url', 'decline_url'])
 alternate_spots_filled = Signal(providing_args=['alternate', 'response_time'])
 notify_players_round_start = Signal(providing_args=['round_'])
 notify_players_unscheduled = Signal(providing_args=['round_'])

@@ -155,7 +155,7 @@ def do_alternate_search(season, round_, board_number, setting):
                 accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, round_.number, auth.secret_token])
                 decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, round_.number, auth.secret_token])
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, response_time=setting.unresponsive_interval, \
-                                              accept_url=accept_url, decline_url=decline_url)
+                                              round_=round_, accept_url=accept_url, decline_url=decline_url)
                 current_date = timezone.now()
                 with reversion.create_revision():
                     reversion.set_comment('Alternate contacted')
