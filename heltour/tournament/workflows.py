@@ -45,7 +45,7 @@ class RoundTransitionWorkflow():
                 msg_list.append(('%s set as completed.' % season_to_close.name, messages.INFO))
             if update_board_order and round_to_open is not None and self.season.league.competitor_type == 'team':
                 try:
-                    UpdateBoardOrderWorkflow(self.season).run()
+                    UpdateBoardOrderWorkflow(self.season).run(alternates_only=False)
                     msg_list.append(('Board order updated.', messages.INFO))
                 except IndexError:
                     msg_list.append(('Error updating board order.', messages.ERROR))
@@ -108,20 +108,22 @@ class UpdateBoardOrderWorkflow():
     def __init__(self, season):
         self.season = season
 
-    def run(self):
+    def run(self, alternates_only):
         if self.season.league.competitor_type != 'team':
             return
 
-        self.update_teammember_order()
+        if not alternates_only:
+            self.update_teammember_order()
 
-        members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
-        ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
-        alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
+        if alternates_only or not self.season.alternates_manager_enabled():
+            members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
+            ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+            alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
 
-        boundaries = self.calc_alternate_boundaries(ratings_by_board)
-        self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board)
-        self.update_alternate_buckets(boundaries)
-        self.assign_alternates_to_buckets()
+            boundaries = self.calc_alternate_boundaries(ratings_by_board)
+            self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board)
+            self.update_alternate_buckets(boundaries)
+            self.assign_alternates_to_buckets()
 
     def update_teammember_order(self):
         for team in self.season.team_set.all():

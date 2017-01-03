@@ -430,7 +430,7 @@ class SeasonAdmin(_BaseAdmin):
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
-                UpdateBoardOrderWorkflow(season).run()
+                UpdateBoardOrderWorkflow(season).run(alternates_only=False)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)

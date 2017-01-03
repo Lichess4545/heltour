@@ -1,6 +1,9 @@
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
 import reversion
+from heltour.tournament.workflows import UpdateBoardOrderWorkflow
+
+_min_bucket_update_interval = timedelta(hours=1)
 
 def current_round(season):
     if not season.alternates_manager_enabled():
@@ -58,6 +61,11 @@ def reset_alternate_search(season, round_, setting):
             search.save()
             signals.alternate_search_failed.send(sender=do_alternate_search, season=season, team=search.team, \
                                                  board_number=search.board_number, round_=last_round)
+
+    # Update the alternate board order, but only if it hasn't been updated within the past hour
+    some_bucket = season.alternatebucket_set.first()
+    if some_bucket is None or some_bucket.date_modified < timezone.now() - _min_bucket_update_interval:
+        UpdateBoardOrderWorkflow(season).run(alternates_only=True)
 
 def do_alternate_search(season, round_, board_number, setting):
     print 'Alternate search on bd %d for round %d' % (board_number, round_.number)
