@@ -1085,8 +1085,7 @@ class PlayerProfileView(LeagueView):
                     continue
                 if season_player is None or not season_player.is_active:
                     continue
-                availability = PlayerAvailability.objects.filter(round=round_, player=player).first()
-                if availability is not None and not availability.is_available:
+                if not PlayerAvailability.is_available(player, round_):
                     schedule.append((round_, None, 'Unavailable', None))
                     continue
                 if team_member is not None:
@@ -1098,8 +1097,7 @@ class PlayerProfileView(LeagueView):
                 if bye is not None:
                     schedule.append((round_, None, bye.get_type_display(), None))
                     continue
-                availability = PlayerAvailability.objects.filter(round=round_, player=player).first()
-                if availability is not None and not availability.is_available:
+                if not PlayerAvailability.is_available(player, round_):
                     schedule.append((round_, None, 'Unavailable', None))
                     continue
                 if season_player is None or not season_player.is_active:
