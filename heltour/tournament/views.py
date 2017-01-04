@@ -1236,8 +1236,10 @@ class ScheduleView(LeagueView, UrlAuthMixin):
 
 class AlternatesView(SeasonView):
     def view(self):
-        round_ = alternates_manager.current_round(self.season)
+        if self.league.competitor_type != 'team':
+            raise Http404
 
+        round_ = alternates_manager.current_round(self.season)
         if round_ is None:
             context = {
                 'active_round': None
