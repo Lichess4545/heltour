@@ -149,7 +149,7 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
     # Send a DM to the opponent
     if pairing is not None:
         opponent = pairing.black if pairing.white_team() == team else pairing.white
-        if PlayerAvailability.is_available(opponent, round_):
+        if opponent.is_available_for(round_):
             message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
                                   % (_slack_user(opponent), _slack_user(player))
             _message_user(_slack_user(opponent), message_to_opponent)
@@ -235,7 +235,7 @@ def _notify_alternate_and_opponent(aa):
         return None
 
     opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
-    if not PlayerAvailability.is_available(opponent, aa.round):
+    if not opponent.is_available_for(aa.round):
         # Still looking for an alternate for the opponent
         message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                                + 'I am still searching for another alternate for you to play, please be patient.') \

@@ -1087,7 +1087,7 @@ class PlayerProfileView(LeagueView):
                     continue
                 if season_player is None or not season_player.is_active:
                     continue
-                if not PlayerAvailability.is_available(player, round_):
+                if not player.is_available_for(round_):
                     schedule.append((round_, None, 'Unavailable', None))
                     continue
                 if team_member is not None:
@@ -1099,7 +1099,7 @@ class PlayerProfileView(LeagueView):
                 if bye is not None:
                     schedule.append((round_, None, bye.get_type_display(), None))
                     continue
-                if not PlayerAvailability.is_available(player, round_):
+                if not player.is_available_for(round_):
                     schedule.append((round_, None, 'Unavailable', None))
                     continue
                 if season_player is None or not season_player.is_active:
@@ -1259,11 +1259,13 @@ class AlternatesView(SeasonView):
             if status == 'Waiting':
                 if alt.season_player.games_missed >= 2:
                     status = 'Red Card'
-                elif not PlayerAvailability.is_available(alt.season_player.player, round_):
+                elif not alt.season_player.player.is_available_for(round_):
                     status = 'Unavailable'
                 elif (round_.pairings.filter(white=alt.season_player.player) | round_.pairings.filter(black=alt.season_player.player)).exists():
                     status = 'Scheduled'
-            return (alt, alt.get_status_display(), date)
+            if status == 'Unresponsive':
+                status = 'Unresponsive'
+            return (alt, status, date)
 
         def alternate_board(n):
             all_alts = sorted(alternates.filter(board_number=n))

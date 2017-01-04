@@ -113,7 +113,7 @@
 						</thead>
 						<tbody>
 							<tr>
-								{% for board_number, alt_list in alternates_by_board %}
+								{% for board_number, eligible_alts, ineligible_alts in alternates_by_board %}
 								<td>
 									<table class="table">
 										{% for alt, status, date in eligible_alts %}

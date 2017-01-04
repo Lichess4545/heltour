@@ -497,6 +497,9 @@ class Player(_BaseModel):
         if account_status_changed:
             signals.player_account_status_changed.send(Player, instance=self, old_value=self.initial_account_status, new_value=self.account_status)
 
+    def is_available_for(self, round_):
+        return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
+
     @property
     def pairings(self):
         return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
@@ -1428,10 +1431,6 @@ class PlayerAvailability(_BaseModel):
     class Meta:
         verbose_name_plural = 'player availabilities'
 
-    @classmethod
-    def is_available(cls, player, round_):
-        return not PlayerAvailability.objects.filter(round=round_, player=player, is_available=False).exists()
-
     def __unicode__(self):
         return "%s" % self.player
 
@@ -1621,11 +1620,11 @@ class AlternateSearch(_BaseModel):
             team_pairing = self.team.get_teampairing(self.round)
             player_pairing = TeamPlayerPairing.objects.filter(team_pairing=team_pairing, board_number=self.board_number, result='', game_link='').nocache().first()
             return player_pairing is not None and \
-                    (player_pairing.white_team() == self.team and not PlayerAvailability.is_available(player_pairing.white, self.round) or \
-                    player_pairing.black_team() == self.team and not PlayerAvailability.is_available(player_pairing.black, self.round))
+                    (player_pairing.white_team() == self.team and not player_pairing.white.is_available_for(self.round) or \
+                    player_pairing.black_team() == self.team and not player_pairing.black.is_available_for(self.round))
         else:
             team_member = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
-            return team_member is not None and not PlayerAvailability.is_available(team_member.player, self.round)
+            return team_member is not None and not team_member.player.is_available_for(self.round)
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
