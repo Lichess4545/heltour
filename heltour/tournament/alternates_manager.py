@@ -62,13 +62,17 @@ def reset_alternate_search(season, round_, setting):
     if last_round is not None:
         for search in AlternateSearch.objects.filter(round=last_round, status__in=('started', 'all_contacted')):
             if search.still_needs_alternate():
-                search.status = 'failed'
-                search.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Alternate search failed')
+                    search.status = 'failed'
+                    search.save()
                 signals.alternate_search_failed.send(sender=do_alternate_search, season=season, team=search.team, \
                                                      board_number=search.board_number, round_=last_round)
             else:
-                search.status = 'cancelled'
-                search.save()
+                with reversion.create_revision():
+                    reversion.set_comment('Alternate search cancelled')
+                    search.status = 'cancelled'
+                    search.save()
 
     # Update the alternate board order, but only if it hasn't been updated within the past hour
     some_bucket = season.alternatebucket_set.first()

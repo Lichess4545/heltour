@@ -188,8 +188,10 @@ def update_slack_users(self):
     for p in Player.objects.all():
         in_slack_group = p.lichess_username.lower() in name_set
         if in_slack_group != p.in_slack_group:
-            p.in_slack_group = in_slack_group
-            p.save()
+            with reversion.create_revision():
+                reversion.set_comment('Joined slack.')
+                p.in_slack_group = in_slack_group
+                p.save()
 
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
