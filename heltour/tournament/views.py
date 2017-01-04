@@ -908,6 +908,9 @@ class LeagueDashboardView(LeagueView):
         alternate_players = set(alt.season_player.player for alt in alternates)
         unassigned_player_count = len(season_players - team_players - alternate_players)
 
+        alternate_search_round = alternates_manager.current_round(self.season)
+        alternate_search_count = len(alternates_manager.current_searches(alternate_search_round)) if alternate_search_round is not None else None
+
         last_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False).order_by('number').first()
         next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
 
@@ -916,6 +919,7 @@ class LeagueDashboardView(LeagueView):
             'season_list': season_list,
             'pending_reg_count': pending_reg_count,
             'unassigned_player_count': unassigned_player_count,
+            'alternate_search_count': alternate_search_count,
             'last_round': last_round,
             'next_round': next_round,
             'celery_down': uptime.celery.is_down
@@ -1246,13 +1250,13 @@ class AlternatesView(SeasonView):
             }
             return self.render('tournament/alternates.html', context)
 
-        active_searches = AlternateSearch.objects.filter(round=round_, is_active=True).order_by('date_created').select_related('team').nocache()
+        searches = alternates_manager.current_searches(round_)
         assignments = AlternateAssignment.objects.filter(round=round_).order_by('date_modified').select_related('team', 'player').nocache()
 
         def team_member(s):
             return TeamMember.objects.filter(team=s.team, board_number=s.board_number).first()
 
-        open_spots = [(s.board_number, s.team, team_member(s), s.date_created) for s in active_searches if s.still_needs_alternate()]
+        open_spots = [(s.board_number, s.team, team_member(s), s.date_created) for s in searches]
         filled_spots = [(aa.board_number, aa.team, aa.player, aa.date_modified) for aa in assignments]
 
         def with_status(alt):

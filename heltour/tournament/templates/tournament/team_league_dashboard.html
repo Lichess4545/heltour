@@ -51,6 +51,12 @@
 					<a href="{% url 'admin:manage_players' season.pk %}" class="btn btn-default">Edit Rosters</a>
 					<span class="dashboard-note">Unassigned players: {{ unassigned_player_count }}</span>
 				</div>
+				{% if alternate_search_count != None %}
+				<div class="dashboard-season-action">
+					<a href="{% leagueurl 'alternates' league.tag season.tag %}" class="btn btn-default">Alternate Searches</a>
+					<span class="dashboard-note">Open spots: {{ alternate_search_count }}</span>
+				</div>
+				{% endif %}
 				{% if next_round %}
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start Round {{ next_round.number }}</a>

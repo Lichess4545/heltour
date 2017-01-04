@@ -24,6 +24,10 @@ def current_round(season):
         return None
     return current
 
+def current_searches(round_):
+    active_searches = AlternateSearch.objects.filter(round=round_, is_active=True).order_by('date_created').select_related('team').nocache()
+    return [s for s in active_searches if s.still_needs_alternate()]
+
 def tick(season):
     round_ = current_round(season)
     if round_ is None:
