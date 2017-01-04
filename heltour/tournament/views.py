@@ -1255,12 +1255,21 @@ class AlternatesView(SeasonView):
 
         def with_status(alt):
             date = alt.last_contact_date if alt.status == 'contacted' else None
+            status = alt.get_status_display()
+            if status == 'Waiting':
+                if alt.season_player.games_missed >= 2:
+                    status = 'Red Card'
+                elif not PlayerAvailability.is_available(alt.season_player.player, round_):
+                    status = 'Unavailable'
+                elif (round_.pairings.filter(white=alt.season_player.player) | round_.pairings.filter(black=alt.season_player.player)).exists():
+                    status = 'Scheduled'
             return (alt, alt.get_status_display(), date)
 
         def alternate_board(n):
             all_alts = sorted(alternates.filter(board_number=n))
-            eligible_alts = [with_status(alt) for alt in all_alts if alt.status in ('waiting', 'contacted')]
-            ineligible_alts = [with_status(alt) for alt in all_alts if alt.status not in ('waiting', 'contacted')]
+            alts_with_status = [with_status(alt) for alt in all_alts]
+            eligible_alts = [(alt, status, date) for alt, status, date in alts_with_status if status in ('Waiting', 'Contacted')]
+            ineligible_alts = [(alt, status, date) for alt, status, date in alts_with_status if status not in ('Waiting', 'Contacted')]
             return (n, eligible_alts, ineligible_alts)
 
         alternates = Alternate.objects.filter(season_player__season=self.season) \
