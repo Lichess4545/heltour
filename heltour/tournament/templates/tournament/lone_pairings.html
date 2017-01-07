@@ -5,6 +5,12 @@
 
 {% block nav_pairings %}active{% endblock %}
 
+{% block js %}
+<script>
+setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row row-condensed-xs lone-pairings-row">
 	<div class="col-md-12">
