@@ -212,7 +212,7 @@ class DutchLonePairingSystem:
             # Ensure each player is in the correct acceleration group
             if round_.number == 1:
                 # Calculate all groups from scratch
-                group_1_size = int(2 * math.ceil(len(season_players) / 4))
+                group_1_size = int(2 * math.ceil(len(season_players) / 4.0))
                 sorted_players = sorted(season_players, key=lambda sp: sp.seed_rating, reverse=True)
                 for sp in sorted_players[:group_1_size]:
                     sp.loneplayerscore.acceleration_group = 1
