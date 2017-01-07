@@ -290,13 +290,15 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
     setting = PlayerNotificationSetting.get_or_default(player=player, type='alternate_needed', league=league, offset=None)
 
     # Send a DM to the alternate, regardless of settings
-    message = '@%s: A team needs an alternate this round. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' % (_slack_user(alternate.season_player), _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
+    round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
+    message = '@%s: A team needs an alternate for %s. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
+              % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
     _message_user(_slack_user(player), message)
 
     if setting.enable_lichess_mail:
         # Send a lichess message
         li_subject = 'Round %d - %s' % (round_.number, league.name)
-        li_msg = 'A team needs an alternate this round. Please check Slack for more information.\n' \
+        li_msg = 'A team needs an alternate for %s. Please check Slack for more information.\n' % round_str \
                + 'https://lichess4545.slack.com/messages/@chesster/'
         lichessapi.send_mail(_slack_user(player), li_subject, li_msg)
 
