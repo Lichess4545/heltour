@@ -604,6 +604,15 @@ div.inline {
 	background-color: #225622;
 }
 
+.league-homelink-red {
+	padding-left: 65px;
+	background: url(/static/tournament/img/power-lightning.png);
+	background-position: 15px 0px;
+	background-repeat: no-repeat;
+	background-size: 70px 70px;
+	background-color: #562222;
+}
+
 .navbar-brand {
 	padding-right: 5px;
 }

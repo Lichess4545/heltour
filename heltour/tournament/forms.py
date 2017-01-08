@@ -77,6 +77,18 @@ class RegistrationForm(forms.ModelForm):
             self.fields['can_commit'].label = _(u'Are you able to commit to 1 long time control game (30|30 currently) of classical chess on Lichess.org per week?')
             self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the LoneWolf League?')
             self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/lonewolf/document/rules/">Rules Document</a>')
+        if self.season.league.time_control == '3+2':
+            # Modifications for lonewolf
+            del self.fields['weeks_unavailable']
+            self.fields['classical_rating'].label = _(u'Your Lichess Blitz Rating?')
+            self.fields['peak_classical_rating'].label = _(u'Your Highest Peak Lichess Blitz Rating')
+            self.fields['has_played_20_games'].label = _(u'Have you played more than 20 rated games of blitz chess on lichess?')
+            self.fields['can_commit'].label = _(u'Are you able to commit to playing 8 rounds of 3+2 blitz games back to back on {} at {} UTC?'.format(
+                self.season.start_date.strftime("%b %d %Y"),
+                self.season.start_date.strftime("%H:%M:%S")
+            ))
+            self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the Blitz Battle League?')
+            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/blitzbattle/document/rules/">Rules Document</a>')
 
         if settings.DEBUG:
             del self.fields['captcha']

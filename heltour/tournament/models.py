@@ -62,6 +62,7 @@ class _BaseModel(models.Model):
 THEME_OPTIONS = (
     ('blue', 'Blue'),
     ('green', 'Green'),
+    ('red', 'Red'),
 )
 COMPETITOR_TYPE_OPTIONS = (
     ('team', 'Team'),
