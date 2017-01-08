@@ -7,6 +7,7 @@ from .models import *
 from django.core.exceptions import ValidationError
 from heltour import settings
 import captcha
+from django.core.urlresolvers import reverse
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -27,69 +28,85 @@ class RegistrationForm(forms.ModelForm):
             'lichess_username': _(u'Your Lichess Username'),
             'slack_username': _(u'Your Slack Username'),
             'email': _(u'Your Email'),
-            'classical_rating': _(u'Your Lichess Classical Rating'),
-            'peak_classical_rating': _(u'Your Highest Peak Lichess Classical Rating'),
-            'alternate_preference': _(u'Are you interested in being an alternate or a full time player?'),
-            'previous_season_alternate': _(u'Were you an alternate for the previous season?'),
-            'friends': _(u'Are there any friends you would like to be paired with?'),
         }
         help_texts = {
             'slack_username': _(u"Please, it should be the same. If you aren't on our Slack yet, please fill in N/A."),
-            'friends': _(u'Note: All players must register. All players must join Slack. All players should also request each other.'),
-        }
-        widgets = {
-            'has_played_20_games': forms.RadioSelect(choices=YES_NO_OPTIONS),
-            'already_in_slack_group': forms.RadioSelect(choices=YES_NO_OPTIONS),
-            'previous_season_alternate': forms.RadioSelect(),
-            'can_commit': forms.RadioSelect(choices=YES_NO_OPTIONS),
-            'agreed_to_rules': forms.RadioSelect(choices=YES_NO_OPTIONS),
-            'alternate_preference': forms.RadioSelect(),
         }
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
+        league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
-        weeks = [(r.number, 'Week %s (%s - %s)' %
-                            (r.number, r.start_date.strftime('%b %-d') if r.start_date is not None else '?', r.end_date.strftime('%b %-d') if r.end_date is not None else '?'))
-                 for r in self.season.round_set.order_by('number')]
-        self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would NOT be able to play?'),
-                                                                     choices=weeks, widget=forms.CheckboxSelectMultiple)
-        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, label=_(u'Have you played more than 20 rated games of classical chess on Lichess?'),
-                                                                    help_text=_(u'If no, this must be fulfilled ASAP.'), choices=YES_NO_OPTIONS,
-                                                                    widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        # Rating fields
+        rating_type = league.get_rating_type_display()
+        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Lichess %s Rating' % rating_type))
+        self.fields['peak_classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Highest Peak Lichess %s Rating' % rating_type))
+
+        # 20 games
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
+                                                                    label=_(u'Have you played more than 20 rated games of %s chess on Lichess?' % rating_type.lower()),
+                                                                    help_text=_(u'If no, this must be fulfilled ASAP.'),)
+
+        # In slack
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS,
                                                                        widget=forms.RadioSelect, coerce=lambda x: x == 'True')
-        self.fields['previous_season_alternate'].choices = PREVIOUS_SEASON_ALTERNATE_OPTIONS
-        self.fields['can_commit'] = forms.TypedChoiceField(required=True, label=_(u'Are you able to commit to 1 long time control game (45|45 currently) of classical chess on Lichess.org per week?'),
-                                                           choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
-        # TODO: This rules link should be specified in the league object.
-        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the 45|45 League?'),
-                                                                help_text=_(u'<a target="_blank" href="https://www.lichess4545.com/team4545/document/rules/">Rules Document</a>'),
-                                                                choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
-        self.fields['alternate_preference'].choices = ALTERNATE_PREFERENCE_OPTIONS
 
-        if self.season.league.competitor_type != 'team':
-            # Modifications for lonewolf
-            del self.fields['alternate_preference']
+        # Previous season status
+        if league.competitor_type == 'team':
+            self.fields['previous_season_alternate'] = forms.ChoiceField(required=True, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS, widget=forms.RadioSelect,
+                                                                         label=_(u'Were you an alternate for the previous season?'))
+        else:
             del self.fields['previous_season_alternate']
-            del self.fields['friends']
-            self.fields['can_commit'].label = _(u'Are you able to commit to 1 long time control game (30|30 currently) of classical chess on Lichess.org per week?')
-            self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the LoneWolf League?')
-            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/lonewolf/document/rules/">Rules Document</a>')
-        if self.season.league.time_control == '3+2':
-            # Modifications for lonewolf
-            del self.fields['weeks_unavailable']
-            self.fields['classical_rating'].label = _(u'Your Lichess Blitz Rating?')
-            self.fields['peak_classical_rating'].label = _(u'Your Highest Peak Lichess Blitz Rating')
-            self.fields['has_played_20_games'].label = _(u'Have you played more than 20 rated games of blitz chess on lichess?')
-            self.fields['can_commit'].label = _(u'Are you able to commit to playing 8 rounds of 3+2 blitz games back to back on {} at {} UTC?'.format(
-                self.season.start_date.strftime("%b %d %Y"),
-                self.season.start_date.strftime("%H:%M:%S")
-            ))
-            self.fields['agreed_to_rules'].label = _(u'Do you agree to the rules of the Blitz Battle League?')
-            self.fields['agreed_to_rules'].help_text = _(u'<a target="_blank" href="https://www.lichess4545.com/blitzbattle/document/rules/">Rules Document</a>')
 
+        # Can commit
+        time_control = league.time_control
+        if league.rating_type == 'classical':
+            self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
+                   label=_(u'Are you able to commit to 1 long time control game (%s currently) of classical chess on Lichess.org per week?' % time_control))
+        else:
+            self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
+                   label=_(u'Are you able to commit to playing %d rounds of %s blitz games back to back on %s at %s UTC?'
+                           % (self.season.rounds, time_control, self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))))
+        # Friends
+        if league.competitor_type == 'team':
+            self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),
+                                                     help_text=_(u'Note: All players must register. All players must join Slack. All players should also request each other.'))
+        else:
+            del self.fields['friends']
+
+        # Agree to rules
+        rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
+        if rules_doc is not None:
+            league_name = league.name
+            if not league_name.endswith('League'):
+                league_name += ' League'
+            doc_url = reverse('by_league:document', args=[league.tag, rules_doc.tag])
+            self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the %s?' % league_name),
+                                                                    help_text=_(u'<a target="_blank" href="%s">Rules Document</a>' % doc_url),
+                                                                    choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+        else:
+            del self.fields['agreed_to_rules']
+
+        # Alternate preference
+        if league.competitor_type == 'team':
+            self.fields['alternate_preference'] = forms.ChoiceField(required=True, choices=ALTERNATE_PREFERENCE_OPTIONS, widget=forms.RadioSelect,
+                                                                    label=_(u'Are you interested in being an alternate or a full time player?'),
+                                                                    help_text=_(u'If you register late, you may start as an alternate anyway.'))
+        else:
+            del self.fields['alternate_preference']
+
+        # Weeks unavailable
+        if self.season.round_duration == timedelta(days=7):
+            weeks = [(r.number, 'Week %s (%s - %s)' %
+                                (r.number, r.start_date.strftime('%b %-d') if r.start_date is not None else '?', r.end_date.strftime('%b %-d') if r.end_date is not None else '?'))
+                     for r in self.season.round_set.order_by('number')]
+            self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would NOT be able to play?'),
+                                                                         choices=weeks, widget=forms.CheckboxSelectMultiple)
+        else:
+            del self.fields['weeks_unavailable']
+
+        # Captcha
         if settings.DEBUG:
             del self.fields['captcha']
 
