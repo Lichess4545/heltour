@@ -1623,8 +1623,15 @@ class AlternateSearch(_BaseModel):
                     (player_pairing.white_team() == self.team and not player_pairing.white.is_available_for(self.round) or \
                     player_pairing.black_team() == self.team and not player_pairing.black.is_available_for(self.round))
         else:
-            team_member = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
-            return team_member is not None and not team_member.player.is_available_for(self.round)
+            player = None
+            aa = AlternateAssignment.objects.filter(round=self.round, team=self.team, board_number=self.board_number).first()
+            if aa is not None:
+                player = aa.player
+            else:
+                team_member = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
+                if team_member is not None:
+                    player = team_member.player
+            return player is not None and not player.is_available_for(self.round)
 
     def __unicode__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
