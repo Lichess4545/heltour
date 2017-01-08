@@ -1246,11 +1246,11 @@ class Registration(_BaseModel):
     peak_classical_rating = models.PositiveIntegerField()
     has_played_20_games = models.BooleanField()
     already_in_slack_group = models.BooleanField()
-    previous_season_alternate = models.CharField(max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
+    previous_season_alternate = models.CharField(blank=True, max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
-    alternate_preference = models.CharField(max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
+    alternate_preference = models.CharField(blank=True, max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
@@ -1282,7 +1282,6 @@ class SeasonPlayer(_BaseModel):
 
     class Meta:
         unique_together = ('season', 'player')
-        ordering = ['-player__rating']
 
     def __init__(self, *args, **kwargs):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
