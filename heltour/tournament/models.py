@@ -64,6 +64,10 @@ THEME_OPTIONS = (
     ('green', 'Green'),
     ('red', 'Red'),
 )
+RATING_TYPE_OPTIONS = (
+    ('classical', 'Classical'),
+    ('blitz', 'Blitz'),
+)
 COMPETITOR_TYPE_OPTIONS = (
     ('team', 'Team'),
     ('individual', 'Individual'),
@@ -80,6 +84,7 @@ class League(_BaseModel):
     theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
     display_order = models.PositiveIntegerField(default=0)
     time_control = models.CharField(max_length=32, blank=True)
+    rating_type = models.CharField(max_length=32, choices=RATING_TYPE_OPTIONS)
     competitor_type = models.CharField(max_length=32, choices=COMPETITOR_TYPE_OPTIONS)
     pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
     is_active = models.BooleanField(default=True)
@@ -1277,6 +1282,7 @@ class SeasonPlayer(_BaseModel):
 
     class Meta:
         unique_together = ('season', 'player')
+        ordering = ['-player__rating']
 
     def __init__(self, *args, **kwargs):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
