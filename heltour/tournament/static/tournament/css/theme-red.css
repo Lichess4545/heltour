@@ -23,7 +23,7 @@
 .navbar .navbar-nav > .open > a,
 .navbar .navbar-nav > .open > a:hover,
 .navbar .navbar-nav > .open > a:focus {
-	background-color: #946986;
+	background-color: #946976;
 	color: #ffffff;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .well-head {
-	background-color: #946986;
+	background-color: #946976;
 	color: #ffffff;
 	padding: 3px 15px 3px 15px;
 }
@@ -68,7 +68,7 @@
 
 
 .btn-primary {
-	background: linear-gradient(#694986, #562222);
+	background: linear-gradient(#694966, #562222);
 	border-color: #562222;
 	color: #ffffff;
 }
