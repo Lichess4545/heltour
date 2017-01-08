@@ -114,6 +114,7 @@ class Season(_BaseModel):
     tag = models.SlugField(help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
+    round_duration = models.DurationField(default=timedelta(days=7))
     boards = models.PositiveIntegerField(blank=True, null=True)
     playoffs = models.PositiveIntegerField(default=0, choices=PLAYOFF_OPTIONS)
 
@@ -132,6 +133,7 @@ class Season(_BaseModel):
     def __init__(self, *args, **kwargs):
         super(Season, self).__init__(*args, **kwargs)
         self.initial_rounds = self.rounds
+        self.initial_round_duration = self.round_duration
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
@@ -143,6 +145,7 @@ class Season(_BaseModel):
         # TODO: Add validation to prevent changes after a certain point
         new_obj = self.pk is None
         rounds_changed = self.pk is None or self.rounds != self.initial_rounds
+        round_duration_changed = self.pk is None or self.round_duration != self.initial_round_duration
         start_date_changed = self.pk is None or self.start_date != self.initial_start_date
         is_completed_changed = self.pk is None or self.is_completed != self.initial_is_completed
 
@@ -150,11 +153,10 @@ class Season(_BaseModel):
             self.registration_open = False
         super(Season, self).save(*args, **kwargs)
 
-        if rounds_changed or start_date_changed:
+        if rounds_changed or round_duration_changed or start_date_changed:
             date = self.start_date
             for round_num in range(1, self.rounds + 1):
-                # TODO: Allow round duration to be customized
-                next_date = date + timedelta(days=7) if date is not None else None
+                next_date = date + self.round_duration if date is not None else None
                 Round.objects.update_or_create(season=self, number=round_num, defaults={'start_date': date, 'end_date': next_date})
                 date = next_date
 
