@@ -817,7 +817,7 @@ class TeamScore(_BaseModel):
         return "%g" % self.game_points
 
     def pairing_sort_key(self):
-        return (self.match_points, self.game_points, self.team.seed_rating)
+        return (self.playoff_score, self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score, self.team.seed_rating)
 
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()
