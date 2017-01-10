@@ -788,7 +788,7 @@ class StatsView(SeasonView):
             rating_delta_average = abs_rating_delta / total
             rating_delta_counts = tuple(rating_delta_counts)
             rating_delta_percents = tuple((c / total for c in rating_delta_counts))
-            upset_percents = tuple((c1 / float(c2) for c1, c2 in zip(upset_counts, rating_delta_counts)))
+            upset_percents = tuple((c1 / float(c2) if c2 > 0 else 0 for c1, c2 in zip(upset_counts, rating_delta_counts)))
 
             context = {
                 'has_win_rate_stats': win_counts != (0, 0, 0, 0),
