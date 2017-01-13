@@ -1,21 +1,27 @@
-from django.shortcuts import get_object_or_404, render, redirect
-from django.http.response import Http404, JsonResponse
-from django.utils import timezone
-from datetime import timedelta
-from .models import *
-from .forms import *
-from heltour.tournament.templatetags.tournament_extras import leagueurl
-import itertools
-from django.db.models.query import Prefetch
 from collections import defaultdict
-from decorators import cached_as
-import re
-from django.views.generic import View
-from django.core.mail.message import EmailMessage
+from datetime import timedelta
+from icalendar import Calendar, Event
+
+import itertools
 import json
-import reversion
 import math
+import re
+import reversion
+
+from decorators import cached_as
+from django.core.mail.message import EmailMessage
+from django.db.models.query import Prefetch
+from django.http.response import Http404, JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, render, redirect
+from django.utils import timezone
+from django.views.generic import View
+from django.utils.text import slugify
+
 from heltour.tournament import slackapi, alternates_manager, uptime
+from heltour.tournament.templatetags.tournament_extras import leagueurl
+from .forms import *
+from .models import *
+
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
@@ -330,57 +336,60 @@ class PairingsView(SeasonView):
         else:
             return self.lone_view(round_number, team_number)
 
+    def get_team_context(self, league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
+        specified_round = round_number is not None
+        round_number_list = [round_.number for round_ in Round.objects.filter(season=self.season, publish_pairings=True).order_by('-number')]
+        if round_number is None:
+            try:
+                round_number = round_number_list[0]
+            except IndexError:
+                pass
+        team_list = self.season.team_set.order_by('name')
+        team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=self.season) \
+                                           .order_by('pairing_order') \
+                                           .select_related('white_team', 'black_team') \
+                                           .nocache()
+        if team_number is not None:
+            current_team = get_object_or_404(team_list, number=team_number)
+            team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
+        else:
+            current_team = None
+        pairing_lists = [list(
+                              team_pairing.teamplayerpairing_set.order_by('board_number')
+                                          .select_related('white', 'black')
+                                          .nocache()
+                        ) for team_pairing in team_pairings]
+        unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round__number=round_number, is_available=False) \
+                                                                             .select_related('player')
+                                                                             .nocache()}
+        captains = {tm.player for tm in TeamMember.objects.filter(team__season=self.season, is_captain=True)}
+
+        # Show the legend if at least one the players in the visible pairings is unavailable
+        show_legend = len(unavailable_players & ({p.white for plist in pairing_lists for p in plist} | {p.black for plist in pairing_lists for p in plist})) > 0
+
+        return {
+            'round_number': round_number,
+            'round_number_list': round_number_list,
+            'current_team': current_team,
+            'team_list': team_list,
+            'pairing_lists': pairing_lists,
+            'captains': captains,
+            'unavailable_players': unavailable_players,
+            'show_legend': show_legend,
+            'specified_round': specified_round,
+            'specified_team': team_number is not None,
+            'can_edit': can_change_pairing
+        }
+
     def team_view(self, round_number=None, team_number=None):
         @cached_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, TeamPlayerPairing,
                    PlayerPairing, *common_team_models)
         def _view(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
-            specified_round = round_number is not None
-            round_number_list = [round_.number for round_ in Round.objects.filter(season=self.season, publish_pairings=True).order_by('-number')]
-            if round_number is None:
-                try:
-                    round_number = round_number_list[0]
-                except IndexError:
-                    pass
-            team_list = self.season.team_set.order_by('name')
-            team_pairings = TeamPairing.objects.filter(round__number=round_number, round__season=self.season) \
-                                               .order_by('pairing_order') \
-                                               .select_related('white_team', 'black_team') \
-                                               .nocache()
-            if team_number is not None:
-                current_team = get_object_or_404(team_list, number=team_number)
-                team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
-            else:
-                current_team = None
-            pairing_lists = [list(
-                                  team_pairing.teamplayerpairing_set.order_by('board_number')
-                                              .select_related('white', 'black')
-                                              .nocache()
-                            ) for team_pairing in team_pairings]
-            unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round__number=round_number, is_available=False) \
-                                                                                 .select_related('player')
-                                                                                 .nocache()}
-            captains = {tm.player for tm in TeamMember.objects.filter(team__season=self.season, is_captain=True)}
-
-            # Show the legend if at least one the players in the visible pairings is unavailable
-            show_legend = len(unavailable_players & ({p.white for plist in pairing_lists for p in plist} | {p.black for plist in pairing_lists for p in plist})) > 0
-
-            context = {
-                'round_number': round_number,
-                'round_number_list': round_number_list,
-                'current_team': current_team,
-                'team_list': team_list,
-                'pairing_lists': pairing_lists,
-                'captains': captains,
-                'unavailable_players': unavailable_players,
-                'show_legend': show_legend,
-                'specified_round': specified_round,
-                'specified_team': team_number is not None,
-                'can_edit': can_change_pairing
-            }
+            context = self.get_team_context(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing)
             return self.render('tournament/team_pairings.html', context)
         return _view(self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.has_perm('tournament.change_pairing'))
 
-    def lone_view(self, round_number=None, team_number=None):
+    def get_lone_context(self, round_number=None, team_number=None):
         specified_round = round_number is not None
         round_number_list = [round_.number for round_ in Round.objects.filter(season=self.season, publish_pairings=True).order_by('-number')]
         if round_number is None:
@@ -445,7 +454,75 @@ class PairingsView(SeasonView):
             'duplicate_players': duplicate_players,
             'can_edit': self.request.user.has_perm('tournament.change_pairing')
         }
+
+    def lone_view(self, round_number=None, team_number=None):
+        context = self.get_lone_context(round_number, team_number)
         return self.render('tournament/lone_pairings.html', context)
+
+class ICalPairingsView(PairingsView):
+    def view(self, round_number=None, team_number=None):
+        if self.league.competitor_type == 'team':
+            return self.team_view(round_number, team_number)
+        else:
+            return self.lone_view(round_number, team_number)
+
+    def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
+        cal = Calendar()
+        cal.add('prodid', '-//{}//www.lichess4545.com//'.format(calendar_title))
+        cal.add('version', '2.0')
+
+        for pairing in pairings:
+            ical_event = Event()
+            ical_event.add('summary', '{} vs {}'.format(
+                pairing.white_team_player().lichess_username,
+                pairing.black_team_player().lichess_username,
+            ))
+            ical_event.add('dtstart', pairing.scheduled_time)
+            ical_event.add('dtend', pairing.scheduled_time + timedelta(hours=3))
+            ical_event.add('dtstamp', pairing.scheduled_time + timedelta(hours=3))
+            ical_event['uid'] = 'lichess4545.{}.events.{}'.format(
+                    uid_component,
+                    pairing.id,
+                )
+            cal.add_component(ical_event)
+
+        response = HttpResponse(cal.to_ical(), content_type="text/calendar")
+        response['Content-Disposition'] = 'attachment; filename={}.ics'.format(
+            slugify(calendar_title)
+        )
+        return response
+
+    def team_view(self, round_number=None, team_number=None):
+        context = self.get_team_context(self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.has_perm('tournament.change_pairing'))
+        calendar_title = ""
+        if context['current_team']:
+            calendar_title = "{} Games".format(context['current_team'])
+            uid_component = slugify(context['current_team'].name)
+        else:
+            calendar_title = "Lichess 45+45 Games"
+            uid_component = 'all'
+        full_pairings_list = []
+        for pairing_list in context['pairing_lists']:
+            for pairing in pairing_list:
+                if pairing.scheduled_time is None:
+                    continue
+                full_pairings_list.append(pairing)
+        return self.ical_from_pairings_list(full_pairings_list, calendar_title, uid_component)
+
+    def lone_view(self, round_number=None, team_number=None):
+        context = self.get_lone_context(round_number, team_number)
+        calendar_title = "Lonewolf Pairings"
+        uid_component = 'all'
+
+        full_pairings_list = []
+        for pairing, error in pairing_list:
+            if error:
+                continue
+            if pairing.scheduled_time is None:
+                continue
+            full_pairings_list.append(pairing)
+        return self.ical_from_pairings_list(full_pairings_list, calendar_title, uid_component)
+
 
 class RegisterView(LeagueView):
     def view(self, post=False):
