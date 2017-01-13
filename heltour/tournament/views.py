@@ -444,7 +444,7 @@ class PairingsView(SeasonView):
         pairings = [(p, pairing_error(p)) for p in pairings]
         byes = [(b, bye_error(b)) for b in byes]
 
-        context = {
+        return {
             'round_': round_,
             'round_number_list': round_number_list,
             'pairings': pairings,
@@ -474,8 +474,8 @@ class ICalPairingsView(PairingsView):
         for pairing in pairings:
             ical_event = Event()
             ical_event.add('summary', '{} vs {}'.format(
-                pairing.white_team_player().lichess_username,
-                pairing.black_team_player().lichess_username,
+                pairing.white.lichess_username,
+                pairing.black.lichess_username,
             ))
             ical_event.add('dtstart', pairing.scheduled_time)
             ical_event.add('dtend', pairing.scheduled_time + timedelta(hours=3))
@@ -515,7 +515,7 @@ class ICalPairingsView(PairingsView):
         uid_component = 'all'
 
         full_pairings_list = []
-        for pairing, error in pairing_list:
+        for pairing, error in context['pairings']:
             if error:
                 continue
             if pairing.scheduled_time is None:
