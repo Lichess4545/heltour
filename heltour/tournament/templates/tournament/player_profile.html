@@ -13,6 +13,7 @@
 			<div class="well-body">
 				<div>Classical rating: {{ player.rating }}</div>
 				<div><a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a></div>
+				<div><a href="{% url 'player_icalendar' player.lichess_username %}">Calendar</a></div>
 				{% if can_edit %}
 				<div>
 					<a href="{% url 'admin:tournament_player_change' player.pk %}?_popup=1" id="change-player-{{ player.pk }}" class="popup-link" title="Change player">

@@ -104,6 +104,47 @@ class UrlAuthMixin:
             expired_auth.delete()
         return username, player
 
+class ICalMixin:
+    def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
+        cal = Calendar()
+        cal.add('prodid', '-//{}//www.lichess4545.com//'.format(calendar_title))
+        cal.add('version', '2.0')
+
+        has_league = hasattr(self, 'league')
+        league = self.league if has_league else None
+
+        for pairing in pairings:
+            if not has_league:
+                round_ = pairing.get_round()
+                if not round_:
+                    continue
+                league = round_.season.league
+            time_control_seconds = league.time_control_total()
+            if time_control_seconds:
+                game_duration = timedelta(seconds=time_control_seconds * 2)
+            else:
+                game_duration = timedelta(hours=3)
+
+            ical_event = Event()
+            ical_event.add('summary', '{} vs {}'.format(
+                pairing.white.lichess_username,
+                pairing.black.lichess_username,
+            ))
+            ical_event.add('dtstart', pairing.scheduled_time)
+            ical_event.add('dtend', pairing.scheduled_time + game_duration)
+            ical_event.add('dtstamp', pairing.scheduled_time + game_duration)
+            ical_event['uid'] = 'lichess4545.{}.events.{}'.format(
+                    uid_component,
+                    pairing.id,
+                )
+            cal.add_component(ical_event)
+
+        response = HttpResponse(cal.to_ical(), content_type="text/calendar")
+        response['Content-Disposition'] = 'attachment; filename={}.ics'.format(
+            slugify(calendar_title)
+        )
+        return response
+
 #-------------------------------------------------------------------------------
 # Actual views
 
@@ -459,45 +500,12 @@ class PairingsView(SeasonView):
         context = self.get_lone_context(round_number, team_number)
         return self.render('tournament/lone_pairings.html', context)
 
-class ICalPairingsView(PairingsView):
+class ICalPairingsView(PairingsView, ICalMixin):
     def view(self, round_number=None, team_number=None):
         if self.league.competitor_type == 'team':
             return self.team_view(round_number, team_number)
         else:
             return self.lone_view(round_number, team_number)
-
-    def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
-        cal = Calendar()
-        cal.add('prodid', '-//{}//www.lichess4545.com//'.format(calendar_title))
-        cal.add('version', '2.0')
-
-        if self.league.time_control_initial() != None and self.league.time_control_increment() != None:
-            expected_move_count = 60
-            seconds_per_player = self.league.time_control_initial() + self.league.time_control_increment() * expected_move_count
-            game_duration = timedelta(seconds=seconds_per_player * 2)
-        else:
-            game_duration = timedelta(hours=3)
-
-        for pairing in pairings:
-            ical_event = Event()
-            ical_event.add('summary', '{} vs {}'.format(
-                pairing.white.lichess_username,
-                pairing.black.lichess_username,
-            ))
-            ical_event.add('dtstart', pairing.scheduled_time)
-            ical_event.add('dtend', pairing.scheduled_time + game_duration)
-            ical_event.add('dtstamp', pairing.scheduled_time + game_duration)
-            ical_event['uid'] = 'lichess4545.{}.events.{}'.format(
-                    uid_component,
-                    pairing.id,
-                )
-            cal.add_component(ical_event)
-
-        response = HttpResponse(cal.to_ical(), content_type="text/calendar")
-        response['Content-Disposition'] = 'attachment; filename={}.ics'.format(
-            slugify(calendar_title)
-        )
-        return response
 
     def team_view(self, round_number=None, team_number=None):
         context = self.get_team_context(self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.has_perm('tournament.change_pairing'))
@@ -530,6 +538,13 @@ class ICalPairingsView(PairingsView):
             full_pairings_list.append(pairing)
         return self.ical_from_pairings_list(full_pairings_list, calendar_title, uid_component)
 
+class ICalPlayerView(BaseView, ICalMixin):
+    def view(self, username):
+        player = get_object_or_404(Player, lichess_username__iexact=username)
+        calendar_title = "{} Chess Games".format(player.lichess_username)
+        uid_component = 'all'
+        pairings = player.pairings.exclude(scheduled_time=None)
+        return self.ical_from_pairings_list(pairings, calendar_title, uid_component)
 
 class RegisterView(LeagueView):
     def view(self, post=False):

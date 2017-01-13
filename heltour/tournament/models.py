@@ -102,6 +102,14 @@ class League(_BaseModel):
             return None
         return int(parts[1])
 
+    def time_control_total(self):
+        initial = self.time_control_initial()
+        increment = self.time_control_increment() or 0
+        if not initial:
+            return None
+        expected_moves = 60
+        return initial + increment * expected_moves
+
     def __unicode__(self):
         return self.name
 
