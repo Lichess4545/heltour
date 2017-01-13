@@ -671,6 +671,19 @@ div.inline {
 	color: black;
 }
 
+.table-menu {
+	text-align: right;
+}
+
+.table-menu .dropdown-toggle {
+	color: black;
+	padding: 5px 4px 5px 2px;
+}
+
+.table-menu .dropdown-toggle:hover {
+	background-color: #ddd;
+}
+
 @media (min-width: 768px) {
 	.podium {
 		display: flex;

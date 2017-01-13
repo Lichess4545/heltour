@@ -48,7 +48,22 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 						<th>BLACK</th>
 						<th class="text-center hidden-xs">RESULT</th>
 						<th class="text-center visible-xs">RS</th>
-						<th>TIME</th>{% if can_edit %}
+						<th class="table-menu">
+							<div class="dropdown">
+							    <a class="dropdown-toggle" data-toggle="dropdown">
+							    	<span class="caret"></span>
+							    </a>
+							    <ul class="dropdown-menu dropdown-menu-right">
+								    <li>
+								    	{% if current_team %}
+								    	<a href="{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
+								    	{% else %}
+								    	<a href="{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
+								    	{% endif %}
+							    	</li>
+							    </ul>
+							</div>
+						</th>{% if can_edit %}
 						<th></th>
 						<th></th>{% endif %}
 					</tr>

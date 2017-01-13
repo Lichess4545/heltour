@@ -80,7 +80,24 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 								{{ pairing_list.0.team_pairing.black_team_name }}
 							</a>
 						</th>
-						<th class="cell-time">&nbsp;</th>{% if can_edit %}
+						<th class="cell-time table-menu">
+							{% if forloop.counter == 1 %}
+							<div class="dropdown">
+							    <a class="dropdown-toggle" data-toggle="dropdown">
+							    	<span class="caret"></span>
+							    </a>
+							    <ul class="dropdown-menu dropdown-menu-right">
+								    <li>
+								    	{% if current_team %}
+								    	<a href="{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
+								    	{% else %}
+								    	<a href="{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
+								    	{% endif %}
+							    	</li>
+							    </ul>
+							</div>
+							{% endif %}
+						</th>{% if can_edit %}
 						<th class="cell-edit">&nbsp;</th>{% endif %}
 					</tr>
 					{% for pairing in pairing_list %}
