@@ -471,6 +471,13 @@ class ICalPairingsView(PairingsView):
         cal.add('prodid', '-//{}//www.lichess4545.com//'.format(calendar_title))
         cal.add('version', '2.0')
 
+        if self.league.time_control_initial() != None and self.league.time_control_increment() != None:
+            expected_move_count = 60
+            seconds_per_player = self.league.time_control_initial() + self.league.time_control_increment() * expected_move_count
+            game_duration = timedelta(seconds=seconds_per_player * 2)
+        else:
+            game_duration = timedelta(hours=3)
+
         for pairing in pairings:
             ical_event = Event()
             ical_event.add('summary', '{} vs {}'.format(
@@ -478,8 +485,8 @@ class ICalPairingsView(PairingsView):
                 pairing.black.lichess_username,
             ))
             ical_event.add('dtstart', pairing.scheduled_time)
-            ical_event.add('dtend', pairing.scheduled_time + timedelta(hours=3))
-            ical_event.add('dtstamp', pairing.scheduled_time + timedelta(hours=3))
+            ical_event.add('dtend', pairing.scheduled_time + game_duration)
+            ical_event.add('dtstamp', pairing.scheduled_time + game_duration)
             ical_event['uid'] = 'lichess4545.{}.events.{}'.format(
                     uid_component,
                     pairing.id,
@@ -499,7 +506,7 @@ class ICalPairingsView(PairingsView):
             calendar_title = "{} Games".format(context['current_team'])
             uid_component = slugify(context['current_team'].name)
         else:
-            calendar_title = "Lichess 45+45 Games"
+            calendar_title = "{} Games".format(self.league.name)
             uid_component = 'all'
         full_pairings_list = []
         for pairing_list in context['pairing_lists']:
@@ -511,7 +518,7 @@ class ICalPairingsView(PairingsView):
 
     def lone_view(self, round_number=None, team_number=None):
         context = self.get_lone_context(round_number, team_number)
-        calendar_title = "Lonewolf Pairings"
+        calendar_title = "{} Games".format(self.league.name)
         uid_component = 'all'
 
         full_pairings_list = []
