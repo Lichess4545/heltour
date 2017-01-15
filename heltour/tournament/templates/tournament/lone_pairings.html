@@ -55,11 +55,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 							    </a>
 							    <ul class="dropdown-menu dropdown-menu-right">
 								    <li>
-								    	{% if current_team %}
-								    	<a href="{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
-								    	{% else %}
-								    	<a href="{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
-								    	{% endif %}
+								    	<a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
 							    	</li>
 							    </ul>
 							</div>
