@@ -939,7 +939,7 @@ class PlayerAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'send_contact_emails')
+    list_display = ('__unicode__', 'is_active', 'send_contact_emails')
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)

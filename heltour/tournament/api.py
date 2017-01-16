@@ -363,7 +363,7 @@ def get_league_moderators(request):
     if not league_tag:
         return HttpResponse('Bad request', status=400)
 
-    moderator_names = [lm.player.lichess_username for lm in LeagueModerator.objects.filter(league__tag=league_tag)]
+    moderator_names = [lm.player.lichess_username for lm in LeagueModerator.objects.filter(league__tag=league_tag, is_active=True)]
 
     return JsonResponse({'moderators': moderator_names})
 

@@ -534,6 +534,7 @@ class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
+    is_active = models.BooleanField(default=True)
     send_contact_emails = models.BooleanField(default=True)
 
     class Meta:
