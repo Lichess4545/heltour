@@ -32,6 +32,7 @@ def update_player_ratings(self):
             # Remove the player from the dict
             p = player_dict.pop(username, None)
             if p is not None:
+                p.refresh_from_db()
                 p.rating, p.games_played = rating, games_played
                 p.save()
 
@@ -39,6 +40,7 @@ def update_player_ratings(self):
     for username, p in sorted(player_dict.items()):
         try:
             user_info = lichessapi.get_user_info(username, priority=0, timeout=300)
+            p.refresh_from_db()
             p.rating = user_info.rating
             p.games_played = user_info.games_played
             p.account_status = user_info.status
