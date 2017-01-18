@@ -503,6 +503,28 @@ class Player(_BaseModel):
 
     profile = JSONField(blank=True, null=True)
 
+    @property
+    def blitz_rating(self):
+        if self.profile is None:
+            return None
+        blitz = self.profile['perfs'].get('blitz')
+        if blitz is None:
+            return None
+        return blitz.get('rating')
+
+    @property
+    def blitz_games_played(self):
+        if self.profile is None:
+            return None
+        blitz = self.profile['perfs'].get('blitz')
+        if blitz is None:
+            return None
+        return blitz.get('games')
+
+    @property
+    def pairings(self):
+        return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
+
     class Meta:
         ordering = ['lichess_username']
 
@@ -530,9 +552,10 @@ class Player(_BaseModel):
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
 
-    @property
-    def pairings(self):
-        return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
+    def rating_for(self, league):
+        if league is not None and league.rating_type == 'blitz':
+            return self.blitz_rating
+        return self.rating # classical
 
     def __unicode__(self):
         if self.rating is None:
@@ -668,11 +691,11 @@ class PlayerBye(_BaseModel):
         self.initial_player_id = self.player_id
         self.initial_type = self.type
 
-    def player_rating_display(self):
+    def player_rating_display(self, league=None):
         if self.player_rating is not None:
             return self.player_rating
         else:
-            return self.player.rating
+            return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
         if rank_dict == None:
@@ -795,11 +818,11 @@ class TeamMember(_BaseModel):
         super(TeamMember, self).__init__(*args, **kwargs)
         self.initial_player_id = self.player_id
 
-    def player_rating_display(self):
+    def player_rating_display(self, league=None):
         if self.player_rating is not None:
             return self.player_rating
         else:
-            return self.player.rating
+            return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
         player_changed = self.pk is None or self.player_id != self.initial_player_id
@@ -1027,19 +1050,19 @@ class PlayerPairing(_BaseModel):
         self.initial_game_link = self.game_link
         self.initial_scheduled_time = self.scheduled_time
 
-    def white_rating_display(self):
+    def white_rating_display(self, league=None):
         if self.white_rating is not None:
             return self.white_rating
         elif self.white is not None:
-            return self.white.rating
+            return self.white.rating_for(league)
         else:
             return None
 
-    def black_rating_display(self):
+    def black_rating_display(self, league=None):
         if self.black_rating is not None:
             return self.black_rating
         elif self.black is not None:
-            return self.black.rating
+            return self.black.rating_for(league)
         else:
             return None
 
@@ -1311,11 +1334,11 @@ class SeasonPlayer(_BaseModel):
         self.initial_unresponsive = self.unresponsive
         self.initial_player_id = self.player_id
 
-    def player_rating_display(self):
+    def player_rating_display(self, league=None):
         if self.final_rating is not None:
             return self.final_rating
         else:
-            return self.player.rating
+            return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
         unresponsive_changed = self.pk is None or self.unresponsive != self.initial_unresponsive
@@ -1341,8 +1364,8 @@ class SeasonPlayer(_BaseModel):
             return (self.player.rating + peak) / 2
         return self.player.rating
 
-    def seed_rating_display(self):
-        return self.seed_rating or self.player.rating
+    def seed_rating_display(self, league=None):
+        return self.seed_rating or self.player.rating_for(league)
 
     def get_loneplayerscore(self):
         try:
@@ -1489,11 +1512,11 @@ class Alternate(_BaseModel):
         self.initial_season_player_id = self.season_player_id
         self.initial_status = self.status
 
-    def player_rating_display(self):
+    def player_rating_display(self, league=None):
         if self.player_rating is not None:
             return self.player_rating
         else:
-            return self.season_player.player.rating
+            return self.season_player.player.rating_for(league)
 
     def save(self, *args, **kwargs):
         season_player_changed = self.pk is None or self.season_player_id != self.initial_season_player_id

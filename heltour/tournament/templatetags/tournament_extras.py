@@ -16,6 +16,26 @@ def leagueurl(name, league_tag=None, season_tag=None, *args, **kwargs):
         args = [league_tag] + list(args)
     return reverse(name, args=args, kwargs=kwargs)
 
+@register.simple_tag(takes_context=True)
+def rating(context, player):
+    return player.rating_for(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
+def player_rating(context, obj_with_player_rating):
+    return obj_with_player_rating.player_rating_display(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
+def white_rating(context, pairing):
+    return pairing.white_rating_display(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
+def black_rating(context, pairing):
+    return pairing.black_rating_display(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
+def seed_rating(context, season_player):
+    return season_player.seed_rating_display(context['league']) or '?'
+
 @register.simple_tag
 def resultclass(score, opp_score):
     if score is None or score == '' or opp_score is None or opp_score == '':
