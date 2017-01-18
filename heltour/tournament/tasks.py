@@ -39,12 +39,9 @@ def update_player_ratings(self):
     # Any players not found above will be queried individually
     for username, p in sorted(player_dict.items()):
         try:
-            user_info = lichessapi.get_user_info(username, priority=0, timeout=300)
+            user_meta = lichessapi.get_user_meta(username, priority=0, timeout=300)
             p.refresh_from_db()
-            p.rating = user_info.rating
-            p.games_played = user_info.games_played
-            p.account_status = user_info.status
-            p.save()
+            p.update_profile(user_meta)
         except Exception as e:
             logger.warning('Error getting rating for %s: %s' % (username, e))
 

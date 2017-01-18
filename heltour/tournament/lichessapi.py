@@ -29,21 +29,12 @@ def _apicall(url, timeout=120, check_interval=0.1):
         if time_spent >= timeout:
             raise ApiWorkerError('Timeout for %s' % url)
 
-def get_user_info(lichess_username, priority=0, max_retries=3, timeout=120):
+def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
-    return UserInfo(json.loads(result))
-
-class UserInfo(object):
-    def __init__(self, json):
-        classical = json['perfs']['classical']
-        self.rating = classical['rating']
-        self.games_played = classical['games']
-        self.is_engine = json.get('engine', False)
-        self.is_booster = json.get('booster', False)
-        self.status = 'engine' if self.is_engine else 'booster' if self.is_booster else 'normal'
+    return json.loads(result)
 
 def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3, timeout=120):
     page = 1

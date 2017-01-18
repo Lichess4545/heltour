@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 import select2.fields
 from heltour.tournament import signals
 import logging
+from django.contrib.postgres.fields.jsonb import JSONField
 
 logger = logging.getLogger(__name__)
 
@@ -500,6 +501,8 @@ class Player(_BaseModel):
     in_slack_group = models.BooleanField(default=False)
     account_status = models.CharField(default='normal', max_length=31, choices=ACCOUNT_STATUS_OPTIONS)
 
+    profile = JSONField(blank=True, null=True)
+
     class Meta:
         ordering = ['lichess_username']
 
@@ -512,6 +515,17 @@ class Player(_BaseModel):
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:
             signals.player_account_status_changed.send(Player, instance=self, old_value=self.initial_account_status, new_value=self.account_status)
+
+    def update_profile(self, user_meta):
+        self.profile = user_meta
+        classical = user_meta['perfs'].get('classical')
+        if classical is not None:
+            self.rating = classical['rating']
+            self.games_played = classical['games']
+        is_engine = user_meta.get('engine', False)
+        is_booster = user_meta.get('booster', False)
+        self.account_status = 'engine' if is_engine else 'booster' if is_booster else 'normal'
+        self.save()
 
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()

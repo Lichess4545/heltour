@@ -927,11 +927,8 @@ class PlayerAdmin(_BaseAdmin):
     def update_selected_player_ratings(self, request, queryset):
 #         try:
         for player in queryset.all():
-            user_info = lichessapi.get_user_info(player.lichess_username, priority=1)
-            player.rating = user_info.rating
-            player.games_played = user_info.games_played
-            player.account_status = user_info.status
-            player.save()
+            user_meta = lichessapi.get_user_meta(player.lichess_username, priority=1)
+            player.update_profile(user_meta)
         self.message_user(request, 'Rating(s) updated', messages.INFO)
 #         except:
 #             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
