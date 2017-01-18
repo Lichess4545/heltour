@@ -18,25 +18,11 @@ from django_comments.models import Comment
 
 logger = get_task_logger(__name__)
 
-# Disabled for now because of rate-limiting
-lichess_teams = [] # ['lichess4545-league']
-
 @app.task(bind=True)
 def update_player_ratings(self):
     players = Player.objects.all()
     player_dict = {p.lichess_username: p for p in players}
 
-    # Query players from the bulk user endpoint based on our lichess teams
-    for team_name in lichess_teams:
-        for username, rating, games_played in lichessapi.enumerate_user_classical_rating_and_games_played(team_name, priority=0, timeout=300):
-            # Remove the player from the dict
-            p = player_dict.pop(username, None)
-            if p is not None:
-                p.refresh_from_db()
-                p.rating, p.games_played = rating, games_played
-                p.save()
-
-    # Any players not found above will be queried individually
     for username, p in sorted(player_dict.items()):
         try:
             user_meta = lichessapi.get_user_meta(username, priority=0, timeout=300)
