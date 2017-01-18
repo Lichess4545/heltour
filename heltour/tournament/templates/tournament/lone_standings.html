@@ -62,7 +62,7 @@
 										{{ player_score.season_player.player.lichess_username }}
 									</a>
 								</td>
-								<td class="text-center">{{ player_score.season_player.player_rating_display }}</td>
+								<td class="text-center">{% player_rating player_score.season_player %}</td>
 								{% for result_code, opponent_num, _, _ in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num and result_code %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}

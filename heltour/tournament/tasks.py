@@ -54,20 +54,23 @@ def populate_historical_ratings(self):
             return
 
     for p in pairings_that_need_ratings.filter(game_link=''):
+        round_ = p.get_round()
+        season = round_.season
+        league = season.league
         if p.get_round() is None:
             continue
-        if not p.get_round().is_completed:
-            p.white_rating = p.white.rating
-            p.black_rating = p.black.rating
+        if not round_.is_completed:
+            p.white_rating = p.white.rating_for(league)
+            p.black_rating = p.black.rating_for(league)
         else:
             # Look for ratings from a close time period
-            p.white_rating = _find_closest_rating(p.white, p.get_round().end_date, p.get_round().season)
-            p.black_rating = _find_closest_rating(p.black, p.get_round().end_date, p.get_round().season)
+            p.white_rating = _find_closest_rating(p.white, round_.end_date, season)
+            p.black_rating = _find_closest_rating(p.black, round_.end_date, season)
         p.save()
 
     for b in PlayerBye.objects.filter(player_rating=None, round__publish_pairings=True).nocache():
         if not b.round.is_completed:
-            b.player_rating = b.player.rating
+            b.player_rating = b.player.rating_for(b.round.season.league)
         else:
             b.player_rating = _find_closest_rating(b.player, b.round.end_date, b.round.season)
         b.save()
@@ -112,7 +115,7 @@ def _find_closest_rating(player, date, season):
         if sp is not None and sp.seed_rating is not None:
             return sp.seed_rating
         # Default to current rating
-        return player.rating
+        return player.rating_for(season.league)
     pairings_by_date_lt = [p for p in pairings_by_date if p[0] <= date]
     pairings_by_date_gt = [p for p in pairings_by_date if p[0] > date]
     if len(pairings_by_date_lt) > 0:
@@ -290,11 +293,13 @@ def validate_registration(self, reg_id):
             reg.already_in_slack_group = False
 
     try:
-        user_info = lichessapi.get_user_info(reg.lichess_username, 1)
-        reg.classical_rating = user_info.rating
-        reg.has_played_20_games = user_info.games_played >= 20
-        if user_info.status != 'normal':
-            fail_reason = 'The lichess user "%s" has the "%s" mark.' % (reg.lichess_username, user_info.status)
+        user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
+        player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username, defaults={'lichess_username': reg.lichess_username})
+        player.update_profile(user_meta)
+        reg.classical_rating = player.rating_for(reg.season.league)
+        reg.has_played_20_games = player.games_played_for(reg.season.league) >= 20
+        if player.account_status != 'normal':
+            fail_reason = 'The lichess user "%s" has the "%s" mark.' % (reg.lichess_username, player.account_status)
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 

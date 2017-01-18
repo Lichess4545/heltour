@@ -50,7 +50,7 @@
 							</tr>
 							<tr>
 								<td></td>
-								<td class="text-left">{{ player_score.season_player.seed_rating_display }}</td>
+								<td class="text-left">{% seed_rating player_score.season_player %}</td>
 								{% for result_code, opponent_num, color, cumul_score in round_scores %}
 								<td class="text-left">
 									{% if result_code %}

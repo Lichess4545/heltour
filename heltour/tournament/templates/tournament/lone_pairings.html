@@ -73,7 +73,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 							{% if pairing.white %}
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-									{{ pairing.white.lichess_username }}{% if pairing.white_rating_display %} <span class="visible-xs"></span> ({{ pairing.white_rating_display }}){% endif %}
+									{{ pairing.white.lichess_username }} <span class="visible-xs"></span> ({% white_rating pairing %})
 								</a>
 							</div>
 							{% endif %}
@@ -83,7 +83,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 							{% if pairing.black %}
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-									{{ pairing.black.lichess_username }}{% if pairing.black_rating_display %} <span class="visible-xs"></span> ({{ pairing.black_rating_display }}){% endif %}
+									{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({% black_rating pairing %})
 								</a>
 							</div>
 							{% endif %}
@@ -117,7 +117,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 						<td>
 							<div class="pairing-player">
 								<a href="{% leagueurl 'player_profile' league.tag season.tag bye.player.lichess_username %}">
-									{{ bye.player.lichess_username }}{% if bye.player_rating_display %} <span class="visible-xs"></span> ({{ bye.player_rating_display }}){% endif %}
+									{{ bye.player.lichess_username }} <span class="visible-xs"></span> ({% player_rating bye %})
 								</a>
 							</div>
 						</td>

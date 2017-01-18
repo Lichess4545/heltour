@@ -106,7 +106,7 @@ def _generate_lone_pairings(round_, overwrite=False):
         season_players = SeasonPlayer.objects.filter(season=round_.season).select_related('player', 'loneplayerscore').nocache()
         for sp in season_players:
             if sp.seed_rating is None:
-                sp.seed_rating = sp.player.rating
+                sp.seed_rating = sp.player.rating_for(round_.season.league)
                 with reversion.create_revision():
                     reversion.set_comment('Set seed rating.')
                     sp.save()
