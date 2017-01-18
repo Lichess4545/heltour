@@ -557,6 +557,11 @@ class Player(_BaseModel):
             return self.blitz_rating
         return self.rating # classical
 
+    def games_played_for(self, league):
+        if league is not None and league.rating_type == 'blitz':
+            return self.blitz_games_played
+        return self.games_played # classical
+
     def __unicode__(self):
         if self.rating is None:
             return self.lichess_username
