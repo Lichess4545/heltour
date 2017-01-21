@@ -2,7 +2,7 @@
 
 <table class="table-player-info">
 <tr><td>Rating:</td><td>{% player_rating player %}</td></tr>
-<tr><td>Exp Rating:</td><td>{{ season_player.expected_rating }}</td></tr>
+<tr><td>Exp Rating:</td><td>{% expected_rating season_player %}</td></tr>
 {% if reg %}
 <tr><td>Peak Rating:</td><td>{{ reg.peak_classical_rating }}</td></tr>
 <tr><td>Registration date:</td><td>{{ reg.date_created.date }}</td></tr>

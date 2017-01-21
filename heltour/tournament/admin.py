@@ -454,7 +454,7 @@ class SeasonAdmin(_BaseAdmin):
 
         context = {
             'season_player': season_player,
-            'league': season_player.season.league,
+            'league': season.league,
             'player': season_player.player,
             'reg': reg,
             'has_played_20_games': has_played_20_games
@@ -471,6 +471,7 @@ class SeasonAdmin(_BaseAdmin):
 
     def team_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        league = season.league
         teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         if request.method == 'POST':
@@ -594,12 +595,11 @@ class SeasonAdmin(_BaseAdmin):
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
-        last_season = Season.objects.filter(league=season.league, start_date__lt=season.start_date).order_by('-start_date').first()
+        last_season = Season.objects.filter(league=league, start_date__lt=season.start_date).order_by('-start_date').first()
         old_alternates = {alt.season_player.player for alt in Alternate.objects.filter(season_player__season=last_season) \
                                                                                .select_related('season_player__player').nocache()}
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
-        league = season.league
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating_for(league), reverse=True))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
@@ -649,13 +649,13 @@ class SeasonAdmin(_BaseAdmin):
             if sp.player in old_alternates:
                 purple_players.add(sp.player)
 
-        expected_ratings = {sp.player: sp.expected_rating() for sp in season_player_objs}
+        expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
 
         context = {
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
-            'league': season.league,
+            'league': league,
             'original': season,
             'title': 'Edit rosters',
             'form': form,

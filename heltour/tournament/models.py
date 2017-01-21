@@ -703,6 +703,8 @@ class PlayerBye(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.round.season.league
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
@@ -772,9 +774,11 @@ class Team(_BaseModel):
         n = 0
         total = 0.0
         for _, board in self.boards():
-            if board is not None and board.player.rating_for(self.season.league) is not None:
-                n += 1
-                total += board.player.rating_for(self.season.league)
+            if board is not None:
+                rating = board.player.rating_for(self.season.league)
+                if rating is not None:
+                    n += 1
+                    total += rating
         return total / n if n > 0 else None
 
     def captain(self):
@@ -830,6 +834,8 @@ class TeamMember(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.team.season.league
             return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
@@ -1062,6 +1068,10 @@ class PlayerPairing(_BaseModel):
         if self.white_rating is not None:
             return self.white_rating
         elif self.white is not None:
+            if league is None:
+                round_ = self.get_round()
+                if round_ is not None:
+                    league = round_.season.league
             return self.white.rating_for(league)
         else:
             return None
@@ -1070,23 +1080,27 @@ class PlayerPairing(_BaseModel):
         if self.black_rating is not None:
             return self.black_rating
         elif self.black is not None:
+            if league is None:
+                round_ = self.get_round()
+                if round_ is not None:
+                    league = round_.season.league
             return self.black.rating_for(league)
         else:
             return None
 
-    def white_display(self, league=None):
+    def white_display(self):
         if not self.white:
             return '?'
-        if self.white_rating_display(league=league):
-            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display(league=league))
+        if self.white_rating:
+            return '%s (%d)' % (self.white.lichess_username, self.white_rating)
         else:
             return self.white
 
-    def black_display(self, league=None):
+    def black_display(self):
         if not self.black:
             return '?'
-        if self.black_rating_display(league=league):
-            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display(league=league))
+        if self.black_rating:
+            return '%s (%d)' % (self.black.lichess_username, self.black_rating)
         else:
             return self.black
 
@@ -1346,6 +1360,8 @@ class SeasonPlayer(_BaseModel):
         if self.final_rating is not None:
             return self.final_rating
         else:
+            if league is None:
+                league = self.season.league
             return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
@@ -1364,8 +1380,8 @@ class SeasonPlayer(_BaseModel):
 
         super(SeasonPlayer, self).save(*args, **kwargs)
 
-    def expected_rating(self):
-        rating = self.player.rating_for(self.season.league)
+    def expected_rating(self, league=None):
+        rating = self.player.rating_for(league)
         if rating is None:
             return None
         if self.registration is not None:
@@ -1374,7 +1390,12 @@ class SeasonPlayer(_BaseModel):
         return rating
 
     def seed_rating_display(self, league=None):
-        return self.seed_rating or self.player.rating_for(league)
+        if self.seed_rating is not None:
+            return self.seed_rating
+        else:
+            if league is None:
+                league = self.season.league
+            return self.player.rating_for(league)
 
     def get_loneplayerscore(self):
         try:
@@ -1473,14 +1494,10 @@ class LonePlayerScore(_BaseModel):
         return "%g" % self.tiebreak4
 
     def pairing_sort_key(self):
-        league = self.season_player.season.league
-        rating = self.season_player.player.rating_for(league)
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
     def final_standings_sort_key(self):
-        league = self.season_player.season.league
-        rating = self.season_player.player.rating_for(league)
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
     def __unicode__(self):
         return "%s" % (self.season_player)
@@ -1529,6 +1546,8 @@ class Alternate(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.season_player.season.league
             return self.season_player.player.rating_for(league)
 
     def save(self, *args, **kwargs):
@@ -1974,9 +1993,15 @@ class PlayerNotificationSetting(_BaseModel):
         if type_ == 'before_game_time' and obj.offset is not None and obj.offset != timedelta(minutes=60):
             # Non-default offset, so leave everything disabled
             return obj
-        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
-        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
-        obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        league = kwargs.get('league')
+        if league is not None and league.rating_type == 'blitz':
+            obj.enable_lichess_mail = type_ in ('game_warning', 'alternate_needed')
+            obj.enable_slack_im = type_ in ('alternate_needed',)
+            obj.enable_slack_mpim = type_ in ()
+        else:
+            obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
+            obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
+            obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
