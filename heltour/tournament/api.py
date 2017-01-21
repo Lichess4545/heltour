@@ -57,7 +57,7 @@ def find_pairing(request):
     return JsonResponse({'pairings': [_export_pairing(p, league) for p in pairings]})
 
 def _export_pairing(p, league):
-    if hasattr(p, 'teamplayerpairing'):
+    if isinstance(p, TeamPlayerPairing):
         return {
             'league': p.team_pairing.round.season.league.tag,
             'season': p.team_pairing.round.season.tag,
