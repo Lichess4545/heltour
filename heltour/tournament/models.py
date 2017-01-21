@@ -703,6 +703,8 @@ class PlayerBye(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.round.season.league
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
@@ -832,6 +834,8 @@ class TeamMember(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.team.season.league
             return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
@@ -1064,6 +1068,10 @@ class PlayerPairing(_BaseModel):
         if self.white_rating is not None:
             return self.white_rating
         elif self.white is not None:
+            if league is None:
+                round_ = self.get_round()
+                if round_ is not None:
+                    league = round_.season.league
             return self.white.rating_for(league)
         else:
             return None
@@ -1072,23 +1080,27 @@ class PlayerPairing(_BaseModel):
         if self.black_rating is not None:
             return self.black_rating
         elif self.black is not None:
+            if league is None:
+                round_ = self.get_round()
+                if round_ is not None:
+                    league = round_.season.league
             return self.black.rating_for(league)
         else:
             return None
 
-    def white_display(self, league=None):
+    def white_display(self):
         if not self.white:
             return '?'
-        if self.white_rating_display(league):
-            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display(league))
+        if self.white_rating:
+            return '%s (%d)' % (self.white.lichess_username, self.white_rating)
         else:
             return self.white
 
-    def black_display(self, league=None):
+    def black_display(self):
         if not self.black:
             return '?'
-        if self.black_rating_display(league):
-            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display(league))
+        if self.black_rating:
+            return '%s (%d)' % (self.black.lichess_username, self.black_rating)
         else:
             return self.black
 
@@ -1378,7 +1390,12 @@ class SeasonPlayer(_BaseModel):
         return rating
 
     def seed_rating_display(self, league=None):
-        return self.seed_rating or self.player.rating_for(league)
+        if self.seed_rating is not None:
+            return self.seed_rating
+        else:
+            if league is None:
+                league = self.season.league
+            return self.player.rating_for(league)
 
     def get_loneplayerscore(self):
         try:
@@ -1529,6 +1546,8 @@ class Alternate(_BaseModel):
         if self.player_rating is not None:
             return self.player_rating
         else:
+            if league is None:
+                league = self.season_player.season.league
             return self.season_player.player.rating_for(league)
 
     def save(self, *args, **kwargs):
