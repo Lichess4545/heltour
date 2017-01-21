@@ -11,7 +11,7 @@
 				<h3>{{ player.lichess_username }}</h3>
 			</div>
 			<div class="well-body">
-				<div>{{ league.get_rating_type_display }} rating: {% player_rating season_player %}</div>
+				<div>{{ league.get_rating_type_display }} rating: {% rating player %}</div>
 				<div><a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a></div>
 				<div><a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">Calendar</a></div>
 				{% if can_edit %}
