@@ -521,6 +521,9 @@ class Player(_BaseModel):
             return None
         return blitz.get('games')
 
+    def player_rating_display(self, league=None):
+        return self.rating_for(league)
+
     @property
     def pairings(self):
         return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
@@ -607,7 +610,7 @@ class PlayerLateRegistration(_BaseModel):
             sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
             sp.is_active = True
             if sp.seed_rating is None:
-                sp.seed_rating = self.player.rating
+                sp.seed_rating = self.player.rating(self.round.season.league)
             sp.save()
 
             # Create any retroactive byes (but don't overwrite existing byes/pairings)
@@ -769,9 +772,9 @@ class Team(_BaseModel):
         n = 0
         total = 0.0
         for _, board in self.boards():
-            if board is not None and board.player.rating is not None:
+            if board is not None and board.player.rating_for(self.season.league) is not None:
                 n += 1
-                total += board.player.rating
+                total += board.player.rating_for(self.season.league)
         return total / n if n > 0 else None
 
     def captain(self):
@@ -1071,19 +1074,19 @@ class PlayerPairing(_BaseModel):
         else:
             return None
 
-    def white_display(self):
+    def white_display(self, league=None):
         if not self.white:
             return '?'
-        if self.white_rating_display():
-            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display())
+        if self.white_rating_display(league=league):
+            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display(league=league))
         else:
             return self.white
 
-    def black_display(self):
+    def black_display(self, league=None):
         if not self.black:
             return '?'
-        if self.black_rating_display():
-            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display())
+        if self.black_rating_display(league=league):
+            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display(league=league))
         else:
             return self.black
 
@@ -1362,12 +1365,13 @@ class SeasonPlayer(_BaseModel):
         super(SeasonPlayer, self).save(*args, **kwargs)
 
     def expected_rating(self):
-        if self.player.rating is None:
+        rating = self.player.rating_for(self.season.league)
+        if rating is None:
             return None
         if self.registration is not None:
-            peak = max(self.registration.peak_classical_rating, self.player.rating)
-            return (self.player.rating + peak) / 2
-        return self.player.rating
+            peak = max(self.registration.peak_classical_rating, rating)
+            return (rating + peak) / 2
+        return rating
 
     def seed_rating_display(self, league=None):
         return self.seed_rating or self.player.rating_for(league)
@@ -1469,10 +1473,14 @@ class LonePlayerScore(_BaseModel):
         return "%g" % self.tiebreak4
 
     def pairing_sort_key(self):
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or self.season_player.player.rating)
+        league = self.season_player.season.league
+        rating = self.season_player.player.rating_for(league)
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
 
     def final_standings_sort_key(self):
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or self.season_player.player.rating)
+        league = self.season_player.season.league
+        rating = self.season_player.player.rating_for(league)
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
 
     def __unicode__(self):
         return "%s" % (self.season_player)
@@ -1538,9 +1546,9 @@ class Alternate(_BaseModel):
         season = self.season_player.season
         player = self.season_player.player
         buckets = AlternateBucket.objects.filter(season=season)
-        if len(buckets) == season.boards and player.rating is not None:
+        if len(buckets) == season.boards and player.rating_for(season.league) is not None:
             for b in buckets:
-                if b.contains(player.rating):
+                if b.contains(player.rating_for(season.league)):
                     self.board_number = b.board_number
                     self.save()
 

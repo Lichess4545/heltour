@@ -106,7 +106,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 							{% if pairing.white_team_player %}
 							<span class="color-dot left hidden-xs"></span>
 							<a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
-								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span>{% if pairing.white_team_player.rating %} ({{ pairing.white_team_player.rating }}){% endif %}
+								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span> ({% white_rating pairing %})
 								{% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							{% endif %}
@@ -140,7 +140,7 @@ setTimeout(function () { location.reload(); }, 5 * 60 * 1000);
 						<td class="text-right pairing-player player-{{ pairing.black_team_color }}">
 							{% if pairing.black_team_player %}
 							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
-								{{ pairing.black_team_player.lichess_username }}{% if pairing.black_team_player.rating %} <span class="visible-xs"></span> ({{ pairing.black_team_player.rating }}){% endif %}
+								{{ pairing.black_team_player.lichess_username }} <span class="visible-xs"></span> ({% black_rating pairing %})
 								{% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							<span class="color-dot right"></span>

@@ -810,8 +810,8 @@ class StatsView(SeasonView):
                         # Don't count forfeits etc
                         continue
                     total += 1
-                    if p.white_rating_display() is not None and p.black_rating_display() is not None:
-                        rating_delta += p.white_rating_display() - p.black_rating_display()
+                    if p.white_rating_display(self.league) is not None and p.black_rating_display(self.league) is not None:
+                        rating_delta += p.white_rating_display(self.league) - p.black_rating_display(self.league)
                     if p.result == '1-0':
                         counts[0] += 1
                         counts[3] += 1
@@ -844,7 +844,6 @@ class StatsView(SeasonView):
             all_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season) \
                                                 .select_related('loneplayerpairing', 'white', 'black') \
                                                 .nocache()
-
             total = 0.0
             rating_total = 0.0
             counts = [0, 0, 0, 0]
@@ -857,14 +856,14 @@ class StatsView(SeasonView):
                     # Don't count forfeits etc
                     continue
                 total += 1
-                if p.white_rating_display() is not None and p.black_rating_display() is not None:
-                    d = p.white_rating_display() - p.black_rating_display()
+                if p.white_rating_display(self.league) is not None and p.black_rating_display(self.league) is not None:
+                    d = p.white_rating_display(self.league) - p.black_rating_display(self.league)
                     rating_delta += d
                     abs_rating_delta += abs(d)
                     rating_delta_index = int(min(math.floor(abs(d) / 100.0), 5))
                     rating_delta_counts[rating_delta_index] += 1
-                    if math.copysign(1, p.white_rating_display() - p.black_rating_display()) == p.black_score() - p.white_score() \
-                        and p.white_rating_display() != p.black_rating_display():
+                    if math.copysign(1, p.white_rating_display(league=league) - p.black_rating_display(league=league)) == p.black_score() - p.white_score() \
+                        and p.white_rating_display(league=league) != p.black_rating_display(league=league):
                         upset_counts[rating_delta_index] += 1
                     if p.white_score() == p.black_score():
                         upset_counts[rating_delta_index] += 0.5
@@ -946,14 +945,14 @@ class BoardScoresView(SeasonView):
                     white_ps.score += white_game_score
                     white_ps.score_total += 1
                     if pairing.game_played():
-                        white_ps.perf.add_game(white_game_score, pairing.black_rating_display())
+                        white_ps.perf.add_game(white_game_score, pairing.black_rating_display(self.league))
 
                 black_game_score = pairing.black_score()
                 if black_game_score is not None:
                     black_ps.score += black_game_score
                     black_ps.score_total += 1
                     if pairing.game_played():
-                        black_ps.perf.add_game(black_game_score, pairing.white_rating_display())
+                        black_ps.perf.add_game(black_game_score, pairing.white_rating_display(self.league))
 
             def process_playerscore(ps):
                 # Exclude players that played primarily on other boards
@@ -968,9 +967,9 @@ class BoardScoresView(SeasonView):
                     for g in games_dict[ps.player]:
                         if g.game_played():
                             if g.white == ps.player:
-                                ps.perf.add_game(g.white_score(), g.black_rating_display())
+                                ps.perf.add_game(g.white_score(), g.black_rating_display(self.league))
                             else:
-                                ps.perf.add_game(g.black_score(), g.white_rating_display())
+                                ps.perf.add_game(g.black_score(), g.white_rating_display(self.league))
                     ps.perf_rating = ps.perf.calculate()
                     ps.eligible = False
                 return True
@@ -1163,7 +1162,7 @@ class PlayerProfileView(LeagueView):
                     if sp is not None and sp.seed_rating is not None:
                         opp_rating = sp.seed_rating
                     else:
-                        opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display()
+                        opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display(self.league)
                     season_perf.add_game(game_score, opp_rating)
         season_perf_rating = season_perf.calculate()
 
@@ -1244,7 +1243,7 @@ class TeamProfileView(LeagueView):
                         game_counts[p.black] += 1
                         display_ratings[p.black] = p.black_rating
 
-        prev_members = [(player, display_ratings.get(player, None) or player.rating, game_count) for player, game_count in sorted(game_counts.items(), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
+        prev_members = [(player, display_ratings.get(player, None) or player.rating_for(self.league), game_count) for player, game_count in sorted(game_counts.items(), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
 
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
