@@ -117,7 +117,7 @@ class UpdateBoardOrderWorkflow():
 
         if alternates_only or not self.season.alternates_manager_enabled():
             members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
-            ratings_by_board = [sorted([float(m.player.rating) for m in m_list]) for m_list in members_by_board]
+            ratings_by_board = [sorted([float(m.player.rating_for(self.season.league)) for m in m_list]) for m_list in members_by_board]
             alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
 
             boundaries = self.calc_alternate_boundaries(ratings_by_board)
@@ -130,7 +130,7 @@ class UpdateBoardOrderWorkflow():
             with reversion.create_revision():
                 change_descriptions = []
                 members = list(team.teammember_set.all())
-                members.sort(key=lambda m: m.player.rating, reverse=True)
+                members.sort(key=lambda m: m.player.rating_for(self.season.league), reverse=True)
                 occupied_boards = [m.board_number for m in members]
                 occupied_boards.sort()
                 for i, board_number in enumerate(occupied_boards):
@@ -195,7 +195,7 @@ class UpdateBoardOrderWorkflow():
                 # Calculate the number of alternates in each bucket
                 bucket_counts = [0] * self.season.boards
                 for alt in alternates:
-                    r = alt.season_player.player.rating
+                    r = alt.season_player.player.rating_for(self.season.league)
                     for i in range(self.season.boards):
                         if r > boundaries[i + 1] or boundaries[i + 1] == None:
                             bucket_counts[i] += 1

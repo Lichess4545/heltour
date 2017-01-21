@@ -112,8 +112,8 @@ class LeagueAdmin(_BaseAdmin):
         for p in pairings:
             rows.append({
                 'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '0F-1X' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '1X-0F' else 'NO',
-                'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
-                'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
+                'average_rating': (p.white_rating_display(league) + p.black_rating_display(league)) / 2,
+                'rating_delta': abs(p.white_rating_display(league) - p.black_rating_display(league)),
                 'timezone_delta': 'TODO',
                 'round_joined': 'TODO',
                 'player_games_played': 'TODO',
@@ -126,8 +126,8 @@ class LeagueAdmin(_BaseAdmin):
             })
             rows.append({
                 'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '1X-0F' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '0F-1X' else 'NO',
-                'average_rating': (p.white_rating_display() + p.black_rating_display()) / 2,
-                'rating_delta': abs(p.white_rating_display() - p.black_rating_display()),
+                'average_rating': (p.white_rating_display(league) + p.black_rating_display(league)) / 2,
+                'rating_delta': abs(p.white_rating_display(league) - p.black_rating_display(league)),
                 'timezone_delta': 'TODO',
                 'round_joined': 'TODO',
                 'player_games_played': 'TODO',
@@ -454,6 +454,7 @@ class SeasonAdmin(_BaseAdmin):
 
         context = {
             'season_player': season_player,
+            'league': season_player.season.league,
             'player': season_player.player,
             'reg': reg,
             'has_played_20_games': has_played_20_games
@@ -598,21 +599,22 @@ class SeasonAdmin(_BaseAdmin):
                                                                                .select_related('season_player__player').nocache()}
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
-        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating, reverse=True))
+        league = season.league
+        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating_for(league), reverse=True))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
-            unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating)]) for n in board_numbers]
+            unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating_for(league))]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
-            sorted_players = list(sorted((p for p in season_players if p.rating is not None), key=lambda p: p.rating, reverse=True))
+            sorted_players = list(sorted((p for p in season_players if p.rating_for(league) is not None), key=lambda p: p.rating_for(league), reverse=True))
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:
-                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) / season.boards].rating) for n in board_numbers]
+                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) / season.boards].rating_for(league)) for n in board_numbers]
                 for p in unassigned_players:
                     board_num = 1
                     for n, max_rating in max_ratings:
-                        if p.rating <= max_rating:
+                        if p.rating_for(league) <= max_rating:
                             board_num = n
                         else:
                             break
@@ -653,6 +655,7 @@ class SeasonAdmin(_BaseAdmin):
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
+            'league': season.league,
             'original': season,
             'title': 'Edit rosters',
             'form': form,
@@ -701,6 +704,7 @@ class SeasonAdmin(_BaseAdmin):
             'active_players': active_players,
             'inactive_players': inactive_players,
             'round_data': round_data,
+            'league': season.league,
         }
 
         return render(request, 'tournament/admin/manage_lone_players.html', context)
@@ -887,6 +891,7 @@ class RoundAdmin(_BaseAdmin):
                 'pairings': pairings,
                 'byes': byes,
                 'round_': round_,
+                'league': round_.season.league,
                 'next_pairing_order': next_pairing_order,
             }
             return render(request, 'tournament/admin/review_lone_pairings.html', context)

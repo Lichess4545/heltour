@@ -150,12 +150,12 @@ class ApproveRegistrationForm(forms.Form):
             if default_byes < active_round_count:
                 season_players = reg.season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
                 player = Player.objects.filter(lichess_username__iexact=reg.lichess_username).first()
-                rating = reg.classical_rating if player is None else player.rating
+                rating = reg.classical_rating if player is None else player.rating_for(reg.season.league)
 
                 # Get the scores of players +/- 100 rating points (or a wider range if not enough players are close)
                 diff = 100
                 while diff < 500:
-                    close_players = [sp for sp in season_players if abs(sp.player.rating - rating) < diff]
+                    close_players = [sp for sp in season_players if abs(sp.player.rating_for(reg.season.league) - rating) < diff]
                     if len(close_players) >= 5:
                         break
                     diff += 100

@@ -25,7 +25,7 @@
 				<td>
 					<div class="pairing-player{% if season_player.player.account_status != 'normal' %} row-error" title="Marked as {{ season_player.player.account_status }}{% endif %}">
 						<a href="{% leagueurl 'player_profile' original.league.tag original.tag season_player.player.lichess_username %}">
-							{{ season_player.player.lichess_username }}{% if season_player.player.rating %} ({{ season_player.player.rating }}){% endif %}
+							{{ season_player.player.lichess_username }} ({% player_rating season_player %})
 						</a>
 					</div>
 				</td>
@@ -52,7 +52,7 @@
 				<td>
 					<div class="pairing-player">
 						<a href="{% leagueurl 'player_profile' original.league.tag original.tag season_player.player.lichess_username %}">
-							{{ season_player.player.lichess_username }}{% if season_player.player.rating %} ({{ season_player.player.rating }}){% endif %}
+							{{ season_player.player.lichess_username }} ({% player_rating season_player %})
 						</a>
 					</div>
 				</td>

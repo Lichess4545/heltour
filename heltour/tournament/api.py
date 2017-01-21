@@ -66,9 +66,9 @@ def _export_pairing(p):
             'black_team': p.black_team().name,
             'black_team_number': p.black_team().number,
             'white': p.white.lichess_username,
-            'white_rating': p.white.rating,
+            'white_rating': p.white.rating_for(p.team_pairing.round.season.league),
             'black': p.black.lichess_username,
-            'black_rating': p.black.rating,
+            'black_rating': p.black.rating_for(p.team_pairing.round.season.league),
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
@@ -79,9 +79,9 @@ def _export_pairing(p):
             'season': p.round.season.tag,
             'round': p.round.number,
             'white': p.white.lichess_username,
-            'white_rating': p.white.rating,
+            'white_rating': p.white.rating_for(p.round.season.league),
             'black': p.black.lichess_username,
-            'black_rating': p.black.rating,
+            'black_rating': p.black.rating_for(p.round.season.league),
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
@@ -232,7 +232,7 @@ def _team_roster(season):
         'season': season.tag,
         'players': [{
             'username': player.lichess_username,
-            'rating': player.rating
+            'rating': player.rating_for(season.league)
         } for player in players],
         'teams': [{
             'name': team.name,
@@ -264,7 +264,7 @@ def _lone_roster(season):
         'season': season.tag,
         'players': [{
             'username': season_player.player.lichess_username,
-            'rating': season_player.player.rating,
+            'rating': season_player.player.rating_for(season.league),
             'board': player_board.get(season_player.player, None)
         } for season_player in season_players]
     })
