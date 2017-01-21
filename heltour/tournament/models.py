@@ -610,7 +610,7 @@ class PlayerLateRegistration(_BaseModel):
             sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
             sp.is_active = True
             if sp.seed_rating is None:
-                sp.seed_rating = self.player.rating(self.round.season.league)
+                sp.seed_rating = self.player.rating_for(self.round.season.league)
             sp.save()
 
             # Create any retroactive byes (but don't overwrite existing byes/pairings)
@@ -1192,10 +1192,10 @@ class PlayerPairing(_BaseModel):
             white_setting.save()
             black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id, type='before_game_time', league=league)
             black_setting.save()
-            if white_changed:
+            if white_changed and self.initial_white_id:
                 old_white_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_white_id, type='before_game_time', league=league)
                 old_white_setting.save()
-            if black_changed:
+            if black_changed and self.initial_black_id:
                 old_black_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_black_id, type='before_game_time', league=league)
                 old_black_setting.save()
 
