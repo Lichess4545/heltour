@@ -53,9 +53,10 @@ def find_pairing(request):
         for r in rounds:
             pairings += list(_get_pairings(r, player, black, white, scheduled))
 
-    return JsonResponse({'pairings': [_export_pairing(p) for p in pairings]})
+    league = League.objects.filter(tag=league_tag).first()
+    return JsonResponse({'pairings': [_export_pairing(p, league) for p in pairings]})
 
-def _export_pairing(p):
+def _export_pairing(p, league):
     if hasattr(p, 'teamplayerpairing'):
         return {
             'league': p.team_pairing.round.season.league.tag,
@@ -66,9 +67,9 @@ def _export_pairing(p):
             'black_team': p.black_team().name,
             'black_team_number': p.black_team().number,
             'white': p.white.lichess_username,
-            'white_rating': p.white.rating_for(p.team_pairing.round.season.league),
+            'white_rating': p.white_rating_display(league),
             'black': p.black.lichess_username,
-            'black_rating': p.black.rating_for(p.team_pairing.round.season.league),
+            'black_rating': p.black_rating_display(league),
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
@@ -79,9 +80,9 @@ def _export_pairing(p):
             'season': p.round.season.tag,
             'round': p.round.number,
             'white': p.white.lichess_username,
-            'white_rating': p.white.rating_for(p.round.season.league),
+            'white_rating': p.white_rating_display(league),
             'black': p.black.lichess_username,
-            'black_rating': p.black.rating_for(p.round.season.league),
+            'black_rating': p.black_rating_display(league),
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
@@ -220,6 +221,7 @@ def get_roster(request):
         return _lone_roster(season)
 
 def _team_roster(season):
+    league = season.league
     teams = season.team_set.order_by('number').all()
 
     all_alternates = sorted(Alternate.objects.filter(season_player__season=season).select_related('season_player__player', 'season_player__registration').nocache(),
@@ -232,7 +234,7 @@ def _team_roster(season):
         'season': season.tag,
         'players': [{
             'username': player.lichess_username,
-            'rating': player.rating_for(season.league)
+            'rating': player.rating_for(league)
         } for player in players],
         'teams': [{
             'name': team.name,

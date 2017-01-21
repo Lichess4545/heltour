@@ -36,6 +36,10 @@ def black_rating(context, pairing):
 def seed_rating(context, season_player):
     return season_player.seed_rating_display(context['league']) or '?'
 
+@register.simple_tag(takes_context=True)
+def expected_rating(context, season_player):
+    return season_player.expected_rating(context['league']) or '?'
+
 @register.simple_tag
 def resultclass(score, opp_score):
     if score is None or score == '' or opp_score is None or opp_score == '':

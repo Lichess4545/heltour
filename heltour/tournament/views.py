@@ -862,8 +862,8 @@ class StatsView(SeasonView):
                     abs_rating_delta += abs(d)
                     rating_delta_index = int(min(math.floor(abs(d) / 100.0), 5))
                     rating_delta_counts[rating_delta_index] += 1
-                    if math.copysign(1, p.white_rating_display(league=league) - p.black_rating_display(league=league)) == p.black_score() - p.white_score() \
-                        and p.white_rating_display(league=league) != p.black_rating_display(league=league):
+                    if math.copysign(1, p.white_rating_display(self.league) - p.black_rating_display(self.league)) == p.black_score() - p.white_score() \
+                        and p.white_rating_display(self.league) != p.black_rating_display(self.league):
                         upset_counts[rating_delta_index] += 1
                     if p.white_score() == p.black_score():
                         upset_counts[rating_delta_index] += 0.5

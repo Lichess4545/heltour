@@ -772,9 +772,11 @@ class Team(_BaseModel):
         n = 0
         total = 0.0
         for _, board in self.boards():
-            if board is not None and board.player.rating_for(self.season.league) is not None:
-                n += 1
-                total += board.player.rating_for(self.season.league)
+            if board is not None:
+                rating = board.player.rating_for(self.season.league)
+                if rating is not None:
+                    n += 1
+                    total += rating
         return total / n if n > 0 else None
 
     def captain(self):
@@ -1077,16 +1079,16 @@ class PlayerPairing(_BaseModel):
     def white_display(self, league=None):
         if not self.white:
             return '?'
-        if self.white_rating_display(league=league):
-            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display(league=league))
+        if self.white_rating_display(league):
+            return '%s (%d)' % (self.white.lichess_username, self.white_rating_display(league))
         else:
             return self.white
 
     def black_display(self, league=None):
         if not self.black:
             return '?'
-        if self.black_rating_display(league=league):
-            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display(league=league))
+        if self.black_rating_display(league):
+            return '%s (%d)' % (self.black.lichess_username, self.black_rating_display(league))
         else:
             return self.black
 
@@ -1346,6 +1348,8 @@ class SeasonPlayer(_BaseModel):
         if self.final_rating is not None:
             return self.final_rating
         else:
+            if league is None:
+                league = self.season.league
             return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
@@ -1364,8 +1368,8 @@ class SeasonPlayer(_BaseModel):
 
         super(SeasonPlayer, self).save(*args, **kwargs)
 
-    def expected_rating(self):
-        rating = self.player.rating_for(self.season.league)
+    def expected_rating(self, league=None):
+        rating = self.player.rating_for(league)
         if rating is None:
             return None
         if self.registration is not None:
@@ -1473,14 +1477,10 @@ class LonePlayerScore(_BaseModel):
         return "%g" % self.tiebreak4
 
     def pairing_sort_key(self):
-        league = self.season_player.season.league
-        rating = self.season_player.player.rating_for(league)
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
     def final_standings_sort_key(self):
-        league = self.season_player.season.league
-        rating = self.season_player.player.rating_for(league)
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.final_rating or rating)
+        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
     def __unicode__(self):
         return "%s" % (self.season_player)
