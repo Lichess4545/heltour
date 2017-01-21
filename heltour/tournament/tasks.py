@@ -44,10 +44,11 @@ def populate_historical_ratings(self):
         # Poll ratings for the game from the lichess API
         if p.game_id() is None:
             continue
+        p.refresh_from_db()
         game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
         p.white_rating = game_meta['players']['white']['rating']
         p.black_rating = game_meta['players']['black']['rating']
-        p.save()
+        p.save(update_fields=['white_rating', 'black_rating'])
         api_poll_count += 1
         if api_poll_count >= 100:
             # Limit the processing per task execution
@@ -59,6 +60,7 @@ def populate_historical_ratings(self):
         league = season.league
         if p.get_round() is None:
             continue
+        p.refresh_from_db()
         if not round_.is_completed:
             p.white_rating = p.white.rating_for(league)
             p.black_rating = p.black.rating_for(league)
@@ -66,26 +68,30 @@ def populate_historical_ratings(self):
             # Look for ratings from a close time period
             p.white_rating = _find_closest_rating(p.white, round_.end_date, season)
             p.black_rating = _find_closest_rating(p.black, round_.end_date, season)
-        p.save()
+        p.save(update_fields=['white_rating', 'black_rating'])
 
     for b in PlayerBye.objects.filter(player_rating=None, round__publish_pairings=True).nocache():
+        b.refresh_from_db()
         if not b.round.is_completed:
             b.player_rating = b.player.rating_for(b.round.season.league)
         else:
             b.player_rating = _find_closest_rating(b.player, b.round.end_date, b.round.season)
-        b.save()
+        b.save(update_fields=['player_rating'])
 
     for tm in TeamMember.objects.filter(player_rating=None, team__season__is_completed=True).nocache():
+        tm.refresh_from_db()
         tm.player_rating = _find_closest_rating(tm.player, tm.team.season.end_date(), tm.team.season)
-        tm.save()
+        tm.save(update_fields=['player_rating'])
 
     for alt in Alternate.objects.filter(player_rating=None, season_player__season__is_completed=True).nocache():
+        alt.refresh_from_db()
         alt.player_rating = _find_closest_rating(alt.season_player.player, alt.season_player.season.end_date(), alt.season_player.season)
-        alt.save()
+        alt.save(update_fields=['player_rating'])
 
     for sp in SeasonPlayer.objects.filter(final_rating=None, season__is_completed=True).nocache():
+        sp.refresh_from_db()
         sp.final_rating = _find_closest_rating(sp.player, sp.season.end_date(), sp.season)
-        sp.save()
+        sp.save(update_fields=['final_rating'])
 
 def _find_closest_rating(player, date, season):
     if player is None:
