@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
     for k, v in prop_values.items():
-        lst = [obj for obj in lst if _getnestedattr(obj, k) == v]
+        lst = [obj for obj in lst if getnestedattr(obj, k) == v]
     return next(iter(lst), None)
 
-def _getnestedattr(obj, k):
+def getnestedattr(obj, k):
     for k2 in k.split('__'):
         if obj is None:
             return None
