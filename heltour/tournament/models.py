@@ -1853,12 +1853,16 @@ LEAGUE_DOCUMENT_TYPES = (
 #-------------------------------------------------------------------------------
 class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League)
-    document = models.ForeignKey(Document)
+    document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
 
     class Meta:
         unique_together = ('league', 'tag')
+
+    def clean(self):
+        if SeasonDocument.objects.filter(document_id=self.document_id):
+            raise ValidationError('Document already belongs to a season')
 
     def __unicode__(self):
         return self.document.name
@@ -1870,12 +1874,16 @@ SEASON_DOCUMENT_TYPES = (
 #-------------------------------------------------------------------------------
 class SeasonDocument(_BaseModel):
     season = models.ForeignKey(Season)
-    document = models.ForeignKey(Document)
+    document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
 
     class Meta:
         unique_together = ('season', 'tag')
+
+    def clean(self):
+        if LeagueDocument.objects.filter(document_id=self.document_id):
+            raise ValidationError('Document already belongs to a league')
 
     def __unicode__(self):
         return self.document.name

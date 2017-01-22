@@ -1536,7 +1536,41 @@ class PrivateUrlAuthAdmin(_BaseAdmin):
 class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
-    # TODO
+
+    def get_queryset(self, request):
+        result = super(_BaseAdmin, self).get_queryset(request)
+        if request.user.is_superuser:
+            return result
+        return result.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(leaguedocument=None, seasondocument=None)
+
+    def has_add_permission(self, request):
+        return True
+
+    def get_league_id(self, obj):
+        if hasattr(obj, 'leaguedocument'):
+            return obj.leaguedocument.league_id
+        elif hasattr(obj, 'seasondocument'):
+            return obj.seasondocument.season.league_id
+        else:
+            return None
+
+    def has_change_permission(self, request, obj=None):
+        if obj is None:
+            return len(self.authorized_leagues(request.user)) > 0
+        else:
+            league_id = self.get_league_id(obj)
+            return league_id is None or league_id in self.authorized_leagues(request.user)
+
+    def clean_form(self, request, form):
+        if request.user.is_superuser:
+            return
+        if form.instance.pk is None:
+            return
+        league_id = self.get_league_id(form.instance)
+        if league_id is not None and league_id not in self.authorized_leagues(request.user):
+            raise ValidationError('No permission to save objects for this league')
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
