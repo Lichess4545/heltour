@@ -1238,6 +1238,12 @@ class TeamPlayerPairing(PlayerPairing):
     def black_team_player(self):
         return self.black if self.board_number % 2 == 1 else self.white
 
+    def white_team_rating(self, league=None):
+        return self.white_rating_display(league) if self.board_number % 2 == 1 else self.black_rating_display(league)
+
+    def black_team_rating(self, league=None):
+        return self.black_rating_display(league) if self.board_number % 2 == 1 else self.white_rating_display(league)
+
     def white_team_color(self):
         return 'white' if self.board_number % 2 == 1 else 'black'
 

@@ -33,6 +33,14 @@ def black_rating(context, pairing):
     return pairing.black_rating_display(context['league']) or '?'
 
 @register.simple_tag(takes_context=True)
+def white_team_rating(context, pairing):
+    return pairing.white_team_rating(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
+def black_team_rating(context, pairing):
+    return pairing.black_team_rating(context['league']) or '?'
+
+@register.simple_tag(takes_context=True)
 def seed_rating(context, season_player):
     return season_player.seed_rating_display(context['league']) or '?'
 
