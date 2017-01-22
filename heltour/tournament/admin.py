@@ -82,27 +82,30 @@ class _BaseAdmin(VersionAdmin):
 
         def clean(form):
             super(ModelForm, form).clean()
-            if self.allow_all_staff or request.user.is_superuser:
-                return
-            if self.league_id_field is None:
-                raise ValidationError('No permission to save this object')
-            # Since we have cleaned_data dict instead of a model instance, we have to
-            # pre-process the league id access a bit
-            parts = self.league_id_field.split('__', 1)
-            if len(parts) == 1:
-                if parts[0] == 'id':
-                    league_id = form.cleaned_data['id']
-                else:
-                    if parts[0][-3:] != '_id':
-                        raise ValueError('Invalid league id field on modeladmin')
-                    league_id = form.cleaned_data[parts[0][:-3]].id
-            else:
-                league_id = getnestedattr(form.cleaned_data[parts[0]], parts[1])
-            if league_id not in self.authorized_leagues(request.user):
-                raise ValidationError('No permission to save objects for this league')
+            self.clean_form(request, form)
 
         form.clean = clean
         return form
+
+    def clean_form(self, request, form):
+        if self.allow_all_staff or request.user.is_superuser:
+            return
+        if self.league_id_field is None:
+            raise ValidationError('No permission to save this object')
+        # Since we have cleaned_data dict instead of a model instance, we have to
+        # pre-process the league id access a bit
+        parts = self.league_id_field.split('__', 1)
+        if len(parts) == 1:
+            if parts[0] == 'id':
+                league_id = form.cleaned_data['id']
+            else:
+                if parts[0][-3:] != '_id':
+                    raise ValueError('Invalid league id field on modeladmin')
+                league_id = form.cleaned_data[parts[0][:-3]].id
+        else:
+            league_id = getnestedattr(form.cleaned_data[parts[0]], parts[1])
+        if league_id not in self.authorized_leagues(request.user):
+            raise ValidationError('No permission to save objects for this league')
 
     def authorized_leagues(self, user):
         return [lm.league_id for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username)]
@@ -1121,7 +1124,38 @@ class PlayerPairingAdmin(_BaseAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
     exclude = ('white_rating', 'black_rating', 'tv_state')
-    # TODO
+
+    def get_queryset(self, request):
+        result = super(_BaseAdmin, self).get_queryset(request)
+        if request.user.is_superuser:
+            return result
+        return result.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def get_league_id(self, obj):
+        if hasattr(obj, 'teamplayerpairing'):
+            return obj.teamplayerpairing.team_pairing.round.season.league_id
+        elif hasattr(obj, 'loneplayerpairing'):
+            return obj.loneplayerpairing.round.season.league_id
+        else:
+            return None
+
+    def has_change_permission(self, request, obj=None):
+        if obj is None:
+            return len(self.authorized_leagues(request.user)) > 0
+        else:
+            return self.get_league_id(obj) in self.authorized_leagues(request.user)
+
+    def clean_form(self, request, form):
+        if request.user.is_superuser:
+            return
+        if form.instance.pk is None:
+            return
+        if self.get_league_id(form.instance) not in self.authorized_leagues(request.user):
+            raise ValidationError('No permission to save objects for this league')
 
     def game_link_url(self, obj):
         if not obj.game_link:
