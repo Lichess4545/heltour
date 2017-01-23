@@ -3,7 +3,8 @@ Description=heltour gunicorn server
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/sudo -u lichess4545 /var/www/www.lichess4545.com/current/sysadmin/run-heltour-live.sh
+ExecStart=/var/www/www.lichess4545.com/current/sysadmin/run-heltour-live.sh
+User=lichess4545
 KillMode=control-group
 TimeoutStopSec=2
 Restart=on-failure
