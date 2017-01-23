@@ -995,7 +995,7 @@ class LeagueDashboardView(LeagueView):
         else:
             return self.lone_view()
 
-    def team_view(self):
+    def _common_context(self):
         default_season = _get_default_season(self.league.tag, allow_none=True)
         season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', '-id'))
         if default_season is not None:
@@ -1016,7 +1016,7 @@ class LeagueDashboardView(LeagueView):
         last_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False).order_by('number').first()
         next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
 
-        context = {
+        return {
             'default_season': default_season,
             'season_list': season_list,
             'pending_reg_count': pending_reg_count,
@@ -1028,37 +1028,13 @@ class LeagueDashboardView(LeagueView):
             'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard', self.league),
             'can_admin_users': self.request.user.has_module_perms('auth')
         }
+
+    def team_view(self):
+        context = self._common_context()
         return self.render('tournament/team_league_dashboard.html', context)
 
     def lone_view(self):
-        default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', '-id'))
-        if default_season is not None:
-            season_list.remove(default_season)
-
-        pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
-
-        team_members = TeamMember.objects.filter(team__season=self.season).select_related('player').nocache()
-        alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
-        season_players = set(sp.player for sp in SeasonPlayer.objects.filter(season=self.season, is_active=True).select_related('player').nocache())
-        team_players = set(tm.player for tm in team_members)
-        alternate_players = set(alt.season_player.player for alt in alternates)
-        unassigned_player_count = len(season_players - team_players - alternate_players)
-
-        last_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False).order_by('number').first()
-        next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
-
-        context = {
-            'default_season': default_season,
-            'season_list': season_list,
-            'pending_reg_count': pending_reg_count,
-            'unassigned_player_count': unassigned_player_count,
-            'last_round': last_round,
-            'next_round': next_round,
-            'celery_down': uptime.celery.is_down,
-            'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard', self.league),
-            'can_admin_users': self.request.user.has_module_perms('auth')
-        }
+        context = self._common_context()
         return self.render('tournament/lone_league_dashboard.html', context)
 
 class DocumentView(LeagueView):
