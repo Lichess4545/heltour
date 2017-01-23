@@ -5,7 +5,6 @@ from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import permission_required
 import reversion
 
 import json
@@ -29,6 +28,7 @@ from django.utils.html import format_html
 from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow
 from django.forms.models import ModelForm
+from django.core.exceptions import PermissionDenied
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -120,10 +120,10 @@ class LeagueAdmin(_BaseAdmin):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/import_season/$',
-                permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)),
+                self.admin_site.admin_view(self.import_season_view),
                 name='import_season'),
             url(r'^(?P<object_id>[0-9]+)/export_forfeit_data/$',
-                permission_required('tournament.change_league')(self.admin_site.admin_view(self.export_forfeit_data_view)),
+                self.admin_site.admin_view(self.export_forfeit_data_view),
                 name='export_forfeit_data'),
         ]
         return my_urls + urls
@@ -136,6 +136,8 @@ class LeagueAdmin(_BaseAdmin):
 
     def import_season_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
+        if not request.user.has_perm('tournament.change_league', league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
@@ -170,6 +172,8 @@ class LeagueAdmin(_BaseAdmin):
 
     def export_forfeit_data_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
+        if not request.user.has_perm('tournament.change_league', league):
+            raise PermissionDenied
 
         pairings = LonePlayerPairing.objects.exclude(result='').exclude(white=None).exclude(black=None).filter(round__season__league=league) \
                                     .order_by('round__start_date').select_related('white', 'black', 'round').nocache()
@@ -229,37 +233,39 @@ class SeasonAdmin(_BaseAdmin):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/manage_players/$',
-                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.manage_players_view)),
+                self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
-                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.player_info_view)),
+                self.admin_site.admin_view(self.player_info_view),
                 name='edit_rosters_player_info'),
             url(r'^(?P<object_id>[0-9]+)/round_transition/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)),
+                self.admin_site.admin_view(self.round_transition_view),
                 name='round_transition'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_view)),
+                self.admin_site.admin_view(self.review_nominated_games_view),
                 name='review_nominated_games'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_select_view)),
+                self.admin_site.admin_view(self.review_nominated_games_select_view),
                 name='review_nominated_games_select'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<sel_id>[0-9]+)/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_deselect_view)),
+                self.admin_site.admin_view(self.review_nominated_games_deselect_view),
                 name='review_nominated_games_deselect'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_pgn_view)),
+                self.admin_site.admin_view(self.review_nominated_games_pgn_view),
                 name='review_nominated_games_pgn'),
             url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
-                permission_required('tournament.bulk_email')(self.admin_site.admin_view(self.bulk_email_view)),
+                self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email'),
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
-                permission_required('tournament.change_season')(self.admin_site.admin_view(self.mod_report_view)),
+                self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
         ]
         return my_urls + urls
 
 
     def simulate_tournament(self, request, queryset):
+        if not request.user.is_superuser:
+            raise PermissionDenied
         if not settings.DEBUG and not settings.STAGING:
             self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
             return
@@ -311,6 +317,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def review_nominated_games_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.review_nominated_games', season.league):
+            raise PermissionDenied
 
         selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
         nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number', 'date_created')
@@ -348,6 +356,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def review_nominated_games_select_view(self, request, object_id, nom_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.review_nominated_games', season.league):
+            raise PermissionDenied
         nom = get_object_or_404(GameNomination, pk=nom_id)
 
         GameSelection.objects.get_or_create(season=season, game_link=nom.game_link, defaults={'pairing': nom.pairing})
@@ -357,6 +367,8 @@ class SeasonAdmin(_BaseAdmin):
     def review_nominated_games_deselect_view(self, request, object_id, sel_id):
         gs = GameSelection.objects.filter(pk=sel_id).first()
         if gs is not None:
+            if not request.user.has_perm('tournament.review_nominated_games', gs.season.league):
+                raise PermissionDenied
             gs.delete()
 
         return redirect('admin:review_nominated_games', object_id=object_id)
@@ -379,6 +391,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def round_transition_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', season.league):
+            raise PermissionDenied
 
         workflow = RoundTransitionWorkflow(season)
 
@@ -431,6 +445,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def bulk_email_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.bulk_email', season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.BulkEmailForm(season, request.POST)
@@ -475,6 +491,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def mod_report_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.change_season', season.league):
+            raise PermissionDenied
 
         season_players = season.seasonplayer_set.select_related('player').nocache()
         players = []
@@ -497,6 +515,8 @@ class SeasonAdmin(_BaseAdmin):
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
+                if not request.user.has_perm('tournament.manage_players', season.league):
+                    raise PermissionDenied
                 UpdateBoardOrderWorkflow(season).run(alternates_only=False)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
@@ -510,6 +530,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def player_info_view(self, request, object_id, player_name):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.manage_players', season.league):
+            raise PermissionDenied
         season_player = get_object_or_404(SeasonPlayer, season=season, player__lichess_username=player_name)
         player = season_player.player
 
@@ -531,6 +553,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.manage_players', season.league):
+            raise PermissionDenied
         if season.league.competitor_type == 'team':
             return self.team_manage_players_view(request, object_id)
         else:
@@ -786,10 +810,10 @@ class RoundAdmin(_BaseAdmin):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/generate_pairings/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.generate_pairings_view)),
+                self.admin_site.admin_view(self.generate_pairings_view),
                 name='generate_pairings'),
             url(r'^(?P<object_id>[0-9]+)/review_pairings/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.review_pairings_view)),
+                self.admin_site.admin_view(self.review_pairings_view),
                 name='review_pairings'),
         ]
         return my_urls + urls
@@ -814,6 +838,8 @@ class RoundAdmin(_BaseAdmin):
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', round_.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.GeneratePairingsForm(request.POST)
@@ -859,6 +885,8 @@ class RoundAdmin(_BaseAdmin):
 
     def review_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', round_.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.ReviewPairingsForm(request.POST)
@@ -1042,6 +1070,8 @@ class TeamAdmin(_BaseAdmin):
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
+            if not request.user.has_perm('tournament.manage_players', team.season.league):
+                raise PermissionDenied
             members = team.teammember_set.order_by('-player__rating')
             for i in range(len(members)):
                 members[i].board_number = i + 1
@@ -1218,25 +1248,29 @@ class RegistrationAdmin(_BaseAdmin):
         urls = super(RegistrationAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/review/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.review_registration)),
+                self.admin_site.admin_view(self.review_registration),
                 name='review_registration'),
             url(r'^(?P<object_id>[0-9]+)/approve/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)),
+                self.admin_site.admin_view(self.approve_registration),
                 name='approve_registration'),
             url(r'^(?P<object_id>[0-9]+)/reject/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.reject_registration)),
+                self.admin_site.admin_view(self.reject_registration),
                 name='reject_registration')
         ]
         return my_urls + urls
 
     def validate(self, request, queryset):
         for reg in queryset:
+            if not request.user.has_perm('tournament.change_registration', reg.season.league):
+                raise PermissionDenied
             signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
         self.message_user(request, 'Validation started.', messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
     def review_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             changelist_filters = request.POST.get('_changelist_filters', '')
@@ -1272,6 +1306,8 @@ class RegistrationAdmin(_BaseAdmin):
 
     def approve_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
@@ -1405,6 +1441,8 @@ class RegistrationAdmin(_BaseAdmin):
 
     def reject_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
