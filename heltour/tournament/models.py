@@ -91,6 +91,11 @@ class League(_BaseModel):
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
 
+    class Meta:
+        permissions = (
+            ('view_dashboard', 'Can view dashboard'),
+        )
+
     def time_control_initial(self):
         parts = self.time_control.split('+')
         if len(parts) != 2:

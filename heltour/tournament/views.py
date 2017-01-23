@@ -1024,7 +1024,9 @@ class LeagueDashboardView(LeagueView):
             'alternate_search_count': alternate_search_count,
             'last_round': last_round,
             'next_round': next_round,
-            'celery_down': uptime.celery.is_down
+            'celery_down': uptime.celery.is_down,
+            'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard', self.league),
+            'can_admin_users': self.request.user.has_module_perms('auth')
         }
         return self.render('tournament/team_league_dashboard.html', context)
 
@@ -1053,7 +1055,9 @@ class LeagueDashboardView(LeagueView):
             'unassigned_player_count': unassigned_player_count,
             'last_round': last_round,
             'next_round': next_round,
-            'celery_down': uptime.celery.is_down
+            'celery_down': uptime.celery.is_down,
+            'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard', self.league),
+            'can_admin_users': self.request.user.has_module_perms('auth')
         }
         return self.render('tournament/lone_league_dashboard.html', context)
 
