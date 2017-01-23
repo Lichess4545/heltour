@@ -30,6 +30,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import get_permission_codename
+from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -68,6 +69,10 @@ class _BaseAdmin(VersionAdmin):
         if self.league_id_field is None:
             return result.none()
         return result.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        kwargs['queryset'] = admin.site._registry[db_field.related_model].get_queryset(request)
+        return super(_BaseAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         if self.allow_all_staff or self.has_assigned_perm(request.user, 'add'):
@@ -120,6 +125,21 @@ class _BaseAdmin(VersionAdmin):
 
     def authorized_leagues(self, user):
         return [lm.league_id for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username)]
+
+#-------------------------------------------------------------------------------
+class LeagueRestrictedListFilter(RelatedFieldListFilter):
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        super(LeagueRestrictedListFilter, self).__init__(field, request, params, model, model_admin, field_path)
+
+    def field_choices(self, field, request, model_admin):
+        if model_admin.has_assigned_perm(request.user, 'change'):
+            return field.get_choices(include_blank=False)
+        league_id_field = admin.site._registry[field.related_model].league_id_field
+        league_filter = {league_id_field + '__in': model_admin.authorized_leagues(request.user)}
+        return field.get_choices(include_blank=False, limit_choices_to=league_filter)
+
+FieldListFilter.register(lambda f: f.remote_field, LeagueRestrictedListFilter, take_priority=True)
 
 #-------------------------------------------------------------------------------
 @admin.register(League)
