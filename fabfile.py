@@ -181,6 +181,11 @@ def restartstaging():
         sudo("systemctl restart heltour-staging-celery")
 
 #-------------------------------------------------------------------------------
+def restartchesster():
+    if confirm(colors.red("Would you like to restart chesster?")):
+        sudo("systemctl restart chesster")
+
+#-------------------------------------------------------------------------------
 def createdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
