@@ -29,6 +29,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth import get_permission_codename
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -49,33 +50,39 @@ class _BaseAdmin(VersionAdmin):
     league_id_field = None
     allow_all_staff = False
 
+    def has_assigned_perm(self, user, perm_type):
+        return user.has_perm(get_permission_codename(perm_type, self.opts))
+
+    def has_league_perm(self, user, obj):
+        if self.league_id_field is None:
+            return False
+        if obj is None:
+            return len(self.authorized_leagues(user)) > 0
+        else:
+            return getnestedattr(obj, self.league_id_field) in self.authorized_leagues(user)
+
     def get_queryset(self, request):
         result = super(_BaseAdmin, self).get_queryset(request)
-        if self.allow_all_staff:
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
             return result
         if self.league_id_field is None:
             return result.none()
         return result.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
 
     def has_add_permission(self, request):
-        if self.allow_all_staff or request.user.is_superuser:
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'add'):
             return True
-        if self.league_id_field is None:
-            return False
-        return len(self.authorized_leagues(request.user)) > 0
+        return self.has_league_perm(request.user, None)
 
     def has_change_permission(self, request, obj=None):
-        if self.allow_all_staff or request.user.is_superuser:
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
             return True
-        if self.league_id_field is None:
-            return False
-        if obj is None:
-            return len(self.authorized_leagues(request.user)) > 0
-        else:
-            return getnestedattr(obj, self.league_id_field) in self.authorized_leagues(request.user)
+        return self.has_league_perm(request.user, obj)
 
     def has_delete_permission(self, request, obj=None):
-        return self.has_change_permission(request, obj)
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'delete'):
+            return True
+        return self.has_league_perm(request.user, obj)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super(_BaseAdmin, self).get_form(request, obj, **kwargs)
@@ -88,7 +95,11 @@ class _BaseAdmin(VersionAdmin):
         return form
 
     def clean_form(self, request, form):
-        if self.allow_all_staff or request.user.is_superuser:
+        if self.allow_all_staff:
+            return
+        if form.instance.pk is None and self.has_assigned_perm(request.user, 'add'):
+            return
+        if form.instance.pk is not None and self.has_assigned_perm(request.user, 'change'):
             return
         if self.league_id_field is None:
             raise ValidationError('No permission to save this object')
@@ -1157,13 +1168,10 @@ class PlayerPairingAdmin(_BaseAdmin):
 
     def get_queryset(self, request):
         result = super(_BaseAdmin, self).get_queryset(request)
-        if request.user.is_superuser:
+        if self.has_assigned_perm(request.user, 'change'):
             return result
         return result.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
              | result.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
-
-    def has_add_permission(self, request):
-        return request.user.is_superuser
 
     def get_league_id(self, obj):
         if hasattr(obj, 'teamplayerpairing'):
@@ -1173,16 +1181,14 @@ class PlayerPairingAdmin(_BaseAdmin):
         else:
             return None
 
-    def has_change_permission(self, request, obj=None):
+    def has_league_perm(self, user, obj=None):
         if obj is None:
-            return len(self.authorized_leagues(request.user)) > 0
+            return len(self.authorized_leagues(user)) > 0
         else:
-            return self.get_league_id(obj) in self.authorized_leagues(request.user)
+            return self.get_league_id(obj) in self.authorized_leagues(user)
 
     def clean_form(self, request, form):
-        if request.user.is_superuser:
-            return
-        if form.instance.pk is None:
+        if form.instance.pk is None or self.has_assigned_perm(request.user, 'change'):
             return
         if self.get_league_id(form.instance) not in self.authorized_leagues(request.user):
             raise ValidationError('No permission to save objects for this league')
@@ -1577,14 +1583,11 @@ class DocumentAdmin(_BaseAdmin):
 
     def get_queryset(self, request):
         result = super(_BaseAdmin, self).get_queryset(request)
-        if request.user.is_superuser:
+        if self.has_assigned_perm(request.user, 'change'):
             return result
         return result.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
              | result.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
              | result.filter(leaguedocument=None, seasondocument=None)
-
-    def has_add_permission(self, request):
-        return True
 
     def get_league_id(self, obj):
         if hasattr(obj, 'leaguedocument'):
@@ -1594,17 +1597,15 @@ class DocumentAdmin(_BaseAdmin):
         else:
             return None
 
-    def has_change_permission(self, request, obj=None):
+    def has_league_perm(self, user, obj=None):
         if obj is None:
-            return len(self.authorized_leagues(request.user)) > 0
+            return len(self.authorized_leagues(user)) > 0
         else:
             league_id = self.get_league_id(obj)
-            return league_id is None or league_id in self.authorized_leagues(request.user)
+            return league_id is None or league_id in self.authorized_leagues(user)
 
     def clean_form(self, request, form):
-        if request.user.is_superuser:
-            return
-        if form.instance.pk is None:
+        if form.instance.pk is None or self.has_assigned_perm(request.user, 'change'):
             return
         league_id = self.get_league_id(form.instance)
         if league_id is not None and league_id not in self.authorized_leagues(request.user):
