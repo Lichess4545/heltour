@@ -165,6 +165,9 @@ class PairingsExistException(Exception):
 class PairingHasResultException(Exception):
     pass
 
+class PairingGenerationException(Exception):
+    pass
+
 class PlaceholderTeamPairingSystem:
     def create_team_pairings(self, round_, teams, previous_pairings):
         # Pair teams in some arbitrary order for testing purposes
@@ -369,7 +372,7 @@ class JavafoInstance:
         proc = subprocess.Popen('%s %s -p %s %s' % (settings.JAVAFO_COMMAND, input_file_name, output_file_name, args), shell=True, stdout=subprocess.PIPE)
         stdout = proc.communicate()[0]
         if proc.returncode != 0:
-            raise RuntimeError('Javafo return code: %s. Output: %s' % (proc.returncode, stdout))
+            raise PairingGenerationException('Javafo return code: %s. Output: %s' % (proc.returncode, stdout))
 
     def _read_output(self, output_file_name):
         with open(output_file_name) as output_file:

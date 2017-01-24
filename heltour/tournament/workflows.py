@@ -67,6 +67,8 @@ class RoundTransitionWorkflow():
                         msg_list.append(('Unpublished pairings already exist.', messages.WARNING))
                     except pairinggen.PairingHasResultException:
                         msg_list.append(('Pairings with results can\'t be overwritten.', messages.ERROR))
+                    except pairinggen.PairingGenerationException as e:
+                        msg_list.append(('Error generating pairings. %s' % e.message, messages.ERROR))
         return msg_list
 
     @property
