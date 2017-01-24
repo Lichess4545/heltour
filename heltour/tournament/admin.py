@@ -160,7 +160,7 @@ class LeagueAdmin(_BaseAdmin):
     def get_readonly_fields(self, request, obj=None):
         if self.has_assigned_perm(request.user, 'change'):
             return ()
-        return ('is_active', 'is_default', 'display_order', 'theme', 'tag')
+        return ('tag', 'theme', 'display_order', 'is_active', 'is_default', 'enable_notifications')
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()

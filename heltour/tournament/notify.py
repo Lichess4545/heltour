@@ -14,11 +14,21 @@ import time
 logger = logging.getLogger(__name__)
 
 def _send_notification(notification_type, league, text):
-    for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
-        slackapi.send_message(ln.slack_channel, text)
+    if league.enable_notifications:
+        for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
+            slackapi.send_message(ln.slack_channel, text)
 
-def _message_user(username, text):
-    slackapi.send_message('@%s' % username, text)
+def _message_user(league, username, text):
+    if league.enable_notifications:
+        slackapi.send_message('@%s' % username, text)
+
+def _message_multiple_users(league, usernames, text):
+    if league.enable_notifications:
+        slackapi.send_message('+'.join(('@%s' % u for u in usernames)), text)
+
+def _lichess_message(league, username, subject, text):
+    if league.enable_notifications:
+        lichessapi.send_mail(username, subject, text)
 
 def _abs_url(url):
     site = Site.objects.get_current().domain
@@ -144,7 +154,7 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
     if player is not None:
         message_to_replaced_player = '@%s: I am searching for an alternate to replace you for round %d, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
                                      % (_slack_user(player), round_.number)
-        _message_user(_slack_user(player), message_to_replaced_player)
+        _message_user(league, _slack_user(player), message_to_replaced_player)
 
     # Send a DM to the opponent
     if pairing is not None:
@@ -152,7 +162,7 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
         if opponent.is_available_for(round_):
             message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
                                   % (_slack_user(opponent), _slack_user(player))
-            _message_user(_slack_user(opponent), message_to_opponent)
+            _message_user(league, _slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
     message = '%sI have started searching for an alternate for <@%s> on board %d of "%s" in round %d.' \
@@ -196,7 +206,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
     league = season.league
     aa = alt_assignment
 
-    opponent = _notify_alternate_and_opponent(aa)
+    opponent = _notify_alternate_and_opponent(league, aa)
     if opponent is not None:
         opponent_notified = ' Their opponent, @%s, has been notified.' % _slack_user(opponent)
     else:
@@ -211,7 +221,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
                   % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), aa.round.number, opponent_notified)
     _send_notification('captains', league, message)
 
-def _notify_alternate_and_opponent(aa):
+def _notify_alternate_and_opponent(league, aa):
     captain = aa.team.captain()
     if captain is not None:
         captain_text = ' The team captain is <@%s>.' % _slack_user(captain)
@@ -223,7 +233,7 @@ def _notify_alternate_and_opponent(aa):
         # Round hasn't started yet
         message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
                                % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
-        _message_user(_slack_user(aa.player), message_to_alternate)
+        _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
     pairing = team_pairing.teamplayerpairing_set.filter(board_number=aa.board_number).exclude(white=None).exclude(black=None).nocache().first()
@@ -231,7 +241,7 @@ def _notify_alternate_and_opponent(aa):
         # No pairing yet for some reason
         message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
                                % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
-        _message_user(_slack_user(aa.player), message_to_alternate)
+        _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
     opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
@@ -240,14 +250,14 @@ def _notify_alternate_and_opponent(aa):
         message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                                + 'I am still searching for another alternate for you to play, please be patient.') \
                                % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text)
-        _message_user(_slack_user(aa.player), message_to_alternate)
+        _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
     # Normal assignment
     message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                            + 'Please contact your opponent, <@%s>, as soon as possible.') \
                            % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text, _slack_user(opponent))
-    _message_user(_slack_user(aa.player), message_to_alternate)
+    _message_user(league, _slack_user(aa.player), message_to_alternate)
 
     # Send a DM to the opponent
     if aa.player == aa.replaced_player:
@@ -259,7 +269,7 @@ def _notify_alternate_and_opponent(aa):
     else:
         message_to_opponent = '@%s: Your opponent has been replaced by an alternate. Please contact your new opponent, <@%s>, as soon as possible.' \
                               % (_slack_user(opponent), _slack_user(aa.player))
-    _message_user(_slack_user(opponent), message_to_opponent)
+    _message_user(league, _slack_user(opponent), message_to_opponent)
 
     # Send configured notifications
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -293,23 +303,24 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
     round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
     message = '@%s: A team needs an alternate for %s. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
               % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
-    _message_user(_slack_user(player), message)
+    _message_user(league, _slack_user(player), message)
 
     if setting.enable_lichess_mail:
         # Send a lichess message
         li_subject = 'Round %d - %s' % (round_.number, league.name)
         li_msg = 'A team needs an alternate for %s. Please check Slack for more information.\n' % round_str \
                + 'https://lichess4545.slack.com/messages/@chesster/'
-        lichessapi.send_mail(_slack_user(player), li_subject, li_msg)
+        _lichess_message(league, _slack_user(player), li_subject, li_msg)
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
 def alternate_spots_filled(alternate, response_time, **kwargs):
+    league = alternate.season_player.season.league
     # Send a DM to the alternate
     if alternate.status == 'unresponsive':
         message = 'All available alternate spots have now been filled. You\'ve been moved to the bottom of the list since you didn\'t respond within %s.' % _offset_str(response_time)
     else:
         message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
-    _message_user(_slack_user(alternate.season_player), message)
+    _message_user(league, _slack_user(alternate.season_player), message)
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
 
@@ -367,17 +378,17 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 
     # Send lichess mails
     if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
-        lichessapi.send_mail(white, li_subject.format(**white_params), li_msg.format(**white_params))
+        _lichess_message(league, white, li_subject.format(**white_params), li_msg.format(**white_params))
     if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
-        lichessapi.send_mail(black, li_subject.format(**black_params), li_msg.format(**black_params))
+        _lichess_message(league, black, li_subject.format(**black_params), li_msg.format(**black_params))
     # Send slack ims
     if send_to_white and (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        slackapi.send_message('@%s' % white, im_msg.format(**white_params))
+        _message_user(league, white, im_msg.format(**white_params))
     if send_to_black and (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        slackapi.send_message('@%s' % black, im_msg.format(**black_params))
+        _message_user(league, black, im_msg.format(**black_params))
     # Send slack mpim
     if send_to_white and use_mpim:
-        slackapi.send_message('@%s+@%s' % (white, black), mp_msg.format(**common_params))
+        _message_multiple_users(league, [white, black], mp_msg.format(**common_params))
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
@@ -398,10 +409,13 @@ def notify_players_round_start(round_, **kwargs):
            + '{slack_url}\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel}.'
 
+    season = round_.season
+    league = season.league
+    if not league.enable_notifications:
+        return
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
         return
-    season = round_.season
     unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round=round_, is_available=False) \
                                                       .select_related('player').nocache()}
     for pairing in round_.pairings.select_related('white', 'black'):
@@ -461,10 +475,13 @@ def notify_players_unscheduled(round_, **kwargs):
            + 'When you have agreed on a time, post it in {scheduling_channel}.\n' \
            + 'If you have any issues, please contact a mod.'
 
+    season = round_.season
+    league = season.league
+    if not league.enable_notifications:
+        return
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send unscheduled notifications due to incorrect round state: %s' % round_)
         return
-    season = round_.season
     unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round=round_, is_available=False) \
                                                       .select_related('player').nocache()}
     for pairing in round_.pairings.filter(result='', game_link='', scheduled_time=None).select_related('white', 'black'):
