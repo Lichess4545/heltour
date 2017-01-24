@@ -168,7 +168,7 @@ CELERY_DEFAULT_QUEUE = 'heltour.live'
 CELERYBEAT_SCHEDULE = {
     'update-ratings': {
         'task': 'heltour.tournament.tasks.update_player_ratings',
-        'schedule': timedelta(minutes=60),
+        'schedule': timedelta(minutes=15),
         'args': ()
     },
     'update-tv-state': {

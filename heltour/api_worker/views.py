@@ -4,12 +4,16 @@ import worker
 from django.core.cache import cache
 from django.http.response import HttpResponse
 from django.utils.crypto import get_random_string
+from django.views.decorators.csrf import csrf_exempt
 
-def _do_lichess_api_call(redis_key, path, params, priority, max_retries, retry_count=0):
+def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, retry_count=0):
     url = "https://en.lichess.org/%s" % path
 
     try:
-        r = requests.get(url, params)
+        if method == 'POST':
+            r = requests.post(url, params=params, data=post_data)
+        else:
+            r = requests.get(url, params)
 
         if r.status_code == 200:
             # Success
@@ -32,10 +36,11 @@ def _do_lichess_api_call(redis_key, path, params, priority, max_retries, retry_c
     else:
         time.sleep(2)
 
+@csrf_exempt
 def lichess_api_call(request, path):
     params = request.GET.dict()
     priority = int(params.pop('priority', 0))
     max_retries = int(params.pop('max_retries', 3))
     redis_key = get_random_string(length=16)
-    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, params, priority, max_retries)
+    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body, params, priority, max_retries)
     return HttpResponse(redis_key)

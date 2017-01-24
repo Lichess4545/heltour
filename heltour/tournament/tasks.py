@@ -20,18 +20,17 @@ logger = get_task_logger(__name__)
 
 @app.task(bind=True)
 def update_player_ratings(self):
-    players = Player.objects.all()
-    player_dict = {p.lichess_username: p for p in players}
-
-    for username, p in sorted(player_dict.items()):
-        try:
-            user_meta = lichessapi.get_user_meta(username, priority=0, timeout=300)
-            p.refresh_from_db()
+    usernames = [p.lichess_username for p in Player.objects.all()]
+    try:
+        updated = 0
+        for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
+            p = Player.objects.get(lichess_username__iexact=user_meta['id'])
             p.update_profile(user_meta)
-        except Exception as e:
-            logger.warning('Error getting rating for %s: %s' % (username, e))
-
-    logger.info('Updated ratings for %d players', len(players))
+            updated += 1
+        logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))
+    except Exception as e:
+        print e
+        logger.warning('Error getting ratings: %s' % e)
 
 @app.task(bind=True)
 def populate_historical_ratings(self):

@@ -7,12 +7,18 @@ from heltour import settings
 
 logger = logging.getLogger(__name__)
 
-def _apicall(url, timeout=120, check_interval=0.1):
+def _apicall(url, timeout=120, check_interval=0.1, post_data=None):
     # Make a request to the local API worker to put the result of a lichess API call into the redis cache
-    r = requests.get(url)
+    if post_data:
+        r = requests.post(url, data=post_data)
+    else:
+        r = requests.get(url)
     if r.status_code != 200:
         # Retry once
-        r = requests.get(url)
+        if post_data:
+            r = requests.post(url, data=post_data)
+        else:
+            r = requests.get(url)
         if r.status_code != 200:
             raise ApiWorkerError('API worker returned HTTP %s for %s' % (r.status_code, url))
     # This is the key we'll use to obtain the result, which may not be set yet
@@ -35,6 +41,17 @@ def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=120):
     if result == '':
         raise ApiWorkerError('API failure')
     return json.loads(result)
+
+def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/api/users?with_moves=1&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, priority, max_retries)
+    while len(lichess_usernames) > 0:
+        batch = lichess_usernames[:300]
+        result = _apicall(url, timeout, post_data=','.join(batch))
+        if result == '':
+            raise ApiWorkerError('API failure')
+        for meta in json.loads(result):
+            yield meta
+        lichess_usernames = lichess_usernames[300:]
 
 def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3, timeout=120):
     page = 1
