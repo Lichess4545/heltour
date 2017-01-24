@@ -48,6 +48,7 @@ class _BaseAdmin(VersionAdmin):
     history_latest_first = True
 
     league_id_field = None
+    league_competitor_type = None
     allow_all_staff = False
 
     def has_assigned_perm(self, user, perm_type):
@@ -56,10 +57,14 @@ class _BaseAdmin(VersionAdmin):
     def has_league_perm(self, user, action, obj):
         if self.league_id_field is None:
             return False
+        authorized_leagues = self.authorized_leagues(user)
+        if self.league_competitor_type is not None \
+                and all((League.objects.get(pk=pk).competitor_type != self.league_competitor_type for pk in authorized_leagues)):
+            return False
         if obj is None:
-            return len(self.authorized_leagues(user)) > 0
+            return len(authorized_leagues) > 0
         else:
-            return getnestedattr(obj, self.league_id_field) in self.authorized_leagues(user)
+            return getnestedattr(obj, self.league_id_field) in authorized_leagues
 
     def get_queryset(self, request):
         result = super(_BaseAdmin, self).get_queryset(request)
@@ -1044,6 +1049,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawal)
@@ -1053,6 +1059,7 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerBye)
@@ -1063,6 +1070,7 @@ class PlayerByeAdmin(_BaseAdmin):
     raw_id_fields = ('round', 'player')
     exclude = ('player_rating',)
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(Player)
@@ -1126,6 +1134,7 @@ class TeamAdmin(_BaseAdmin):
     inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
     league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
@@ -1146,6 +1155,7 @@ class TeamMemberAdmin(_BaseAdmin):
     raw_id_fields = ('player',)
     exclude = ('player_rating',)
     league_id_field = 'team__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamScore)
@@ -1155,6 +1165,7 @@ class TeamScoreAdmin(_BaseAdmin):
     list_filter = ('team__season',)
     raw_id_fields = ('team',)
     league_id_field = 'team__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(Alternate)
@@ -1165,6 +1176,7 @@ class AlternateAdmin(_BaseAdmin):
     raw_id_fields = ('season_player',)
     exclude = ('player_rating',)
     league_id_field = 'season_player__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateAssignment)
@@ -1174,6 +1186,7 @@ class AlternateAssignmentAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateBucket)
@@ -1182,6 +1195,7 @@ class AlternateBucketAdmin(_BaseAdmin):
     search_fields = ()
     list_filter = ('season', 'board_number')
     league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateSearch)
@@ -1190,12 +1204,14 @@ class AlternateSearchAdmin(_BaseAdmin):
     search_fields = ('team__name',)
     list_filter = ('round__season', 'round__number', 'board_number', 'status')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamPairing)
@@ -1205,6 +1221,7 @@ class TeamPairingAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white_team', 'black_team', 'round')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
@@ -1255,6 +1272,7 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
     league_id_field = 'team_pairing__round__season__league_id'
+    league_competitor_type = 'team'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1269,6 +1287,7 @@ class LonePlayerPairingAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
     league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1560,6 +1579,7 @@ class LonePlayerScoreAdmin(_BaseAdmin):
     list_filter = ('season_player__season',)
     raw_id_fields = ('season_player',)
     league_id_field = 'season_player__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerAvailability)
