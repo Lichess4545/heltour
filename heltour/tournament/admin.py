@@ -1211,6 +1211,9 @@ class PlayerPairingAdmin(_BaseAdmin):
         return result.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
              | result.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
 
+    def has_add_permission(self, request):
+        return self.has_assigned_perm(request.user, 'add')
+
     def get_league_id(self, obj):
         if hasattr(obj, 'teamplayerpairing'):
             return obj.teamplayerpairing.team_pairing.round.season.league_id
@@ -1226,10 +1229,7 @@ class PlayerPairingAdmin(_BaseAdmin):
             return self.get_league_id(obj) in self.authorized_leagues(user)
 
     def clean_form(self, request, form):
-        if form.instance.pk is None or self.has_assigned_perm(request.user, 'change'):
-            return
-        if self.get_league_id(form.instance) not in self.authorized_leagues(request.user):
-            raise ValidationError('No permission to save objects for this league')
+        pass
 
     def game_link_url(self, obj):
         if not obj.game_link:
