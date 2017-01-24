@@ -1045,13 +1045,16 @@ class DocumentView(LeagueView):
             if season_document is None:
                 raise Http404
             document = season_document.document
+            allow_all_editors = season_document.allow_all_editors
         else:
             document = league_document.document
+            allow_all_editors = league_document.allow_all_editors
 
         context = {
             'document': document,
             'is_faq': False,
-            'can_edit': self.request.user.has_perm('tournament.change_document', self.league),
+            'can_edit': self.request.user.has_perm('tournament.change_document', self.league) \
+                        or self.request.user.is_staff and allow_all_editors,
         }
         return self.render('tournament/document.html', context)
 
