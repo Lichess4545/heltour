@@ -147,6 +147,17 @@ class LeagueAdmin(_BaseAdmin):
     actions = ['import_season', 'export_forfeit_data']
     league_id_field = 'id'
 
+    def has_add_permission(self, request):
+        return self.has_assigned_perm(request.user, 'add')
+
+    def has_delete_permission(self, request, obj=None):
+        return self.has_assigned_perm(request.user, 'delete')
+
+    def get_readonly_fields(self, request, obj=None):
+        if self.has_assigned_perm(request.user, 'change'):
+            return ()
+        return ('is_active', 'is_default', 'display_order', 'theme', 'tag')
+
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
