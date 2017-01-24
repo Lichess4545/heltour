@@ -29,7 +29,6 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
-from django.contrib.auth import get_permission_codename
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 
 # Customize which sections are visible
@@ -52,7 +51,7 @@ class _BaseAdmin(VersionAdmin):
     allow_all_staff = False
 
     def has_assigned_perm(self, user, perm_type):
-        return user.has_perm(get_permission_codename(perm_type, self.opts))
+        return 'tournament.%s_%s' % (perm_type, self.opts.model_name) in user.get_all_permissions()
 
     def has_league_perm(self, user, action, obj):
         if self.league_id_field is None:
