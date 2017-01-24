@@ -133,7 +133,7 @@ class LeagueRestrictedListFilter(RelatedFieldListFilter):
         super(LeagueRestrictedListFilter, self).__init__(field, request, params, model, model_admin, field_path)
 
     def field_choices(self, field, request, model_admin):
-        if model_admin.has_assigned_perm(request.user, 'change'):
+        if not isinstance(model_admin, _BaseAdmin) or model_admin.has_assigned_perm(request.user, 'change'):
             return field.get_choices(include_blank=False)
         league_id_field = admin.site._registry[field.related_model].league_id_field
         league_filter = {league_id_field + '__in': model_admin.authorized_leagues(request.user)}
