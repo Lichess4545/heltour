@@ -78,15 +78,17 @@ class RegistrationForm(forms.ModelForm):
         # Agree to rules
         rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
         if rules_doc is not None:
-            league_name = league.name
-            if not league_name.endswith('League'):
-                league_name += ' League'
             doc_url = reverse('by_league:document', args=[league.tag, rules_doc.tag])
-            self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the %s?' % league_name),
-                                                                    help_text=_(u'<a target="_blank" href="%s">Rules Document</a>' % doc_url),
-                                                                    choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
+            rules_help_text = _(u'<a target="_blank" href="%s">Rules Document</a>' % doc_url)
         else:
-            del self.fields['agreed_to_rules']
+            rules_help_text = ''
+        league_name = league.name
+        if not league_name.endswith('League'):
+            league_name += ' League'
+
+        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the %s?' % league_name),
+                                                                help_text=rules_help_text,
+                                                                choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
 
         # Alternate preference
         if league.competitor_type == 'team':
