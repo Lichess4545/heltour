@@ -1059,8 +1059,26 @@ class PlayerByeAdmin(_BaseAdmin):
 class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email')
     list_filter = ('is_active',)
+    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'account_status')
+    exclude = ('profile',)
     actions = ['update_selected_player_ratings']
     allow_all_staff = True
+
+    def has_delete_permission(self, request, obj=None):
+        # Don't let unprivileged users delete players
+        return self.has_assigned_perm(request.user, 'delete')
+
+    def clean_form(self, request, form):
+        # Restrict what can be edited manually
+        if self.has_assigned_perm(request.user, 'change'):
+            return
+        if form.instance.pk is None:
+            return
+        old_username = form.instance.lichess_username.lower()
+        if old_username != form.cleaned_data['lichess_username'].lower():
+            raise ValidationError('No permission to change a player\'s username')
+        if old_username != request.user.username.lower() and LeagueModerator.objects.filter(player__lichess_username__iexact=old_username).exists():
+            raise ValidationError('No permission to change a mod\'s info')
 
     def update_selected_player_ratings(self, request, queryset):
 #         try:
