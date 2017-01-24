@@ -5,7 +5,6 @@ from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import permission_required
 import reversion
 
 import json
@@ -28,6 +27,9 @@ from django.core import mail
 from django.utils.html import format_html
 from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow
+from django.forms.models import ModelForm
+from django.core.exceptions import PermissionDenied
+from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -45,19 +47,129 @@ class _BaseAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
     history_latest_first = True
 
+    league_id_field = None
+    league_competitor_type = None
+    allow_all_staff = False
+
+    def has_assigned_perm(self, user, perm_type):
+        return 'tournament.%s_%s' % (perm_type, self.opts.model_name) in user.get_all_permissions()
+
+    def has_league_perm(self, user, action, obj):
+        if self.league_id_field is None:
+            return False
+        authorized_leagues = self.authorized_leagues(user)
+        if self.league_competitor_type is not None \
+                and all((League.objects.get(pk=pk).competitor_type != self.league_competitor_type for pk in authorized_leagues)):
+            return False
+        if obj is None:
+            return len(authorized_leagues) > 0
+        else:
+            return getnestedattr(obj, self.league_id_field) in authorized_leagues
+
+    def get_queryset(self, request):
+        result = super(_BaseAdmin, self).get_queryset(request)
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
+            return result
+        if self.league_id_field is None:
+            return result.none()
+        return result.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        kwargs['queryset'] = admin.site._registry[db_field.related_model].get_queryset(request)
+        return super(_BaseAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'add'):
+            return True
+        return self.has_league_perm(request.user, 'add', None)
+
+    def has_change_permission(self, request, obj=None):
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
+            return True
+        return self.has_league_perm(request.user, 'change', obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if self.allow_all_staff or self.has_assigned_perm(request.user, 'delete'):
+            return True
+        return self.has_league_perm(request.user, 'delete', obj)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(_BaseAdmin, self).get_form(request, obj, **kwargs)
+
+        def clean(form):
+            super(ModelForm, form).clean()
+            self.clean_form(request, form)
+
+        form.clean = clean
+        return form
+
+    def clean_form(self, request, form):
+        if self.allow_all_staff:
+            return
+        if form.instance.pk is None and self.has_assigned_perm(request.user, 'add'):
+            return
+        if form.instance.pk is not None and self.has_assigned_perm(request.user, 'change'):
+            return
+        if self.league_id_field is None:
+            raise ValidationError('No permission to save this object')
+        # Since we have cleaned_data dict instead of a model instance, we have to
+        # pre-process the league id access a bit
+        parts = self.league_id_field.split('__', 1)
+        if len(parts) == 1:
+            if parts[0] == 'id':
+                league_id = form.cleaned_data['id']
+            else:
+                if parts[0][-3:] != '_id':
+                    raise ValueError('Invalid league id field on modeladmin')
+                league_id = form.cleaned_data[parts[0][:-3]].id
+        else:
+            league_id = getnestedattr(form.cleaned_data[parts[0]], parts[1])
+        if league_id not in self.authorized_leagues(request.user):
+            raise ValidationError('No permission to save objects for this league')
+
+    def authorized_leagues(self, user):
+        return [lm.league_id for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username)]
+
+#-------------------------------------------------------------------------------
+class LeagueRestrictedListFilter(RelatedFieldListFilter):
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        super(LeagueRestrictedListFilter, self).__init__(field, request, params, model, model_admin, field_path)
+
+    def field_choices(self, field, request, model_admin):
+        if not isinstance(model_admin, _BaseAdmin) or model_admin.has_assigned_perm(request.user, 'change'):
+            return field.get_choices(include_blank=False)
+        league_id_field = admin.site._registry[field.related_model].league_id_field
+        league_filter = {league_id_field + '__in': model_admin.authorized_leagues(request.user)}
+        return field.get_choices(include_blank=False, limit_choices_to=league_filter)
+
+FieldListFilter.register(lambda f: f.remote_field, LeagueRestrictedListFilter, take_priority=True)
+
 #-------------------------------------------------------------------------------
 @admin.register(League)
 class LeagueAdmin(_BaseAdmin):
     actions = ['import_season', 'export_forfeit_data']
+    league_id_field = 'id'
+
+    def has_add_permission(self, request):
+        return self.has_assigned_perm(request.user, 'add')
+
+    def has_delete_permission(self, request, obj=None):
+        return self.has_assigned_perm(request.user, 'delete')
+
+    def get_readonly_fields(self, request, obj=None):
+        if self.has_assigned_perm(request.user, 'change'):
+            return ()
+        return ('tag', 'theme', 'display_order', 'is_active', 'is_default', 'enable_notifications')
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/import_season/$',
-                permission_required('tournament.change_league')(self.admin_site.admin_view(self.import_season_view)),
+                self.admin_site.admin_view(self.import_season_view),
                 name='import_season'),
             url(r'^(?P<object_id>[0-9]+)/export_forfeit_data/$',
-                permission_required('tournament.change_league')(self.admin_site.admin_view(self.export_forfeit_data_view)),
+                self.admin_site.admin_view(self.export_forfeit_data_view),
                 name='export_forfeit_data'),
         ]
         return my_urls + urls
@@ -70,6 +182,8 @@ class LeagueAdmin(_BaseAdmin):
 
     def import_season_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
+        if not request.user.has_perm('tournament.change_league', league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.ImportSeasonForm(request.POST)
@@ -104,6 +218,8 @@ class LeagueAdmin(_BaseAdmin):
 
     def export_forfeit_data_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
+        if not request.user.has_perm('tournament.change_league', league):
+            raise PermissionDenied
 
         pairings = LonePlayerPairing.objects.exclude(result='').exclude(white=None).exclude(black=None).filter(round__season__league=league) \
                                     .order_by('round__start_date').select_related('white', 'black', 'round').nocache()
@@ -157,42 +273,45 @@ class SeasonAdmin(_BaseAdmin):
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
+    league_id_field = 'league_id'
 
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/manage_players/$',
-                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.manage_players_view)),
+                self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
-                permission_required('tournament.manage_players')(self.admin_site.admin_view(self.player_info_view)),
+                self.admin_site.admin_view(self.player_info_view),
                 name='edit_rosters_player_info'),
             url(r'^(?P<object_id>[0-9]+)/round_transition/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.round_transition_view)),
+                self.admin_site.admin_view(self.round_transition_view),
                 name='round_transition'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_view)),
+                self.admin_site.admin_view(self.review_nominated_games_view),
                 name='review_nominated_games'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_select_view)),
+                self.admin_site.admin_view(self.review_nominated_games_select_view),
                 name='review_nominated_games_select'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<sel_id>[0-9]+)/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_deselect_view)),
+                self.admin_site.admin_view(self.review_nominated_games_deselect_view),
                 name='review_nominated_games_deselect'),
             url(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
-                permission_required('tournament.review_nominated_games')(self.admin_site.admin_view(self.review_nominated_games_pgn_view)),
+                self.admin_site.admin_view(self.review_nominated_games_pgn_view),
                 name='review_nominated_games_pgn'),
             url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
-                permission_required('tournament.bulk_email')(self.admin_site.admin_view(self.bulk_email_view)),
+                self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email'),
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
-                permission_required('tournament.change_season')(self.admin_site.admin_view(self.mod_report_view)),
+                self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
         ]
         return my_urls + urls
 
 
     def simulate_tournament(self, request, queryset):
+        if not request.user.is_superuser:
+            raise PermissionDenied
         if not settings.DEBUG and not settings.STAGING:
             self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
             return
@@ -244,6 +363,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def review_nominated_games_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.review_nominated_games', season.league):
+            raise PermissionDenied
 
         selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
         nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number', 'date_created')
@@ -281,6 +402,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def review_nominated_games_select_view(self, request, object_id, nom_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.review_nominated_games', season.league):
+            raise PermissionDenied
         nom = get_object_or_404(GameNomination, pk=nom_id)
 
         GameSelection.objects.get_or_create(season=season, game_link=nom.game_link, defaults={'pairing': nom.pairing})
@@ -290,6 +413,8 @@ class SeasonAdmin(_BaseAdmin):
     def review_nominated_games_deselect_view(self, request, object_id, sel_id):
         gs = GameSelection.objects.filter(pk=sel_id).first()
         if gs is not None:
+            if not request.user.has_perm('tournament.review_nominated_games', gs.season.league):
+                raise PermissionDenied
             gs.delete()
 
         return redirect('admin:review_nominated_games', object_id=object_id)
@@ -312,6 +437,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def round_transition_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', season.league):
+            raise PermissionDenied
 
         workflow = RoundTransitionWorkflow(season)
 
@@ -364,6 +491,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def bulk_email_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.bulk_email', season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.BulkEmailForm(season, request.POST)
@@ -408,6 +537,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def mod_report_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.change_season', season.league):
+            raise PermissionDenied
 
         season_players = season.seasonplayer_set.select_related('player').nocache()
         players = []
@@ -430,6 +561,8 @@ class SeasonAdmin(_BaseAdmin):
     def update_board_order_by_rating(self, request, queryset):
         try:
             for season in queryset.all():
+                if not request.user.has_perm('tournament.manage_players', season.league):
+                    raise PermissionDenied
                 UpdateBoardOrderWorkflow(season).run(alternates_only=False)
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
@@ -443,6 +576,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def player_info_view(self, request, object_id, player_name):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.manage_players', season.league):
+            raise PermissionDenied
         season_player = get_object_or_404(SeasonPlayer, season=season, player__lichess_username=player_name)
         player = season_player.player
 
@@ -464,6 +599,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.manage_players', season.league):
+            raise PermissionDenied
         if season.league.competitor_type == 'team':
             return self.team_manage_players_view(request, object_id)
         else:
@@ -713,15 +850,16 @@ class SeasonAdmin(_BaseAdmin):
 class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings', 'simulate_results']
+    league_id_field = 'season__league_id'
 
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/generate_pairings/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.generate_pairings_view)),
+                self.admin_site.admin_view(self.generate_pairings_view),
                 name='generate_pairings'),
             url(r'^(?P<object_id>[0-9]+)/review_pairings/$',
-                permission_required('tournament.generate_pairings')(self.admin_site.admin_view(self.review_pairings_view)),
+                self.admin_site.admin_view(self.review_pairings_view),
                 name='review_pairings'),
         ]
         return my_urls + urls
@@ -746,6 +884,8 @@ class RoundAdmin(_BaseAdmin):
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', round_.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.GeneratePairingsForm(request.POST)
@@ -791,6 +931,8 @@ class RoundAdmin(_BaseAdmin):
 
     def review_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
+        if not request.user.has_perm('tournament.generate_pairings', round_.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             form = forms.ReviewPairingsForm(request.POST)
@@ -906,6 +1048,8 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawal)
@@ -914,6 +1058,8 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerBye)
@@ -923,13 +1069,34 @@ class PlayerByeAdmin(_BaseAdmin):
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
     exclude = ('player_rating',)
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email')
     list_filter = ('is_active',)
+    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'account_status')
+    exclude = ('profile',)
     actions = ['update_selected_player_ratings']
+    allow_all_staff = True
+
+    def has_delete_permission(self, request, obj=None):
+        # Don't let unprivileged users delete players
+        return self.has_assigned_perm(request.user, 'delete')
+
+    def clean_form(self, request, form):
+        # Restrict what can be edited manually
+        if self.has_assigned_perm(request.user, 'change'):
+            return
+        if form.instance.pk is None:
+            return
+        old_username = form.instance.lichess_username.lower()
+        if old_username != form.cleaned_data['lichess_username'].lower():
+            raise ValidationError('No permission to change a player\'s username')
+        if old_username != request.user.username.lower() and LeagueModerator.objects.filter(player__lichess_username__iexact=old_username).exists():
+            raise ValidationError('No permission to change a mod\'s info')
 
     def update_selected_player_ratings(self, request, queryset):
 #         try:
@@ -948,6 +1115,7 @@ class LeagueModeratorAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 class TeamMemberInline(admin.TabularInline):
@@ -965,9 +1133,13 @@ class TeamAdmin(_BaseAdmin):
     list_filter = ('season',)
     inlines = [TeamMemberInline]
     actions = ['update_board_order_by_rating']
+    league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():
+            if not request.user.has_perm('tournament.manage_players', team.season.league):
+                raise PermissionDenied
             members = team.teammember_set.order_by('-player__rating')
             for i in range(len(members)):
                 members[i].board_number = i + 1
@@ -982,6 +1154,8 @@ class TeamMemberAdmin(_BaseAdmin):
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
     exclude = ('player_rating',)
+    league_id_field = 'team__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamScore)
@@ -990,6 +1164,8 @@ class TeamScoreAdmin(_BaseAdmin):
     search_fields = ('team__name',)
     list_filter = ('team__season',)
     raw_id_fields = ('team',)
+    league_id_field = 'team__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(Alternate)
@@ -999,6 +1175,8 @@ class AlternateAdmin(_BaseAdmin):
     list_filter = ('season_player__season', 'board_number', 'status')
     raw_id_fields = ('season_player',)
     exclude = ('player_rating',)
+    league_id_field = 'season_player__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateAssignment)
@@ -1007,6 +1185,8 @@ class AlternateAssignmentAdmin(_BaseAdmin):
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateBucket)
@@ -1014,6 +1194,8 @@ class AlternateBucketAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'season')
     search_fields = ()
     list_filter = ('season', 'board_number')
+    league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternateSearch)
@@ -1021,11 +1203,15 @@ class AlternateSearchAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'status')
     search_fields = ('team__name',)
     list_filter = ('round__season', 'round__number', 'board_number', 'status')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
+    league_id_field = 'season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamPairing)
@@ -1034,6 +1220,8 @@ class TeamPairingAdmin(_BaseAdmin):
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white_team', 'black_team', 'round')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
@@ -1042,6 +1230,33 @@ class PlayerPairingAdmin(_BaseAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
     exclude = ('white_rating', 'black_rating', 'tv_state')
+
+    def get_queryset(self, request):
+        result = super(_BaseAdmin, self).get_queryset(request)
+        if self.has_assigned_perm(request.user, 'change'):
+            return result
+        return result.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
+
+    def has_add_permission(self, request):
+        return self.has_assigned_perm(request.user, 'add')
+
+    def get_league_id(self, obj):
+        if hasattr(obj, 'teamplayerpairing'):
+            return obj.teamplayerpairing.team_pairing.round.season.league_id
+        elif hasattr(obj, 'loneplayerpairing'):
+            return obj.loneplayerpairing.round.season.league_id
+        else:
+            return None
+
+    def has_league_perm(self, user, action, obj):
+        if obj is None:
+            return len(self.authorized_leagues(user)) > 0
+        else:
+            return self.get_league_id(obj) in self.authorized_leagues(user)
+
+    def clean_form(self, request, form):
+        pass
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1056,6 +1271,8 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
                      'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
+    league_id_field = 'team_pairing__round__season__league_id'
+    league_competitor_type = 'team'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1069,6 +1286,8 @@ class LonePlayerPairingAdmin(_BaseAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
 
     def game_link_url(self, obj):
         if not obj.game_link:
@@ -1083,6 +1302,7 @@ class RegistrationAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
     actions = ('validate',)
+    league_id_field = 'season__league_id'
 
     def changelist_view(self, request, extra_context=None):
         self.request = request
@@ -1101,25 +1321,29 @@ class RegistrationAdmin(_BaseAdmin):
         urls = super(RegistrationAdmin, self).get_urls()
         my_urls = [
             url(r'^(?P<object_id>[0-9]+)/review/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.review_registration)),
+                self.admin_site.admin_view(self.review_registration),
                 name='review_registration'),
             url(r'^(?P<object_id>[0-9]+)/approve/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.approve_registration)),
+                self.admin_site.admin_view(self.approve_registration),
                 name='approve_registration'),
             url(r'^(?P<object_id>[0-9]+)/reject/$',
-                permission_required('tournament.change_registration')(self.admin_site.admin_view(self.reject_registration)),
+                self.admin_site.admin_view(self.reject_registration),
                 name='reject_registration')
         ]
         return my_urls + urls
 
     def validate(self, request, queryset):
         for reg in queryset:
+            if not request.user.has_perm('tournament.change_registration', reg.season.league):
+                raise PermissionDenied
             signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
         self.message_user(request, 'Validation started.', messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
     def review_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if request.method == 'POST':
             changelist_filters = request.POST.get('_changelist_filters', '')
@@ -1155,6 +1379,8 @@ class RegistrationAdmin(_BaseAdmin):
 
     def approve_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
@@ -1242,8 +1468,11 @@ class RegistrationAdmin(_BaseAdmin):
 
                     if form.cleaned_data['invite_to_slack']:
                         try:
-                            slackapi.invite_user(reg.email)
-                            self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                            if request.user.has_perm('tournament.invite_to_slack'):
+                                slackapi.invite_user(reg.email)
+                                self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                            else:
+                                self.message_user(request, 'You don\'t have permission to invite players to slack.', messages.ERROR)
                         except slackapi.AlreadyInTeam:
                             self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
                         except slackapi.AlreadyInvited:
@@ -1288,6 +1517,8 @@ class RegistrationAdmin(_BaseAdmin):
 
     def reject_registration(self, request, object_id):
         reg = get_object_or_404(Registration, pk=object_id)
+        if not request.user.has_perm('tournament.change_registration', reg.season.league):
+            raise PermissionDenied
 
         if reg.status != 'pending':
             return redirect('admin:review_registration', object_id)
@@ -1334,6 +1565,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season', 'is_active', 'player__in_slack_group')
     raw_id_fields = ('player', 'registration')
+    league_id_field = 'season__league_id'
 
     def in_slack(self, sp):
         return sp.player.in_slack_group
@@ -1346,6 +1578,8 @@ class LonePlayerScoreAdmin(_BaseAdmin):
     search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
     list_filter = ('season_player__season',)
     raw_id_fields = ('season_player',)
+    league_id_field = 'season_player__season__league_id'
+    league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerAvailability)
@@ -1354,12 +1588,14 @@ class PlayerAvailabilityAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('player', 'round')
+    league_id_field = 'round__season__league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPrize)
 class SeasonPrizeAdmin(_BaseAdmin):
     list_display = ('season', 'rank', 'max_rating')
     search_fields = ('season__name',)
+    league_id_field = 'season__league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPrizeWinner)
@@ -1367,6 +1603,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
     search_fields = ('season_prize__name', 'player__lichess_username')
     raw_id_fields = ('season_prize', 'player')
+    league_id_field = 'season_prize__season__league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(GameNomination)
@@ -1374,24 +1611,28 @@ class GameNominationAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name', 'nominating_player__lichess_username')
     raw_id_fields = ('nominating_player',)
+    league_id_field = 'season__league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(GameSelection)
 class GameSelectionAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name',)
+    league_id_field = 'season__league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(AvailableTime)
 class AvailableTimeAdmin(_BaseAdmin):
     list_display = ('player', 'time', 'league')
     search_fields = ('player__lichess_username',)
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(NavItem)
 class NavItemAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'parent')
     search_fields = ('text',)
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(ApiKey)
@@ -1411,11 +1652,44 @@ class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
+    def get_queryset(self, request):
+        result = super(_BaseAdmin, self).get_queryset(request)
+        if self.has_assigned_perm(request.user, 'change'):
+            return result
+        return result.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(leaguedocument__allow_all_editors=True) \
+             | result.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(seasondocument__allow_all_editors=True) \
+             | result.filter(leaguedocument=None, seasondocument=None)
+
+    def get_league_id(self, obj):
+        if hasattr(obj, 'leaguedocument'):
+            return obj.leaguedocument.league_id
+        elif hasattr(obj, 'seasondocument'):
+            return obj.seasondocument.season.league_id
+        else:
+            return None
+
+    def edits_allowed(self, obj):
+        return hasattr(obj, 'leaguedocument') and obj.leaguedocument.allow_all_editors or \
+               hasattr(obj, 'seasondocument') and obj.seasondocument.allow_all_editors
+
+    def has_league_perm(self, user, action, obj):
+        if obj is None:
+            return len(self.authorized_leagues(user)) > 0
+        else:
+            league_id = self.get_league_id(obj)
+            return league_id is None or league_id in self.authorized_leagues(user) or action == 'change' and self.edits_allowed(obj)
+
+    def clean_form(self, request, form):
+        pass
+
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
 class LeagueDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'league', 'tag', 'type', 'url')
     search_fields = ('league__name', 'tag', 'document__name')
+    league_id_field = 'league_id'
 
     def url(self, obj):
         _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
@@ -1427,6 +1701,7 @@ class LeagueDocumentAdmin(_BaseAdmin):
 class SeasonDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'season', 'tag', 'type', 'url')
     search_fields = ('season__name', 'tag', 'document__name')
+    league_id_field = 'season__league_id'
 
     def url(self, obj):
         _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
@@ -1438,12 +1713,14 @@ class SeasonDocumentAdmin(_BaseAdmin):
 class LeagueChannelAdmin(_BaseAdmin):
     list_display = ('league', 'type', 'slack_channel')
     search_fields = ('league__name', 'slack_channel')
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(ScheduledEvent)
 class ScheduledEventAdmin(_BaseAdmin):
     list_display = ('type', 'offset', 'relative_to', 'league', 'season')
     search_fields = ('league__name', 'season__name')
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerNotificationSetting)
@@ -1452,6 +1729,7 @@ class PlayerNotificationSettingAdmin(_BaseAdmin):
     list_filter = ('league', 'type')
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('player',)
+    league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(ScheduledNotification)
@@ -1460,3 +1738,4 @@ class ScheduledNotificationAdmin(_BaseAdmin):
     list_filter = ('setting__type',)
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('setting', 'pairing')
+    league_id_field = 'setting__league_id'

@@ -11,6 +11,7 @@
 			    <h3>Dashboard</h3>
 		    </div>
 		    <div class="well-body">
+		    	{% if can_view_dashboard %}
 				{% if season_list %}
 				<div class="dropdown inline">
 				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
@@ -31,9 +32,12 @@
 				<div class="inline">
 					<a href="{% url 'admin:tournament_season_add' %}" class="btn btn-default">Create a Season</a>
 				</div>
+				{% else %}
+				No permissions for this league's dashboard.
+				{% endif %}
 			</div>
 		</div>
-		{% if season %}
+		{% if season and can_view_dashboard %}
 		<div class="well">
 			<div class="well-head">
 			    <h3>{{ season.name }}</h3>
@@ -80,7 +84,9 @@
 			</div>
 		    <div class="well-body">
 				<div class="inline"><a href="{% url 'admin:app_list' 'tournament' %}" class="btn btn-default">Tournament Admin</a></div>
+				{% if can_admin_users %}
 				<div class="inline"><a href="{% url 'admin:app_list' 'auth' %}" class="btn btn-default">User Admin</a></div>
+				{% endif %}
 				{% if celery_down %}
 				<div style="color: #c00; margin-top: 10px">Celery is down</div>
 				{% endif %}

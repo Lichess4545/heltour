@@ -175,7 +175,7 @@ class LeagueHomeView(LeagueView):
             context = {
                 'rules_doc_tag': rules_doc_tag,
                 'intro_doc': intro_doc,
-                'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+                'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
                 'other_leagues': other_leagues,
             }
             return self.render('tournament/team_league_home.html', context)
@@ -190,7 +190,7 @@ class LeagueHomeView(LeagueView):
             'season_list': season_list,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
-            'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+            'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             'registration_season': registration_season,
             'other_leagues': other_leagues,
         }
@@ -207,7 +207,7 @@ class LeagueHomeView(LeagueView):
             context = {
                 'rules_doc_tag': rules_doc_tag,
                 'intro_doc': intro_doc,
-                'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+                'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
                 'other_leagues': other_leagues,
             }
             return self.render('tournament/lone_league_home.html', context)
@@ -228,7 +228,7 @@ class LeagueHomeView(LeagueView):
             'season_list': season_list,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
-            'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+            'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             'registration_season': registration_season,
             'other_leagues': other_leagues,
             'player_highlights': player_highlights,
@@ -267,7 +267,7 @@ class SeasonLandingView(SeasonView):
                 'last_round_pairings': last_round_pairings,
                 'team_scores': team_scores,
                 'links_doc': links_doc,
-                'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+                'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/team_season_landing.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
@@ -297,7 +297,7 @@ class SeasonLandingView(SeasonView):
                 'last_round_pairings': last_round_pairings,
                 'player_scores': player_scores,
                 'links_doc': links_doc,
-                'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+                'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/lone_season_landing.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
@@ -323,7 +323,7 @@ class SeasonLandingView(SeasonView):
             'second_team': second_team,
             'third_team': third_team,
             'links_doc': links_doc,
-            'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+            'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
         }
         return self.render('tournament/team_completed_season_landing.html', context)
 
@@ -359,7 +359,7 @@ class SeasonLandingView(SeasonView):
             'u1600_player': u1600_player,
             'player_highlights': player_highlights,
             'links_doc': links_doc,
-            'can_edit_document': self.request.user.has_perm('tournament.change_document'),
+            'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
         }
         return self.render('tournament/lone_completed_season_landing.html', context)
 
@@ -428,7 +428,9 @@ class PairingsView(SeasonView):
         def _view(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
             context = self.get_team_context(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing)
             return self.render('tournament/team_pairings.html', context)
-        return _view(self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.has_perm('tournament.change_pairing'))
+        return _view(
+                     self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff,
+                     self.request.user.has_perm('tournament.change_pairing', self.league))
 
     def get_lone_context(self, round_number=None, team_number=None):
         specified_round = round_number is not None
@@ -493,7 +495,7 @@ class PairingsView(SeasonView):
             'specified_round': specified_round,
             'next_pairing_order': next_pairing_order,
             'duplicate_players': duplicate_players,
-            'can_edit': self.request.user.has_perm('tournament.change_pairing')
+            'can_edit': self.request.user.has_perm('tournament.change_pairing', self.league)
         }
 
     def lone_view(self, round_number=None, team_number=None):
@@ -508,7 +510,9 @@ class ICalPairingsView(PairingsView, ICalMixin):
             return self.lone_view(round_number, team_number)
 
     def team_view(self, round_number=None, team_number=None):
-        context = self.get_team_context(self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.has_perm('tournament.change_pairing'))
+        context = self.get_team_context(
+                                        self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff,
+                                        self.request.user.has_perm('tournament.change_pairing', self.league))
         calendar_title = ""
         if context['current_team']:
             calendar_title = "{} Games".format(context['current_team'])
@@ -598,7 +602,7 @@ class RostersView(SeasonView):
                 raise Http404
             if self.season is None:
                 context = {
-                    'can_edit': self.request.user.has_perm('tournament.manage_players'),
+                    'can_edit': self.request.user.has_perm('tournament.manage_players', self.league),
                 }
                 return self.render('tournament/team_rosters.html', context)
 
@@ -650,7 +654,7 @@ class RostersView(SeasonView):
                 'can_edit': can_edit,
             }
             return self.render('tournament/team_rosters.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.has_perm('tournament.manage_players'))
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.has_perm('tournament.manage_players', self.league))
 
 class StandingsView(SeasonView):
     def view(self, section=None):
@@ -991,7 +995,7 @@ class LeagueDashboardView(LeagueView):
         else:
             return self.lone_view()
 
-    def team_view(self):
+    def _common_context(self):
         default_season = _get_default_season(self.league.tag, allow_none=True)
         season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', '-id'))
         if default_season is not None:
@@ -1012,7 +1016,7 @@ class LeagueDashboardView(LeagueView):
         last_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False).order_by('number').first()
         next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
 
-        context = {
+        return {
             'default_season': default_season,
             'season_list': season_list,
             'pending_reg_count': pending_reg_count,
@@ -1020,37 +1024,17 @@ class LeagueDashboardView(LeagueView):
             'alternate_search_count': alternate_search_count,
             'last_round': last_round,
             'next_round': next_round,
-            'celery_down': uptime.celery.is_down
+            'celery_down': uptime.celery.is_down,
+            'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard', self.league),
+            'can_admin_users': self.request.user.has_module_perms('auth')
         }
+
+    def team_view(self):
+        context = self._common_context()
         return self.render('tournament/team_league_dashboard.html', context)
 
     def lone_view(self):
-        default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', '-id'))
-        if default_season is not None:
-            season_list.remove(default_season)
-
-        pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
-
-        team_members = TeamMember.objects.filter(team__season=self.season).select_related('player').nocache()
-        alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
-        season_players = set(sp.player for sp in SeasonPlayer.objects.filter(season=self.season, is_active=True).select_related('player').nocache())
-        team_players = set(tm.player for tm in team_members)
-        alternate_players = set(alt.season_player.player for alt in alternates)
-        unassigned_player_count = len(season_players - team_players - alternate_players)
-
-        last_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False).order_by('number').first()
-        next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
-
-        context = {
-            'default_season': default_season,
-            'season_list': season_list,
-            'pending_reg_count': pending_reg_count,
-            'unassigned_player_count': unassigned_player_count,
-            'last_round': last_round,
-            'next_round': next_round,
-            'celery_down': uptime.celery.is_down
-        }
+        context = self._common_context()
         return self.render('tournament/lone_league_dashboard.html', context)
 
 class DocumentView(LeagueView):
@@ -1061,13 +1045,16 @@ class DocumentView(LeagueView):
             if season_document is None:
                 raise Http404
             document = season_document.document
+            allow_all_editors = season_document.allow_all_editors
         else:
             document = league_document.document
+            allow_all_editors = league_document.allow_all_editors
 
         context = {
             'document': document,
             'is_faq': False,
-            'can_edit': self.request.user.has_perm('tournament.change_document'),
+            'can_edit': self.request.user.has_perm('tournament.change_document', self.league) \
+                        or self.request.user.is_staff and allow_all_editors,
         }
         return self.render('tournament/document.html', context)
 
@@ -1221,7 +1208,7 @@ class PlayerProfileView(LeagueView):
             'season_perf_rating': season_perf_rating,
             'season_score': season_score,
             'season_score_total': season_score_total,
-            'can_edit': self.request.user.has_perm('tournament.change_season_player'),
+            'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
         }
         return self.render('tournament/player_profile.html', context)
 

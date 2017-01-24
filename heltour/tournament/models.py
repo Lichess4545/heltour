@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
     for k, v in prop_values.items():
-        lst = [obj for obj in lst if _getnestedattr(obj, k) == v]
+        lst = [obj for obj in lst if getnestedattr(obj, k) == v]
     return next(iter(lst), None)
 
-def _getnestedattr(obj, k):
+def getnestedattr(obj, k):
     for k2 in k.split('__'):
         if obj is None:
             return None
@@ -90,6 +90,12 @@ class League(_BaseModel):
     pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
+    enable_notifications = models.BooleanField(default=False)
+
+    class Meta:
+        permissions = (
+            ('view_dashboard', 'Can view dashboard'),
+        )
 
     def time_control_initial(self):
         parts = self.time_control.split('+')
@@ -530,6 +536,9 @@ class Player(_BaseModel):
 
     class Meta:
         ordering = ['lichess_username']
+        permissions = (
+            ('invite_to_slack', 'Can invite to slack'),
+        )
 
     def __init__(self, *args, **kwargs):
         super(Player, self).__init__(*args, **kwargs)
@@ -1853,12 +1862,17 @@ LEAGUE_DOCUMENT_TYPES = (
 #-------------------------------------------------------------------------------
 class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League)
-    document = models.ForeignKey(Document)
+    document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
+    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('league', 'tag')
+
+    def clean(self):
+        if SeasonDocument.objects.filter(document_id=self.document_id):
+            raise ValidationError('Document already belongs to a season')
 
     def __unicode__(self):
         return self.document.name
@@ -1870,12 +1884,17 @@ SEASON_DOCUMENT_TYPES = (
 #-------------------------------------------------------------------------------
 class SeasonDocument(_BaseModel):
     season = models.ForeignKey(Season)
-    document = models.ForeignKey(Document)
+    document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
+    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('season', 'tag')
+
+    def clean(self):
+        if LeagueDocument.objects.filter(document_id=self.document_id):
+            raise ValidationError('Document already belongs to a league')
 
     def __unicode__(self):
         return self.document.name
@@ -1999,15 +2018,9 @@ class PlayerNotificationSetting(_BaseModel):
         if type_ == 'before_game_time' and obj.offset is not None and obj.offset != timedelta(minutes=60):
             # Non-default offset, so leave everything disabled
             return obj
-        league = kwargs.get('league')
-        if league is not None and league.rating_type == 'blitz':
-            obj.enable_lichess_mail = type_ in ('game_warning', 'alternate_needed')
-            obj.enable_slack_im = type_ in ('alternate_needed',)
-            obj.enable_slack_mpim = type_ in ()
-        else:
-            obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
-            obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
-            obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
+        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
+        obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj

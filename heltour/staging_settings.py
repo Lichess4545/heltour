@@ -135,6 +135,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'heltour.tournament.auth.LeagueAuthBackend']
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
