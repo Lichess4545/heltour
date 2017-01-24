@@ -1861,6 +1861,7 @@ class LeagueDocument(_BaseModel):
     document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
+    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('league', 'tag')
@@ -1882,6 +1883,7 @@ class SeasonDocument(_BaseModel):
     document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
+    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('season', 'tag')

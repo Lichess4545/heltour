@@ -54,7 +54,7 @@ class _BaseAdmin(VersionAdmin):
     def has_assigned_perm(self, user, perm_type):
         return user.has_perm(get_permission_codename(perm_type, self.opts))
 
-    def has_league_perm(self, user, obj):
+    def has_league_perm(self, user, action, obj):
         if self.league_id_field is None:
             return False
         if obj is None:
@@ -77,17 +77,17 @@ class _BaseAdmin(VersionAdmin):
     def has_add_permission(self, request):
         if self.allow_all_staff or self.has_assigned_perm(request.user, 'add'):
             return True
-        return self.has_league_perm(request.user, None)
+        return self.has_league_perm(request.user, 'add', None)
 
     def has_change_permission(self, request, obj=None):
         if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
             return True
-        return self.has_league_perm(request.user, obj)
+        return self.has_league_perm(request.user, 'change', obj)
 
     def has_delete_permission(self, request, obj=None):
         if self.allow_all_staff or self.has_assigned_perm(request.user, 'delete'):
             return True
-        return self.has_league_perm(request.user, obj)
+        return self.has_league_perm(request.user, 'delete', obj)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super(_BaseAdmin, self).get_form(request, obj, **kwargs)
@@ -1219,7 +1219,7 @@ class PlayerPairingAdmin(_BaseAdmin):
         else:
             return None
 
-    def has_league_perm(self, user, obj=None):
+    def has_league_perm(self, user, action, obj):
         if obj is None:
             return len(self.authorized_leagues(user)) > 0
         else:
@@ -1624,7 +1624,9 @@ class DocumentAdmin(_BaseAdmin):
         if self.has_assigned_perm(request.user, 'change'):
             return result
         return result.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(leaguedocument__allow_all_editors=True) \
              | result.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+             | result.filter(seasondocument__allow_all_editors=True) \
              | result.filter(leaguedocument=None, seasondocument=None)
 
     def get_league_id(self, obj):
@@ -1635,19 +1637,19 @@ class DocumentAdmin(_BaseAdmin):
         else:
             return None
 
-    def has_league_perm(self, user, obj=None):
+    def edits_allowed(self, obj):
+        return hasattr(obj, 'leaguedocument') and obj.leaguedocument.allow_all_editors or \
+               hasattr(obj, 'seasondocument') and obj.seasondocument.allow_all_editors
+
+    def has_league_perm(self, user, action, obj):
         if obj is None:
             return len(self.authorized_leagues(user)) > 0
         else:
             league_id = self.get_league_id(obj)
-            return league_id is None or league_id in self.authorized_leagues(user)
+            return league_id is None or league_id in self.authorized_leagues(user) or action == 'change' and self.edits_allowed(obj)
 
     def clean_form(self, request, form):
-        if form.instance.pk is None or self.has_assigned_perm(request.user, 'change'):
-            return
-        league_id = self.get_league_id(form.instance)
-        if league_id is not None and league_id not in self.authorized_leagues(request.user):
-            raise ValidationError('No permission to save objects for this league')
+        pass
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
