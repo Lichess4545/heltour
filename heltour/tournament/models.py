@@ -535,6 +535,9 @@ class Player(_BaseModel):
 
     class Meta:
         ordering = ['lichess_username']
+        permissions = (
+            ('invite_to_slack', 'Can invite to slack'),
+        )
 
     def __init__(self, *args, **kwargs):
         super(Player, self).__init__(*args, **kwargs)

@@ -1449,8 +1449,11 @@ class RegistrationAdmin(_BaseAdmin):
 
                     if form.cleaned_data['invite_to_slack']:
                         try:
-                            slackapi.invite_user(reg.email)
-                            self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                            if request.user.has_perm('tournament.invite_to_slack'):
+                                slackapi.invite_user(reg.email)
+                                self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                            else:
+                                self.message_user(request, 'You don\'t have permission to invite players to slack.', messages.ERROR)
                         except slackapi.AlreadyInTeam:
                             self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
                         except slackapi.AlreadyInvited:
