@@ -158,7 +158,7 @@ class Season(_BaseModel):
         self.initial_is_completed = self.is_completed
 
     def clean(self):
-        if self.league.competitor_type == 'team' and self.boards is None:
+        if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
             raise ValidationError('Boards must be specified for a team season')
 
     def save(self, *args, **kwargs):
@@ -643,7 +643,7 @@ class PlayerLateRegistration(_BaseModel):
             self.perform_registration()
 
     def clean(self):
-        if self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.competitor_type == 'team':
             raise ValidationError('Player late registrations can only be created for lone leagues')
 
     def __unicode__(self):
@@ -678,7 +678,7 @@ class PlayerWithdrawal(_BaseModel):
             self.perform_withdrawal()
 
     def clean(self):
-        if self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.competitor_type == 'team':
             raise ValidationError('Player withdrawals can only be created for lone leagues')
 
     def __unicode__(self):
@@ -754,7 +754,7 @@ class PlayerBye(_BaseModel):
             round_.season.calculate_scores()
 
     def clean(self):
-        if self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.competitor_type == 'team':
             raise ValidationError('Player byes can only be created for lone leagues')
 
 #-------------------------------------------------------------------------------
@@ -861,7 +861,7 @@ class TeamMember(_BaseModel):
         self.team.save()
 
     def clean(self):
-        if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
+        if self.team_id and self.player_id and not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
             raise ValidationError('Team member must be a player in the season')
 
     def __unicode__(self):
@@ -962,7 +962,7 @@ class TeamPairing(_BaseModel):
             self.round.season.calculate_scores()
 
     def clean(self):
-        if self.white_team.season != self.round.season or self.black_team.season != self.round.season:
+        if self.white_team_id and self.black_team_id and self.white_team.season != self.round.season or self.black_team.season != self.round.season:
             raise ValidationError('Round and team seasons must match')
 
     def refresh_points(self):
@@ -1635,9 +1635,9 @@ class AlternateAssignment(_BaseModel):
         self.initial_board_number = self.board_number
 
     def clean(self):
-        if self.round.season != self.team.season:
+        if self.round_id and self.team_id and self.round.season_id != self.team.season_id:
             raise ValidationError('Round and team seasons must match')
-        if not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
+        if self.team_id and self.player_id and not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
             raise ValidationError('Assigned player must be a player in the season')
 
     def save(self, *args, **kwargs):
@@ -1715,7 +1715,7 @@ class AlternateSearch(_BaseModel):
         unique_together = ('round', 'team', 'board_number')
 
     def clean(self):
-        if self.round.season != self.team.season:
+        if self.round_id and self.team_id and self.round.season_id != self.team.season_id:
             raise ValidationError('Round and team seasons must match')
 
     def still_needs_alternate(self):
@@ -1751,7 +1751,7 @@ class AlternatesManagerSetting(_BaseModel):
     contact_interval_before_round_start = models.DurationField(default=timedelta(hours=12), help_text='How long before the next alternate will be contacted, if the round hasn\'t started yet.')
 
     def clean(self):
-        if self.league.competitor_type != 'team':
+        if self.league_id and self.league.competitor_type != 'team':
             raise ValidationError('Alternates manager settings can only be created for team leagues')
 
     def __unicode__(self):
@@ -1969,7 +1969,7 @@ class ScheduledEvent(_BaseModel):
             signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
 
     def clean(self):
-        if self.league is not None and self.season is not None and self.season.league != self.league:
+        if self.league_id and self.season_id and self.season.league != self.league:
             raise ValidationError('League and season must be compatible')
 
 PLAYER_NOTIFICATION_TYPES = (
