@@ -97,13 +97,13 @@ def _generate_lone_pairings(round_, overwrite=False):
             PlayerBye.objects.filter(round=round_, type='full-point-pairing-bye').delete()
 
         # Perform any registrations and withdrawals
-        for reg in round_.playerlateregistration_set.all():
+        for reg in round_.playerlateregistration_set.select_related('player').nocache():
             reg.perform_registration()
-        for wd in round_.playerwithdrawal_set.all():
+        for wd in round_.playerwithdrawal_set.select_related('player').nocache():
             wd.perform_withdrawal()
 
         # Sort by seed rating/score
-        season_players = SeasonPlayer.objects.filter(season=round_.season).select_related('player', 'loneplayerscore').nocache()
+        season_players = SeasonPlayer.objects.filter(season=round_.season).select_related('player', 'loneplayerscore', 'season__league').nocache()
         for sp in season_players:
             if sp.seed_rating is None:
                 sp.seed_rating = sp.player.rating_for(round_.season.league)
@@ -113,8 +113,9 @@ def _generate_lone_pairings(round_, overwrite=False):
         season_players = sorted(season_players, key=lambda sp: sp.get_loneplayerscore().pairing_sort_key(), reverse=True)
 
         # Create byes for unavailable players
-        current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_)}
-        unavailable_players = {avail.player for avail in PlayerAvailability.objects.filter(round=round_, is_available=False)}
+        current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_).select_related('player').nocache()}
+        unavailable_players = {avail.player for avail in PlayerAvailability.objects.filter(round=round_, is_available=False) \
+                                                                           .select_related('player').nocache()}
         for p in unavailable_players - current_byes:
             with reversion.create_revision():
                 reversion.set_comment('Generated pairings.')
@@ -123,8 +124,10 @@ def _generate_lone_pairings(round_, overwrite=False):
         # Don't generate pairings for players that have been withdrawn or have byes
         include_players = {sp for sp in season_players if sp.is_active and sp.player not in current_byes and sp.player not in unavailable_players}
 
-        previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
-        previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number).order_by('round__number')
+        previous_pairings = LonePlayerPairing.objects.filter(round__season=round_.season, round__number__lt=round_.number) \
+                                             .order_by('round__number').select_related('white', 'black', 'round').nocache()
+        previous_byes = PlayerBye.objects.filter(round__season=round_.season, round__number__lt=round_.number) \
+                                 .order_by('round__number').select_related('player', 'round').nocache()
 
         # Run the pairing algorithm
         if round_.season.league.pairing_type == 'swiss-dutch-baku-accel':
@@ -142,7 +145,7 @@ def _generate_lone_pairings(round_, overwrite=False):
                 lone_pairing.save()
 
         # Save pairing byes and update player ranks for all byes
-        for bye in byes + list(PlayerBye.objects.filter(round=round_)):
+        for bye in byes + list(PlayerBye.objects.filter(round=round_).select_related('player').nocache()):
             bye.refresh_rank(rank_dict)
             with reversion.create_revision():
                 reversion.set_comment('Generated pairings.')

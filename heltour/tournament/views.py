@@ -183,7 +183,7 @@ class LeagueHomeView(LeagueView):
         season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=self.season.pk)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
-        team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season), reverse=True)[:5], 1))
+        team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True)[:5], 1))
 
         context = {
             'team_scores': team_scores,
@@ -726,7 +726,9 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
         sort_key = lambda s: s.final_standings_sort_key()
     else:
         sort_key = lambda s: s.pairing_sort_key()
-    player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player__player').nocache(), key=sort_key, reverse=True), 1))
+    raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
+                                       .select_related('season_player__player', 'season_player__season__league').nocache()
+    player_scores = list(enumerate(sorted(raw_player_scores, key=sort_key, reverse=True), 1))
     player_number_dict = {p.season_player.player: n for n, p in player_scores}
 
     pairings = LonePlayerPairing.objects.filter(round__season=season).select_related('white', 'black').nocache()
@@ -1634,7 +1636,8 @@ def _get_default_season(league_tag, allow_none=False):
 @cached_as(NavItem)
 def _get_nav_tree(league_tag, season_tag):
     league = _get_league(league_tag)
-    root_items = league.navitem_set.filter(parent=None).order_by('order')
+    all_items = league.navitem_set.order_by('order')
+    root_items = [item for item in all_items if item.parent_id == None]
 
     def transform(item):
         text = item.text
@@ -1643,7 +1646,7 @@ def _get_nav_tree(league_tag, season_tag):
             url = '/season/%s' % season_tag + url
         if item.league_relative:
             url = '/%s' % league_tag + url
-        children = [transform(child) for child in item.navitem_set.order_by('order')]
+        children = [transform(child) for child in all_items if child.parent_id == item.id]
         append_separator = item.append_separator
         return (text, url, children, append_separator)
 

@@ -1156,11 +1156,11 @@ class PlayerPairing(_BaseModel):
         return "%s - %s" % (self.white_display(), self.black_display())
 
     def save(self, *args, **kwargs):
-        result_changed = self.pk is None or self.result != self.initial_result
-        white_changed = self.pk is None or self.white_id != self.initial_white_id
-        black_changed = self.pk is None or self.black_id != self.initial_black_id
-        game_link_changed = self.pk is None or self.game_link != self.initial_game_link
-        scheduled_time_changed = self.pk is None or self.scheduled_time != self.initial_scheduled_time
+        result_changed = self.result != self.initial_result
+        white_changed = self.white_id != self.initial_white_id
+        black_changed = self.black_id != self.initial_black_id
+        game_link_changed = self.game_link != self.initial_game_link
+        scheduled_time_changed = self.scheduled_time != self.initial_scheduled_time
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
@@ -1518,7 +1518,9 @@ class LonePlayerScore(_BaseModel):
         return "%s" % (self.season_player)
 
 def lone_player_pairing_rank_dict(season):
-    player_scores = list(enumerate(sorted(LonePlayerScore.objects.filter(season_player__season=season).select_related('season_player').nocache(), key=lambda s: s.pairing_sort_key(), reverse=True), 1))
+    raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
+                                       .select_related('season_player__season__league', 'season_player__player').nocache()
+    player_scores = list(enumerate(sorted(raw_player_scores, key=lambda s: s.pairing_sort_key(), reverse=True), 1))
     return {p.season_player.player_id: n for n, p in player_scores}
 
 #-------------------------------------------------------------------------------
