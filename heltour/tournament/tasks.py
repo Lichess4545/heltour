@@ -366,3 +366,10 @@ def alternates_manager_tick(self):
 @app.task(bind=True)
 def celery_is_up(self):
     uptime.celery.is_up = True
+
+@receiver(post_save, sender=PlayerPairing, dispatch_uid='heltour.tournament.tasks')
+def pairing_changed(instance, created, **kwargs):
+    if instance.game_link != '' and instance.result == '':
+        game_id = get_gameid_from_gamelink(instance.game_link)
+        if game_id:
+            lichessapi.add_watch(game_id)

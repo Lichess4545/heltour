@@ -95,6 +95,15 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
         raise ApiWorkerError('API failure')
     return json.loads(result)['currentPageResults']
 
+def watch_games(game_ids):
+    url = '%s/watch/' % (settings.API_WORKER_HOST)
+    r = requests.post(url, data=','.join(game_ids))
+    return r.json()['result']
+
+def add_watch(game_id):
+    url = '%s/watch/add/' % (settings.API_WORKER_HOST)
+    requests.post(url, data=game_id)
+
 # HTTP headers used to send non-API requests to lichess
 _headers = {'Accept': 'application/vnd.lichess.v1+json'}
 

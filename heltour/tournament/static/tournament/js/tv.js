@@ -56,7 +56,7 @@
 
   run();
 
-  function newBoard($parent, game) {
+  function newBoard($parent, game, m) {
     var chess = new Chess();
 
     var ground = Chessground($parent.find('.chessground')[0], {
@@ -82,56 +82,59 @@
     });
 
     chessGrounds[game.id] = ground;
+    
+    if (m) {
+	    m.d.lastMove = [m.d.lm.substring(0,2), m.d.lm.substring(2,4)];
+	    ground.set(m.d);
+    } else {
+    	$.ajax({
+    	      url:'https://en.lichess.org/api/game/' + game.id,
+    	      data: {
+    	        with_moves: 1
+    	      },
+    	      dataType:'jsonp',
+    	      jsonp:'callback',
+    	      success: function(data) {
+    	    	  if (data.moves) {
+		              var a = {};
+		              const chess = new Chess();
+		              data.moves.split(' ').forEach(chess.move);
+		              const history = chess.history({verbose: true});
+		              const lastMoveObj = history[history.length-1];
+		              a.lastMove = [lastMoveObj.from, lastMoveObj.to];
+		              a.fen = chess.fen();
+		              ground.set(a);
+	              }
+    	      }
+    	});
+    }
+    
+    var top_label = $parent.find('.top-label');
+    top_label.find('.player-div').show();
+    top_label.find('.player-name').text(game.black_name);
+    top_label.find('.player-rating').text(game.black_rating);
+    top_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + game.black_name + '/');
+    if (game.black_team) {
+      top_label.find('.team-div').show();
+      top_label.find('.board-number').text(game.board_number);
+      top_label.find('.team-name').text(game.black_team.name);
+      top_label.find('.team-score').text(game.black_team.score.toFixed(1));
+      top_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/');
+    }
+    
 
-    $.ajax({
-      url:'https://en.lichess.org/api/game/' + game.id,
-      data: {
-        with_moves: 1
-      },
-      dataType:'jsonp',
-      jsonp:'callback',
-      success: function(data) {
-        if(data.players) {
-          var top_label = $parent.find('.top-label');
-          top_label.find('.player-div').show();
-          top_label.find('.player-name').text(data.players.black.userId);
-          top_label.find('.player-rating').text(data.players.black.rating);
-          top_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + data.players.black.userId + '/');
-          if (game.black_team) {
-            top_label.find('.team-div').show();
-            top_label.find('.board-number').text(game.board_number);
-            top_label.find('.team-name').text(game.black_team.name);
-            top_label.find('.team-score').text(game.black_team.score.toFixed(1));
-            top_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/');
-          }
-          
-
-          var bottom_label = $parent.find('.bottom-label');
-          bottom_label.find('.player-div').show();
-          bottom_label.find('.player-name').text(data.players.white.userId);
-          bottom_label.find('.player-rating').text(data.players.white.rating);
-          bottom_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + data.players.white.userId + '/');
-          if (game.white_team) {
-            bottom_label.find('.team-div').show();
-            bottom_label.find('.board-number').text(game.board_number);
-            bottom_label.find('.team-name').text(game.white_team.name);
-            bottom_label.find('.team-score').text(game.white_team.score.toFixed(1));
-            bottom_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/');
-          }
-        }
-
-        if (data.moves) {
-          var a = {};
-          const chess = new Chess();
-          data.moves.split(' ').forEach(chess.move);
-          const history = chess.history({verbose: true});
-          const lastMoveObj = history[history.length-1];
-          a.lastMove = [lastMoveObj.from, lastMoveObj.to];
-          a.fen = chess.fen();
-          ground.set(a);
-        }
-      }
-    });
+    var bottom_label = $parent.find('.bottom-label');
+    bottom_label.find('.player-div').show();
+    bottom_label.find('.player-name').text(game.white_name);
+    bottom_label.find('.player-rating').text(game.white_rating);
+    bottom_label.find('.player-link').attr('href', '/' + game.league + '/season/' + game.season + '/player/' + game.white_name + '/');
+    if (game.white_team) {
+      bottom_label.find('.team-div').show();
+      bottom_label.find('.board-number').text(game.board_number);
+      bottom_label.find('.team-name').text(game.white_team.name);
+      bottom_label.find('.team-score').text(game.white_team.score.toFixed(1));
+      bottom_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/');
+    }
 
     var message = JSON.stringify({
       t: 'startWatching',
@@ -146,6 +149,12 @@
 	  var next_games = {};
 	  $.each(data.games, function(i, g) {
 	  	next_games[g.id] = 1;
+	  });
+	  var messages = {};
+	  $.each(data.watch, function(i, msg) {
+		  if (msg) {
+			  messages[msg.d.id] = msg;
+		  }
 	  });
 	  
 	  // Delete existing games we're not showing any more
@@ -164,7 +173,7 @@
 	  		var $g = shown_games[g.id];
 	  		$g.toggle(g.matches_filter);
 	  		if (g.matches_filter && !$g.data('has_board')) {
-		  		newBoard($g, g);
+		  		newBoard($g, g, messages[g.id]);
 		  		$g.data('has_board', true);
 	  		}
 	  	} else {
@@ -173,7 +182,7 @@
 		  	$('#games-row').append($g);
 		  	if (g.matches_filter) {
 		  		$g.show();
-		  		newBoard($g, g);
+		  		newBoard($g, g, messages[g.id]);
 		  		$g.data('has_board', true);
 		  	}
 		  	shown_games[g.id] = $g;
@@ -264,6 +273,12 @@
   
   var currentGameId = null;
   function renderSingle(data) {
+	  var messages = {};
+	  $.each(data.watch, function(i, msg) {
+		  if (msg) {
+			  messages[msg.d.id] = msg;
+		  }
+	  });
 	  for (var i = 0; i < data.games.length; i++) {
 		  var g = data.games[i];
 		  if (!g.matches_filter) {
@@ -277,7 +292,7 @@
 		      $g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
 			  $('#single-game-container').append($g);
 		  	  $g.show();
-		  	  newBoard($g, g);
+		  	  newBoard($g, g, messages[g.id]);
 		  	  currentGameId = g.id;
 		  }
 		  break;

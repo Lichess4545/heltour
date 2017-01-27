@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.views.generic import View
 from django.utils.text import slugify
 
-from heltour.tournament import slackapi, alternates_manager, uptime
+from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 from .forms import *
 from .models import *
@@ -1557,8 +1557,10 @@ def _tv_json(league, board=None, team=None):
                 'id': game.game_id(),
                 'white': str(game.white),
                 'white_name': game.white.lichess_username,
+                'white_rating': game.white_rating_display(league),
                 'black': str(game.black),
                 'black_name': game.black.lichess_username,
+                'black_rating': game.black_rating_display(league),
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game.teamplayerpairing.team_pairing.round.season.league.tag,
                 'season': game.teamplayerpairing.team_pairing.round.season.tag,
@@ -1600,8 +1602,12 @@ def _tv_json(league, board=None, team=None):
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
                                                          'loneplayerpairing__round__season__league').nocache()
-    return {'games': [export_game(g, league, board, team) for g in current_games],
-            'schedule': [export_game(g, league, board, team) for g in scheduled_games]}
+    games = [export_game(g, league, board, team) for g in current_games]
+    game_ids = [g['id'] for g in games]
+    schedule = [export_game(g, league, board, team) for g in scheduled_games]
+    return {'games': games,
+            'schedule': schedule,
+            'watch': lichessapi.watch_games(game_ids)}
 
 #-------------------------------------------------------------------------------
 # Helper functions

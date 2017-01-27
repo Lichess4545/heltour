@@ -2,7 +2,7 @@ import requests
 import time
 import worker
 from django.core.cache import cache
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
@@ -44,3 +44,16 @@ def lichess_api_call(request, path):
     redis_key = get_random_string(length=16)
     worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body, params, priority, max_retries)
     return HttpResponse(redis_key)
+
+@csrf_exempt
+def watch(request):
+    game_ids = request.body.split(',')
+    result = worker.watch_games(game_ids)
+    print 'Result', result
+    return JsonResponse({'result': result})
+
+@csrf_exempt
+def watch_add(request):
+    game_id = request.body
+    worker.add_watch(game_id)
+    return JsonResponse({'ok': True})
