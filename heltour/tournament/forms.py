@@ -65,9 +65,11 @@ class RegistrationForm(forms.ModelForm):
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
                    label=_(u'Are you able to commit to 1 long time control game (%s currently) of classical chess on Lichess.org per week?' % time_control))
         else:
+            start_time = '' if self.season.start_date is None else \
+                         ' on %s at %s UTC' % (self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                   label=_(u'Are you able to commit to playing %d rounds of %s blitz games back to back on %s at %s UTC?'
-                           % (self.season.rounds, time_control, self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))))
+                   label=_(u'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
+                           % (self.season.rounds, time_control, start_time)))
         # Friends
         if league.competitor_type == 'team':
             self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),

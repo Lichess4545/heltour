@@ -409,7 +409,9 @@ class AlternateTestCase(TestCase):
         self.assertEqual(3, alt.board_number)
 
     def test_priority_date(self):
-        sp = SeasonPlayer.objects.all()[0]
+        season = Season.objects.all()[0]
+        player = Player.objects.all()[0]
+        sp = SeasonPlayer.objects.create(season=season, player=player)
         alt = Alternate.objects.create(season_player=sp, board_number=1)
 
         self.assertEqual(alt.date_created, alt.priority_date())
@@ -423,7 +425,7 @@ class AlternateTestCase(TestCase):
 
         time3 = timezone.now()
         r = Round.objects.all()[0]
-        r.start_date = time3
+        r.end_date = time3
         r.save()
         AlternateAssignment.objects.create(round=r, team=Team.objects.all()[0], board_number=1, player=sp.player)
 

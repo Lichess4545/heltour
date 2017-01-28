@@ -1067,11 +1067,11 @@ class PlayerPairing(_BaseModel):
 
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
-        self.initial_result = self.result
-        self.initial_white_id = self.white_id
-        self.initial_black_id = self.black_id
-        self.initial_game_link = self.game_link
-        self.initial_scheduled_time = self.scheduled_time
+        self.initial_result = '' if self.pk is None else self.result
+        self.initial_white_id = None if self.pk is None else self.white_id
+        self.initial_black_id = None if self.pk is None else self.black_id
+        self.initial_game_link = '' if self.pk is None else self.game_link
+        self.initial_scheduled_time = None if self.pk is None else self.scheduled_time
 
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
