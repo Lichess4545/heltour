@@ -107,7 +107,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 									{{ player_score.season_player.player.lichess_username }}
 								</a>
 							</td>
-							<td class="text-center">{{ player_score.season_player.player.rating }}</td>
+							<td class="text-center">{% player_rating player_score.season_player %}</td>
 							<td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
 							<td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
 						</tr>
