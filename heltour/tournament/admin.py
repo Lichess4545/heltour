@@ -62,17 +62,17 @@ class _BaseAdmin(VersionAdmin):
                 and all((League.objects.get(pk=pk).competitor_type != self.league_competitor_type for pk in authorized_leagues)):
             return False
         if obj is None:
-            return len(authorized_leagues) > 0
+            return bool(authorized_leagues)
         else:
             return getnestedattr(obj, self.league_id_field) in authorized_leagues
 
     def get_queryset(self, request):
-        result = super(_BaseAdmin, self).get_queryset(request)
+        queryset = super(_BaseAdmin, self).get_queryset(request)
         if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
-            return result
+            return queryset
         if self.league_id_field is None:
-            return result.none()
-        return result.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
+            return queryset.none()
+        return queryset.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         kwargs['queryset'] = admin.site._registry[db_field.related_model].get_queryset(request)
@@ -128,13 +128,10 @@ class _BaseAdmin(VersionAdmin):
             raise ValidationError('No permission to save objects for this league')
 
     def authorized_leagues(self, user):
-        return [lm.league_id for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username)]
+        return [lm['league_id'] for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username).values('league_id')]
 
 #-------------------------------------------------------------------------------
 class LeagueRestrictedListFilter(RelatedFieldListFilter):
-
-    def __init__(self, field, request, params, model, model_admin, field_path):
-        super(LeagueRestrictedListFilter, self).__init__(field, request, params, model, model_admin, field_path)
 
     def field_choices(self, field, request, model_admin):
         if not isinstance(model_admin, _BaseAdmin) or model_admin.has_assigned_perm(request.user, 'change'):
@@ -1232,11 +1229,11 @@ class PlayerPairingAdmin(_BaseAdmin):
     exclude = ('white_rating', 'black_rating', 'tv_state')
 
     def get_queryset(self, request):
-        result = super(_BaseAdmin, self).get_queryset(request)
+        queryset = super(_BaseAdmin, self).get_queryset(request)
         if self.has_assigned_perm(request.user, 'change'):
-            return result
-        return result.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
-             | result.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
+            return queryset
+        return queryset.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
+             | queryset.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
 
     def has_add_permission(self, request):
         return self.has_assigned_perm(request.user, 'add')
@@ -1251,7 +1248,7 @@ class PlayerPairingAdmin(_BaseAdmin):
 
     def has_league_perm(self, user, action, obj):
         if obj is None:
-            return len(self.authorized_leagues(user)) > 0
+            return bool(self.authorized_leagues(user))
         else:
             return self.get_league_id(obj) in self.authorized_leagues(user)
 
@@ -1653,14 +1650,14 @@ class DocumentAdmin(_BaseAdmin):
     search_fields = ('name',)
 
     def get_queryset(self, request):
-        result = super(_BaseAdmin, self).get_queryset(request)
+        queryset = super(_BaseAdmin, self).get_queryset(request)
         if self.has_assigned_perm(request.user, 'change'):
-            return result
-        return result.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
-             | result.filter(leaguedocument__allow_all_editors=True) \
-             | result.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
-             | result.filter(seasondocument__allow_all_editors=True) \
-             | result.filter(leaguedocument=None, seasondocument=None)
+            return queryset
+        return queryset.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+             | queryset.filter(leaguedocument__allow_all_editors=True) \
+             | queryset.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+             | queryset.filter(seasondocument__allow_all_editors=True) \
+             | queryset.filter(leaguedocument=None, seasondocument=None)
 
     def get_league_id(self, obj):
         if hasattr(obj, 'leaguedocument'):
@@ -1676,7 +1673,7 @@ class DocumentAdmin(_BaseAdmin):
 
     def has_league_perm(self, user, action, obj):
         if obj is None:
-            return len(self.authorized_leagues(user)) > 0
+            return bool(self.authorized_leagues(user))
         else:
             league_id = self.get_league_id(obj)
             return league_id is None or league_id in self.authorized_leagues(user) or action == 'change' and self.edits_allowed(obj)
