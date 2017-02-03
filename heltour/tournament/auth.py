@@ -1,6 +1,13 @@
 from heltour.tournament.models import LeagueModerator, League
 
 class LeagueAuthBackend(object):
+
+    def authenticate(self, username=None, password=None):
+        return None
+
+    def get_user(self, user_id):
+        return None
+
     def has_perm(self, user_obj, perm, obj=None):
         if isinstance(obj, League):
             return LeagueModerator.objects.filter(league=obj, player__lichess_username__iexact=user_obj.username).exists()
