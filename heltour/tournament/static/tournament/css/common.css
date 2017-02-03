@@ -613,6 +613,10 @@ div.inline {
 	background-color: #562222;
 }
 
+.league-link {
+	display: inline-block;
+}
+
 .navbar-brand {
 	padding-right: 5px;
 }
