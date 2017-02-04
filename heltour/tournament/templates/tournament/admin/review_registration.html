@@ -122,7 +122,16 @@
 		
 		{% for season_player in original.other_seasons %}
 		<div class="form-row">
-			The player <span class="text-username">{{ original.lichess_username }}</span> participated in <span class="text-season">{{ season_player.season }}</span> with <strong>{{ season_player.games_missed }} game(s) missed</strong>.
+			The player
+			<span class="text-username">
+				{{ original.lichess_username }}
+			</span>
+			participated in
+			<a href="{% leagueurl 'player_profile' season_player.season.league.tag season_player.season.tag original.lichess_username %}">
+				{{ season_player.season }}
+			</a>
+			with
+			<strong>{{ season_player.games_missed }} game(s) missed</strong>.
 		</div>
 		{% endfor %}
 		
