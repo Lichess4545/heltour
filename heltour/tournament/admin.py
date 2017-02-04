@@ -30,6 +30,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
+from django.contrib.staticfiles.templatetags.staticfiles import static
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -1294,7 +1295,7 @@ class LonePlayerPairingAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(_BaseAdmin):
-    list_display = ('review', 'email', 'status', 'season', 'date_created')
+    list_display = ('review', 'email', 'status', 'valid', 'season', 'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
@@ -1313,6 +1314,16 @@ class RegistrationAdmin(_BaseAdmin):
     def edit(self, obj):
         return 'Edit'
     edit.allow_tags = True
+
+    def valid(self, obj):
+        if obj.validation_warning == True:
+            return '<img src="%s">' % static('admin/img/icon-alert.svg')
+        elif obj.validation_ok == True:
+            return '<img src="%s">' % static('admin/img/icon-yes.svg')
+        elif obj.validation_ok == False:
+            return '<img src="%s">' % static('admin/img/icon-no.svg')
+        return ''
+    valid.allow_tags = True
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
