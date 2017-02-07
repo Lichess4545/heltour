@@ -681,6 +681,11 @@ class StandingsView(SeasonView):
             round_numbers = list(range(1, self.season.rounds + 1))
             player_scores = _lone_player_scores(self.season)
 
+            has_ljp = False
+            for _, ps, _ in player_scores:
+                if ps.late_join_points > 0:
+                    has_ljp = True
+
             if section is not None:
                 match = re.match(r'u(\d+)', section)
                 if match is not None:
@@ -700,6 +705,7 @@ class StandingsView(SeasonView):
             context = {
                 'round_numbers': round_numbers,
                 'player_scores': player_scores,
+                'has_ljp': has_ljp,
                 'player_sections': player_sections,
                 'current_section': current_section,
                 'player_highlights': player_highlights,
