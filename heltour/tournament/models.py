@@ -1930,6 +1930,7 @@ class LeagueChannel(_BaseModel):
 SCHEDULED_EVENT_TYPES = (
     ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
     ('notify_mods_no_result', 'Notify mods of games without results'),
+    ('notify_mods_pending_regs', 'Notify mods of pending registrations'),
     ('start_round_transition', 'Start round transition'),
     ('notify_players_unscheduled', 'Notify players of unscheduled games'),
     ('notify_players_game_time', 'Notify players of their game time'),
@@ -1961,6 +1962,8 @@ class ScheduledEvent(_BaseModel):
             signals.notify_mods_unscheduled.send(sender=self.__class__, round_=obj)
         elif self.type == 'notify_mods_no_result' and isinstance(obj, Round):
             signals.notify_mods_no_result.send(sender=self.__class__, round_=obj)
+        elif self.type == 'notify_mods_pending_regs' and isinstance(obj, Round):
+            signals.notify_mods_pending_regs.send(sender=self.__class__, round_=obj)
         elif self.type == 'start_round_transition' and isinstance(obj, Round):
             signals.do_round_transition.send(sender=self.__class__, round_id=obj.pk)
         elif self.type == 'notify_players_unscheduled' and isinstance(obj, Round):

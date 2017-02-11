@@ -113,6 +113,15 @@ def notify_mods_no_result(round_, **kwargs):
         message = 'The following games are missing results: %s' % (', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
+@receiver(signals.notify_mods_pending_regs, dispatch_uid='heltour.tournament.notify')
+def notify_mods_pending_regs(round_, **kwargs):
+    pending_count = round_.season.registration_set.filter(status='pending', season=round_.season).count()
+    if pending_count == 0:
+        return
+    list_url = _abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(round_.season.pk))
+    message = '<%s|%d pending registrations>' % (list_url, pending_count)
+    _send_notification('mod', round_.season.league, message)
+
 @receiver(signals.pairings_generated, dispatch_uid='heltour.tournament.notify')
 def pairings_generated(round_, **kwargs):
     league = round_.season.league
