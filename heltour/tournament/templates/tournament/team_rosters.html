@@ -68,7 +68,13 @@
 						<tbody>
 							{% for row_num, row in alternate_rows %}
 							<tr>
-								<td colspan="3">&nbsp;</td>
+								<td colspan="3">
+									{% if row_num == 1 and not season.is_completed %}
+									<a href="{% leagueurl 'alternates' league.tag season.tag %}">Searches</a>
+									{% else %}
+									&nbsp;
+									{% endif %}
+								</td>
 								{% for alt in row %}
 								{% with priority_date_and_reason=alt.priority_date_and_reason %}
 								<td class="cell-player" colspan="2" title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
