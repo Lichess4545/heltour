@@ -34,6 +34,19 @@ def _abs_url(url):
     site = Site.objects.get_current().domain
     return 'https://%s%s' % (site, url)
 
+@receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
+def league_comment(league, comment, **kwargs):
+    if comment.user is None:
+        # Don't forward system-generated comments
+        return
+    if comment.content_type.model in ('gamenomination',):
+        # Exclude some models
+        return
+    obj = comment.content_object
+    admin_url = _abs_url(reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
+    message = '%s commented on %s <%s|%s>:\n%s' % (comment.user_name, comment.content_type.name, admin_url, obj, comment.comment)
+    _send_notification('mod', league, message)
+
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.notify')
 def registration_saved(instance, created, **kwargs):
     if not created:

@@ -31,6 +31,8 @@ from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.db.models.signals import post_save
+from django.dispatch.dispatcher import receiver
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -42,6 +44,20 @@ def redirect_with_params(*args, **kwargs):
     response['Location'] += params
     print 'Redirect: ', response['Location']
     return response
+
+@receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
+def comment_saved(instance, created, **kwargs):
+    if not created:
+        return
+    model = instance.content_type.model_class()
+    model_admin = admin.site._registry.get(model)
+    if model_admin is None or not hasattr(model_admin, 'get_league_id'):
+        return
+    league_id = model_admin.get_league_id(instance.content_object)
+    if league_id is None:
+        return
+    league = League.objects.get(pk=league_id)
+    signals.league_comment.send(sender=comment_saved, league=league, comment=instance)
 
 #-------------------------------------------------------------------------------
 class _BaseAdmin(VersionAdmin):
@@ -55,6 +71,11 @@ class _BaseAdmin(VersionAdmin):
     def has_assigned_perm(self, user, perm_type):
         return 'tournament.%s_%s' % (perm_type, self.opts.model_name) in user.get_all_permissions()
 
+    def get_league_id(self, obj):
+        if self.league_id_field is None:
+            return None
+        return getnestedattr(obj, self.league_id_field)
+
     def has_league_perm(self, user, action, obj):
         if self.league_id_field is None:
             return False
@@ -65,7 +86,7 @@ class _BaseAdmin(VersionAdmin):
         if obj is None:
             return bool(authorized_leagues)
         else:
-            return getnestedattr(obj, self.league_id_field) in authorized_leagues
+            return self.get_league_id(obj) in authorized_leagues
 
     def get_queryset(self, request):
         queryset = super(_BaseAdmin, self).get_queryset(request)
