@@ -124,6 +124,6 @@ def time_from_now(datetime):
     else:
         minutes = delta.seconds / 60
         if minutes == 1:
-            return '1 minutes'
+            return '1 minute'
         else:
             return '%d minutes' % minutes
