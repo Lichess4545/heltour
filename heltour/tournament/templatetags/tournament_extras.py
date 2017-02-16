@@ -126,4 +126,4 @@ def time_from_now(datetime):
         if minutes == 1:
             return '1 minutes'
         else:
-            return '%d minutes' % hours
+            return '%d minutes' % minutes
