@@ -1609,15 +1609,26 @@ def _tv_json(league, board=None, team=None):
                                          .select_related('teamplayerpairing__team_pairing__round__season__league',
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
-                                                         'loneplayerpairing__round__season__league').nocache()
+                                                         'loneplayerpairing__round__season__league',
+                                                         'white', 'black').nocache()
     scheduled_games = PlayerPairing.objects.filter(result='', game_link='', scheduled_time__gt=timezone.now() - timedelta(minutes=20)).order_by('scheduled_time') \
                                          .select_related('teamplayerpairing__team_pairing__round__season__league',
                                                          'teamplayerpairing__team_pairing__black_team',
                                                          'teamplayerpairing__team_pairing__white_team',
-                                                         'loneplayerpairing__round__season__league').nocache()
-    games = [export_game(g, league, board, team) for g in current_games]
+                                                         'loneplayerpairing__round__season__league',
+                                                         'white', 'black').nocache()
+
+    @cached_as(League, Season, Round, Team, TeamScore, Player, PlayerPairing, TeamPlayerPairing, TeamPairing, LonePlayerPairing)
+    def get_games(league, board, team):
+        return [export_game(g, league, board, team) for g in current_games]
+
+    @cached_as(League, Season, Round, Team, TeamScore, Player, PlayerPairing, TeamPlayerPairing, TeamPairing, LonePlayerPairing)
+    def get_schedule(league, board, team):
+        return [export_game(g, league, board, team) for g in scheduled_games]
+
+    games = get_games(league, board, team)
+    schedule = get_schedule(league, board, team)
     game_ids = [g['id'] for g in games]
-    schedule = [export_game(g, league, board, team) for g in scheduled_games]
     return {'games': games,
             'schedule': schedule,
             'watch': lichessapi.watch_games(game_ids)}
