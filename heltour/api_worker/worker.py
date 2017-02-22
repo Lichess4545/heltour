@@ -3,6 +3,8 @@ import threading
 import websocket
 import json
 import time
+from django.utils import timezone
+from datetime import timedelta
 
 def _run_worker():
     while True:
@@ -23,8 +25,13 @@ def queue_work(priority, fn, *args):
 
 def _run_socket():
     global _websocket
+    last_start = None
     while True:
         try:
+            if last_start is not None and last_start > timezone.now() - timedelta(seconds=10):
+                time.sleep(1)
+            last_start = timezone.now()
+
             _websocket = websocket.create_connection('wss://socket.lichess.org/api/socket')
             with _games_lock:
                 for game_id in _games.keys():
@@ -37,7 +44,7 @@ def _run_socket():
                         if game_id in _games:
                             _games[game_id] = msg
         except:
-            time.sleep(1)
+            continue
 
 def _start_watching(game_id):
     try:
