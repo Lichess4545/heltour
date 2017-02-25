@@ -37,18 +37,18 @@
     {% endif %}
     {% block body %}{% endblock %}
 
-    {% if league %}
     <footer class="footer">
       <div class="container-fluid">
         <p class="text-muted">
 	        Lichess Leagues
+    		{% if league %}
 	        &middot; <a href="{% url 'home' %}">Home</a>
 	        &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a>
 	        &middot; <a href="{% leagueurl 'about' league.tag %}">About</a>
+    		{% endif %}
         </p>
       </div>
     </footer>
-    {% endif %}
     
     {% block common_js %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
