@@ -569,15 +569,25 @@ div.inline {
 	max-width: 700px;
 }
 
+.league-home-container {
+	border: 1px solid #666;
+	border-radius: 5px;
+	border-top: none;
+	margin: 10px 0 10px 0;
+	width: 321px;
+}
+
 .league-homelink {
 	display: block;
-	height: 70px;
+	height: 60px;
 	width: 320px;
-	line-height: 70px;
+	line-height: 60px;
 	color: white;
-	font-size: 24px;
+	font-size: 22px;
 	text-align: center;
-	margin: 10px 0 10px 0;
+	margin: 0 0 10px 0;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
 }
 
 .league-homelink:hover,
@@ -591,7 +601,7 @@ div.inline {
 	background: url(/static/tournament/img/all-for-one.png);
 	background-position: 5px 0px;
 	background-repeat: no-repeat;
-	background-size: 70px 70px;
+	background-size: 60px 60px;
 	background-color: #245164;
 }
 
@@ -600,7 +610,7 @@ div.inline {
 	background: url(/static/tournament/img/wolf-head.png);
 	background-position: 15px 0px;
 	background-repeat: no-repeat;
-	background-size: 70px 70px;
+	background-size: 60px 60px;
 	background-color: #225622;
 }
 
@@ -609,8 +619,13 @@ div.inline {
 	background: url(/static/tournament/img/power-lightning.png);
 	background-position: 15px 0px;
 	background-repeat: no-repeat;
-	background-size: 70px 70px;
+	background-size: 60px 60px;
 	background-color: #562222;
+}
+
+.league-home-details {
+	text-align: center;
+	padding: 0 20px;
 }
 
 .league-link {

@@ -82,6 +82,7 @@ PAIRING_TYPE_OPTIONS = (
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     tag = models.SlugField(unique=True, help_text='The league will be accessible at /{league_tag}/')
+    description = models.CharField(max_length=1023, blank=True)
     theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
     display_order = models.PositiveIntegerField(default=0)
     time_control = models.CharField(max_length=32, blank=True)

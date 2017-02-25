@@ -10,7 +10,14 @@
 				{% if leagues %}
 				{% for l in leagues %}
 				<div class="col-sm-6 col-xs-12">
-					<a href="{% leagueurl 'league_home' l.tag None %}" class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</a>
+					<div class="league-home-container">
+						<a href="{% leagueurl 'league_home' l.tag None %}" class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</a>
+						<div class="league-home-details">
+							<p class="league-home-desc">
+							{{ l.description }}
+							</p>
+						</div>
+					</div>
 				</div>
 				{% endfor %}
 				{% else %}
