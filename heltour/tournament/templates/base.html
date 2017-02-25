@@ -71,7 +71,6 @@
 	        <li><a href="{{ item_url }}">{{ item_text }}</a></li>
 	        {% endif %}
 	        {% endfor %}
-	        <li><a href="{% leagueurl 'tv' league.tag season.tag %}">TV</a></li>
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
 	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league.tag None %}">Dashboard</a></li>{% endif %}
