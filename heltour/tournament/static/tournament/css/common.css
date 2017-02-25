@@ -579,12 +579,11 @@ div.inline {
 
 .league-homelink {
 	display: block;
-	height: 60px;
+	height: 50px;
 	width: 320px;
-	line-height: 60px;
+	line-height: 50px;
 	color: white;
-	font-size: 22px;
-	text-align: center;
+	font-size: 18px;
 	margin: 0 0 10px 0;
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
@@ -597,29 +596,29 @@ div.inline {
 }
 
 .league-homelink-blue {
-	padding-left: 60px;
+	padding-left: 59px;
 	background: url(/static/tournament/img/all-for-one.png);
 	background-position: 5px 0px;
 	background-repeat: no-repeat;
-	background-size: 60px 60px;
+	background-size: 50px 50px;
 	background-color: #245164;
 }
 
 .league-homelink-green {
-	padding-left: 65px;
+	padding-left: 59px;
 	background: url(/static/tournament/img/wolf-head.png);
-	background-position: 15px 0px;
+	background-position: 6px 1px;
 	background-repeat: no-repeat;
-	background-size: 60px 60px;
+	background-size: 48px 48px;
 	background-color: #225622;
 }
 
 .league-homelink-red {
-	padding-left: 65px;
+	padding-left: 59px;
 	background: url(/static/tournament/img/power-lightning.png);
-	background-position: 15px 0px;
+	background-position: 6px 1px;
 	background-repeat: no-repeat;
-	background-size: 60px 60px;
+	background-size: 48px 48px;
 	background-color: #562222;
 }
 
