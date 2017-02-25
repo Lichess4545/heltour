@@ -46,6 +46,9 @@
 	        &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a>
 	        &middot; <a href="{% leagueurl 'about' league.tag %}">About</a>
     		{% endif %}
+    		{% if user.is_staff %}
+	        &middot; <a href="{% url 'admin:index' %}">Admin</a>
+	        {% endif %}
         </p>
       </div>
     </footer>
