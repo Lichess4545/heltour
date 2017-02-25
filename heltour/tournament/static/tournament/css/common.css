@@ -570,11 +570,20 @@ div.inline {
 }
 
 .league-home-container {
+	display: block;
 	border: 1px solid #666;
 	border-radius: 5px;
 	border-top: none;
 	margin: 10px 0 10px 0;
 	width: 321px;
+	color: #333;
+}
+
+.league-home-container:hover,
+.league-home-container:active,
+.league-home-container:focus {
+	color: #333;
+	text-decoration: none;
 }
 
 .league-homelink {
