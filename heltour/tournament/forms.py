@@ -168,9 +168,14 @@ class ApproveRegistrationForm(forms.Form):
                 close_player_scores_adjusted = close_player_scores[1:-1]
                 if len(close_player_scores_adjusted) > 0:
                     # Calculate the average of the scores
-                    adjusted_average_score = round(2.0 * sum(close_player_scores_adjusted) / len(close_player_scores_adjusted)) / 2.0
+                    average_score = sum(close_player_scores_adjusted) / len(close_player_scores_adjusted)
+                    if active_round_count > 1 and reg.season.round_set.filter(publish_pairings=True, is_completed=False).count():
+                        expected_score = average_score * active_round_count / (active_round_count - 1)
+                    else:
+                        expected_score = average_score
+                    expected_score_rounded = round(2.0 * expected_score) / 2.0
                     # Subtract 0.5, and another 0.5 for each bye
-                    default_ljp = max(adjusted_average_score - 0.5 - default_byes * 0.5, 0)
+                    default_ljp = max(expected_score_rounded - 0.5 - default_byes * 0.5, 0)
                     # Hopefully we now have a reasonable value for LjP
 
             self.fields['retroactive_byes'] = forms.IntegerField(initial=default_byes)
