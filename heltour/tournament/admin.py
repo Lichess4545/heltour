@@ -1096,7 +1096,7 @@ class PlayerByeAdmin(_BaseAdmin):
 class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email')
     list_filter = ('is_active',)
-    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'account_status')
+    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'timezone_offset', 'account_status')
     exclude = ('profile',)
     actions = ['update_selected_player_ratings']
     allow_all_staff = True

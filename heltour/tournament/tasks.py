@@ -176,15 +176,18 @@ def update_tv_state(self):
 
 @app.task(bind=True)
 def update_slack_users(self):
-    slack_users = slackapi.get_user_list()
-    name_set = {u.name.lower() for u in slack_users}
+    slack_users = {u.name.lower(): u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
-        in_slack_group = p.lichess_username.lower() in name_set
+        u = slack_users.get(p.lichess_username.lower())
+        in_slack_group = u != None
         if in_slack_group != p.in_slack_group:
             with reversion.create_revision():
                 reversion.set_comment('Joined slack.')
                 p.in_slack_group = in_slack_group
                 p.save()
+        if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
+            p.timezone_offset = timedelta(seconds=u.tz_offset)
+            p.save()
 
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)

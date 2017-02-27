@@ -506,6 +506,7 @@ class Player(_BaseModel):
     email = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
     in_slack_group = models.BooleanField(default=False)
+    timezone_offset = models.DurationField(blank=True, null=True)
     account_status = models.CharField(default='normal', max_length=31, choices=ACCOUNT_STATUS_OPTIONS)
 
     profile = JSONField(blank=True, null=True)

@@ -27,7 +27,7 @@ def invite_user(email):
             raise AlreadyInTeam
         raise SlackError(json['error'])
 
-SlackUser = namedtuple('SlackUser', ['name', 'email'])
+SlackUser = namedtuple('SlackUser', ['name', 'email', 'tz_offset'])
 
 def get_user_list():
     url = 'https://slack.com/api/users.list'
@@ -35,7 +35,7 @@ def get_user_list():
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
-    return [SlackUser(m['name'], m['profile'].get('email', '')) for m in json['members']]
+    return [SlackUser(m['name'], m['profile'].get('email', ''), m.get('tz_offset')) for m in json['members']]
 
 def get_user(name):
     for u in get_user_list():
