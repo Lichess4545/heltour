@@ -576,6 +576,16 @@ class Player(_BaseModel):
             return self.blitz_games_played
         return self.games_played # classical
 
+    @property
+    def timezone_str(self):
+        if self.timezone_offset == None:
+            return '?'
+        seconds = self.timezone_offset.total_seconds()
+        sign = '-' if seconds < 0 else '+'
+        hours = abs(seconds) / 3600
+        minutes = (abs(seconds) % 3600) / 60
+        return 'UTC%s%02d:%02d' % (sign, hours, minutes)
+
     def __unicode__(self):
         if self.rating is None:
             return self.lichess_username

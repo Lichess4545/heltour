@@ -374,7 +374,9 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 
     common_params = {
         'white': white,
+        'white_tz': pairing.white.timezone_str,
         'black': black,
+        'black_tz': pairing.black.timezone_str,
         'round': round_.number,
         'season': season.name,
         'league': league.name,
@@ -415,18 +417,18 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
            + 'Send a direct message to your opponent, <@{opponent}>, within 48 hours.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
            + 'Message your opponent here within 48 hours.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
+           + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
            + 'Message your opponent on Slack within 48 hours.\n' \
            + '{slack_url}\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel}.'
