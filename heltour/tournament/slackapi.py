@@ -59,6 +59,22 @@ def send_message(channel, text):
         # Unexpected error
         logger.error('Could not send slack message to %s, error %s' % (channel, r.text))
 
+def send_control_message(text):
+    url = _get_slack_webhook()
+    if not url:
+        # Not configured
+        if settings.DEBUG:
+            print '[control]: %s' % text
+        logger.error('Could not send slack control message')
+        return
+    r = requests.post(url, json={'text': text})
+    if r.text == '' or r.text == 'ok':
+        # OK
+        logger.info('Slack [control]: %s' % text)
+    else:
+        # Unexpected error
+        logger.error('Could not send slack control message, error %s' % r.text)
+
 class SlackError(Exception):
     pass
 

@@ -350,6 +350,7 @@ def do_validate_registration(reg_id, **kwargs):
 @app.task(bind=True)
 def pairings_published(self, round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
+    slackapi.send_control_message('refresh pairings %s' % round_.season.league.tag)
     alternates_manager.round_pairings_published(round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
 
