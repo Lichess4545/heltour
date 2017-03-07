@@ -89,6 +89,10 @@ def pairing_forfeit_changed(instance, **kwargs):
 
 @receiver(signals.player_account_status_changed, dispatch_uid='heltour.tournament.notify')
 def player_account_status_changed(instance, old_value, new_value, **kwargs):
+    if old_value != 'normal' and new_value == 'closed':
+        # Don't notify if engine/booster accounts are closed
+        return
+
     season_players = instance.seasonplayer_set.select_related('season__league').nocache()
     pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username, status='pending') \
                                        .select_related('season__league').nocache()

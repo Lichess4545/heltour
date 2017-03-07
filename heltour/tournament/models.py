@@ -492,7 +492,8 @@ username_validator = RegexValidator('^[\w-]+$')
 ACCOUNT_STATUS_OPTIONS = (
     ('normal', 'Normal'),
     ('engine', 'Engine'),
-    ('booster', 'Booster')
+    ('booster', 'Booster'),
+    ('closed', 'Closed'),
 )
 
 #-------------------------------------------------------------------------------
@@ -560,7 +561,8 @@ class Player(_BaseModel):
             self.games_played = classical['games']
         is_engine = user_meta.get('engine', False)
         is_booster = user_meta.get('booster', False)
-        self.account_status = 'engine' if is_engine else 'booster' if is_booster else 'normal'
+        is_closed = user_meta.get('disabled', False)
+        self.account_status = 'closed' if is_closed else 'engine' if is_engine else 'booster' if is_booster else 'normal'
         self.save()
 
     def is_available_for(self, round_):
