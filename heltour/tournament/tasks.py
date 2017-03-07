@@ -186,7 +186,7 @@ def update_slack_users(self):
                 p.in_slack_group = in_slack_group
                 p.save()
         if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
-            p.timezone_offset = timedelta(seconds=u.tz_offset)
+            p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
             p.save()
 
 # How late an event is allowed to run before it's discarded instead
