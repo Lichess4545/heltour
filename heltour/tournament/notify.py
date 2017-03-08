@@ -3,7 +3,6 @@ from heltour import settings
 from collections import namedtuple
 import slackapi
 from django.core.urlresolvers import reverse
-from django.contrib.sites.models import Site
 from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
@@ -30,10 +29,6 @@ def _lichess_message(league, username, subject, text):
     if league.enable_notifications:
         lichessapi.send_mail(username, subject, text)
 
-def _abs_url(url):
-    site = Site.objects.get_current().domain
-    return 'https://%s%s' % (site, url)
-
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
 def league_comment(league, comment, **kwargs):
     if comment.user is None:
@@ -43,7 +38,7 @@ def league_comment(league, comment, **kwargs):
         # Exclude some models
         return
     obj = comment.content_object
-    admin_url = _abs_url(reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
+    admin_url = abs_url(reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
     message = '%s commented on %s <%s|%s>:\n>>> %s' % (comment.user_name, comment.content_type.name, admin_url, obj, comment.comment)
     _send_notification('mod', league, message)
 
@@ -52,8 +47,8 @@ def registration_saved(instance, created, **kwargs):
     if not created:
         return
     league = instance.season.league
-    reg_url = _abs_url(reverse('admin:review_registration', args=[instance.pk]) + '?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D' + str(instance.season.pk))
-    list_url = _abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(instance.season.pk))
+    reg_url = abs_url(reverse('admin:review_registration', args=[instance.pk]) + '?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D' + str(instance.season.pk))
+    list_url = abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(instance.season.pk))
     pending_count = instance.season.registration_set.filter(status='pending', season=instance.season).count()
     message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url, pending_count)
     _send_notification('mod', league, message)
@@ -63,7 +58,7 @@ def latereg_saved(instance, created, **kwargs):
     if not created:
         return
     league = instance.round.season.league
-    manage_url = _abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
+    manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
     message = '@%s <%s|added> for round %d' % (instance.player, manage_url, instance.round.number)
     _send_notification('mod', league, message)
 
@@ -72,7 +67,7 @@ def withdrawal_saved(instance, created, **kwargs):
     if not created:
         return
     league = instance.round.season.league
-    manage_url = _abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
+    manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
     message = '@%s <%s|withdrawn> for round %d' % (instance.player, manage_url, instance.round.number)
     _send_notification('mod', league, message)
 
@@ -101,9 +96,9 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
         latest_season = league.season_set.filter(is_active=True).order_by('-start_date', '-id').first()
         lichess_profile_url = 'https://en.lichess.org/@/%s' % instance.lichess_username
         if latest_season is not None:
-            player_profile_url = _abs_url(reverse('by_league:by_season:player_profile', args=[league.tag, latest_season.tag, instance.lichess_username]))
+            player_profile_url = abs_url(reverse('by_league:by_season:player_profile', args=[league.tag, latest_season.tag, instance.lichess_username]))
         else:
-            player_profile_url = _abs_url(reverse('by_league:player_profile', args=[league.tag, instance.lichess_username]))
+            player_profile_url = abs_url(reverse('by_league:player_profile', args=[league.tag, instance.lichess_username]))
         if old_value == 'normal':
             message = '@%s marked as %s on <%s|lichess>. <%s|Player profile>' % (_slack_user(instance), new_value, lichess_profile_url, player_profile_url)
         else:
@@ -135,14 +130,14 @@ def notify_mods_pending_regs(round_, **kwargs):
     pending_count = round_.season.registration_set.filter(status='pending', season=round_.season).count()
     if pending_count == 0:
         return
-    list_url = _abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(round_.season.pk))
+    list_url = abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(round_.season.pk))
     message = '<%s|%d pending registrations>' % (list_url, pending_count)
     _send_notification('mod', round_.season.league, message)
 
 @receiver(signals.pairings_generated, dispatch_uid='heltour.tournament.notify')
 def pairings_generated(round_, **kwargs):
     league = round_.season.league
-    review_url = _abs_url(reverse('admin:review_pairings', args=[round_.pk]))
+    review_url = abs_url(reverse('admin:review_pairings', args=[round_.pk]))
     message = 'Pairings generated for round %d. <%s|Review>' % (round_.number, review_url)
     _send_notification('mod', league, message)
 
@@ -328,7 +323,7 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
     # Send a DM to the alternate, regardless of settings
     round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
     message = '@%s: A team needs an alternate for %s. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
-              % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), _abs_url(accept_url), _abs_url(decline_url))
+              % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), abs_url(accept_url), abs_url(decline_url))
     _message_user(league, _slack_user(player), message)
 
     if setting.enable_lichess_mail:

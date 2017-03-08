@@ -14,6 +14,7 @@ import select2.fields
 from heltour.tournament import signals
 import logging
 from django.contrib.postgres.fields.jsonb import JSONField
+from django.contrib.sites.models import Site
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,10 @@ def getnestedattr(obj, k):
             return None
         obj = getattr(obj, k2)
     return obj
+
+def abs_url(url):
+    site = Site.objects.get_current().domain
+    return 'https://%s%s' % (site, url)
 
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
