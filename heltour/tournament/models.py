@@ -776,6 +776,7 @@ class Team(_BaseModel):
     season = models.ForeignKey(Season)
     number = models.PositiveIntegerField(verbose_name='team number')
     name = models.CharField(max_length=255, verbose_name='team name')
+    slack_channel = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
 
     seed_rating = models.PositiveIntegerField(blank=True, null=True)
