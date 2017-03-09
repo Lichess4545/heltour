@@ -381,15 +381,12 @@ def create_team_channel(self, team_ids):
         user_ids = [username_to_id.get(tm.player.lichess_username.lower()) for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
 
-        while True:
-            try:
-                group = slackapi.create_group(channel_name)
-                time.sleep(1)
-                break
-            except slackapi.NameTaken:
-                channel_name += '_'
-                if len(channel_name) > 21:
-                    raise
+        try:
+            group = slackapi.create_group(channel_name)
+            time.sleep(1)
+        except slackapi.NameTaken:
+            logger.error('Could not create slack team, name taken: %s' % channel_name)
+            continue
         channel_ref = '#%s' % group.name
         for user_id in user_ids:
             if user_id:
