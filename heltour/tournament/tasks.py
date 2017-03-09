@@ -15,6 +15,7 @@ from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
+import time
 
 logger = get_task_logger(__name__)
 
@@ -383,6 +384,7 @@ def create_team_channel(self, team_ids):
         while True:
             try:
                 group = slackapi.create_group(channel_name)
+                time.sleep(1)
                 break
             except slackapi.NameTaken:
                 channel_name += '_'
@@ -392,15 +394,20 @@ def create_team_channel(self, team_ids):
         for user_id in user_ids:
             if user_id:
                 slackapi.invite_to_group(group.id, user_id)
+                time.sleep(1)
         slackapi.invite_to_group(group.id, chesster_id)
+        time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')
             team.slack_channel = channel_ref
             team.save()
 
         slackapi.set_group_topic(group.id, pairings_url)
+        time.sleep(1)
         slackapi.leave_group(group.id)
+        time.sleep(1)
         slackapi.send_message(channel_ref, intro_message_formatted)
+        time.sleep(1)
 
 @receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
 def do_create_team_channel(sender, team_ids, **kwargs):
