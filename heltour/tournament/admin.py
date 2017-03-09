@@ -1151,7 +1151,7 @@ class TeamAdmin(_BaseAdmin):
     search_fields = ('name',)
     list_filter = ('season',)
     inlines = [TeamMemberInline]
-    actions = ['update_board_order_by_rating']
+    actions = ['update_board_order_by_rating', 'create_slack_channels']
     league_id_field = 'season__league_id'
     league_competitor_type = 'team'
 
@@ -1164,6 +1164,23 @@ class TeamAdmin(_BaseAdmin):
                 members[i].board_number = i + 1
                 members[i].save()
         self.message_user(request, 'Board order updated', messages.INFO)
+
+    def create_slack_channels(self, request, queryset):
+        team_ids = []
+        skipped = 0
+        for team in queryset.select_related('season').nocache():
+            if not team.season.is_active or team.season.is_completed:
+                self.message_user(request, 'The team season must be active and not completed in order to create channels.', messages.ERROR)
+                return
+            if len(team.season.tag) > 3:
+                self.message_user(request, 'The team season tag is too long to create a channel.', messages.ERROR)
+                return
+            if team.slack_channel == '':
+                team_ids.append(team.pk)
+            else:
+                skipped += 1
+        signals.do_create_team_channel.send(sender=self, team_ids=team_ids)
+        self.message_user(request, 'Creating %d channels. %d skipped.' % (len(team_ids), skipped), messages.INFO)
 
 #-------------------------------------------------------------------------------
 @admin.register(TeamMember)

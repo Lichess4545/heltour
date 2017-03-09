@@ -5,6 +5,7 @@ do_generate_pairings = Signal(providing_args=['round_id', 'overwrite'])
 do_round_transition = Signal(providing_args=['round_id'])
 do_pairings_published = Signal(providing_args=['round_id'])
 do_validate_registration = Signal(providing_args=['reg_id'])
+do_create_team_channel = Signal(providing_args=['team_ids'])
 
 # Signals that send notifications
 pairing_forfeit_changed = Signal(providing_args=['instance'])

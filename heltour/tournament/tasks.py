@@ -362,6 +362,51 @@ def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
 
 @app.task(bind=True)
+def create_team_channel(self, team_ids):
+    username_to_id = {u.name: u.id for u in slackapi.get_user_list()}
+    intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
+                      + 'You need to pick a team captain and a team name by {season_start}.\n' \
+                      + 'Once you\'ve chosen (or if you need help with anything), contact one of the moderators:\n' \
+                      + '{mods}'
+
+    for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
+        pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team', args=[team.season.league.tag, team.season.tag, team.number]))
+        mods = team.season.league.leaguemoderator_set.filter(is_active=True)
+        mods_str = ' '.join(('<@%s>' % lm.player.lichess_username.lower() for lm in mods))
+        season_start = '?' if team.season.start_date is None else team.season.start_date.strftime('%b %-d')
+        intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start)
+        team_members = team.teammember_set.select_related('player').nocache()
+        chesster_id = username_to_id['chesster']
+        user_ids = [username_to_id.get(tm.player.lichess_username.lower()) for tm in team_members]
+        channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
+
+        while True:
+            try:
+                group = slackapi.create_group(channel_name)
+                break
+            except slackapi.NameTaken:
+                channel_name += '_'
+                if len(channel_name) > 21:
+                    raise
+        channel_ref = '#%s' % group.name
+        for user_id in user_ids:
+            if user_id:
+                slackapi.invite_to_group(group.id, user_id)
+        slackapi.invite_to_group(group.id, chesster_id)
+        with reversion.create_revision():
+            reversion.set_comment('Creating slack channel')
+            team.slack_channel = channel_ref
+            team.save()
+
+        slackapi.set_group_topic(group.id, pairings_url)
+        slackapi.leave_group(group.id)
+        slackapi.send_message(channel_ref, intro_message_formatted)
+
+@receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
+def do_create_team_channel(sender, team_ids, **kwargs):
+    create_team_channel.apply_async(args=[team_ids], countdown=1)
+
+@app.task(bind=True)
 def alternates_manager_tick(self):
     for season in Season.objects.filter(is_active=True, is_completed=False):
         if season.alternates_manager_enabled():
