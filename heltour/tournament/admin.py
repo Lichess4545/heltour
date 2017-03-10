@@ -12,9 +12,6 @@ import pairinggen
 import spreadsheet
 from django.db.models.query import Prefetch
 from django.db import transaction
-from smtplib import SMTPException
-from django.template.loader import render_to_string
-from django.core.mail import send_mail
 from heltour import settings
 from datetime import timedelta
 from django_comments.models import Comment
@@ -26,7 +23,7 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
 from django.utils.html import format_html
 from heltour.tournament.workflows import RoundTransitionWorkflow, \
-    UpdateBoardOrderWorkflow
+    UpdateBoardOrderWorkflow, ApproveRegistrationWorkflow
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
@@ -1436,106 +1433,14 @@ class RegistrationAdmin(_BaseAdmin):
             form = forms.ApproveRegistrationForm(request.POST, registration=reg)
             if form.is_valid():
                 if 'confirm' in form.data:
-                    # Limit changes to moderators
-                    mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
-                    if mod is not None and mod.player.email and mod.player.email != reg.email:
-                        reg.email = mod.player.email
-
-                    # Add or update the player in the DB
-                    with reversion.create_revision():
-                        reversion.set_user(request.user)
-                        reversion.set_comment('Approved registration.')
-
-                        player, created = Player.objects.update_or_create(
-                            lichess_username__iexact=reg.lichess_username,
-                            defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
-                        )
-                        if player.rating is None:
-                            # This is automatically set, so don't change it if we already have a rating
-                            player.rating = reg.classical_rating
-                            player.save()
-                        if created and reg.already_in_slack_group:
-                            # This is automatically set, so don't change it if the player already exists
-                            player.in_slack_group = True
-                            player.save()
-
-                    late_reg = False
-                    if reg.season.league.competitor_type != 'team':
-                        if Round.objects.filter(season=reg.season, publish_pairings=True).count() > 0:
-                            # Late registration
-                            next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
-                            if next_round is not None:
-                                late_reg = True
-                                with reversion.create_revision():
-                                    reversion.set_user(request.user)
-                                    reversion.set_comment('Approved registration.')
-                                    PlayerLateRegistration.objects.update_or_create(round=next_round, player=player,
-                                                                      defaults={'retroactive_byes': form.cleaned_data['retroactive_byes'],
-                                                                      'late_join_points': form.cleaned_data['late_join_points']})
-
-                    with reversion.create_revision():
-                        reversion.set_user(request.user)
-                        reversion.set_comment('Approved registration.')
-
-                        SeasonPlayer.objects.update_or_create(
-                            player=player,
-                            season=reg.season,
-                            defaults={'registration': reg, 'is_active': not late_reg}
-                        )
-
-                    # Set availability
-                    for week_number in reg.weeks_unavailable.split(','):
-                        if week_number != '':
-                            round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
-                            if round_ is not None:
-                                with reversion.create_revision():
-                                    reversion.set_user(request.user)
-                                    reversion.set_comment('Approved registration.')
-                                    PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
-
-                    if reg.season.league.competitor_type == 'team':
-                        subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
-                        msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
-                        msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
-                    else:
-                        subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
-                        msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
-                        msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
-
-                    if form.cleaned_data['send_confirm_email']:
-                        try:
-                            send_mail(
-                                subject,
-                                msg_plain,
-                                settings.DEFAULT_FROM_EMAIL,
-                                [reg.email],
-                                html_message=msg_html,
-                            )
-                            self.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
-                        except SMTPException:
-                            self.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
-
-                    if form.cleaned_data['invite_to_slack']:
-                        try:
-                            if request.user.has_perm('tournament.invite_to_slack'):
-                                slackapi.invite_user(reg.email)
-                                self.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
-                            else:
-                                self.message_user(request, 'You don\'t have permission to invite players to slack.', messages.ERROR)
-                        except slackapi.AlreadyInTeam:
-                            self.message_user(request, 'The player is already in the slack group.', messages.WARNING)
-                        except slackapi.AlreadyInvited:
-                            self.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
-
-                    with reversion.create_revision():
-                        reversion.set_user(request.user)
-                        reversion.set_comment('Approved registration.')
-                        reg.status = 'approved'
-                        reg.status_changed_by = request.user.username
-                        reg.status_changed_date = timezone.now()
-                        reg.save()
-
-                    self.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
+                    workflow = ApproveRegistrationWorkflow(reg)
+                    workflow.approve_reg(
+                                         request,
+                                         self,
+                                         form.cleaned_data['send_confirm_email'],
+                                         form.cleaned_data['invite_to_slack'],
+                                         form.cleaned_data.get('retroactive_byes'),
+                                         form.cleaned_data.get('late_join_points'))
                     return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
                 else:
                     return redirect_with_params('admin:review_registration', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))

@@ -1,7 +1,11 @@
 import reversion
 from django.contrib import messages
 from heltour.tournament.models import *
-from heltour.tournament import pairinggen, signals
+from heltour.tournament import pairinggen, signals, slackapi
+from smtplib import SMTPException
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from heltour import settings
 
 class RoundTransitionWorkflow():
 
@@ -223,3 +227,172 @@ class UpdateBoardOrderWorkflow():
     def assign_alternates_to_buckets(self):
         for alt in Alternate.objects.filter(season_player__season=self.season):
             alt.update_board_number()
+
+class ApproveRegistrationWorkflow():
+
+    def __init__(self, reg):
+        self.reg = reg
+        self.season = reg.season
+        self.league = reg.season.league
+
+    @property
+    def default_send_confirm_email(self):
+        return True
+
+    @property
+    def default_invite_to_slack(self):
+        return not self.reg.already_in_slack_group
+
+    @property
+    def default_byes(self):
+        # Give up to 2 byes by default, one for each round
+        return min(self.active_round_count, 2)
+
+    @property
+    def default_ljp(self):
+        # Try and calculate LjP below, but use 0 if we can't
+        default_ljp = 0
+
+        if self.default_byes < self.active_round_count:
+            season_players = self.season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
+            player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
+            rating = self.reg.classical_rating if player is None else player.rating_for(self.league)
+
+            # Get the scores of players +/- 100 rating points (or a wider range if not enough players are close)
+            diff = 100
+            while diff < 500:
+                close_players = [sp for sp in season_players if abs(sp.player.rating_for(self.league) - rating) < diff]
+                if len(close_players) >= 5:
+                    break
+                diff += 100
+            close_player_scores = sorted([sp.get_loneplayerscore().points for sp in close_players])
+            # Remove highest/lowest scores to help avoid outliers
+            close_player_scores_adjusted = close_player_scores[1:-1]
+            if len(close_player_scores_adjusted) > 0:
+                # Calculate the average of the scores
+                average_score = sum(close_player_scores_adjusted) / len(close_player_scores_adjusted)
+                if self.active_round_count > 1 and self.season.round_set.filter(publish_pairings=True, is_completed=False).count():
+                    expected_score = average_score * self.active_round_count / (self.active_round_count - 1)
+                else:
+                    expected_score = average_score
+                expected_score_rounded = round(2.0 * expected_score) / 2.0
+                # Subtract 0.5, and another 0.5 for each bye
+                default_ljp = max(expected_score_rounded - 0.5 - self.default_byes * 0.5, 0)
+                # Hopefully we now have a reasonable value for LjP
+        return default_ljp
+
+    @property
+    def active_round_count(self):
+        return self.season.round_set.filter(publish_pairings=True).count()
+
+    @property
+    def is_late(self):
+        return self.league.competitor_type != 'team' and self.active_round_count > 0
+
+    def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, retroactive_byes, late_join_points):
+        reg = self.reg
+
+        # Limit changes to moderators
+        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        if mod is not None and mod.player.email and mod.player.email != reg.email:
+            reg.email = mod.player.email
+
+        # Add or update the player in the DB
+        with reversion.create_revision():
+            reversion.set_user(request.user)
+            reversion.set_comment('Approved registration.')
+
+            player, created = Player.objects.update_or_create(
+                lichess_username__iexact=reg.lichess_username,
+                defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
+            )
+            if player.rating is None:
+                # This is automatically set, so don't change it if we already have a rating
+                player.rating = reg.classical_rating
+                player.save()
+            if created and reg.already_in_slack_group:
+                # This is automatically set, so don't change it if the player already exists
+                player.in_slack_group = True
+                player.save()
+
+        if self.is_late:
+            # Late registration
+            next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+            if next_round is not None:
+                with reversion.create_revision():
+                    reversion.set_user(request.user)
+                    reversion.set_comment('Approved registration.')
+                    PlayerLateRegistration.objects.update_or_create(round=next_round, player=player,
+                                                      defaults={'retroactive_byes': retroactive_byes,
+                                                      'late_join_points': late_join_points})
+
+        with reversion.create_revision():
+            reversion.set_user(request.user)
+            reversion.set_comment('Approved registration.')
+
+            SeasonPlayer.objects.update_or_create(
+                player=player,
+                season=reg.season,
+                defaults={'registration': reg, 'is_active': not self.is_late}
+            )
+
+        # Set availability
+        for week_number in reg.weeks_unavailable.split(','):
+            if week_number != '':
+                round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                if round_ is not None:
+                    with reversion.create_revision():
+                        reversion.set_user(request.user)
+                        reversion.set_comment('Approved registration.')
+                        PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+
+        if reg.season.league.competitor_type == 'team':
+            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
+            msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+        else:
+            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
+            msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
+
+        if send_confirm_email:
+            try:
+                send_mail(
+                    subject,
+                    msg_plain,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [reg.email],
+                    html_message=msg_html,
+                )
+                if modeladmin:
+                    modeladmin.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
+            except SMTPException:
+                logger.exception('A confirmation email could not be sent.')
+                if modeladmin:
+                    modeladmin.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
+
+        if invite_to_slack:
+            try:
+                if request.user.has_perm('tournament.invite_to_slack'):
+                    slackapi.invite_user(reg.email)
+                    if modeladmin:
+                        modeladmin.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                elif modeladmin:
+                    modeladmin.message_user(request, 'You don\'t have permission to invite players to slack.', messages.ERROR)
+            except slackapi.AlreadyInTeam:
+                if modeladmin:
+                    modeladmin.message_user(request, 'The player is already in the slack group.', messages.WARNING)
+            except slackapi.AlreadyInvited:
+                if modeladmin:
+                    modeladmin.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
+
+        with reversion.create_revision():
+            reversion.set_user(request.user)
+            reversion.set_comment('Approved registration.')
+            reg.status = 'approved'
+            reg.status_changed_by = request.user.username
+            reg.status_changed_date = timezone.now()
+            reg.save()
+
+        if modeladmin:
+            modeladmin.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
