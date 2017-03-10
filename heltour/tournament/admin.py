@@ -1586,7 +1586,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
 class GameNominationAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name', 'nominating_player__lichess_username')
-    raw_id_fields = ('nominating_player',)
+    raw_id_fields = ('nominating_player', 'pairing')
     league_id_field = 'season__league_id'
 
 #-------------------------------------------------------------------------------
@@ -1594,6 +1594,7 @@ class GameNominationAdmin(_BaseAdmin):
 class GameSelectionAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
     search_fields = ('season__name',)
+    raw_id_fields = ('pairing',)
     league_id_field = 'season__league_id'
 
 #-------------------------------------------------------------------------------
