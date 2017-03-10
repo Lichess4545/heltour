@@ -1334,7 +1334,7 @@ class RegistrationAdmin(_BaseAdmin):
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season',)
-    actions = ('validate',)
+    actions = ('validate', 'approve')
     league_id_field = 'season__league_id'
 
     def changelist_view(self, request, extra_context=None):
@@ -1377,10 +1377,32 @@ class RegistrationAdmin(_BaseAdmin):
 
     def validate(self, request, queryset):
         for reg in queryset:
-            if not request.user.has_perm('tournament.change_registration', reg.season.league):
-                raise PermissionDenied
             signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
         self.message_user(request, 'Validation started.', messages.INFO)
+        return redirect('admin:tournament_registration_changelist')
+
+    def approve(self, request, queryset):
+        if not request.user.has_perm('tournament.invite_to_slack'):
+            self.message_user(request, 'You don\'t have permissions to invite users to slack.', messages.ERROR)
+            return redirect('admin:tournament_registration_changelist')
+        count = 0
+        for reg in queryset:
+            if reg.status == 'pending' and reg.validation_ok and not reg.validation_warning:
+                workflow = ApproveRegistrationWorkflow(reg)
+
+                send_confirm_email = workflow.default_send_confirm_email
+                invite_to_slack = workflow.default_invite_to_slack
+                if workflow.is_late:
+                    retroactive_byes = workflow.default_byes
+                    late_join_points = workflow.default_ljp
+                else:
+                    retroactive_byes = None
+                    late_join_points = None
+
+                workflow.approve_reg(request, None, send_confirm_email, invite_to_slack, retroactive_byes, late_join_points)
+                count += 1
+
+        self.message_user(request, '%d approved.' % count, messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
     def review_registration(self, request, object_id):
