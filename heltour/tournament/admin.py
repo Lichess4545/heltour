@@ -140,7 +140,10 @@ class _BaseAdmin(VersionAdmin):
             else:
                 if parts[0][-3:] != '_id':
                     raise ValueError('Invalid league id field on modeladmin')
-                league_id = form.cleaned_data[parts[0][:-3]].id
+                league = form.cleaned_data.get(parts[0][:-3])
+                if league is None:
+                    return
+                league_id = league.id
         else:
             league_id = getnestedattr(form.cleaned_data[parts[0]], parts[1])
         if league_id not in self.authorized_leagues(request.user):
