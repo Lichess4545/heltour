@@ -85,9 +85,20 @@
 </form>
 
 {% if original %}
-<h2>Comments</h2>
-{% render_comment_list for original %}
-{% render_comment_form for original %}
+	<h2>Comments</h2>
+	{% render_comment_list for original %}
+	{% for obj in related_objects_for_comments %}
+		{% if obj.0 %}
+			{% get_comment_count for obj.1 as related_comment_count %}
+			{% if related_comment_count %}
+				<h2>{{ obj.0 }}</h2>
+				{% render_comment_list for obj.1 %}
+			{% endif %}
+		{% else %}
+			{% render_comment_list for obj %}
+		{% endif %}
+	{% endfor %}
+	{% render_comment_form for original %}
 {% endif %}
 
 </div>

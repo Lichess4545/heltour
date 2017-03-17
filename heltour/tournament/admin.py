@@ -149,6 +149,14 @@ class _BaseAdmin(VersionAdmin):
         if league_id not in self.authorized_leagues(request.user):
             raise ValidationError('No permission to save objects for this league')
 
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['related_objects_for_comments'] = self.related_objects_for_comments(request, object_id)
+        return super(_BaseAdmin, self).change_view(request, object_id, form_url, extra_context=extra_context)
+
+    def related_objects_for_comments(self, request, object_id):
+        return []
+
     def authorized_leagues(self, user):
         return [lm['league_id'] for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username).values('league_id')]
 
@@ -1127,6 +1135,11 @@ class PlayerAdmin(_BaseAdmin):
 #         except:
 #             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
+    def related_objects_for_comments(self, request, object_id):
+        sps = SeasonPlayer.objects.filter(player_id=object_id, season__league_id__in=self.authorized_leagues(request.user)) \
+                                  .select_related('season').nocache()
+        return [(sp.season.name, sp) for sp in sps]
+
 #-------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(_BaseAdmin):
@@ -1299,6 +1312,12 @@ class PlayerPairingAdmin(_BaseAdmin):
             return ''
         return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
 
+    def related_objects_for_comments(self, request, object_id):
+        related_objects = []
+        related_objects += list(TeamPlayerPairing.objects.filter(id=object_id).nocache())
+        related_objects += list(LonePlayerPairing.objects.filter(id=object_id).nocache())
+        return related_objects
+
 #-------------------------------------------------------------------------------
 @admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(_BaseAdmin):
@@ -1315,6 +1334,9 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
             return ''
         return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
 
+    def related_objects_for_comments(self, request, object_id):
+        return list(PlayerPairing.objects.filter(id=object_id).nocache())
+
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(_BaseAdmin):
@@ -1329,6 +1351,9 @@ class LonePlayerPairingAdmin(_BaseAdmin):
         if not obj.game_link:
             return ''
         return format_html("<a href='{url}'>{url}</a>", url=obj.game_link)
+
+    def related_objects_for_comments(self, request, object_id):
+        return list(PlayerPairing.objects.filter(id=object_id).nocache())
 
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
