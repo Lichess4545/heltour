@@ -390,7 +390,10 @@ def create_team_channel(self, team_ids):
         channel_ref = '#%s' % group.name
         for user_id in user_ids:
             if user_id:
-                slackapi.invite_to_group(group.id, user_id)
+                try:
+                    slackapi.invite_to_group(group.id, user_id)
+                except slackapi.SlackError:
+                    logger.exception('Could not invite %s to slack' % user_id)
                 time.sleep(1)
         slackapi.invite_to_group(group.id, chesster_id)
         time.sleep(1)
