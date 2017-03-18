@@ -186,6 +186,11 @@ function setUpDropEvents($boards) {
 			var $other_player = $target_team.length > 0 ? $target.find('.player') : [];
 			var changing_teams = ($source_team[0] !== $target_team[0]);
 			
+			// Check for no-op
+			if ($target.has($source).length > 0) {
+				return;
+			}
+			
 			// Update the source of the drag
 			if ($source_team.length === 0) {
 				var $row = $player.closest('tr');
