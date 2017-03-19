@@ -330,11 +330,18 @@ class ApproveRegistrationWorkflow():
             reversion.set_user(request.user)
             reversion.set_comment('Approved registration.')
 
-            SeasonPlayer.objects.update_or_create(
+            sp, created = SeasonPlayer.objects.update_or_create(
                 player=player,
                 season=reg.season,
                 defaults={'registration': reg, 'is_active': not self.is_late}
             )
+
+            if created and self.league.competitor_type == 'team':
+                # Add a yellow card for players that had a red card their previous season
+                last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(season=self.season).order_by('-season__start_date').first()
+                if last_sp is not None and last_sp.games_missed >= 2:
+                    sp.games_missed = 1
+                    sp.save()
 
         # Set availability
         for week_number in reg.weeks_unavailable.split(','):
