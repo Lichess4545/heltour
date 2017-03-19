@@ -332,6 +332,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
+            url(r'^(?P<object_id>[0-9]+)/export_players/$',
+                self.admin_site.admin_view(self.export_players_view),
+                name='export_players'),
         ]
         return my_urls + urls
 
@@ -584,6 +587,39 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/mod_report.html', context)
+
+    def export_players_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.change_season', season.league):
+            raise PermissionDenied
+
+        season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'registration').nocache()
+        players = []
+        for sp in season_players:
+            info = {
+                'name': sp.player.lichess_username,
+                'rating': sp.player.rating_for(season.league),
+                'has_20_games': sp.player.games_played_for(season.league) >= 20,
+                'in_slack': sp.player.in_slack_group,
+                'account_status': sp.player.account_status
+            }
+            reg = sp.registration
+            if reg is not None:
+                info.update({
+                    'prefers_alt': reg.alternate_preference == 'alternate'
+                })
+            players.append(info)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Export players',
+            'players': json.dumps(players)
+        }
+
+        return render(request, 'tournament/admin/export_players.html', context)
 
     def update_board_order_by_rating(self, request, queryset):
         try:

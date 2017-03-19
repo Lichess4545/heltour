@@ -21,6 +21,7 @@
 		<span style="color: #c00">Red</span> = not in slack, &lt;20 games or 2+ missed games.
 		<span style="color: #00c">Blue</span> = prefers to be an alternate.
 		<span style="color: #c0f">Purple</span> = alternate last season.
+		<a href="{% url 'admin:export_players' original.pk %}">Export Players</a>
 	</p>
 	<p>Show: {{ form.rating_type }}</p>
 	<h2>Teams</h2>
