@@ -314,7 +314,7 @@ def validate_registration(self, reg_id):
 
     if not reg.has_played_20_games:
         warnings.append('Has not played 20 games.')
-    if not reg.can_commit:
+    if not reg.can_commit and (reg.season.league.competitor_type != 'team' or reg.alternate_preference != 'alternate'):
         warnings.append('Can\'t commit to a game per week.')
     if not reg.agreed_to_rules:
         warnings.append('Didn\'t agree to rules.')
