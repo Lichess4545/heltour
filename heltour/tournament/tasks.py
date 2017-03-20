@@ -399,7 +399,7 @@ def create_team_channel(self, team_ids):
         time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')
-            team.slack_channel = channel_ref
+            team.slack_channel = group.id
             team.save()
 
         slackapi.set_group_topic(group.id, pairings_url)
