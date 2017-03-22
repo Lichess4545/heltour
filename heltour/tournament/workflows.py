@@ -121,7 +121,7 @@ class UpdateBoardOrderWorkflow():
         if not alternates_only:
             self.update_teammember_order()
 
-        if alternates_only or not self.season.alternates_manager_enabled():
+        if alternates_only or not self.season.alternates_manager_enabled() or self.season.round_set.filter(publish_pairings=True).count() == 0:
             members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
             ratings_by_board = [sorted([float(m.player.rating_for(self.season.league)) for m in m_list]) for m_list in members_by_board]
             alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
