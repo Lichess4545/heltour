@@ -185,18 +185,20 @@ class UpdateBoardOrderWorkflow():
                 higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2
                 lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2
                 if boundary < higher_board_min and boundary < lower_board_max:
-                    delta_up = min(higher_board_min, lower_board_max) - boundary
+                    delta_up = max(higher_board_min, lower_board_max) - boundary
                     delta_down = 0
                 elif boundary > higher_board_min and boundary > lower_board_max:
                     delta_up = 0
-                    delta_down = boundary - max(higher_board_min, lower_board_max)
+                    delta_down = boundary - min(higher_board_min, lower_board_max)
                 else:
                     delta_up = max(higher_board_min, lower_board_max) - boundary
                     delta_down = boundary - min(higher_board_min, lower_board_max)
                 up_step_sizes.append(delta_up / float(iter_count))
                 down_step_sizes.append(delta_down / float(iter_count))
 
+
             # Start iterating the smoothing algorithm
+            total_alt_count = len(alternates)
             for _ in range(iter_count):
                 # Calculate the number of alternates in each bucket
                 bucket_counts = [0] * self.season.boards
@@ -209,9 +211,13 @@ class UpdateBoardOrderWorkflow():
 
                 # Move the boundaries of uneven buckets
                 for i in range(self.season.boards - 1):
-                    if bucket_counts[i] > bucket_counts[i + 1] + 1:
+                    expected_on_left = total_alt_count * i / float(self.season.boards)
+                    actual_on_left = sum(bucket_counts[0:i])
+                    if bucket_counts[i] > bucket_counts[i + 1] + 1 or \
+                            bucket_counts[i] == bucket_counts[i + 1] + 1 and actual_on_left > expected_on_left + 1:
                         boundaries[i + 1] += up_step_sizes[i]
-                    if bucket_counts[i] < bucket_counts[i + 1] - 1:
+                    if bucket_counts[i] < bucket_counts[i + 1] - 1 or \
+                            bucket_counts[i] == bucket_counts[i + 1] - 1 and actual_on_left < expected_on_left - 1:
                         boundaries[i + 1] -= down_step_sizes[i]
 
     def update_alternate_buckets(self, boundaries):
