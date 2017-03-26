@@ -56,10 +56,10 @@ def populate_historical_ratings(self):
 
     for p in pairings_that_need_ratings.filter(game_link=''):
         round_ = p.get_round()
+        if round_ is None:
+            continue
         season = round_.season
         league = season.league
-        if p.get_round() is None:
-            continue
         p.refresh_from_db()
         if not round_.is_completed:
             p.white_rating = p.white.rating_for(league)
