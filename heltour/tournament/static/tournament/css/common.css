@@ -140,6 +140,15 @@ div.inline {
 	padding-top: 37px;
 }
 
+#table-rosters tbody tr td.cell-player {
+	border-left: 1px solid #ddd;
+}
+	
+#table-rosters tbody tr td.cell-rating {
+	border-right: 1px solid #ddd;
+	width: 50px;
+}
+
 #table-crosstable tbody>tr>td, #table-crosstable thead>tr>th {
 	white-space: nowrap;
 }
@@ -348,13 +357,17 @@ div.inline {
 }
 
 #table-rosters .cell-rating {
-	width: 45px;
+	width: 47px;
 	text-align: center;
 }
 
 #table-rosters .cell-average-rating {
 	width: 80px;
 	text-align: center;
+}
+
+#table-rosters .cell-player {
+	padding-left: 7px;
 }
 
 #table-rosters .cell-player .player-name {
