@@ -239,6 +239,7 @@ def _team_roster(season):
         'teams': [{
             'name': team.name,
             'number': team.number,
+            'slack_channel': team.slack_channel,
             'players': [{
                 'board_number': team_member.board_number,
                 'username': team_member.player.lichess_username,
