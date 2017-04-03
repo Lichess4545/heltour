@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load bootstrap3 tournament_extras %}
+{% load bootstrap3 tournament_extras staticfiles %}
 
 {% block title %}Game Nomination - {{ season.name }} - {{ league.name }}{% endblock %}
 
@@ -20,7 +20,7 @@
 				<p>If you think this is an error, please contact a moderator.</p>
 				{% else %}
 				<p>Welcome, {{ username }}!</p>
-				<p>Paste the link for the game you would like to nominate. You can only nominate one game.</p>
+				<p>Paste the link for the game you would like to nominate. You can nominate up to {{ max_nominations }} games.</p>
 				
 				<form action="" method="post">
 				    {% csrf_token %}
@@ -29,9 +29,14 @@
 				</form>
 				
 				{% if current_nominations %}
-				<div class="top-space"><strong>Current Nomination:</strong></div>
+				<div class="top-space"><strong>Current Nominations:</strong></div>
 				{% for nom in current_nominations %}
-				<div><a href="{{ nom.game_link }}">{% if nom.pairing %}{{ nom.pairing.white }} - {{ nom.pairing.black }}{% else %}{{ nom.game_link }}{% endif %}</a></div>
+				<div>
+					<a href="{{ nom.game_link }}">{% if nom.pairing %}{{ nom.pairing.white }} - {{ nom.pairing.black }}{% else %}{{ nom.game_link }}{% endif %}</a>
+					<a href="{% leagueurl 'delete_nomination' league.tag season.tag nom.pk %}"title="Delete this nomination">
+			            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Delete" class="delete-link">
+			        </a>
+				</div>
 				{% endfor %}
 				{% endif %}
 				

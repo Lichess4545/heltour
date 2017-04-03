@@ -88,6 +88,12 @@ h2 {
 	margin-bottom: 10px;
 }
 
+.delete-link {
+	width: 15px;
+	height: 15px;
+	margin-top: -3px;
+}
+
 div.inline {
 	display: inline-block;
 }

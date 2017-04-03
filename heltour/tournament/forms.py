@@ -202,6 +202,9 @@ class NominateForm(forms.Form):
             raise ValidationError('Invalid game link.', code='invalid')
         return game_link
 
+class DeleteNominationForm(forms.Form):
+    pass
+
 class ContactForm(forms.Form):
     league = forms.ChoiceField(choices=[])
     your_lichess_username = forms.CharField(max_length=255, required=False)

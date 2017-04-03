@@ -135,6 +135,7 @@ class League(_BaseModel):
 class LeagueSetting(_BaseModel):
     league = models.OneToOneField(League)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
+    max_game_nominations_per_user = models.PositiveIntegerField(default=3)
 
     def __unicode__(self):
         return '%s Settings' % self.league

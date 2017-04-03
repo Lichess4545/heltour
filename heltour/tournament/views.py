@@ -21,6 +21,7 @@ from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 from .forms import *
 from .models import *
+from heltour.tournament.forms import DeleteNominationForm
 
 
 # Helpers for view caching definitions
@@ -1262,13 +1263,16 @@ class NominateView(SeasonView, UrlAuthMixin):
         form = None
 
         if self.persist_url_auth(secret_token):
-            return redirect('by_league:nominate', self.league.tag)
+            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
         username, player = self.get_authenticated_user()
 
         if self.league.competitor_type == 'team':
             season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season).nocache()
         else:
             season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season).nocache()
+
+
+        max_nominations = self.league.get_leaguesetting().max_game_nominations_per_user
 
         if player is not None:
             if self.league.get_leaguesetting().limit_game_nominations_to_participants:
@@ -1283,24 +1287,22 @@ class NominateView(SeasonView, UrlAuthMixin):
                 if post:
                     form = NominateForm(self.request.POST)
                     if form.is_valid():
-                        with transaction.atomic():
-                            if form.cleaned_data['game_link'] != '':
-                                pairing = season_pairings.filter(game_link=form.cleaned_data['game_link']).first()
-                                if pairing is not None:
-                                    for nom in current_nominations:
-                                        nom.delete()
-                                    nom = GameNomination.objects.create(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link'], pairing=pairing)
-                                    current_nominations = [nom]
-                                else:
-                                    form.add_error('game_link', ValidationError('The game link doesn\'t match any pairings this season.', code='invalid'))
-                            else:
-                                for nom in current_nominations:
-                                    nom.delete()
-                                current_nominations = []
+                        if len(current_nominations) < max_nominations:
+                            with transaction.atomic():
+                                if form.cleaned_data['game_link'] != '':
+                                    if GameNomination.objects.filter(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link']).exists():
+                                        form.add_error('game_link', ValidationError('You have already nominated this game.', code='invalid'))
+                                    else:
+                                        pairing = season_pairings.filter(game_link=form.cleaned_data['game_link']).first()
+                                        if pairing is not None:
+                                            GameNomination.objects.create(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link'], pairing=pairing)
+                                            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
+                                        else:
+                                            form.add_error('game_link', ValidationError('The game link doesn\'t match any pairings this season.', code='invalid'))
+                        else:
+                            form.add_error('game_link', ValidationError('You\'ve reached the nomination limit. Delete one before nominating again.', code='invalid'))
                 else:
                     form = NominateForm()
-                if len(current_nominations) > 0:
-                    form.fields['game_link'].initial = current_nominations[0].game_link
 
         # Clean up the DB
         for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
@@ -1310,12 +1312,44 @@ class NominateView(SeasonView, UrlAuthMixin):
             'form': form,
             'username': username,
             'can_nominate': can_nominate,
+            'max_nominations': max_nominations,
             'current_nominations': current_nominations,
         }
         return self.render('tournament/nominate.html', context)
 
     def view_post(self):
         return self.view(post=True)
+
+class DeleteNominationView(SeasonView, UrlAuthMixin):
+    def view(self, nomination_id, post=False):
+        form = None
+
+        username, player = self.get_authenticated_user()
+
+        if player is None or not self.season.nominations_open:
+            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
+
+        nomination_to_delete = GameNomination.objects.filter(season=self.season, nominating_player=player, pk=nomination_id).first()
+        if nomination_to_delete is None:
+            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
+
+        if post:
+            form = DeleteNominationForm(self.request.POST)
+            if form.is_valid():
+                nomination_to_delete.delete()
+                return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
+        else:
+            form = DeleteNominationForm()
+
+        context = {
+            'form': form,
+            'username': username,
+            'nomination_to_delete': nomination_to_delete,
+        }
+        return self.render('tournament/nomination_delete.html', context)
+
+    def view_post(self, nomination_id):
+        return self.view(nomination_id, post=True)
 
 class ScheduleView(LeagueView, UrlAuthMixin):
     def view(self, secret_token=None, post=False):

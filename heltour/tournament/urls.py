@@ -44,6 +44,7 @@ season_urlpatterns = [
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
     url(r'^nominate/$', views.NominateView.as_view(), name='nominate'),
     url(r'^nominate/(?P<secret_token>\w+)/$', views.NominateView.as_view(), name='nominate_with_token'),
+    url(r'^nominate/delete/(?P<nomination_id>\w+)/$', views.DeleteNominationView.as_view(), name='delete_nomination'),
     url(r'^schedule/edit/$', views.ScheduleView.as_view(), name='edit_schedule'),
     url(r'^schedule/edit/(?P<secret_token>\w+)/$', views.ScheduleView.as_view(), name='edit_schedule_with_token'),
     url(r'^board/(?P<board_number>[0-9]+)/scores/$', views.BoardScoresView.as_view(), name='board_scores'),
