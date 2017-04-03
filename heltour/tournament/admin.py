@@ -294,6 +294,12 @@ class LeagueAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/export_forfeit_data.html', context)
 
 #-------------------------------------------------------------------------------
+@admin.register(LeagueSetting)
+class LeagueSettingAdmin(_BaseAdmin):
+    list_display = ('__unicode__',)
+    league_id_field = 'league_id'
+
+#-------------------------------------------------------------------------------
 @admin.register(Season)
 class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)

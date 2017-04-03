@@ -123,8 +123,21 @@ class League(_BaseModel):
         expected_moves = 60
         return initial + increment * expected_moves
 
+    def get_leaguesetting(self):
+        try:
+            return self.leaguesetting
+        except LeagueSetting.DoesNotExist:
+            return LeagueSetting.objects.create(league=self)
+
     def __unicode__(self):
         return self.name
+
+class LeagueSetting(_BaseModel):
+    league = models.OneToOneField(League)
+    limit_game_nominations_to_participants = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return '%s Settings' % self.league
 
 PLAYOFF_OPTIONS = (
     (0, 'None'),
