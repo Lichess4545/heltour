@@ -196,10 +196,25 @@ class RoundTransitionForm(forms.Form):
 class NominateForm(forms.Form):
     game_link = forms.URLField(required=False)
 
+    def __init__(self, season, player, current_nominations, max_nominations, season_pairings, *args, **kwargs):
+        super(NominateForm, self).__init__(*args, **kwargs)
+        self.season = season
+        self.player = player
+        self.current_nominations = current_nominations
+        self.max_nominations = max_nominations
+        self.season_pairings = season_pairings
+
     def clean_game_link(self):
         game_link, ok = normalize_gamelink(self.cleaned_data['game_link'])
         if not ok:
             raise ValidationError('Invalid game link.', code='invalid')
+        if len(self.current_nominations) >= self.max_nominations:
+            raise ValidationError('You\'ve reached the nomination limit. Delete one before nominating again.', code='invalid')
+        if GameNomination.objects.filter(season=self.season, nominating_player=self.player, game_link=game_link).exists():
+            raise ValidationError('You have already nominated this game.')
+        self.pairing = self.season_pairings.filter(game_link=game_link).first()
+        if self.pairing is None:
+            raise ValidationError('The game link doesn\'t match any pairings this season.')
         return game_link
 
 class DeleteNominationForm(forms.Form):

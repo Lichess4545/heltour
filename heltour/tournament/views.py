@@ -1285,24 +1285,13 @@ class NominateView(SeasonView, UrlAuthMixin):
                 current_nominations = GameNomination.objects.filter(season=self.season, nominating_player=player)
 
                 if post:
-                    form = NominateForm(self.request.POST)
+                    form = NominateForm(self.season, player, current_nominations, max_nominations, season_pairings, self.request.POST)
                     if form.is_valid():
-                        if len(current_nominations) < max_nominations:
-                            with transaction.atomic():
-                                if form.cleaned_data['game_link'] != '':
-                                    if GameNomination.objects.filter(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link']).exists():
-                                        form.add_error('game_link', ValidationError('You have already nominated this game.', code='invalid'))
-                                    else:
-                                        pairing = season_pairings.filter(game_link=form.cleaned_data['game_link']).first()
-                                        if pairing is not None:
-                                            GameNomination.objects.create(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link'], pairing=pairing)
-                                            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
-                                        else:
-                                            form.add_error('game_link', ValidationError('The game link doesn\'t match any pairings this season.', code='invalid'))
-                        else:
-                            form.add_error('game_link', ValidationError('You\'ve reached the nomination limit. Delete one before nominating again.', code='invalid'))
+                        if form.cleaned_data['game_link'] != '':
+                            GameNomination.objects.create(season=self.season, nominating_player=player, game_link=form.cleaned_data['game_link'], pairing=form.pairing)
+                            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
                 else:
-                    form = NominateForm()
+                    form = NominateForm(self.season, player, current_nominations, max_nominations, season_pairings)
 
         # Clean up the DB
         for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
