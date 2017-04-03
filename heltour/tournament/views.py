@@ -1271,8 +1271,11 @@ class NominateView(SeasonView, UrlAuthMixin):
             season_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season).nocache()
 
         if player is not None:
-            player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
-            can_nominate = player_pairings.count() > 0
+            if self.league.get_leaguesetting().limit_game_nominations_to_participants:
+                player_pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
+                can_nominate = player_pairings.count() > 0
+            else:
+                can_nominate = True
 
             if can_nominate and self.season.nominations_open:
                 current_nominations = GameNomination.objects.filter(season=self.season, nominating_player=player)
