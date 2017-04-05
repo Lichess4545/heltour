@@ -1,0 +1,1 @@
+Registration Confirmation - {{ reg.season.league.name }}

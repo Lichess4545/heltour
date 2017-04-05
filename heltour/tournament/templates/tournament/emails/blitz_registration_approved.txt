@@ -1,0 +1,10 @@
+{% load tournament_extras %}Hi {{ reg.lichess_username }}!
+
+Your registration for {{ reg.season.name }} has been approved.
+
+{% if reg.season.is_started %}The season has already begun, so you'll get a pairing for the next round.{% else %}The season starts on {{ reg.season.start_date|date_or_q }}. A reminder email will be sent out one hour before the tournament starts, at which point you must check in on #blitz-battle to confirm that you will be participating.{% endif %} 
+For more information, or if you have any questions, check out #blitz-battle on Slack:
+https://lichess4545.slack.com/messages/blitz-battle/
+
+Regards,
+The {{ reg.season.league.name }} Mods

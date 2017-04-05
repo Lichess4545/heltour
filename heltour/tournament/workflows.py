@@ -363,6 +363,11 @@ class ApproveRegistrationWorkflow():
             subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
             msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
             msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+        elif reg.season.league.rating_type == 'blitz':
+            # TODO: Make the email template a league setting
+            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt', {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt', {'reg': reg})
+            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html', {'reg': reg})
         else:
             subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
             msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
