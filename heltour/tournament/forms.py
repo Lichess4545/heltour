@@ -103,11 +103,19 @@ class RegistrationForm(forms.ModelForm):
 
         # Weeks unavailable
         if self.season.round_duration == timedelta(days=7):
-            weeks = [(r.number, 'Week %s (%s - %s)' %
+            weeks = [(r.number, 'Round %s (%s - %s)' %
                                 (r.number, r.start_date.strftime('%b %-d') if r.start_date is not None else '?', r.end_date.strftime('%b %-d') if r.end_date is not None else '?'))
                      for r in self.season.round_set.order_by('number')]
-            self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Are there any weeks you would NOT be able to play?'),
-                                                                         choices=weeks, widget=forms.CheckboxSelectMultiple)
+            toggle_attrs = {
+                               'data-toggle': 'toggle',
+                               'data-on': 'Unavailable',
+                               'data-off': 'Available',
+                               'data-onstyle': 'default',
+                               'data-offstyle': 'success',
+                               'data-size': 'small',
+                           }
+            self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Indicate any rounds you would not be able to play.'),
+                                                                         choices=weeks, widget=forms.CheckboxSelectMultiple(attrs=toggle_attrs))
         else:
             del self.fields['weeks_unavailable']
 

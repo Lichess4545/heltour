@@ -48,6 +48,10 @@ h2 {
 	min-width: 80px;
 }
 
+.toggle-group .btn-default {
+	min-width: auto;
+}
+
 .btn-create {
 	min-width: 0px;
 }
