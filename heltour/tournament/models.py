@@ -1758,8 +1758,8 @@ class AlternateSearch(_BaseModel):
             team_pairing = self.team.get_teampairing(self.round)
             player_pairing = TeamPlayerPairing.objects.filter(team_pairing=team_pairing, board_number=self.board_number, result='', game_link='').nocache().first()
             return player_pairing is not None and \
-                    (player_pairing.white_team() == self.team and not player_pairing.white.is_available_for(self.round) or \
-                    player_pairing.black_team() == self.team and not player_pairing.black.is_available_for(self.round))
+                    (player_pairing.white_team() == self.team and (not player_pairing.white or not player_pairing.white.is_available_for(self.round)) or \
+                    player_pairing.black_team() == self.team and (not player_pairing.black or not player_pairing.black.is_available_for(self.round)))
         else:
             player = None
             aa = AlternateAssignment.objects.filter(round=self.round, team=self.team, board_number=self.board_number).first()
