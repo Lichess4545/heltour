@@ -52,9 +52,13 @@
 										</a>
 									</td>
 									<td>
-										<a class="player-name" href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
-											{{ team_member.player }}
-										</a>
+										{% if team_member.player %}
+											<a class="player-name" href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
+												{{ team_member.player }}
+											</a>
+										{% else %}
+											?
+										{% endif %}
 									</td>
 									<td>{{ date_opened|date:"m/d H:i" }}</td>
 								</tr>
