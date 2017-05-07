@@ -4,7 +4,7 @@ from django.db import models, transaction
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
 from django import forms as django_forms
 from collections import namedtuple, defaultdict
@@ -428,6 +428,11 @@ class Season(_BaseModel):
         if not hasattr(self.league, 'alternatesmanagersetting'):
             return None
         return self.league.alternatesmanagersetting
+
+    @property
+    def pairings(self):
+        return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self)
+              | PlayerPairing.objects.filter(loneplayerpairing__round__season=self)).nocache()
 
     def __unicode__(self):
         return self.name

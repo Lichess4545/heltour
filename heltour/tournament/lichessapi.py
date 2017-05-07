@@ -95,6 +95,17 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
         raise ApiWorkerError('API failure')
     return json.loads(result)['currentPageResults']
 
+def enumerate_game_metas(game_ids, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/api/games?with_moves=1&priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, priority, max_retries)
+    while len(game_ids) > 0:
+        batch = game_ids[:300]
+        result = _apicall(url, timeout, post_data=','.join(batch))
+        if result == '':
+            raise ApiWorkerError('API failure')
+        for meta in json.loads(result):
+            yield meta
+        game_ids = game_ids[300:]
+
 def watch_games(game_ids):
     try:
         url = '%s/watch/' % (settings.API_WORKER_HOST)

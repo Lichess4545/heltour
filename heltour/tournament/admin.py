@@ -30,6 +30,7 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+from django.utils.text import slugify
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -305,7 +306,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'export_games', 'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -338,12 +339,14 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
+            url(r'^(?P<object_ids>[0-9,]+)/export_games/$',
+                self.admin_site.admin_view(self.export_games_view),
+                name='export_games'),
             url(r'^(?P<object_id>[0-9]+)/export_players/$',
                 self.admin_site.admin_view(self.export_players_view),
                 name='export_players'),
         ]
         return my_urls + urls
-
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
@@ -622,10 +625,36 @@ class SeasonAdmin(_BaseAdmin):
             'site_url': '/',
             'original': season,
             'title': 'Export players',
-            'players': json.dumps(players)
+            'export_text': json.dumps(players)
         }
 
-        return render(request, 'tournament/admin/export_players.html', context)
+        return render(request, 'tournament/admin/export.html', context)
+
+    def export_games(self, request, queryset):
+        return redirect('admin:export_games', object_ids=','.join((str(season.pk) for season in queryset)))
+
+    def export_games_view(self, request, object_ids):
+        seasons = [get_object_or_404(Season, pk=int(object_id)) for object_id in object_ids.split(',')]
+        for season in seasons:
+            if not request.user.has_perm('tournament.change_season', season.league):
+                raise PermissionDenied
+
+        game_ids = []
+        for season in seasons:
+            game_ids += [gid for gid in (get_gameid_from_gamelink(p.game_link) for p in season.pairings) if gid is not None]
+
+        games = list(lichessapi.enumerate_game_metas(game_ids, priority=1, timeout=900, max_retries=15))
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Export games',
+            'export_text': json.dumps(games)
+        }
+
+        return render(request, 'tournament/admin/export.html', context)
 
     def update_board_order_by_rating(self, request, queryset):
         try:
