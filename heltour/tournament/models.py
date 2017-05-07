@@ -1076,6 +1076,44 @@ def normalize_gamelink(gamelink):
         return gamelink, False
     return get_gamelink_from_gameid(gameid), True
 
+def game_meta_to_pgn(g):
+    result = '1/2-1/2' if g.get('status') == 'draw' else '1-0' if g.get('winner') == 'white' else '0-1' if g.get('winner') == 'black' else '*'
+    headers = []
+    headers.append(('Event', '%s %s game' % ('Rated' if g['rated'] else 'Casual', g['speed'])))
+    headers.append(('Site', g['url']))
+    headers.append(('Date', datetime.fromtimestamp(int(g['createdAt']) / 1000.0).strftime('%Y.%m.%d')))
+    headers.append(('Round', None))
+    headers.append(('Result', result))
+    if 'players' in g:
+        if 'white' in g['players']:
+            headers.append(('White', g['players']['white'].get('userId')))
+            headers.append(('WhiteElo', g['players']['white'].get('rating')))
+        if 'black' in g['players']:
+            headers.append(('Black', g['players']['black'].get('userId')))
+            headers.append(('BlackElo', g['players']['black'].get('rating')))
+    if 'opening' in g:
+        headers.append(('ECO', g['opening'].get('eco')))
+        headers.append(('Opening', g['opening'].get('name')))
+    headers.append(('Variant', g['variant'].capitalize()))
+    if 'clock' in g:
+        headers.append(('TimeControl', str(g['clock'].get('initial')) + '+' + str(g['clock'].get('increment'))))
+    moves = g['moves']
+    pgn = ''
+    for h in headers:
+        if h[1] is None:
+            pgn += '[%s "?"]\n' % (h[0])
+        else:
+            pgn += '[%s "%s"]\n' % h
+    pgn += '\n'
+    ply = 0
+    for m in moves.split(' '):
+        if ply % 2 == 0:
+            pgn += str(int(ply / 2 + 1)) + '. '
+        pgn += m + ' '
+        ply += 1
+    pgn += result
+    return pgn
+
 RESULT_OPTIONS = (
     ('1-0', '1-0'),
     ('1/2-1/2', u'\u00BD-\u00BD'),

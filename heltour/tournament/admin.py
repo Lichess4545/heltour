@@ -644,17 +644,13 @@ class SeasonAdmin(_BaseAdmin):
             game_ids += [gid for gid in (get_gameid_from_gamelink(p.game_link) for p in season.pairings) if gid is not None]
 
         games = list(lichessapi.enumerate_game_metas(game_ids, priority=1, timeout=900, max_retries=15))
+        pgn = '\n\n'.join(game_meta_to_pgn(g) for g in games)
 
-        context = {
-            'has_permission': True,
-            'opts': self.model._meta,
-            'site_url': '/',
-            'original': season,
-            'title': 'Export games',
-            'export_text': json.dumps(games)
-        }
-
-        return render(request, 'tournament/admin/export.html', context)
+        response = HttpResponse(pgn, content_type='application/x-chess-pgn')
+        response['Content-Disposition'] = 'attachment; filename="{}.pgn"'.format(
+            ', '.join([slugify(season.name) for season in seasons])
+        )
+        return response
 
     def update_board_order_by_rating(self, request, queryset):
         try:
