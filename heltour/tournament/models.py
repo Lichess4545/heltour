@@ -1076,13 +1076,23 @@ def normalize_gamelink(gamelink):
         return gamelink, False
     return get_gamelink_from_gameid(gameid), True
 
-def game_meta_to_pgn(g):
+def game_meta_to_pgn(game_meta, pairing=None):
+    g = game_meta
+
+    event_text = '%s %s game' % ('Rated' if g['rated'] else 'Casual', g['speed'])
+    round_number = None
+    if pairing is not None:
+        round_ = pairing.get_round()
+        if round_ is not None:
+            event_text = '%s - %s' % (round_.season.league.name, round_.season.name)
+            round_number = round_.number
+
     result = '1/2-1/2' if g.get('status') == 'draw' else '1-0' if g.get('winner') == 'white' else '0-1' if g.get('winner') == 'black' else '*'
     headers = []
-    headers.append(('Event', '%s %s game' % ('Rated' if g['rated'] else 'Casual', g['speed'])))
+    headers.append(('Event', event_text))
     headers.append(('Site', g['url']))
     headers.append(('Date', datetime.fromtimestamp(int(g['createdAt']) / 1000.0).strftime('%Y.%m.%d')))
-    headers.append(('Round', None))
+    headers.append(('Round', round_number))
     headers.append(('Result', result))
     if 'players' in g:
         if 'white' in g['players']:

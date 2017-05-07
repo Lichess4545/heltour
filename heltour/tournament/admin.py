@@ -634,17 +634,20 @@ class SeasonAdmin(_BaseAdmin):
         return redirect('admin:export_games', object_ids=','.join((str(season.pk) for season in queryset)))
 
     def export_games_view(self, request, object_ids):
-        seasons = [get_object_or_404(Season, pk=int(object_id)) for object_id in object_ids.split(',')]
+        seasons = sorted((get_object_or_404(Season, pk=int(object_id)) for object_id in object_ids.split(',')), key=lambda s: s.start_date)
         for season in seasons:
             if not request.user.has_perm('tournament.change_season', season.league):
                 raise PermissionDenied
 
-        game_ids = []
+        pairings = []
         for season in seasons:
-            game_ids += [gid for gid in (get_gameid_from_gamelink(p.game_link) for p in season.pairings) if gid is not None]
+            pairings += list(season.pairings)
 
-        games = list(lichessapi.enumerate_game_metas(game_ids, priority=1, timeout=900, max_retries=15))
-        pgn = '\n\n'.join(game_meta_to_pgn(g) for g in games)
+        pairings_with_gameids = [(p, gid) for p, gid in ((p, get_gameid_from_gamelink(p.game_link)) for p in pairings) if gid is not None]
+
+        games = list(lichessapi.enumerate_game_metas([gid for _, gid in pairings_with_gameids], priority=1, timeout=900, max_retries=15))
+        pairings_with_game_metas = sorted(zip([p for p, _ in pairings_with_gameids], games), key=lambda k: int(k[1]['createdAt']))
+        pgn = '\n\n'.join(game_meta_to_pgn(g, p) for p, g in pairings_with_game_metas)
 
         response = HttpResponse(pgn, content_type='application/x-chess-pgn')
         response['Content-Disposition'] = 'attachment; filename="{}.pgn"'.format(
