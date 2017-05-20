@@ -74,7 +74,7 @@ class RegistrationForm(forms.ModelForm):
         # Friends
         if league.competitor_type == 'team':
             self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),
-                                                     help_text=_(u'Note: All players must register. All players must join Slack. All players should also request each other.'))
+                                                     help_text=_(u'Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
         else:
             del self.fields['friends']
 
