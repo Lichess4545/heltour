@@ -608,13 +608,44 @@ class SeasonAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.change_season', season.league):
             raise PermissionDenied
 
+        last_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False).order_by('number').first()
+        next_round = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number').first()
+
         season_players = season.seasonplayer_set.select_related('player').nocache()
+        active_players = {sp.player for sp in season_players if sp.is_active}
+        withdrawn_players = {wd.player for wd in PlayerWithdrawal.objects.filter(round=next_round)}
 
         missing_withdrawals = None
-        bad_player_status = None
-        not_on_slack = None
-        pending_regs = [(reg.lichess_username, reg) for reg in Registration.objects.filter(season=season, status='pending')]
         pairings_wo_results = None
+
+        pending_regs = [(reg.lichess_username, reg) for reg in Registration.objects.filter(season=season, status='pending')]
+
+        bad_player_status = [p for p in (active_players - withdrawn_players) if p.account_status != 'normal']
+
+        latereg_list = PlayerLateRegistration.objects.filter(round=next_round)
+        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.in_slack_group]
+        not_on_slack += [(p, None, None) for p in active_players if not p.in_slack_group]
+
+        if last_round is not None:
+            players_with_0f = set()
+            for p in last_round.pairings:
+                if p.result != '' and not p.game_played():
+                    if p.black_score() == 0:
+                        players_with_0f.add(p.black)
+                    if p.white_score() == 0:
+                        players_with_0f.add(p.white)
+            missing_withdrawals = (players_with_0f & active_players) - withdrawn_players
+
+            def text_class(p):
+                if p.game_link != '':
+                    return 'text-approved'
+                if p.scheduled_time and p.scheduled_time < timezone.now() - timedelta(hours=1):
+                    return 'text-rejected'
+                if p.scheduled_time and p.scheduled_time < timezone.now():
+                    return 'text-approved'
+                return ''
+
+            pairings_wo_results = [(p, text_class(p)) for p in  last_round.pairings.filter(result='')]
 
         context = {
             'has_permission': True,
@@ -622,6 +653,8 @@ class SeasonAdmin(_BaseAdmin):
             'site_url': '/',
             'original': season,
             'title': 'Pre-round report',
+            'last_round': last_round,
+            'next_round': next_round,
             'missing_withdrawals': missing_withdrawals,
             'bad_player_status': bad_player_status,
             'not_on_slack': not_on_slack,
