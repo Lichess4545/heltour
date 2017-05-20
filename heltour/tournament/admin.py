@@ -338,6 +338,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
+            url(r'^(?P<object_id>[0-9]+)/pre_round_report/$',
+                self.admin_site.admin_view(self.pre_round_report_view),
+                name='pre_round_report'),
             url(r'^(?P<object_id>[0-9]+)/export_players/$',
                 self.admin_site.admin_view(self.export_players_view),
                 name='export_players'),
@@ -593,6 +596,40 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/mod_report.html', context)
+
+    def pre_round_report(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Can only generate pre-round report one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:pre_round_report', object_id=queryset[0].pk)
+
+    def pre_round_report_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.change_season', season.league):
+            raise PermissionDenied
+
+        season_players = season.seasonplayer_set.select_related('player').nocache()
+
+        missing_withdrawals = None
+        bad_player_status = None
+        not_on_slack = None
+        pending_regs = [(reg.lichess_username, reg) for reg in Registration.objects.filter(season=season, status='pending')]
+        pairings_wo_results = None
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Pre-round report',
+            'missing_withdrawals': missing_withdrawals,
+            'bad_player_status': bad_player_status,
+            'not_on_slack': not_on_slack,
+            'pending_regs': pending_regs,
+            'pairings_wo_results': pairings_wo_results
+        }
+
+        return render(request, 'tournament/admin/pre_round_report.html', context)
 
     def export_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)

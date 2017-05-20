@@ -56,6 +56,9 @@
 				</div>
 				{% if next_round %}
 				<div class="dashboard-season-action">
+					<a href="{% url 'admin:pre_round_report' season.pk %}" class="btn btn-default">Pre-Round Report</a>
+				</div>
+				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start Round {{ next_round.number }}</a>
 					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date:"m/d H:i" }}</span>
 				</div>
