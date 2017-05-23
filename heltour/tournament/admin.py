@@ -641,8 +641,6 @@ class SeasonAdmin(_BaseAdmin):
                     return 'text-approved'
                 if p.scheduled_time and p.scheduled_time < timezone.now() - timedelta(hours=1):
                     return 'text-rejected'
-                if p.scheduled_time and p.scheduled_time < timezone.now():
-                    return 'text-approved'
                 return ''
 
             pairings_wo_results = [(p, text_class(p)) for p in  last_round.pairings.filter(result='')]
