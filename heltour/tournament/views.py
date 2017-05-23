@@ -1366,28 +1366,31 @@ class AvailabilityView(SeasonView, UrlAuthMixin):
 
         player_list = [player]
         round_list = list(self.season.round_set.order_by('number').filter(publish_pairings=False))
+        round_data = None
 
-        # Add team members if the user is a captain
-        team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
-        if team_member is not None and team_member.is_captain:
-            team = team_member.team
-            for tm in team.teammember_set.order_by('board_number').select_related('player').nocache():
-                if tm.player not in player_list:
-                    player_list.append(tm.player)
+        if player is not None:
 
-        availability_set = PlayerAvailability.objects.filter(player__in=player_list, round__in=round_list).nocache()
-        is_available_dict = {(av.round_id, av.player_id): av.is_available for av in availability_set}
+            # Add team members if the user is a captain
+            team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
+            if team_member is not None and team_member.is_captain:
+                team = team_member.team
+                for tm in team.teammember_set.order_by('board_number').select_related('player').nocache():
+                    if tm.player not in player_list:
+                        player_list.append(tm.player)
 
-        if post:
-            for r in round_list:
-                for p in player_list:
-                    field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
-                    is_available = self.request.POST.get(field_name) != 'on'
-                    if is_available != is_available_dict.get((r.id, p.id), True):
-                        PlayerAvailability.objects.update_or_create(player=p, round=r, defaults={ 'is_available': is_available })
-            return redirect('by_league:by_season:edit_availability', self.league.tag, self.season.tag)
+            availability_set = PlayerAvailability.objects.filter(player__in=player_list, round__in=round_list).nocache()
+            is_available_dict = {(av.round_id, av.player_id): av.is_available for av in availability_set}
 
-        round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list]) for r in round_list]
+            if post:
+                for r in round_list:
+                    for p in player_list:
+                        field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
+                        is_available = self.request.POST.get(field_name) != 'on'
+                        if is_available != is_available_dict.get((r.id, p.id), True):
+                            PlayerAvailability.objects.update_or_create(player=p, round=r, defaults={ 'is_available': is_available })
+                return redirect('by_league:by_season:edit_availability', self.league.tag, self.season.tag)
+
+            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list]) for r in round_list]
 
 
         context = {
