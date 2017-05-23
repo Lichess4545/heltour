@@ -1365,7 +1365,11 @@ class AvailabilityView(SeasonView, UrlAuthMixin):
         username, player = self.get_authenticated_user()
 
         player_list = [player]
-        round_list = list(self.season.round_set.order_by('number').filter(publish_pairings=False))
+        include_current_round = self.league.competitor_type == 'team'
+        if include_current_round:
+            round_list = list(self.season.round_set.order_by('number').filter(is_completed=False))
+        else:
+            round_list = list(self.season.round_set.order_by('number').filter(publish_pairings=False))
         round_data = None
 
         if player is not None:
