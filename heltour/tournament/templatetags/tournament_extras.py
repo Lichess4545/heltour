@@ -83,9 +83,11 @@ def forfeitchar(score):
     return ''
 
 @register.filter
-def date_or_q(datetime):
+def date_or_q(datetime, fmt=None):
     if datetime is None:
         return '?'
+    if fmt is not None:
+        return datetime.strftime(fmt)
     return datetime.date()
 
 @register.filter

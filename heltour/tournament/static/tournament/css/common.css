@@ -735,6 +735,23 @@ div.inline {
 	background-color: #ddd;
 }
 
+#table-availability {
+	width: auto;
+}
+
+#table-availability input {
+	display: none;
+}
+
+#table-availability tbody td {
+	min-width: 115px;
+	height: 48px;
+}
+
+#table-availability tbody td:nth-child(1) {
+	min-width: auto;
+}
+
 @media (min-width: 768px) {
 	.podium {
 		display: flex;

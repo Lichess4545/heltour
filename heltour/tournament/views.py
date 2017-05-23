@@ -1358,6 +1358,49 @@ class ScheduleView(LeagueView, UrlAuthMixin):
     def view_post(self):
         return self.view(post=True)
 
+class AvailabilityView(SeasonView, UrlAuthMixin):
+    def view(self, secret_token=None, post=False):
+        if self.persist_url_auth(secret_token):
+            return redirect('by_league:by_season:edit_availability', self.league.tag, self.season.tag)
+        username, player = self.get_authenticated_user()
+
+        player_list = [player]
+        round_list = list(self.season.round_set.order_by('number').filter(publish_pairings=False))
+
+        # Add team members if the user is a captain
+        team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
+        if team_member is not None and team_member.is_captain:
+            team = team_member.team
+            for tm in team.teammember_set.order_by('board_number').select_related('player').nocache():
+                if tm.player not in player_list:
+                    player_list.append(tm.player)
+
+        availability_set = PlayerAvailability.objects.filter(player__in=player_list, round__in=round_list).nocache()
+        is_available_dict = {(av.round_id, av.player_id): av.is_available for av in availability_set}
+
+        if post:
+            for r in round_list:
+                for p in player_list:
+                    field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
+                    is_available = self.request.POST.get(field_name) != 'on'
+                    if is_available != is_available_dict.get((r.id, p.id), True):
+                        PlayerAvailability.objects.update_or_create(player=p, round=r, defaults={ 'is_available': is_available })
+            return redirect('by_league:by_season:edit_availability', self.league.tag, self.season.tag)
+
+        round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list]) for r in round_list]
+
+
+        context = {
+            'username': username,
+            'player': player,
+            'player_list': player_list,
+            'round_data': round_data,
+        }
+        return self.render('tournament/availability.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
 class AlternatesView(SeasonView):
     def view(self):
         if self.league.competitor_type != 'team':
