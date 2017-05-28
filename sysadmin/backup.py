@@ -14,158 +14,158 @@ import itertools
 import os
 
 test_monthly_backups = """
-/var/backups/heltour-sql/monthly/heltour-2015-02-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-03-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-04-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-05-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-06-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-07-01-0021.sql.bz2
-/var/backups/heltour-sql/monthly/heltour-2015-08-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-02-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-03-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-04-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-05-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-06-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-07-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/monthly/heltour-2015-08-01-0021.sql.bz2
 """
 
 test_weekly_backups = """
-/var/backups/heltour-sql/weekly/heltour-2015-08-18-0021.sql.bz2
-/var/backups/heltour-sql/weekly/heltour-2015-08-25-0021.sql.bz2
-/var/backups/heltour-sql/weekly/heltour-2015-09-01-0021.sql.bz2
-/var/backups/heltour-sql/weekly/heltour-2015-09-08-0021.sql.bz2
-/var/backups/heltour-sql/weekly/heltour-2015-09-15-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/weekly/heltour-2015-08-18-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/weekly/heltour-2015-08-25-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/weekly/heltour-2015-09-01-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/weekly/heltour-2015-09-08-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/weekly/heltour-2015-09-15-0021.sql.bz2
 """
 
 test_daily_backups = """
-/var/backups/heltour-sql/daily/heltour-2015-09-09-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-09-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-10-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-11-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-12-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-13-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-14-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-15-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-16-0021.sql.bz2
-/var/backups/heltour-sql/daily/heltour-2015-09-17-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-09-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-09-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-10-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-11-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-12-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-13-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-14-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-15-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-16-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/daily/heltour-2015-09-17-0021.sql.bz2
 """
 
 test_hourly_backups = """
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-2321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-2021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-1921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-2121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-2221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-2021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-2221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-2021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-2121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-2321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-2021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-2121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-2221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-2321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-2121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-2021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-1721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-2321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-2221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-2321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1421.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-1621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1321.sql.bz2
-/var/backups/heltour-sql/hourly/latest.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-1121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-1021.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-18-0321.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-0721.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-1821.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-0921.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-0121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-15-2121.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-13-1621.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-16-1221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-17-1221.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-0521.sql.bz2
-/var/backups/heltour-sql/hourly/heltour-2015-09-14-2221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-2321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-2021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-1921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-2121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-2221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-2021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-2221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-2021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-2121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-2321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-2021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-2121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-2221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-2321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-2121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-2021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-1721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-2321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-2221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-2321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1421.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-1621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/latest.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-1121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-1021.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-18-0321.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-0721.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-1821.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-0921.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-0121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-15-2121.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-13-1621.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-16-1221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-17-1221.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-0521.sql.bz2
+/home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-2221.sql.bz2
 """
 
 DEBUG=False
@@ -273,13 +273,13 @@ def add_to_backups(current_files, potential_files, cutoff_time, target_dir):
 
 if __name__ == "__main__":
 
-    base_format = "/var/backups/heltour-sql/%s/heltour-%%Y-%%m-%%d-%%H%%M.sql.bz2"
+    base_format = "/home/lichess4545/backups/heltour-sql/%s/heltour-%%Y-%%m-%%d-%%H%%M.sql.bz2"
     hourly_format = base_format % "hourly"
     daily_format = base_format % "daily"
     weekly_format = base_format % "weekly"
     monthly_format = base_format % "monthly"
 
-    base_directory = "/var/backups/heltour-sql/%s/"
+    base_directory = "/home/lichess4545/backups/heltour-sql/%s/"
     hourly_directory = base_directory % "hourly"
     daily_directory = base_directory % "daily"
     weekly_directory = base_directory % "weekly"
@@ -308,7 +308,7 @@ if __name__ == "__main__":
             monthly_backups,
             hourly_backups,
             beginning_of_month(),
-            "/var/backups/heltour-sql/monthly/",
+            "/home/lichess4545/backups/heltour-sql/monthly/",
         )
 
     if DEBUG: print "weekly"
@@ -318,7 +318,7 @@ if __name__ == "__main__":
             weekly_backups,
             hourly_backups,
             beginning_of_week(),
-            "/var/backups/heltour-sql/weekly/",
+            "/home/lichess4545/backups/heltour-sql/weekly/",
         )
 
     if DEBUG: print "daily"
@@ -328,7 +328,7 @@ if __name__ == "__main__":
             daily_backups,
             hourly_backups,
             beginning_of_day(),
-            "/var/backups/heltour-sql/daily/"
+            "/home/lichess4545/backups/heltour-sql/daily/"
         )
 
     if DEBUG: print "hourly"

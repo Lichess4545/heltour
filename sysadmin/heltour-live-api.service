@@ -3,7 +3,7 @@ Description=heltour live celery server
 After=network.target
 
 [Service]
-ExecStart=/var/www/www.lichess4545.com/current/sysadmin/run-heltour-live-api.sh
+ExecStart=/home/lichess4545/web/www.lichess4545.com/current/sysadmin/run-heltour-live-api.sh
 User=lichess4545
 KillMode=control-group
 TimeoutStopSec=2

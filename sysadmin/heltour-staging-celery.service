@@ -3,7 +3,7 @@ Description=heltour staging celery server
 After=network.target
 
 [Service]
-ExecStart=/var/www/staging.lichess4545.com/current/sysadmin/run-heltour-staging-celery.sh
+ExecStart=/home/lichess4545/staging.lichess4545.com/current/sysadmin/run-heltour-staging-celery.sh
 User=lichess4545
 KillMode=control-group
 TimeoutStopSec=2
