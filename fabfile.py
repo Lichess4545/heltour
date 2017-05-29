@@ -219,6 +219,7 @@ def runserver():
 def cleansedb():
     manage_py = project_relative("manage.py")
     local("python %s cleansedb" % manage_py)
+    local("python %s deleterevisions" % manage_py)
 
 #-------------------------------------------------------------------------------
 def runapiworker():
