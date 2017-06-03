@@ -63,8 +63,8 @@ PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
-        'live': ['lichess4545@lichess4545.com'],
-        'dev': ['lichess4545@lichess4545.com'],
+        'live': ['lichess4545@ushio.lichess.org'],
+        'staging': ['lichess4545@ushio.lichess.org'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -192,13 +192,13 @@ def latestdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
     if not env.roles:
-        print "Usage: fab -R [dev|live] latestdb"
+        print "Usage: fab -R [staging|live] latestdb"
         return
 
     if env.roles == ['live']:
         LIVE_LATEST_SQL_FILE_PATH = "/home/lichess4545/backups/heltour-sql/hourly/latest.sql.bz2"
         strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
-    elif env.roles == ['dev']:
+    elif env.roles == ['staging']:
         local("mkdir -p {}".format(project_relative("data")))
         local_target = project_relative("data/latestdb.sql.bz2")
         devdb_source = "http://staging.lichess4545.com/devdb.sql.bz2"
