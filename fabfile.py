@@ -137,7 +137,7 @@ def deploystaging():
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lichess4545@lichess4545.com']
+                exclude=['env', 'data', 'lichess4545@lichess4545.com', 'certs']
             )
         run("echo \"/home/lichess4545/web/staging.lichess4545.com/current/\" > /home/lichess4545/web/staging.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
