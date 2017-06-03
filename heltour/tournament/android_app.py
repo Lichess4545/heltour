@@ -17,7 +17,7 @@ def _get_fcm_key():
 def _get_push_service():
     return FCMNotification(api_key=_get_fcm_key())
 
-available_topics = ['[Team]', '[Lonewolf]', '[Ladder]', '[Blitz]', '[Ledger]']
+available_topics = [('[Team]', 'team_a'), ('[Lonewolf]', 'lonewolf_a'), ('[Ladder]', 'ladder_a'), ('[Blitz]', 'blitz_a'), ('[Ledger]', 'ledger_a')]
 
 @csrf_exempt
 @require_POST
@@ -53,7 +53,7 @@ def slack_event(request):
 def process_slack_message(users, channel, sender, text, ts):
     logger.warning('Received slack message: %s %s %s %s %s' % (','.join(users), channel, sender, text, ts))
     if channel == settings.SLACK_ANNOUNCE_CHANNEL:
-        topics = [t for t in available_topics if t.lower() in text.lower()]
+        topics = [name for match, name in available_topics if match.lower() in text.lower()]
         if len(topics) > 0:
             topic_condition = "'" + "' in topics || '".join(topics) + "' in topics"
             _get_push_service().notify_topic_subscribers(message_body=ts, condition=topic_condition)
