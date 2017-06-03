@@ -676,8 +676,8 @@ class SeasonAdmin(_BaseAdmin):
                 'has_20_games': sp.player.games_played_for(season.league) >= 20,
                 'in_slack': sp.player.in_slack_group,
                 'account_status': sp.player.account_status,
-                'date_created': sp.registration.friends if sp.registration else None,
-                'friends': (sp.registration.date_created if sp.registration else sp.date_created).isoformat()
+                'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
+                'friends': sp.registration.friends if sp.registration else None
             }
             reg = sp.registration
             if reg is not None:
