@@ -12,5 +12,5 @@ RestartPreventExitStatus=255
 Type=simple
 
 [Install]
-Wants=multi-user.target
+WantedBy=multi-user.target
 
