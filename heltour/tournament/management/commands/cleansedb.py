@@ -4,7 +4,7 @@ class Command(BaseCommand):
     help = "Cleanse your local database of sensitive things"
 
     def handle(self, *args, **options):
-        from heltour.tournament.models import Player, Registration
+        from heltour.tournament.models import Player, Registration, FcmSub
         from django_comments.models import Comment
         from django.contrib.auth.models import User
         for u in User.objects.all():
@@ -18,3 +18,4 @@ class Command(BaseCommand):
             r.email = "email-{}@example.com".format(r.id)
             r.save()
         Comment.objects.all().delete()
+        FcmSub.objects.all().delete()

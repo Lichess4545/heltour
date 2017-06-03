@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls import url, include
 from django.conf.urls.static import static
-from . import views, api
+from . import views, api, android_app
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.cache import cache_control
 
@@ -82,14 +82,21 @@ api_urlpatterns = [
     url(r'^game_warning/$', api.game_warning, name='game_warning'),
 ]
 
+app_urlpatterns = [
+    url(r'^event/$', android_app.slack_event, name='slack_event'),
+    url(r'^register/$', android_app.fcm_register, name='fcm_register'),
+    url(r'^unregister/$', android_app.fcm_unregister, name='fcm_unregister'),
+]
+
 urlpatterns = [
     url(r'^$', views.HomeView.as_view(), name='home'),
-    url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
     url(r'^player/(?P<username>[\w-]+)/calendar.ics$', views.ICalPlayerView.as_view(), name='player_icalendar'),
     url(r'^api/', include(api_urlpatterns, 'api')),
+    url(r'^app/', include(app_urlpatterns, 'app')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^select2/', include('select2.urls')),
+    url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
 ]
 
 if settings.DEBUG:

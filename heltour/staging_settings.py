@@ -265,6 +265,10 @@ SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
 SLACK_WEBHOOK_FILE_PATH = '/etc/heltour/slack-webhook.conf'
 LICHESS_CREDS_FILE_PATH = '/etc/heltour/lichess-creds.conf'
 JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
+FCM_API_KEY_FILE_PATH = '/etc/heltour/fcm-key.conf'
+
+SLACK_APP_TOKEN = ''
+SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
 
 LICHESS_DOMAIN = 'https://en.stage.lichess.org/'
 
@@ -301,6 +305,7 @@ if os.path.exists("/etc/heltour/staging.json"):
     SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
     SLACK_WEBHOOK_FILE_PATH = overrides.get("SLACK_WEBHOOK_FILE_PATH", SLACK_WEBHOOK_FILE_PATH)
     LICHESS_CREDS_FILE_PATH = overrides.get("LICHESS_CREDS_FILE_PATH", LICHESS_CREDS_FILE_PATH)
+    SLACK_APP_TOKEN = overrides.get("SLACK_APP_TOKEN", SLACK_APP_TOKEN)
     MEDIA_ROOT = overrides.get("MEDIA_ROOT", MEDIA_ROOT)
     SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
     RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)
