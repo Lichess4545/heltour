@@ -2102,3 +2102,8 @@ class ScheduledNotification(_BaseModel):
     def clean(self):
         if self.setting.offset is None:
             raise ValidationError('Setting must have an offset')
+
+#-------------------------------------------------------------------------------
+class FcmSub(_BaseModel):
+    slack_user_id = models.CharField(max_length=31)
+    reg_id = models.CharField(max_length=4096, unique=True)
