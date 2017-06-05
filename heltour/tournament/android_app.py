@@ -43,7 +43,7 @@ def slack_event(request):
             ts = event.get('event_ts')
             # Apart from announcements, discard text for privacy
             if channel == settings.SLACK_ANNOUNCE_CHANNEL:
-                text = event.get('text')
+                text = event.get('text', '')
             else:
                 text = ''
             process_slack_message(users, channel, sender, text, ts)
@@ -56,7 +56,7 @@ def process_slack_message(users, channel, sender, text, ts):
         topics = [name for match, name in available_topics if match.lower() in text.lower()]
         if len(topics) > 0:
             topic_condition = "'" + "' in topics || '".join(topics) + "' in topics"
-            _get_push_service().notify_topic_subscribers(message_body=ts, condition=topic_condition)
+            _get_push_service().notify_topic_subscribers(condition=topic_condition)
     elif channel[0] in ('D', 'G'):
         # IM or MPIM
         other_users = [u for u in users if u != sender]
