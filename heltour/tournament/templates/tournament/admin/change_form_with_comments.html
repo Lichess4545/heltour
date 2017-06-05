@@ -4,6 +4,7 @@
 {% block extrahead %}{{ block.super }}
 <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
 {{ media }}
+<script type="text/javascript" src="{% static 'tournament/js/comments.js' %}"></script>
 {% endblock %}
 
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
@@ -86,6 +87,7 @@
 
 {% if original %}
 	<h2>Comments</h2>
+	<div class="comment-list">
 	{% render_comment_list for original %}
 	{% for obj in related_objects_for_comments %}
 		{% if obj.0 %}
@@ -98,6 +100,7 @@
 			{% render_comment_list for obj %}
 		{% endif %}
 	{% endfor %}
+	</div>
 	{% render_comment_form for original %}
 {% endif %}
 
