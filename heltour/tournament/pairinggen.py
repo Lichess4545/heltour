@@ -116,7 +116,10 @@ def _generate_lone_pairings(round_, overwrite=False):
         current_byes = {bye.player for bye in PlayerBye.objects.filter(round=round_).select_related('player').nocache()}
         unavailable_players = {avail.player for avail in PlayerAvailability.objects.filter(round=round_, is_available=False) \
                                                                            .select_related('player').nocache()}
-        for p in unavailable_players - current_byes:
+        active_players = {sp for sp in season_players if sp.is_active}
+        players_needing_byes = unavailable_players & active_players - current_byes
+
+        for p in players_needing_byes:
             with reversion.create_revision():
                 reversion.set_comment('Generated pairings.')
                 PlayerBye.objects.create(round=round_, player=p, type='half-point-bye')
