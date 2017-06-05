@@ -27,7 +27,11 @@
 							<tr>
 								<th class="cell-team" colspan="3">Team</th>
 								{% for board_number in board_numbers %}
-								<th class="cell-player" colspan="2">Board {{ board_number }}</th>
+								<th class="cell-player" colspan="2">
+									<a class="board-link" href="{% leagueurl 'board_scores' league.tag season.tag board_number %}">
+										Board {{ board_number }}
+									</a>
+								</th>
 								<th class="cell-rating">Rtg</th>
 								{% endfor %}
 								<th class="cell-average-rating">Average</th>
