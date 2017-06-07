@@ -166,7 +166,7 @@ def update_tv_state(self):
                     game.tv_state = 'hide'
                 if 'status' in meta and meta['status'] == 'draw':
                     game.result = '1/2-1/2'
-                elif 'winner' in meta:
+                elif 'winner' in meta and meta['status'] != 'timeout': # timeout = claim victory (which isn't allowed)
                     if meta['winner'] == 'white':
                         game.result = '1-0'
                     elif meta['winner'] == 'black':
