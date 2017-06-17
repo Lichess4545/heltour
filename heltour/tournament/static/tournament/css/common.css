@@ -121,7 +121,11 @@ div.inline {
 .player-link,
 .player-link:hover,
 .player-link:active,
-.player-link:focus {
+.player-link:focus,
+.board-link,
+.board-link:hover,
+.board-link:active,
+.board-link:focus {
 	color: inherit;
 }
 

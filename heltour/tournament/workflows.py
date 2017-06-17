@@ -6,6 +6,7 @@ from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
+import alternates_manager
 
 class RoundTransitionWorkflow():
 
@@ -135,18 +136,55 @@ class UpdateBoardOrderWorkflow():
         for team in self.season.team_set.all():
             with reversion.create_revision():
                 change_descriptions = []
-                members = list(team.teammember_set.all())
-                members.sort(key=lambda m: m.player.rating_for(self.season.league), reverse=True)
+                members = list(team.teammember_set.order_by('board_number'))
                 occupied_boards = [m.board_number for m in members]
-                occupied_boards.sort()
-                for i, board_number in enumerate(occupied_boards):
-                    m = members[i]
-                    if m.board_number != board_number:
-                        old_member = TeamMember.objects.filter(team=team, board_number=board_number).first()
-                        new_member, _ = TeamMember.objects.update_or_create(team=team, board_number=board_number, \
-                                                               defaults={ 'player': m.player, 'is_captain': m.is_captain,
-                                                                          'is_vice_captain': m.is_vice_captain })
-                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_member, new_member))
+                old_order = {m.board_number: m for m in members}
+                new_order = {m.board_number: m for m in members}
+
+                alternate_search_round = alternates_manager.current_round(self.season)
+                print alternate_search_round
+
+                def invariant(board_num):
+                    search = AlternateSearch.objects.filter(round=alternate_search_round, team=team, board_number=board_num, is_active=True).first()
+                    assignment = AlternateAssignment.objects.filter(round=alternate_search_round, team=team, board_number=board_num).first()
+                    return assignment or (search and search.still_needs_alternate())
+
+                # Do a modified bubble sort - this lets us restrict swaps in some cases
+                min_delta_for_change = 0
+                while True:
+                    has_changes = False
+                    for i in range(len(occupied_boards) - 1):
+                        j = occupied_boards[i]
+                        k = occupied_boards[i + 1]
+                        higher_bd = new_order[j]
+                        lower_bd = new_order[k]
+                        higher_rtg = higher_bd.player.rating_for(self.season.league) or 0
+                        lower_rtg = lower_bd.player.rating_for(self.season.league) or 0
+                        print lower_rtg - higher_rtg
+                        if lower_rtg - higher_rtg > min_delta_for_change:
+                            has_changes = True
+                            # Remove boards from consideration if they are locked
+                            # We could do this at the start but it would be too slow due to the DB queries
+                            # The condition above is relatively rare so the performance impact is less this way
+                            if invariant(j):
+                                occupied_boards.remove(j)
+                                break
+                            if invariant(k):
+                                occupied_boards.remove(k)
+                                break
+                            new_order[j] = lower_bd
+                            new_order[k] = higher_bd
+                    if not has_changes:
+                        break
+
+                # Commit the changes to the actual model
+                for board_number in occupied_boards:
+                    if old_order[board_number] != new_order[board_number]:
+                        m = new_order[board_number]
+                        TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                                                  defaults={ 'player': m.player, 'is_captain': m.is_captain,
+                                                             'is_vice_captain': m.is_vice_captain })
+                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_order[board_number], m))
                 reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
     def calc_alternate_boundaries(self, ratings_by_board):
