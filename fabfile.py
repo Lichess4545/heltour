@@ -119,9 +119,9 @@ def deploylive():
             run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("systemctl restart heltour-live")
-            sudo("systemctl restart heltour-live-api")
-            sudo("systemctl restart heltour-live-celery")
+            sudo("service heltour-live restart")
+            sudo("service heltour-live-api restart")
+            sudo("service heltour-live-celery restart")
 
         if confirm(colors.red("Would you like to reload nginx?")):
             sudo("service nginx reload")
@@ -149,9 +149,9 @@ def deploystaging():
             run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("systemctl restart heltour-staging")
-            sudo("systemctl restart heltour-staging-api")
-            sudo("systemctl restart heltour-staging-celery")
+            sudo("service heltour-staging restart")
+            sudo("service heltour-staging-api restart")
+            sudo("service heltour-staging-celery restart")
 
         if confirm(colors.red("Would you like to reload nginx?")):
             sudo("service nginx reload")
@@ -162,9 +162,9 @@ def restartlive():
         run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("systemctl restart heltour-live")
-        sudo("systemctl restart heltour-live-api")
-        sudo("systemctl restart heltour-live-celery")
+        sudo("service heltour-live restart")
+        sudo("service heltour-live-api restart")
+        sudo("service heltour-live-celery restart")
 
 #-------------------------------------------------------------------------------
 def restartstaging():
@@ -172,14 +172,14 @@ def restartstaging():
         run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("systemctl restart heltour-staging")
-        sudo("systemctl restart heltour-staging-api")
-        sudo("systemctl restart heltour-staging-celery")
+        sudo("service heltour-staging restart")
+        sudo("service heltour-staging-api restart")
+        sudo("service heltour-staging-celery restart")
 
 #-------------------------------------------------------------------------------
 def restartchesster():
     if confirm(colors.red("Would you like to restart chesster?")):
-        sudo("systemctl restart chesster")
+        sudo("service chesster restart")
 
 #-------------------------------------------------------------------------------
 def createdb():
