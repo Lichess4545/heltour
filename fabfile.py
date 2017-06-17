@@ -119,12 +119,12 @@ def deploylive():
             run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("service heltour-live restart")
-            sudo("service heltour-live-api restart")
-            sudo("service heltour-live-celery restart")
+            sudo("/usr/sbin/service heltour-live restart", shell=False)
+            sudo("/usr/sbin/service heltour-live-api restart", shell=False)
+            sudo("/usr/sbin/service heltour-live-celery restart", shell=False)
 
         if confirm(colors.red("Would you like to reload nginx?")):
-            sudo("service nginx reload")
+            sudo("/usr/sbin/service nginx reload", shell=False)
 
 #-------------------------------------------------------------------------------
 def deploystaging():
@@ -149,12 +149,12 @@ def deploystaging():
             run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("service heltour-staging restart")
-            sudo("service heltour-staging-api restart")
-            sudo("service heltour-staging-celery restart")
+            sudo("/usr/sbin/service heltour-staging restart", shell=False)
+            sudo("/usr/sbin/service heltour-staging-api restart", shell=False)
+            sudo("/usr/sbin/service heltour-staging-celery restart", shell=False)
 
         if confirm(colors.red("Would you like to reload nginx?")):
-            sudo("service nginx reload")
+            sudo("/usr/sbin/service nginx reload", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartlive():
@@ -162,9 +162,9 @@ def restartlive():
         run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("service heltour-live restart")
-        sudo("service heltour-live-api restart")
-        sudo("service heltour-live-celery restart")
+        sudo("/usr/sbin/service heltour-live restart", shell=False)
+        sudo("/usr/sbin/service heltour-live-api restart", shell=False)
+        sudo("/usr/sbin/service heltour-live-celery restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartstaging():
@@ -172,14 +172,14 @@ def restartstaging():
         run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("service heltour-staging restart")
-        sudo("service heltour-staging-api restart")
-        sudo("service heltour-staging-celery restart")
+        sudo("/usr/sbin/service heltour-staging restart", shell=False)
+        sudo("/usr/sbin/service heltour-staging-api restart", shell=False)
+        sudo("/usr/sbin/service heltour-staging-celery restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartchesster():
     if confirm(colors.red("Would you like to restart chesster?")):
-        sudo("service chesster restart")
+        sudo("/usr/sbin/service chesster restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def createdb():
