@@ -260,12 +260,12 @@ CACHEOPS = {
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
-SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
-SLACK_WEBHOOK_FILE_PATH = '/etc/heltour/slack-webhook.conf'
-LICHESS_CREDS_FILE_PATH = '/etc/heltour/lichess-creds.conf'
-JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
-FCM_API_KEY_FILE_PATH = '/etc/heltour/fcm-key.conf'
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
+SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
+SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
+LICHESS_CREDS_FILE_PATH = '/home/lichess4545/etc/heltour/lichess-creds.conf'
+JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
+FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 
 SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
@@ -290,8 +290,8 @@ except ImportError:
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os
 import json
-if os.path.exists("/etc/heltour/staging.json"):
-    overrides = json.loads(open("/etc/heltour/staging.json", "r").read())
+if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
+    overrides = json.loads(open("/home/lichess4545/etc/heltour/staging.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
     ADMINS = overrides.get("ADMINS", locals().get('ADMINS'))
     EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))

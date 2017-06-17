@@ -61,10 +61,10 @@ PYTHON_VERSION = "python{0}.{1}".format(*sys.version_info)
 PROJECT_NAME = 'heltour'
 PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
-LIVE_BACKUP_SCRIPT_PATH = "/var/www/www.lichess4545.com/current/sysadmin/backup.sh"
+LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
-        'live': ['lichess4545@lichess4545.com'],
-        'dev': ['lichess4545@lichess4545.com'],
+        'live': ['lichess4545@ushio.lichess.org'],
+        'staging': ['lichess4545@ushio.lichess.org'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -101,89 +101,85 @@ def deploylive():
     manage_py = project_relative("manage.py")
     local("python %s collectstatic --noinput" % manage_py)
     if confirm(colors.red("This will deploy to the live server (LIVE ENV) and restart the server. Are you sure?")):
-        remote_directory = "/var/www/www.lichess4545.com"
+        remote_directory = "/home/lichess4545/web/www.lichess4545.com"
         local_directory = project_relative(".") + "/"
         RsyncDeployment(
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lichess4545@lichess4545.com']
+                exclude=['env', 'data', 'lichess4545@lichess4545.com', 'certs']
             )
-        run("echo \"/var/www/www.lichess4545.com/current/\" > /var/www/www.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
+        run("echo \"/home/lichess4545/web/www.lichess4545.com/current/\" > /home/lichess4545/web/www.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
-            run("/var/www/www.lichess4545.com/current/sysadmin/update-requirements-live.sh")
+            run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/update-requirements-live.sh")
         if confirm(colors.red("Would you like to run the migrations?")):
-            run("/var/www/www.lichess4545.com/current/sysadmin/migrate-live.sh")
+            run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/migrate-live.sh")
         if confirm(colors.red("Would you like to invalidate the caches?")):
-            run("/var/www/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
+            run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("systemctl restart heltour-live")
-            sudo("systemctl restart heltour-live-api")
-            sudo("systemctl restart heltour-live-celery")
+            sudo("/usr/sbin/service heltour-live restart", shell=False)
+            sudo("/usr/sbin/service heltour-live-api restart", shell=False)
+            sudo("/usr/sbin/service heltour-live-celery restart", shell=False)
 
-        if confirm(colors.red("Would you like to install new nginx config?")):
-            run("cp /var/www/www.lichess4545.com/current/sysadmin/www.lichess4545.com.conf /etc/nginx/sites-available/www.lichess4545.com")
         if confirm(colors.red("Would you like to reload nginx?")):
-            sudo("service nginx reload")
+            sudo("/usr/sbin/service nginx reload", shell=False)
 
 #-------------------------------------------------------------------------------
 def deploystaging():
     manage_py = project_relative("manage_staging.py")
     local("python %s collectstatic --noinput" % manage_py)
     if confirm(colors.red("This will deploy to the live server (STAGING ENV) and restart the server. Are you sure?")):
-        remote_directory = "/var/www/staging.lichess4545.com"
+        remote_directory = "/home/lichess4545/web/staging.lichess4545.com"
         local_directory = project_relative(".") + "/"
         RsyncDeployment(
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lichess4545@lichess4545.com']
+                exclude=['env', 'data', 'lichess4545@lichess4545.com', 'certs']
             )
-        run("echo \"/var/www/staging.lichess4545.com/current/\" > /var/www/staging.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
+        run("echo \"/home/lichess4545/web/staging.lichess4545.com/current/\" > /home/lichess4545/web/staging.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
-            run("/var/www/staging.lichess4545.com/current/sysadmin/update-requirements-staging.sh")
+            run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/update-requirements-staging.sh")
         if confirm(colors.red("Would you like to run the migrations?")):
-            run("/var/www/staging.lichess4545.com/current/sysadmin/migrate-staging.sh")
+            run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/migrate-staging.sh")
         if confirm(colors.red("Would you like to invalidate the caches?")):
-            run("/var/www/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
+            run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
         if confirm(colors.red("Would you like to restart the server?")):
-            sudo("systemctl restart heltour-staging")
-            sudo("systemctl restart heltour-staging-api")
-            sudo("systemctl restart heltour-staging-celery")
+            sudo("/usr/sbin/service heltour-staging restart", shell=False)
+            sudo("/usr/sbin/service heltour-staging-api restart", shell=False)
+            sudo("/usr/sbin/service heltour-staging-celery restart", shell=False)
 
-        if confirm(colors.red("Would you like to install new nginx config?")):
-            run("cp /var/www/staging.lichess4545.com/current/sysadmin/staging.lichess4545.com.conf /etc/nginx/sites-available/staging.lichess4545.com")
         if confirm(colors.red("Would you like to reload nginx?")):
-            sudo("service nginx reload")
+            sudo("/usr/sbin/service nginx reload", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartlive():
     if confirm(colors.red("Would you like to invalidate the caches?")):
-        run("/var/www/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
+        run("/home/lichess4545/web/www.lichess4545.com/current/sysadmin/invalidate-live.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("systemctl restart heltour-live")
-        sudo("systemctl restart heltour-live-api")
-        sudo("systemctl restart heltour-live-celery")
+        sudo("/usr/sbin/service heltour-live restart", shell=False)
+        sudo("/usr/sbin/service heltour-live-api restart", shell=False)
+        sudo("/usr/sbin/service heltour-live-celery restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartstaging():
     if confirm(colors.red("Would you like to invalidate the caches?")):
-        run("/var/www/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
+        run("/home/lichess4545/web/staging.lichess4545.com/current/sysadmin/invalidate-staging.sh")
 
     if confirm(colors.red("Would you like to restart the server?")):
-        sudo("systemctl restart heltour-staging")
-        sudo("systemctl restart heltour-staging-api")
-        sudo("systemctl restart heltour-staging-celery")
+        sudo("/usr/sbin/service heltour-staging restart", shell=False)
+        sudo("/usr/sbin/service heltour-staging-api restart", shell=False)
+        sudo("/usr/sbin/service heltour-staging-celery restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def restartchesster():
     if confirm(colors.red("Would you like to restart chesster?")):
-        sudo("systemctl restart chesster")
+        sudo("/usr/sbin/service chesster restart", shell=False)
 
 #-------------------------------------------------------------------------------
 def createdb():
@@ -196,13 +192,13 @@ def latestdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
     if not env.roles:
-        print "Usage: fab -R [dev|live] latestdb"
+        print "Usage: fab -R [staging|live] latestdb"
         return
 
     if env.roles == ['live']:
-        LIVE_LATEST_SQL_FILE_PATH = "/var/backups/heltour-sql/hourly/latest.sql.bz2"
+        LIVE_LATEST_SQL_FILE_PATH = "/home/lichess4545/backups/heltour-sql/hourly/latest.sql.bz2"
         strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
-    elif env.roles == ['dev']:
+    elif env.roles == ['staging']:
         local("mkdir -p {}".format(project_relative("data")))
         local_target = project_relative("data/latestdb.sql.bz2")
         devdb_source = "http://staging.lichess4545.com/devdb.sql.bz2"
@@ -291,7 +287,7 @@ def letsencrypt(real_cert=False):
     if real_cert and confirm("Install cert?"):
         privkey = os.path.join(outdir, "privkey1.pem")
         chain = os.path.join(outdir, "0001_chain.pem")
-        privkey_target = "/var/ssl/lichess4545.com.key"
-        chain_target = "/var/ssl/lichess4545.com.pem"
+        privkey_target = "/home/lichess4545/web/lichess4545.com.key"
+        chain_target = "/home/lichess4545/web/lichess4545.com.pem"
         put(privkey, privkey_target)
         put(chain, chain_target)
