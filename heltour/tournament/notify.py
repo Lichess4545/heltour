@@ -322,7 +322,7 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
 
     # Send a DM to the alternate, regardless of settings
     round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
-    message = '@%s: A team needs an alternate for %s. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
+    message = '@%s: A team needs an alternate for %s. Would you like to play? Please click one of the following links within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
               % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), abs_url(accept_url), abs_url(decline_url))
     _message_user(league, _slack_user(player), message)
 
