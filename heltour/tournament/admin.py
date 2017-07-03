@@ -1371,7 +1371,7 @@ class AlternateSearchAdmin(_BaseAdmin):
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
-    league_id_field = 'season__league_id'
+    league_id_field = 'league_id'
     league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
