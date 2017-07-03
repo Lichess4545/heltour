@@ -128,7 +128,8 @@ class UpdateBoardOrderWorkflow():
             alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
 
             boundaries = self.calc_alternate_boundaries(ratings_by_board)
-            self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board)
+            flex = self.season.alternates_manager_setting().rating_flex
+            self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board, flex)
             self.update_alternate_buckets(boundaries)
             self.assign_alternates_to_buckets()
 
@@ -208,7 +209,7 @@ class UpdateBoardOrderWorkflow():
                 boundaries.append((left + right) / 2)
         return boundaries
 
-    def smooth_alternate_boundaries(self, boundaries, alternates, ratings_by_board):
+    def smooth_alternate_boundaries(self, boundaries, alternates, ratings_by_board, flex):
         # If we have enough data, modify the boundaries to try and smooth out the number of players per board
         if all((len(r_list) >= 4 for r_list in ratings_by_board)):
             iter_count = 20
@@ -220,8 +221,8 @@ class UpdateBoardOrderWorkflow():
                 boundary = boundaries[i + 1]
                 # Split the difference between the highest/lowest 2 players on each board to determine
                 # the absolute most we're willing the change the boundary
-                higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2
-                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2
+                higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2 - flex
+                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2 + flex
                 if boundary < higher_board_min and boundary < lower_board_max:
                     delta_up = max(higher_board_min, lower_board_max) - boundary
                     delta_down = 0

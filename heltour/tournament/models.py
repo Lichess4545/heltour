@@ -1780,6 +1780,7 @@ class AlternatesManagerSetting(_BaseModel):
     is_active = models.BooleanField(default=True)
     contact_interval = models.DurationField(default=timedelta(hours=8), help_text='How long before the next alternate will be contacted during the round.')
     unresponsive_interval = models.DurationField(default=timedelta(hours=24), help_text='How long after being contacted until an alternate will be marked as unresponsive.')
+    rating_flex = models.PositiveIntegerField(default=0, help_text='How far out of a board\'s rating range an alternate can be if it helps alternate balance.')
 
     contact_before_round_start = models.BooleanField(default=True, help_text='If we should search for alternates before the pairings are published. Has no effect for round 1.')
     contact_offset_before_round_start = models.DurationField(default=timedelta(hours=48), help_text='How long before the round starts we should start searching for alternates. Also ends the previous round searches early.')
