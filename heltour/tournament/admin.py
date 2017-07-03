@@ -305,7 +305,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -706,6 +706,16 @@ class SeasonAdmin(_BaseAdmin):
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)
+
+    def force_alternate_board_update(self, request, queryset):
+        try:
+            for season in queryset.all():
+                if not request.user.has_perm('tournament.manage_players', season.league):
+                    raise PermissionDenied
+                UpdateBoardOrderWorkflow(season).run(alternates_only=True)
+            self.message_user(request, 'Alternate order updated.', messages.INFO)
+        except IndexError:
+            self.message_user(request, 'Error updating alternate order.', messages.ERROR)
 
     def manage_players(self, request, queryset):
         if queryset.count() > 1:
