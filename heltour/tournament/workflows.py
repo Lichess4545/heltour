@@ -260,13 +260,15 @@ class UpdateBoardOrderWorkflow():
 
     def update_alternate_buckets(self, boundaries):
         # Update the buckets
-        for board_num in range(1, self.season.boards + 1):
-            min_rating = boundaries[board_num]
-            max_rating = boundaries[board_num - 1]
-            if min_rating is None and max_rating is None:
-                AlternateBucket.objects.filter(season=self.season, board_number=board_num).delete()
-            else:
-                AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
+        with reversion.create_revision():
+            reversion.set_comment('Updated alternate order')
+            for board_num in range(1, self.season.boards + 1):
+                min_rating = boundaries[board_num]
+                max_rating = boundaries[board_num - 1]
+                if min_rating is None and max_rating is None:
+                    AlternateBucket.objects.filter(season=self.season, board_number=board_num).delete()
+                else:
+                    AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
 
     def assign_alternates_to_buckets(self):
         for alt in Alternate.objects.filter(season_player__season=self.season):
