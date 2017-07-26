@@ -2108,3 +2108,34 @@ class ScheduledNotification(_BaseModel):
 class FcmSub(_BaseModel):
     slack_user_id = models.CharField(max_length=31)
     reg_id = models.CharField(max_length=4096, unique=True)
+
+MOD_REQUEST_STATUS_OPTIONS = (
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+)
+
+MOD_REQUEST_TYPE_OPTIONS = (
+    ('withdraw', 'Withdraw'),
+    ('reregister', 'Re-register'),
+    ('appeal_late_response', 'Appeal late response'),
+    ('claim_win_noshow', 'Claim a forfeit win (no-show)'),
+    ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
+    ('claim_draw_scheduling', 'Claim a scheduling draw'),
+    ('claim_loss', 'Claim a forfeit loss'),
+)
+
+#-------------------------------------------------------------------------------
+class ModRequest(_BaseModel):
+    season = models.ForeignKey(Season)
+    round = models.ForeignKey(Round, null=True, blank=True)
+    pairing = models.ForeignKey(PlayerPairing, null=True, blank=True)
+    requestor = models.ForeignKey(Player)
+    type = models.CharField(max_length=255, choices=MOD_REQUEST_TYPE_OPTIONS)
+    status = models.CharField(max_length=31, choices=MOD_REQUEST_STATUS_OPTIONS)
+    status_changed_by = models.CharField(blank=True, max_length=255)
+    status_changed_date = models.DateTimeField(blank=True, null=True)
+
+    notes = models.TextField(blank=True)
+    screenshot = models.ImageField(upload_to='screenshots/%Y/%m/%d/', null=True, blank=True)
+    response_text = models.TextField(blank=True)

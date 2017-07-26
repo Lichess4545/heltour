@@ -531,6 +531,17 @@ def game_warning(pairing, warning, **kwargs):
 
     send_pairing_notification('game_warning', pairing, im_msg, mp_msg, li_subject, li_msg)
 
+@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.automod')
+def mod_request_created(instance, **kwargs):
+    req_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+    message = '<@%s> created a request: <%s|%s>' % (instance.requestor.lichess_username, req_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
+
+@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.automod')
+def mod_request_approved(instance, **kwargs):
+    if instance.status_changed_by == 'System':
+        _send_notification('mod', instance.season.league, 'Auto-approved.')
+
 def _slack_user(obj):
     if obj is None:
         return '?'
