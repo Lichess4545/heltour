@@ -9,4 +9,5 @@ class TournamentConfig(AppConfig):
         import uptime # @UnusedImport
         # Make sure signal handlers are registered
         import notify # @UnusedImport
+        import automod # @UnusedImport
         import tasks # @UnusedImport

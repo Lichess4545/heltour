@@ -531,16 +531,35 @@ def game_warning(pairing, warning, **kwargs):
 
     send_pairing_notification('game_warning', pairing, im_msg, mp_msg, li_subject, li_msg)
 
-@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.automod')
+@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.notify')
 def mod_request_created(instance, **kwargs):
-    req_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-    message = '<@%s> created a request: <%s|%s>' % (instance.requestor.lichess_username, req_url, instance.get_type_display())
+    review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+    message = '<@%s> created a request: <%s|%s>' % (_slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
 
-@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.automod')
+@receiver(signals.mod_request_approved, dispatch_uid='heltour.tournament.notify')
 def mod_request_approved(instance, **kwargs):
     if instance.status_changed_by == 'System':
-        _send_notification('mod', instance.season.league, 'Auto-approved.')
+        message = 'Auto-approved.'
+        if instance.response:
+            message += ' Response: %s' % instance.response
+    else:
+        review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+        message = '@%s approved a request by <@%s>: <%s|%s>' % \
+                  (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
+
+@receiver(signals.mod_request_rejected, dispatch_uid='heltour.tournament.notify')
+def mod_request_rejected(instance, **kwargs):
+    if instance.status_changed_by == 'System':
+        message = 'Auto-rejected.'
+        if instance.response:
+            message += ' Response: %s' % instance.response
+    else:
+        review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+        message = '@%s rejected a request by <@%s>: <%s|%s>' % \
+                  (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
 
 def _slack_user(obj):
     if obj is None:

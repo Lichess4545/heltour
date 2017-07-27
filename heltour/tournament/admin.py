@@ -1866,3 +1866,143 @@ class ScheduledNotificationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
+
+#-------------------------------------------------------------------------------
+@admin.register(ModRequest)
+class ModRequestAdmin(_BaseAdmin):
+    list_display = ('review', 'type', 'status', 'season', 'date_created')
+    list_display_links = ()
+    list_filter = ('season__league', 'status', 'type')
+    search_fields = ('requestor__lichess_username',)
+    raw_id_fields = ('round', 'requester', 'pairing')
+    league_id_field = 'season__league_id'
+
+    def changelist_view(self, request, extra_context=None):
+        self.request = request
+        return super(ModRequestAdmin, self).changelist_view(request, extra_context=extra_context)
+
+    def review(self, obj):
+        _url = reverse('admin:tournament_modrequest_review', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
+        return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username)
+    review.allow_tags = True
+
+    def edit(self, obj):
+        return 'Edit'
+    edit.allow_tags = True
+
+    def get_urls(self):
+        urls = super(ModRequestAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/review/$',
+                self.admin_site.admin_view(self.review_request),
+                name='tournament_modrequest_review'),
+            url(r'^(?P<object_id>[0-9]+)/approve/$',
+                self.admin_site.admin_view(self.approve_request),
+                name='tournament_modrequest_approve'),
+            url(r'^(?P<object_id>[0-9]+)/reject/$',
+                self.admin_site.admin_view(self.reject_request),
+                name='tournament_modrequest_reject')
+        ]
+        return my_urls + urls
+
+    def review_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.ReviewModRequestForm(request.POST)
+            if form.is_valid():
+                params = '?_changelist_filters=' + urlquote(changelist_filters)
+                if 'approve' in form.data and obj.status == 'pending':
+                    return redirect_with_params('admin:tournament_modrequest_approve', object_id=object_id, params=params)
+                elif 'reject' in form.data and obj.status == 'pending':
+                    return redirect_with_params('admin:tournament_modrequest_reject', object_id=object_id, params=params)
+                elif 'edit' in form.data:
+                    return redirect_with_params('admin:tournament_modrequest_change', object_id, params=params)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_changelist', params=params)
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.ReviewModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Review mod request',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/review_modrequest.html', context)
+
+    def approve_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if obj.status != 'pending':
+            return redirect('admin:tournament_modrequest_review', object_id)
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.ApproveModRequestForm(request.POST)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    obj.approve(request.user.username, form.cleaned_data['response'])
+                    self.message_user(request, 'Request approved.', messages.INFO)
+                    return redirect_with_params('admin:tournament_modrequest_changelist', params='?' + changelist_filters)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.ApproveModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Confirm approval',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/approve_modrequest.html', context)
+
+    def reject_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if obj.status != 'pending':
+            return redirect('admin:tournament_modrequest_review', object_id)
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.RejectModRequestForm(request.POST)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    obj.reject(request.user.username, form.cleaned_data['response'])
+                    self.message_user(request, 'Request rejected.', messages.INFO)
+                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.RejectModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Confirm rejection',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/reject_modrequest.html', context)

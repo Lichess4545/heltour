@@ -2125,12 +2125,14 @@ MOD_REQUEST_TYPE_OPTIONS = (
     ('claim_loss', 'Claim a forfeit loss'),
 )
 
+MOD_REQUEST_SENDER = { a: a for a, _ in MOD_REQUEST_TYPE_OPTIONS }
+
 #-------------------------------------------------------------------------------
 class ModRequest(_BaseModel):
     season = models.ForeignKey(Season)
     round = models.ForeignKey(Round, null=True, blank=True)
     pairing = models.ForeignKey(PlayerPairing, null=True, blank=True)
-    requestor = models.ForeignKey(Player)
+    requester = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     type = models.CharField(max_length=255, choices=MOD_REQUEST_TYPE_OPTIONS)
     status = models.CharField(max_length=31, choices=MOD_REQUEST_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
@@ -2138,4 +2140,23 @@ class ModRequest(_BaseModel):
 
     notes = models.TextField(blank=True)
     screenshot = models.ImageField(upload_to='screenshots/%Y/%m/%d/', null=True, blank=True)
-    response_text = models.TextField(blank=True)
+    response = models.TextField(blank=True)
+
+    def approve(self, user='System', response=''):
+        self.status = 'approved'
+        self.status_changed_by = user
+        self.status_changed_date = timezone.now()
+        self.response = response
+        self.save()
+        signals.mod_request_approved.send(sender=MOD_REQUEST_SENDER[self.type], instance=self)
+
+    def reject(self, user='System', response=''):
+        self.status = 'rejected'
+        self.status_changed_by = user
+        self.status_changed_date = timezone.now()
+        self.response = response
+        self.save()
+        signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response)
+
+    def __unicode__(self):
+        return '%s - %s' % (self.requester.lichess_username, self.get_type_display())

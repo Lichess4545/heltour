@@ -166,6 +166,15 @@ class RejectRegistrationForm(forms.Form):
         _ = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
 
+class ReviewModRequestForm(forms.Form):
+    pass
+
+class ApproveModRequestForm(forms.Form):
+    response = forms.CharField(required=False, max_length=1024, widget=forms.Textarea)
+
+class RejectModRequestForm(forms.Form):
+    response = forms.CharField(required=False, max_length=1024, widget=forms.Textarea)
+
 class ImportSeasonForm(forms.Form):
     spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
     season_name = forms.CharField(label='Season name', max_length=255)
