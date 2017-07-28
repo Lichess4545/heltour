@@ -595,6 +595,50 @@ class RegistrationSuccessView(SeasonView):
         }
         return self.render('tournament/registration_success.html', context)
 
+class ModRequestView(SeasonView, UrlAuthMixin):
+    def view(self, req_type, secret_token=None, post=False):
+
+        if not MOD_REQUEST_SENDER[req_type]:
+            raise Http404
+
+        if self.persist_url_auth(secret_token):
+            return redirect('by_league:by_season:modrequest', self.league.tag, self.season.tag, req_type)
+        username, player = self.get_authenticated_user()
+
+        if player and post:
+            form = ModRequestForm(self.request.POST)
+            if form.is_valid():
+                with reversion.create_revision():
+                    reversion.set_comment('Submitted mod request.')
+                    modreq = form.save(commit=False)
+                    modreq.season = self.season
+                    modreq.type = req_type
+                    modreq.requester = player
+                    modreq.status = 'pending'
+                    modreq.save()
+                print 'redirect'
+                return redirect(leagueurl('modrequest_success', self.league.tag, self.season.tag, req_type))
+        else:
+            form = ModRequestForm()
+
+        context = {
+            'form': form,
+            'username': username,
+            'req_type': ModRequest(type=req_type).get_type_display()
+        }
+        print 'render'
+        return self.render('tournament/modrequest.html', context)
+
+    def view_post(self, req_type):
+        return self.view(req_type, post=True)
+
+class ModRequestSuccessView(SeasonView):
+    def view(self, req_type):
+        context = {
+            'req_type': ModRequest(type=req_type).get_type_display()
+        }
+        return self.render('tournament/modrequest_success.html', context)
+
 class RostersView(SeasonView):
     def view(self):
         @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models)

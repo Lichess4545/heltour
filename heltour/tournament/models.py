@@ -2162,5 +2162,9 @@ class ModRequest(_BaseModel):
         self.save()
         signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response)
 
+    def clean(self):
+        if not self.screenshot and type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
+            raise ValidationError('Screenshot is required')
+
     def __unicode__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())

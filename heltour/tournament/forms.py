@@ -166,6 +166,17 @@ class RejectRegistrationForm(forms.Form):
         _ = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
 
+class ModRequestForm(forms.ModelForm):
+    class Meta:
+        model = ModRequest
+        fields = (
+            'notes', 'screenshot'
+        )
+        labels = {
+            'notes': _(u'Notes'),
+            'screenshot': _(u'Screenshot'),
+        }
+
 class ReviewModRequestForm(forms.Form):
     pass
 

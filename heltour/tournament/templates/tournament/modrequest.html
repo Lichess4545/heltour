@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load bootstrap3 tournament_extras staticfiles %}
+
+{% block title %}{{ req_type }} - {{ season.name }} - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="row row-condensed-xs">
+	<div class="col-md-12">
+		<div class="well" id="well-register">
+			<div class="well-head">
+				<h3>{{ req_type }}</h3>
+			</div>
+			<div class="well-body">
+				{% if not username %}
+				<p>This link is invalid or expired.</p>
+				{% else %}
+				<p><strong>User:</strong> {{ username }}</p>
+				<p><strong>Request type:</strong> {{ req_type }}</p>
+				<form action="" method="post">
+				    {% csrf_token %}
+				    {% bootstrap_form form %}
+				    {% buttons %}
+				        <button type="submit" class="btn btn-primary">Submit</button>
+				    {% endbuttons %}
+				</form>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
