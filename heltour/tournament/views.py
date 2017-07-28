@@ -1011,6 +1011,7 @@ class LeagueDashboardView(LeagueView):
             season_list.remove(default_season)
 
         pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
+        pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
 
         team_members = TeamMember.objects.filter(team__season=self.season).select_related('player').nocache()
         alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
@@ -1029,6 +1030,7 @@ class LeagueDashboardView(LeagueView):
             'default_season': default_season,
             'season_list': season_list,
             'pending_reg_count': pending_reg_count,
+            'pending_modreq_count': pending_modreq_count,
             'unassigned_player_count': unassigned_player_count,
             'alternate_search_count': alternate_search_count,
             'last_round': last_round,

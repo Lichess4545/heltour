@@ -2125,6 +2125,9 @@ MOD_REQUEST_TYPE_OPTIONS = (
     ('claim_loss', 'Claim a forfeit loss'),
 )
 
+# A plain string literal won't work as a Django signal sender since it will have a unique object reference
+# By using a common dict we can make sure we're working with the same object (using `intern` would also work)
+# This also has the advantage that typos will create a KeyError instead of silently failing
 MOD_REQUEST_SENDER = { a: a for a, _ in MOD_REQUEST_TYPE_OPTIONS }
 
 #-------------------------------------------------------------------------------
@@ -2139,6 +2142,7 @@ class ModRequest(_BaseModel):
     status_changed_date = models.DateTimeField(blank=True, null=True)
 
     notes = models.TextField(blank=True)
+    # TODO: Multiple screenshot support?
     screenshot = models.ImageField(upload_to='screenshots/%Y/%m/%d/', null=True, blank=True)
     response = models.TextField(blank=True)
 

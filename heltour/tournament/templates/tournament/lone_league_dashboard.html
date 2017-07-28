@@ -52,6 +52,10 @@
 					<span class="dashboard-note">Pending: {{ pending_reg_count }}</span>
 				</div>
 				<div class="dashboard-season-action">
+					<a href="{% url 'admin:tournament_modrequest_changelist' %}?season__id__exact={{ season.pk }}&status__exact=pending" class="btn btn-default">Review Mod Requests</a>
+					<span class="dashboard-note">Pending: {{ pending_modreq_count }}</span>
+				</div>
+				<div class="dashboard-season-action">
 					<a href="{% url 'admin:manage_players' season.pk %}" class="btn btn-default">Manage Players</a>
 				</div>
 				{% if next_round %}

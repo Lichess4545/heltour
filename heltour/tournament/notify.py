@@ -549,6 +549,11 @@ def mod_request_approved(instance, **kwargs):
                   (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
 
+    message = 'Your request for %s (%s) has been approved.' % (instance.season, instance.get_type_display())
+    if instance.response:
+        message += ' %s' % instance.response
+    _message_user(instance.season.league, _slack_user(instance.requester), message)
+
 @receiver(signals.mod_request_rejected, dispatch_uid='heltour.tournament.notify')
 def mod_request_rejected(instance, **kwargs):
     if instance.status_changed_by == 'System':
@@ -560,6 +565,11 @@ def mod_request_rejected(instance, **kwargs):
         message = '@%s rejected a request by <@%s>: <%s|%s>' % \
                   (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
+
+    message = 'Your request for (%s) has been rejected.' % (instance.season, instance.get_type_display())
+    if instance.response:
+        message += ' %s' % instance.response
+    _message_user(instance.season.league, _slack_user(instance.requester), message)
 
 def _slack_user(obj):
     if obj is None:

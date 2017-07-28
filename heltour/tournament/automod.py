@@ -30,7 +30,7 @@ def withdraw_created(instance, **kwargs):
         instance.reject(response='You can\'t withdraw from the season at this time.')
         return
 
-    instance.approve()
+    instance.approve(response='You\'ve been withdrawn for round %d.' % instance.round.number)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
 def withdraw_approved(instance, **kwargs):
