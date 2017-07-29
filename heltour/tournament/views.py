@@ -615,6 +615,7 @@ class ModRequestView(SeasonView, UrlAuthMixin):
                     modreq.type = req_type
                     modreq.requester = player
                     modreq.status = 'pending'
+                    modreq.screenshot = self.request.FILES['screenshot']
                     modreq.save()
                 print 'redirect'
                 return redirect(leagueurl('modrequest_success', self.league.tag, self.season.tag, req_type))

@@ -42,7 +42,11 @@
 		
 		<div class="form-row">
 			<label>Screenshot:</label>
-		    {{ original.screenshot }}
+			{% if original.screenshot %}
+			<a href="{{ original.screenshot.url }}">
+		    	<img src="{{ original.screenshot.url }}" width="400" />
+		    </a>
+		    {% endif %}
 		</div>
 		
 	</div>
