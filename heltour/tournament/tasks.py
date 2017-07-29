@@ -30,7 +30,6 @@ def update_player_ratings(self):
             updated += 1
         logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))
     except Exception as e:
-        print e
         logger.warning('Error getting ratings: %s' % e)
 
 @app.task(bind=True)

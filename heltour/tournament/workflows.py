@@ -143,7 +143,6 @@ class UpdateBoardOrderWorkflow():
                 new_order = {m.board_number: m for m in members}
 
                 alternate_search_round = alternates_manager.current_round(self.season)
-                print alternate_search_round
 
                 def invariant(board_num):
                     search = AlternateSearch.objects.filter(round=alternate_search_round, team=team, board_number=board_num, is_active=True).first()
@@ -161,7 +160,6 @@ class UpdateBoardOrderWorkflow():
                         lower_bd = new_order[k]
                         higher_rtg = higher_bd.player.rating_for(self.season.league) or 0
                         lower_rtg = lower_bd.player.rating_for(self.season.league) or 0
-                        print lower_rtg - higher_rtg
                         if lower_rtg - higher_rtg > min_delta_for_change:
                             has_changes = True
                             # Remove boards from consideration if they are locked

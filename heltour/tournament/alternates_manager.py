@@ -80,8 +80,6 @@ def reset_alternate_search(season, round_, setting):
         UpdateBoardOrderWorkflow(season).run(alternates_only=True)
 
 def do_alternate_search(season, round_, board_number, setting):
-    print 'Alternate search on bd %d for round %d' % (board_number, round_.number)
-
     # Figure out which players need to be replaced and which alternates have/haven't been contacted
     player_availabilities = PlayerAvailability.objects.filter(round=round_, is_available=False) \
                                                       .select_related('player').nocache()

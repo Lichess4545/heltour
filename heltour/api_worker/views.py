@@ -49,7 +49,6 @@ def lichess_api_call(request, path):
 def watch(request):
     game_ids = request.body.split(',')
     result = worker.watch_games(game_ids)
-    print 'Result', result
     return JsonResponse({'result': result})
 
 @csrf_exempt

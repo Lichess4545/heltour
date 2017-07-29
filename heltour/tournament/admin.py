@@ -39,7 +39,6 @@ def redirect_with_params(*args, **kwargs):
     params = kwargs.pop('params')
     response = redirect(*args, **kwargs)
     response['Location'] += params
-    print 'Redirect: ', response['Location']
     return response
 
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')

@@ -353,7 +353,6 @@ class JavafoInstance:
             for n, player in enumerate(self.players, 1):
                 if player.acceleration_scores:
                     line = 'XXA {0: >4} {1}\n'.format(n, ' '.join('{0: >4.1f}'.format(s) for s in player.acceleration_scores))
-                    print line.strip()
                     input_file.write(line)
                     pass
             input_file.flush()
