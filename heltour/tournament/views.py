@@ -615,9 +615,8 @@ class ModRequestView(SeasonView, UrlAuthMixin):
                     modreq.type = req_type
                     modreq.requester = player
                     modreq.status = 'pending'
-                    modreq.screenshot = self.request.FILES['screenshot']
+                    modreq.screenshot = self.request.FILES.get('screenshot')
                     modreq.save()
-                print 'redirect'
                 return redirect(leagueurl('modrequest_success', self.league.tag, self.season.tag, req_type))
         else:
             form = ModRequestForm()
@@ -627,7 +626,6 @@ class ModRequestView(SeasonView, UrlAuthMixin):
             'username': username,
             'req_type': ModRequest(type=req_type).get_type_display()
         }
-        print 'render'
         return self.render('tournament/modrequest.html', context)
 
     def view_post(self, req_type):
