@@ -1394,11 +1394,21 @@ class TeamPairingAdmin(_BaseAdmin):
     league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
+class PlayerPresenceInline(admin.TabularInline):
+    model = PlayerPresence
+    extra = 0
+    exclude = ('round', 'player')
+    readonly_fields = ('first_msg_time', 'last_msg_time', 'online_for_game')
+    can_delete = False
+    max_num = 0
+
+#-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'scheduled_time', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
+    inlines = [PlayerPresenceInline]
     exclude = ('white_rating', 'black_rating', 'tv_state')
 
     def get_queryset(self, request):

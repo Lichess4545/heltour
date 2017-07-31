@@ -1187,6 +1187,12 @@ class PlayerPairing(_BaseModel):
             return self.loneplayerpairing.round
         return None
 
+    def get_player_presence(self, player):
+        presence = self.playerpresence_set.filter(player=player).first()
+        if not presence:
+            presence = PlayerPresence.objects.create(pairing=self, player=player, round=self.get_round())
+        return presence
+
     def __unicode__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
 
@@ -2073,6 +2079,19 @@ class PlayerNotificationSetting(_BaseModel):
         else:
             if self.offset is not None:
                 raise ValidationError('Offset is not applicable for this type')
+
+#-------------------------------------------------------------------------------
+class PlayerPresence(_BaseModel):
+    player = models.ForeignKey(Player)
+    pairing = models.ForeignKey(PlayerPairing)
+    round = models.ForeignKey(Round)
+
+    first_msg_time = models.DateTimeField(null=True, blank=True)
+    last_msg_time = models.DateTimeField(null=True, blank=True)
+    online_for_game = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return '%s' % (self.player)
 
 #-------------------------------------------------------------------------------
 class ScheduledNotification(_BaseModel):

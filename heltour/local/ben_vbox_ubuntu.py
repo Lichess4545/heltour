@@ -14,8 +14,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 CELERYBEAT_SCHEDULE = {
     'alternates_manager_tick': {
-        'task': 'heltour.tournament.tasks.alternates_manager_tick',
-        'schedule': timedelta(seconds=10),
+        'task': 'heltour.tournament.tasks.update_lichess_presence',
+        'schedule': timedelta(seconds=5),
         'args': ()
     },
 }

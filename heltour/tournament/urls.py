@@ -83,6 +83,7 @@ api_urlpatterns = [
     url(r'^get_private_url/$', api.get_private_url, name='get_private_url'),
     url(r'^player_joined_slack/$', api.player_joined_slack, name='player_joined_slack'),
     url(r'^game_warning/$', api.game_warning, name='game_warning'),
+    url(r'^player_contact/$', api.player_contact, name='player_contact'),
 ]
 
 app_urlpatterns = [

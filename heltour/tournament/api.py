@@ -489,6 +489,35 @@ def player_joined_slack(request):
 @csrf_exempt
 @require_POST
 @require_api_token
+def player_contact(request):
+    try:
+        sender = request.POST.get('sender', None)
+        recip = request.POST.get('recip', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if not sender or not recip:
+        return HttpResponse('Bad request', status=400)
+
+    rounds = _get_active_rounds(None, None)
+    updated = 0
+    time = timezone.now()
+    for r in rounds:
+        pairings = r.pairings.filter(white__lichess_username__iexact=sender, black__lichess_username__iexact=recip) | \
+                   r.pairings.filter(white__lichess_username__iexact=recip, black__lichess_username__iexact=sender)
+        for p in pairings:
+            presence = p.get_player_presence(Player.objects.get(lichess_username__iexact=sender))
+            if not presence.first_msg_time:
+                presence.first_msg_time = time
+            presence.last_msg_time = time
+            presence.save()
+            updated += 1
+
+    return JsonResponse({'updated': updated})
+
+@csrf_exempt
+@require_POST
+@require_api_token
 def game_warning(request):
     try:
         league_tag = request.POST.get('league', None)

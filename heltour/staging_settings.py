@@ -194,6 +194,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=2),
         'args': ()
     },
+    'update_lichess_presence': {
+        'task': 'heltour.tournament.tasks.update_lichess_presence',
+        'schedule': timedelta(minutes=1),
+        'args': ()
+    },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),

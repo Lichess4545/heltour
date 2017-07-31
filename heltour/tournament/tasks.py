@@ -175,6 +175,29 @@ def update_tv_state(self):
                 logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
 
 @app.task(bind=True)
+def update_lichess_presence(self):
+    games_starting = PlayerPairing.objects.filter(\
+                                                  result='', game_link='', \
+                                                  scheduled_time__lt=timezone.now() + timedelta(minutes=5), \
+                                                  scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
+                                                  .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
+    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
+                     games_starting.filter(teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
+
+    users = {}
+    for game in games_starting:
+        users[game.white.lichess_username.lower()] = game.white
+        users[game.black.lichess_username.lower()] = game.black
+    for status in lichessapi.enumerate_user_statuses(users.keys(), priority=1, timeout=60):
+        if status.get('online'):
+            user = users[status.get('id').lower()]
+            for g in games_starting:
+                if user in (g.white, g.black):
+                    presence = g.get_player_presence(user)
+                    presence.online_for_game = True
+                    presence.save()
+
+@app.task(bind=True)
 def update_slack_users(self):
     slack_users = {u.name.lower(): u for u in slackapi.get_user_list()}
     for p in Player.objects.all():

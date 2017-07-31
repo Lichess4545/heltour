@@ -53,6 +53,17 @@ def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=1
             yield meta
         lichess_usernames = lichess_usernames[300:]
 
+def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/api/users/status?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, priority, max_retries)
+    while len(lichess_usernames) > 0:
+        batch = lichess_usernames[:40]
+        result = _apicall('%s&ids=%s' % (url, ','.join(batch)), timeout)
+        if result == '':
+            raise ApiWorkerError('API failure')
+        for status in json.loads(result):
+            yield status
+        lichess_usernames = lichess_usernames[40:]
+
 def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3, timeout=120):
     page = 1
     while True:
