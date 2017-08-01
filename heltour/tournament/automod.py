@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.tasks import pairings_published
 import reversion
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +52,12 @@ def automod_unresponsive(round_, **kwargs):
             player_unresponsive(round_, p, p.white)
             if black_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white)
+            time.sleep(1)
         if not black_present:
             player_unresponsive(round_, p, p.black)
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black)
+            time.sleep(1)
 
 def player_unresponsive(round_, pairing, player):
     has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season).exists()
