@@ -460,6 +460,12 @@ class PairingsView(SeasonView):
 
         active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=self.season, is_active=True)}
 
+        can_change_pairing = self.request.user.has_perm('tournament.change_pairing', self.league)
+
+        presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
+        contact_deadline = round_.start_date + timedelta(hours=48)
+        in_contact_period = timezone.now() < contact_deadline
+
         def pairing_error(pairing):
             if not self.request.user.is_staff:
                 return None
@@ -484,8 +490,25 @@ class PairingsView(SeasonView):
                 return 'Inactive player: %s' % bye.player.lichess_username
             return None
 
+        def status(player, pairing):
+            if not can_change_pairing:
+                return (None, None)
+            pres = presences.get((player.pk, pairing.pk))
+            if in_contact_period:
+                if not pres or not pres.first_msg_time:
+                    return (None, 'no contact yet')
+                else:
+                    return ('yes', 'in contact')
+            else:
+                if not pres or not pres.first_msg_time:
+                    return ('no', 'unresponsive')
+                elif pres.first_msg_time < contact_deadline:
+                    return ('alert', 'late contact')
+                else:
+                    return ('yes', 'in contact')
+
         # Add errors
-        pairings = [(p, pairing_error(p)) for p in pairings]
+        pairings = [(p, pairing_error(p)) + status(p.white, p) + status(p.black, p) for p in pairings]
         byes = [(b, bye_error(b)) for b in byes]
 
         return {
@@ -496,7 +519,7 @@ class PairingsView(SeasonView):
             'specified_round': specified_round,
             'next_pairing_order': next_pairing_order,
             'duplicate_players': duplicate_players,
-            'can_edit': self.request.user.has_perm('tournament.change_pairing', self.league)
+            'can_edit': can_change_pairing
         }
 
     def lone_view(self, round_number=None, team_number=None):

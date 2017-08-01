@@ -689,6 +689,11 @@ div.inline {
 	width: 30px;
 }
 
+#table-lone-pairings img {
+	vertical-align: top;
+	padding-top: 3px;
+}
+
 #table-notifications {
 	max-width: 600px;
 }
