@@ -596,6 +596,22 @@ def notify_opponent_unresponsive(round_, player, opponent, **kwargs):
             + 'Contact a mod to request a new pairing.'
     _message_user(league, _slack_user(player), message)
 
+@receiver(signals.notify_mods_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
+    season = round_.season
+    league = season.league
+    def list_str(players):
+        if players:
+            users = sorted((_slack_user(p) for p in players))
+            return ', '.join(('<@%s>' % u for u in users))
+        else:
+            return '(no players)'
+    message = 'The following actions have been taken for unresponsive players:' \
+            + '\nWarning - %s' % list_str(warnings) \
+            + '\nYellow Card - %s' % list_str(yellows) \
+            + '\nRed Card - %s' % list_str(reds)
+    _send_notification('mod', league, message)
+
 def _slack_user(obj):
     if obj is None:
         return '?'

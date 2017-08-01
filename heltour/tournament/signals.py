@@ -31,6 +31,7 @@ game_warning = Signal(providing_args=['pairing', 'warning'])
 league_comment = Signal(providing_args=['league', 'comment'])
 notify_unresponsive = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
 notify_opponent_unresponsive = Signal(providing_args=['round_', 'player', 'opponent'])
+notify_mods_unresponsive = Signal(providing_args=['round_', 'warnings', 'yellows', 'reds'])
 
 # Automod signals
 automod_unresponsive = Signal(providing_args=['round_'])

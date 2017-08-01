@@ -51,18 +51,20 @@ def automod_unresponsive(round_, **kwargs):
     for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
+        groups = { 'warning': [], 'yellow': [], 'red': [] }
         if not white_present:
-            player_unresponsive(round_, p, p.white)
+            player_unresponsive(round_, p, p.white, groups)
             if black_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white)
             time.sleep(1)
         if not black_present:
-            player_unresponsive(round_, p, p.black)
+            player_unresponsive(round_, p, p.black, groups)
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black)
             time.sleep(1)
+        signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
 
-def player_unresponsive(round_, pairing, player):
+def player_unresponsive(round_, pairing, player, groups):
     has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season).exists()
     if not has_warning:
         with reversion.create_revision():
@@ -70,6 +72,7 @@ def player_unresponsive(round_, pairing, player):
             PlayerWarning.objects.create(player=player, round=round_, type='unresponsive')
         punishment = 'You may receive a yellow card.'
         allow_continue = True
+        groups['warning'].append(player)
     else:
         sp = SeasonPlayer.objects.filter(season=round_.season, player=player).first()
         if not sp:
@@ -79,12 +82,14 @@ def player_unresponsive(round_, pairing, player):
         if sp.games_missed < 2:
             punishment = 'You have been given a yellow card.'
             allow_continue = True
+            groups['yellow'].append(player)
             with reversion.create_revision():
                 reversion.set_comment('Automatic yellow card for unresponsiveness')
                 sp.save()
         else:
             punishment = 'You have been given a red card.'
             allow_continue = False
+            groups['red'].append(player)
             with reversion.create_revision():
                 reversion.set_comment('Automatic red card for unresponsiveness')
                 sp.save()
