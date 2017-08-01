@@ -558,7 +558,7 @@ class ICalPairingsView(PairingsView, ICalMixin):
         uid_component = 'all'
 
         full_pairings_list = []
-        for pairing, error in context['pairings']:
+        for pairing, error, _, _, _, _ in context['pairings']:
             if error:
                 continue
             if pairing.scheduled_time is None:
