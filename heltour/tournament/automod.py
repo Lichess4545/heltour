@@ -48,10 +48,10 @@ def withdraw_approved(instance, **kwargs):
 
 @receiver(signals.automod_unresponsive, dispatch_uid='heltour.tournament.automod')
 def automod_unresponsive(round_, **kwargs):
+    groups = { 'warning': [], 'yellow': [], 'red': [] }
     for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
-        groups = { 'warning': [], 'yellow': [], 'red': [] }
         if not white_present:
             player_unresponsive(round_, p, p.white, groups)
             if black_present:
@@ -62,7 +62,7 @@ def automod_unresponsive(round_, **kwargs):
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black)
             time.sleep(1)
-        signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
+    signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
 
 def player_unresponsive(round_, pairing, player, groups):
     has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season).exists()
