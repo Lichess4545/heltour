@@ -502,7 +502,7 @@ class PairingsView(SeasonView):
             else:
                 if not pres or not pres.first_msg_time:
                     return ('no', 'unresponsive')
-                elif pres.first_msg_time < contact_deadline:
+                elif pres.first_msg_time > contact_deadline:
                     return ('alert', 'late contact')
                 else:
                     return ('yes', 'in contact')
