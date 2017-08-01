@@ -613,6 +613,8 @@ class SeasonAdmin(_BaseAdmin):
         season_players = season.seasonplayer_set.select_related('player').nocache()
         active_players = {sp.player for sp in season_players if sp.is_active}
         withdrawn_players = {wd.player for wd in PlayerWithdrawal.objects.filter(round=next_round)}
+        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=last_round, type='request_continuation', status='approved')}
+        red_cards = {sp.player for sp in season_players if sp.is_active and sp.games_missed >= 2} - withdrawn_players
 
         missing_withdrawals = None
         pairings_wo_results = None
@@ -633,7 +635,7 @@ class SeasonAdmin(_BaseAdmin):
                         players_with_0f.add(p.black)
                     if p.white_score() == 0:
                         players_with_0f.add(p.white)
-            missing_withdrawals = (players_with_0f & active_players) - withdrawn_players
+            missing_withdrawals = (players_with_0f & active_players) - withdrawn_players - continuation_players
 
             def text_class(p):
                 if p.game_link != '':
@@ -653,6 +655,7 @@ class SeasonAdmin(_BaseAdmin):
             'last_round': last_round,
             'next_round': next_round,
             'missing_withdrawals': missing_withdrawals,
+            'red_cards': red_cards,
             'bad_player_status': bad_player_status,
             'not_on_slack': not_on_slack,
             'pending_regs': pending_regs,
