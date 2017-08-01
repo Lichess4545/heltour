@@ -15,7 +15,10 @@ def mod_request_saved(instance, created, **kwargs):
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_created(instance, **kwargs):
-    pass
+    # Figure out which round to use
+    if not instance.round or instance.round.publish_pairings:
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=False).first()
+        instance.save()
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
 def withdraw_created(instance, **kwargs):
@@ -86,3 +89,23 @@ def player_unresponsive(round_, pairing, player):
                 reversion.set_comment('Automatic red card for unresponsiveness')
                 sp.save()
     signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue)
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
+def appeal_late_response_approved(instance, **kwargs):
+    with reversion.create_revision():
+        reversion.set_comment('Late response appeal approved by %s' % instance.status_changed_by)
+        has_any_warning = PlayerWarning.objects.filter(player=instance.requester, round__season=instance.round.season).exists()
+        warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round).first()
+        if not has_any_warning:
+            return
+        if warning:
+            warning.delete()
+        else:
+            sp = SeasonPlayer.objects.filter(season=instance.round.season, player=instance.requester).first()
+            if not sp:
+                logger.error('Season player did not exist for %s %s' % (instance.round.season, instance.requester))
+                return
+            # TODO: Could appeal twice and if both are approved a previous card might be removed
+            if sp.games_missed > 0:
+                sp.games_missed -= 1
+                sp.save()

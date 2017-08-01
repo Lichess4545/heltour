@@ -2106,6 +2106,9 @@ class PlayerWarning(_BaseModel):
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
 
+    def __unicode__(self):
+        return '%s - %s' % (self.player.lichess_username, self.get_type_display())
+
 #-------------------------------------------------------------------------------
 class ScheduledNotification(_BaseModel):
     setting = models.ForeignKey(PlayerNotificationSetting)
