@@ -17,7 +17,7 @@ def mod_request_saved(instance, created, **kwargs):
 def appeal_late_response_created(instance, **kwargs):
     # Figure out which round to use
     if not instance.round or instance.round.publish_pairings:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
         instance.save()
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
