@@ -174,7 +174,7 @@ class ModRequestForm(forms.ModelForm):
         )
         labels = {
             'notes': _(u'Notes'),
-            'screenshot': _(u'Screenshot'),
+            'screenshot': _(u'Screenshot (if applicable)'),
         }
 
 class ReviewModRequestForm(forms.Form):

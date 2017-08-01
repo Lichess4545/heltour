@@ -1976,6 +1976,7 @@ SCHEDULED_EVENT_TYPES = (
     ('start_round_transition', 'Start round transition'),
     ('notify_players_unscheduled', 'Notify players of unscheduled games'),
     ('notify_players_game_time', 'Notify players of their game time'),
+    ('automod_unresponsive', 'Auto-mod unresponsive players'),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
@@ -2012,6 +2013,8 @@ class ScheduledEvent(_BaseModel):
             signals.notify_players_unscheduled.send(sender=self.__class__, round_=obj)
         elif self.type == 'notify_players_game_time' and isinstance(obj, PlayerPairing):
             signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
+        elif self.type == 'automod_unresponsive' and isinstance(obj, Round):
+            signals.automod_unresponsive.send(sender=self.__class__, round_=obj)
 
     def clean(self):
         if self.league_id and self.season_id and self.season.league != self.league:
@@ -2093,6 +2096,16 @@ class PlayerPresence(_BaseModel):
     def __unicode__(self):
         return '%s' % (self.player)
 
+PLAYER_WARNING_TYPE_OPTIONS = (
+    ('unresponsive', 'Unresponsive'),
+)
+
+#-------------------------------------------------------------------------------
+class PlayerWarning(_BaseModel):
+    round = models.ForeignKey(Round, null=True, blank=True)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
+    type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
+
 #-------------------------------------------------------------------------------
 class ScheduledNotification(_BaseModel):
     setting = models.ForeignKey(PlayerNotificationSetting)
@@ -2142,6 +2155,7 @@ MOD_REQUEST_TYPE_OPTIONS = (
     ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
     ('claim_draw_scheduling', 'Claim a scheduling draw'),
     ('claim_loss', 'Claim a forfeit loss'),
+    ('request_continuation', 'Request continuation'),
 )
 
 # A plain string literal won't work as a Django signal sender since it will have a unique object reference
@@ -2182,7 +2196,8 @@ class ModRequest(_BaseModel):
         signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response)
 
     def clean(self):
-        if not self.screenshot and type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
+        # TODO: This validation isn't working because type is not populated in the form.
+        if not self.screenshot and self.type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
             raise ValidationError('Screenshot is required')
 
     def __unicode__(self):

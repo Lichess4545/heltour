@@ -29,8 +29,11 @@ notify_players_game_time = Signal(providing_args=['pairing'])
 before_game_time = Signal(providing_args=['player', 'pairing', 'offset'])
 game_warning = Signal(providing_args=['pairing', 'warning'])
 league_comment = Signal(providing_args=['league', 'comment'])
+notify_unresponsive = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
+notify_opponent_unresponsive = Signal(providing_args=['round_', 'player', 'opponent'])
 
 # Automod signals
+automod_unresponsive = Signal(providing_args=['round_'])
 mod_request_created = Signal(providing_args=['instance'])
 mod_request_approved = Signal(providing_args=['instance'])
 mod_request_rejected = Signal(providing_args=['instance'])

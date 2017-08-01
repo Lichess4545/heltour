@@ -571,6 +571,31 @@ def mod_request_rejected(instance, **kwargs):
         message += ' %s' % instance.response
     _message_user(instance.season.league, _slack_user(instance.requester), message)
 
+@receiver(signals.notify_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
+    season = round_.season
+    league = season.league
+    auth = PrivateUrlAuth.objects.create(authenticated_user=player.lichess_username, expires=round_.end_date)
+    print auth.pk
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'appeal_late_response', auth.secret_token]))
+    message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
+            + 'You are required to message your opponent within 48 hours of the round start. ' \
+            + punishment + '\n' \
+            + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
+    if allow_continue:
+        continue_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'request_continuation', auth.secret_token]))
+        message += '\nIf you haven\'t but want to continue playing next round, <%s|click here>.' % continue_url
+    _message_user(league, _slack_user(player), message)
+
+@receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_opponent_unresponsive(round_, player, opponent, **kwargs):
+    season = round_.season
+    league = season.league
+    message = 'Notice: Your %s opponent hasn\'t messaged you in the provided chat. ' % league.name \
+            + 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. ' \
+            + 'Contact a mod to request a new pairing.'
+    _message_user(league, _slack_user(player), message)
+
 def _slack_user(obj):
     if obj is None:
         return '?'

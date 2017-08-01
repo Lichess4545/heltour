@@ -1221,6 +1221,16 @@ class PlayerByeAdmin(_BaseAdmin):
     league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
+@admin.register(PlayerWarning)
+class PlayerWarningAdmin(_BaseAdmin):
+    list_display = ('__unicode__', 'type')
+    search_fields = ('player__lichess_username',)
+    list_filter = ('round__season', 'round__number', 'type')
+    raw_id_fields = ('round', 'player')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
+
+#-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email')
