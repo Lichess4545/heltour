@@ -545,7 +545,7 @@ def mod_request_approved(instance, **kwargs):
             message += ' Response: %s' % instance.response
     else:
         review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-        message = '@%s approved a request by <@%s>: <%s|%s>' % \
+        message = '%s approved a request by <@%s>: <%s|%s>' % \
                   (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
 
