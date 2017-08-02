@@ -2199,9 +2199,10 @@ class ModRequest(_BaseModel):
         signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response)
 
     def clean(self):
+        pass
         # TODO: This validation isn't working because type is not populated in the form.
-        if not self.screenshot and self.type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
-            raise ValidationError('Screenshot is required')
+#         if not self.screenshot and self.type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
+#             raise ValidationError('Screenshot is required')
 
     def __unicode__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
