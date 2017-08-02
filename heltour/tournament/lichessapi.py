@@ -154,6 +154,7 @@ def send_mail(lichess_username, subject, text):
         if login_cookies is None:
             return False
 
+        text = text + '\n\nThis is an automated message, do not reply.'
         mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
         mail_response = requests.post(settings.LICHESS_DOMAIN + 'inbox/new', data=mail_data, headers=_headers, cookies=login_cookies)
         if mail_response.status_code != 200:
