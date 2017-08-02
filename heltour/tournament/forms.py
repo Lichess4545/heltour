@@ -276,6 +276,15 @@ class BulkEmailForm(forms.Form):
 
         self.fields['confirm_send'].label = 'Yes, I\'m sure - send emails to %d players in %s' % (season.seasonplayer_set.count(), season.name)
 
+class TeamSpamForm(forms.Form):
+    text = forms.CharField(max_length=4096, required=True, widget=forms.Textarea)
+    confirm_send = forms.BooleanField()
+
+    def __init__(self, season, *args, **kwargs):
+        super(TeamSpamForm, self).__init__(*args, **kwargs)
+
+        self.fields['confirm_send'].label = 'Yes, I\'m sure - send spam to %d teams in %s' % (season.team_set.count(), season.name)
+
 class TvFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
         current_league = kwargs.pop('current_league')

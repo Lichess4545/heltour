@@ -1,0 +1,26 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+{% load staticfiles %}
+
+{% block content %}
+<form action="" method="post">
+	{% csrf_token %}
+	{{ form.errors }}
+	<div class="aligned">
+		<div class="form-row">
+			{{ form.text.label_tag }}
+			{{ form.text }}
+		</div>
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.confirm_send }}
+				<label for="{{ form.confirm_send.id_for_label }}" class="vCheckboxLabel">
+					{{ form.confirm_send.label }}
+				</label>
+			</div>
+		</div>
+	</div>
+	<div class="submit-row">
+		<input class="default" value="Send" name="confirm" type="submit">
+	</div>
+</form>
+{% endblock %}

@@ -30,6 +30,7 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+import time
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -304,7 +305,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -334,6 +335,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
                 self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email'),
+            url(r'^(?P<object_id>[0-9]+)/team_spam/$',
+                self.admin_site.admin_view(self.team_spam_view),
+                name='team_spam'),
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
@@ -566,6 +570,41 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/bulk_email.html', context)
+
+    def team_spam(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Team spam can only be sent one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:team_spam', object_id=queryset[0].pk)
+
+    def team_spam_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.bulk_email', season.league):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            form = forms.TeamSpamForm(season, request.POST)
+            if form.is_valid() and form.cleaned_data['confirm_send']:
+                teams = season.team_set.all()
+                for t in teams:
+                    if t.slack_channel:
+                        slackapi.send_message(t.slack_channel, form.cleaned_data['text'])
+                        time.sleep(1)
+                self.message_user(request, 'Spam sent to %d teams.' % len(teams), messages.INFO)
+                return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.TeamSpamForm(season)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Team spam',
+            'form': form
+        }
+
+        return render(request, 'tournament/admin/team_spam.html', context)
 
     def mod_report(self, request, queryset):
         if queryset.count() > 1:
