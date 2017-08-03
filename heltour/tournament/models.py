@@ -2098,6 +2098,7 @@ class PlayerPresence(_BaseModel):
 
 PLAYER_WARNING_TYPE_OPTIONS = (
     ('unresponsive', 'Unresponsive'),
+    ('card', 'Card'),
 )
 
 #-------------------------------------------------------------------------------
@@ -2105,6 +2106,9 @@ class PlayerWarning(_BaseModel):
     round = models.ForeignKey(Round, null=True, blank=True)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
     type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
+
+    class Meta:
+        unique_together = ('round', 'player', 'type')
 
     def __unicode__(self):
         return '%s - %s' % (self.player.lichess_username, self.get_type_display())
