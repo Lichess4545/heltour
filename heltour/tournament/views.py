@@ -463,8 +463,9 @@ class PairingsView(SeasonView):
         can_change_pairing = self.request.user.has_perm('tournament.change_pairing', self.league)
 
         presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
-        contact_deadline = round_.start_date + timedelta(hours=48)
-        in_contact_period = timezone.now() < contact_deadline
+        if pairings:
+            contact_deadline = round_.start_date + timedelta(hours=48)
+            in_contact_period = timezone.now() < contact_deadline
 
         def pairing_error(pairing):
             if not self.request.user.is_staff:
