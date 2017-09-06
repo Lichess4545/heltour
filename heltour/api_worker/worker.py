@@ -32,6 +32,8 @@ def _run_socket():
             if last_start is not None and last_start > timezone.now() - timedelta(seconds=10):
                 time.sleep(fallback)
                 fallback = fallback * 2
+                if fallback > 120:
+                    fallback = 120
             else:
                 fallback = 2
             last_start = timezone.now()
