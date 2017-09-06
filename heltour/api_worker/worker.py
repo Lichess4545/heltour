@@ -26,10 +26,14 @@ def queue_work(priority, fn, *args):
 def _run_socket():
     global _websocket
     last_start = None
+    fallback = 2
     while True:
         try:
             if last_start is not None and last_start > timezone.now() - timedelta(seconds=10):
-                time.sleep(1)
+                time.sleep(fallback)
+                fallback = fallback * 2
+            else:
+                fallback = 2
             last_start = timezone.now()
 
             _websocket = websocket.create_connection('wss://socket.lichess.org/api/socket')
