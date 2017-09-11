@@ -601,7 +601,7 @@ def notify_noshow(round_, player, opponent, **kwargs):
     league = season.league
     auth = PrivateUrlAuth.objects.create(authenticated_user=player.lichess_username, expires=round_.end_date)
     claim_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'claim_win_noshow', auth.secret_token]))
-    message = 'Notice: It appears your opponent has not shown up for your scheduled game time in %s. ' % league.name \
+    message = 'Notice: It appears your opponent, <@%s>, has not shown up for your scheduled game time in %s. ' % (_slack_user(opponent), league.name) \
             + 'To claim a win by forfeit, <%s|click here>.' % claim_url
     _message_user(league, _slack_user(player), message)
 
