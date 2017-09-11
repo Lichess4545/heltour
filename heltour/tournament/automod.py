@@ -92,6 +92,80 @@ def appeal_late_response_approved(instance, **kwargs):
         else:
             revoke_card(instance.round, instance.requester, 'card_unresponsive')
 
+@receiver(signals.automod_noshow, dispatch_uid='heltour.tournament.automod')
+def automod_noshow(pairing, **kwargs):
+    if pairing.game_link:
+        # Game started, no action necessary
+        return
+    white_online = pairing.get_player_presence(pairing.white).online_for_game
+    black_online = pairing.get_player_presence(pairing.black).online_for_game
+    if white_online and not black_online:
+        player_noshow(pairing, pairing.white, pairing.black)
+    if black_online and not white_online:
+        player_noshow(pairing, pairing.black, pairing.white)
+
+def player_noshow(pairing, player, opponent):
+    round_ = pairing.get_round()
+    signals.notify_noshow.send(sender=automod_unresponsive, round_=round_, player=player, opponent=opponent)
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
+def claim_win_noshow_created(instance, **kwargs):
+    # Figure out which round to add the claim on
+    if not instance.round:
+        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
+        instance.save()
+    if not instance.pairing:
+        r = instance.round
+        instance.pairing = (r.pairings.filter(white=instance.requester) | r.pairings.filter(black=instance.requester)).first()
+        instance.save()
+
+    # Check that the requester is part of the season
+    sp = SeasonPlayer.objects.filter(player=instance.requester, season=instance.season).first()
+    if sp is None:
+        instance.reject(response='You aren\'t currently a participant in %s.' % instance.season)
+        return
+
+    if not instance.round:
+        instance.reject(response='You can\'t claim a win at this time.')
+        return
+
+    if not instance.pairing:
+        instance.reject(response='You don\'t currently have a pairing you can claim a win for.')
+        return
+
+    p = instance.pairing
+    opponent = p.white if p.white != instance.requester else p.black
+
+    if p.get_player_presence(instance.requester).online_for_game \
+       and not p.get_player_presence(opponent).online_for_game \
+       and timezone.now() > p.scheduled_time + timedelta(minutes=23):
+        instance.approve(response='You\'ve been given a win by forfeit.')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
+def claim_win_noshow_approved(instance, **kwargs):
+    p = instance.pairing
+    opponent = p.white if p.white != instance.requester else p.black
+
+    card_color = give_card(instance.round, opponent, 'card_noshow')
+    if not card_color:
+        return
+    punishment = 'You have been given a %s card.' % card_color
+    allow_continue = card_color != 'red'
+    signals.notify_noshow_claim.send(sender=claim_win_noshow_approved, round_=instance.round, player=opponent, punishment=punishment, allow_continue=allow_continue)
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
+def appeal_noshow_created(instance, **kwargs):
+    # Figure out which round to use
+    if not instance.round:
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
+        instance.save()
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
+def appeal_noshow_approved(instance, **kwargs):
+    with reversion.create_revision():
+        reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
+        revoke_card(instance.round, instance.requester, 'card_noshow')
+
 def give_card(round_, player, type_):
     # TODO: Unit tests?
     with transaction.atomic():

@@ -32,9 +32,12 @@ league_comment = Signal(providing_args=['league', 'comment'])
 notify_unresponsive = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
 notify_opponent_unresponsive = Signal(providing_args=['round_', 'player', 'opponent'])
 notify_mods_unresponsive = Signal(providing_args=['round_', 'warnings', 'yellows', 'reds'])
+notify_noshow = Signal(providing_args=['round_', 'player', 'opponent'])
+notify_noshow_claim = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
 
 # Automod signals
 automod_unresponsive = Signal(providing_args=['round_'])
+automod_noshow = Signal(providing_args=['pairing'])
 mod_request_created = Signal(providing_args=['instance'])
 mod_request_approved = Signal(providing_args=['instance'])
 mod_request_rejected = Signal(providing_args=['instance'])

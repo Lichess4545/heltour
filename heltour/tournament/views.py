@@ -622,7 +622,7 @@ class RegistrationSuccessView(SeasonView):
 class ModRequestView(SeasonView, UrlAuthMixin):
     def view(self, req_type, secret_token=None, post=False):
 
-        if not MOD_REQUEST_SENDER[req_type]:
+        if req_type not in MOD_REQUEST_SENDER:
             raise Http404
 
         if self.persist_url_auth(secret_token):

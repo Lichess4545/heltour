@@ -1986,6 +1986,7 @@ SCHEDULED_EVENT_TYPES = (
     ('notify_players_unscheduled', 'Notify players of unscheduled games'),
     ('notify_players_game_time', 'Notify players of their game time'),
     ('automod_unresponsive', 'Auto-mod unresponsive players'),
+    ('automod_noshow', 'Auto-mod no-shows'),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
@@ -2024,6 +2025,8 @@ class ScheduledEvent(_BaseModel):
             signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
         elif self.type == 'automod_unresponsive' and isinstance(obj, Round):
             signals.automod_unresponsive.send(sender=self.__class__, round_=obj)
+        elif self.type == 'automod_noshow' and isinstance(obj, PlayerPairing):
+            signals.automod_noshow.send(sender=self.__class__, pairing=obj)
 
     def clean(self):
         if self.league_id and self.season_id and self.season.league != self.league:
@@ -2168,6 +2171,7 @@ MOD_REQUEST_TYPE_OPTIONS = (
     ('withdraw', 'Withdraw'),
     ('reregister', 'Re-register'),
     ('appeal_late_response', 'Appeal late response'),
+    ('appeal_noshow', 'Appeal no-show'),
     ('claim_win_noshow', 'Claim a forfeit win (no-show)'),
     ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
     ('claim_draw_scheduling', 'Claim a scheduling draw'),
