@@ -652,7 +652,7 @@ class SeasonAdmin(_BaseAdmin):
         season_players = season.seasonplayer_set.select_related('player').nocache()
         active_players = {sp.player for sp in season_players if sp.is_active}
         withdrawn_players = {wd.player for wd in PlayerWithdrawal.objects.filter(round=next_round)}
-        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=last_round, type='request_continuation', status='approved')}
+        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=next_round, type='request_continuation', status='approved')}
         red_cards = {sp.player for sp in season_players if sp.is_active and sp.games_missed >= 2} - withdrawn_players
 
         missing_withdrawals = None
@@ -683,7 +683,7 @@ class SeasonAdmin(_BaseAdmin):
                     return 'text-rejected'
                 return ''
 
-            pairings_wo_results = [(p, text_class(p)) for p in  last_round.pairings.filter(result='')]
+            pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by('loneplayerpairing__pairing_order').filter(result='')]
 
         context = {
             'has_permission': True,
@@ -693,11 +693,11 @@ class SeasonAdmin(_BaseAdmin):
             'title': 'Pre-round report',
             'last_round': last_round,
             'next_round': next_round,
-            'missing_withdrawals': missing_withdrawals,
-            'red_cards': red_cards,
-            'bad_player_status': bad_player_status,
-            'not_on_slack': not_on_slack,
-            'pending_regs': pending_regs,
+            'missing_withdrawals': sorted(missing_withdrawals),
+            'red_cards': sorted(red_cards),
+            'bad_player_status': sorted(bad_player_status),
+            'not_on_slack': sorted(not_on_slack),
+            'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()),
             'pairings_wo_results': pairings_wo_results
         }
 
