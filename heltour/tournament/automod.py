@@ -115,8 +115,7 @@ def claim_win_noshow_created(instance, **kwargs):
         instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
         instance.save()
     if not instance.pairing:
-        r = instance.round
-        instance.pairing = (r.pairings.filter(white=instance.requester) | r.pairings.filter(black=instance.requester)).first()
+        instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
     # Check that the requester is part of the season
@@ -146,6 +145,17 @@ def claim_win_noshow_approved(instance, **kwargs):
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
 
+    with reversion.create_revision():
+        reversion.set_comment('Auto forfeit for no-show')
+        if p.white == instance.requester:
+            p.result = '1X-0F'
+        if p.black == instance.requester:
+            p.result = '0F-1X'
+        p.save()
+    add_system_comment(p, '%s no-show' % opponent.lichess_username)
+    sp = SeasonPlayer.objects.filter(player=opponent, season=instance.season).first()
+    add_system_comment(sp, 'Round %d no-show' % instance.round.number)
+
     card_color = give_card(instance.round, opponent, 'card_noshow')
     if not card_color:
         return
@@ -159,12 +169,19 @@ def appeal_noshow_created(instance, **kwargs):
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
         instance.save()
+    if not instance.pairing:
+        instance.pairing = instance.round.pairing_for(instance.requester)
+        instance.save()
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
 def appeal_noshow_approved(instance, **kwargs):
     with reversion.create_revision():
         reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
         revoke_card(instance.round, instance.requester, 'card_noshow')
+    with reversion.create_revision():
+        reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
+        instance.pairing.result = ''
+        instance.pairing.save()
 
 def give_card(round_, player, type_):
     # TODO: Unit tests?

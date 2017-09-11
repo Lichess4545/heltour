@@ -15,6 +15,7 @@ from heltour.tournament import signals
 import logging
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
+from django_comments.models import Comment
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,10 @@ def getnestedattr(obj, k):
 def abs_url(url):
     site = Site.objects.get_current().domain
     return 'https://%s%s' % (site, url)
+
+def add_system_comment(obj, text, user_name='System'):
+    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
+                           comment=text, submit_date=timezone.now(), is_public=True)
 
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
@@ -503,6 +508,10 @@ class Round(_BaseModel):
     def pairings(self):
         return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=self)
               | PlayerPairing.objects.filter(loneplayerpairing__round=self)).nocache()
+
+    def pairing_for(self, player):
+        pairings = self.pairings
+        return (pairings.filter(white=player) | pairings.filter(black=player)).first()
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)

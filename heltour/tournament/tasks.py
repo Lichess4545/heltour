@@ -14,7 +14,6 @@ from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
 from django.contrib.sites.models import Site
-from django_comments.models import Comment
 import time
 
 logger = get_task_logger(__name__)
@@ -353,15 +352,11 @@ def validate_registration(self, reg_id):
         reg.validation_ok = True
         reg.validation_warning = False
         comment_text = 'Validated.'
-    _add_system_comment(reg, comment_text)
+    add_system_comment(reg, comment_text)
 
     with reversion.create_revision():
         reversion.set_comment('Validated registration.')
         reg.save()
-
-def _add_system_comment(obj, text, user_name='System'):
-    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
-                           comment=text, submit_date=timezone.now(), is_public=True)
 
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
 def registration_saved(instance, created, **kwargs):
