@@ -1453,6 +1453,15 @@ class SeasonPlayer(_BaseModel):
                 league = self.season.league
             return self.player.rating_for(league)
 
+    @property
+    def card_color(self):
+        if self.games_missed >= 2:
+            return 'red'
+        elif self.games_missed == 1:
+            return 'yellow'
+        else:
+            return None
+
     def get_loneplayerscore(self):
         try:
             return self.loneplayerscore
@@ -2097,8 +2106,9 @@ class PlayerPresence(_BaseModel):
         return '%s' % (self.player)
 
 PLAYER_WARNING_TYPE_OPTIONS = (
-    ('unresponsive', 'Unresponsive'),
-    ('card', 'Card'),
+    ('unresponsive', 'unresponsive'),
+    ('card_unresponsive', 'card for unresponsive'),
+    ('card_noshow', 'card for no-show'),
 )
 
 #-------------------------------------------------------------------------------

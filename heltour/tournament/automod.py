@@ -65,7 +65,7 @@ def automod_unresponsive(round_, **kwargs):
     signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
 
 def player_unresponsive(round_, pairing, player, groups):
-    has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season).exists()
+    has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season, type='unresponsive').exists()
     if not has_warning:
         with reversion.create_revision():
             reversion.set_comment('Automatic warning for unresponsiveness')
@@ -74,43 +74,53 @@ def player_unresponsive(round_, pairing, player, groups):
         allow_continue = True
         groups['warning'].append(player)
     else:
-        sp = SeasonPlayer.objects.filter(season=round_.season, player=player).first()
-        if not sp:
-            logger.error('Season player did not exist for %s %s' % (round_.season, player))
+        card_color = give_card(round_, player, 'card_unresponsive')
+        if not card_color:
             return
-        sp.games_missed += 1
-        if sp.games_missed < 2:
-            punishment = 'You have been given a yellow card.'
-            allow_continue = True
-            groups['yellow'].append(player)
-            with reversion.create_revision():
-                reversion.set_comment('Automatic yellow card for unresponsiveness')
-                sp.save()
-        else:
-            punishment = 'You have been given a red card.'
-            allow_continue = False
-            groups['red'].append(player)
-            with reversion.create_revision():
-                reversion.set_comment('Automatic red card for unresponsiveness')
-                sp.save()
+        punishment = 'You have been given a %s card.' % card_color
+        allow_continue = card_color != 'red'
+        groups[card_color].append(player)
     signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_approved(instance, **kwargs):
     with reversion.create_revision():
         reversion.set_comment('Late response appeal approved by %s' % instance.status_changed_by)
-        has_any_warning = PlayerWarning.objects.filter(player=instance.requester, round__season=instance.round.season).exists()
-        warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round).first()
-        if not has_any_warning:
-            return
+        warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round, type='unresponsive').first()
         if warning:
             warning.delete()
         else:
-            sp = SeasonPlayer.objects.filter(season=instance.round.season, player=instance.requester).first()
-            if not sp:
-                logger.error('Season player did not exist for %s %s' % (instance.round.season, instance.requester))
-                return
-            # TODO: Could appeal twice and if both are approved a previous card might be removed
-            if sp.games_missed > 0:
-                sp.games_missed -= 1
+            revoke_card(instance.round, instance.requester, 'card_unresponsive')
+
+def give_card(round_, player, type_):
+    # TODO: Unit tests?
+    with transaction.atomic():
+        sp = SeasonPlayer.objects.filter(season=round_.season, player=player).first()
+        if not sp:
+            logger.error('Season player did not exist for %s %s' % (round_.season, player))
+            return None
+        already_has_card = PlayerWarning.objects.filter(player=player, round=round_, type__startswith='card').exists()
+        card = PlayerWarning.objects.create(player=player, round=round_, type=type_)
+        if not already_has_card:
+            sp.games_missed += 1
+            with reversion.create_revision():
+                reversion.set_comment('Automatic %s %s' % (sp.card_color, card.get_type_display()))
+                sp.save()
+        return sp.card_color
+
+def revoke_card(round_, player, type_):
+    with transaction.atomic():
+        sp = SeasonPlayer.objects.filter(season=round_.season, player=player).first()
+        if not sp:
+            logger.error('Season player did not exist for %s %s' % (round_.season, player))
+            return
+        card = PlayerWarning.objects.filter(player=player, round=round_, type=type_).first()
+        if not card:
+            return
+        card.delete()
+        has_other_card = PlayerWarning.objects.filter(player=player, round=round_, type__startswith='card').exists()
+        if not has_other_card and sp.games_missed > 0:
+            sp.games_missed -= 1
+            with reversion.create_revision():
+                reversion.set_comment('Card revocation')
                 sp.save()
