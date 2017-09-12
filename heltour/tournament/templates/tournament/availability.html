@@ -26,6 +26,13 @@
 				<p>Sorry, you must be registered in order to use this page.</p>
 				{% else %}
 				<p>Welcome, {{ username }}!</p>
+				{% if league.competitor_type != 'team' %}
+				<p>
+					You can edit your availability for each round. Or, you can
+					<strong><a href="{% leagueurl 'modrequest' league.tag season.tag 'withdraw' %}">withdraw</a></strong>
+					altogether.
+				</p>
+				{% endif %}
 				
 				<form action="" method="post">
 				    {% csrf_token %}
