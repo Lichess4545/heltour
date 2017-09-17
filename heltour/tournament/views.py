@@ -1115,6 +1115,13 @@ class LeagueDashboardView(LeagueView):
         context = self._common_context()
         return self.render('tournament/lone_league_dashboard.html', context)
 
+class UserDashboardView(LeagueView):
+    def view(self):
+        if not self.request.user.is_authenticated():
+            return redirect('by_league:league_home', self.league.tag)
+        context = {}
+        return self.render('tournament/user_dashboard.html', context)
+
 class DocumentView(LeagueView):
     def view(self, document_tag):
         league_document = LeagueDocument.objects.filter(league=self.league, tag=document_tag).first()

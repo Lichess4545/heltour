@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls import url, include
 from django.conf.urls.static import static
-from . import views, api, android_app
+from . import views, api, android_app, auth
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.cache import cache_control
 
@@ -37,6 +37,7 @@ season_urlpatterns = [
     url(r'^round/(?P<round_number>[0-9]+)/pairings/team/(?P<team_number>[0-9]+)/$', views.PairingsView.as_view(), name='pairings_by_round_team'),
     url(r'^stats/$', views.StatsView.as_view(), name='stats'),
     url(r'^dashboard/$', staff_member_required(views.LeagueDashboardView.as_view()), name='league_dashboard'),
+    url(r'^userdash/$', views.UserDashboardView.as_view(), name='user_dashboard'),
     url(r'^player/(?P<username>[\w-]+)/$', views.PlayerProfileView.as_view(), name='player_profile'),
     url(r'^team/(?P<team_number>[0-9]+)/$', views.TeamProfileView.as_view(), name='team_profile'),
     url(r'^tv/$', cache_control(no_cache=True)(views.TvView.as_view()), name='tv'),
@@ -97,6 +98,7 @@ urlpatterns = [
     url(r'^player/(?P<username>[\w-]+)/calendar.ics$', views.ICalPlayerView.as_view(), name='player_icalendar'),
     url(r'^api/', include(api_urlpatterns, 'api')),
     url(r'^app/', include(app_urlpatterns, 'app')),
+    url(r'^auth/slack/$', auth.SlackAuth.as_view(), name='slack_auth'),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^select2/', include('select2.urls')),
