@@ -1121,7 +1121,12 @@ class UserDashboardView(LeagueView):
     def view(self):
         if not self.request.user.is_authenticated():
             return redirect('by_league:league_home', self.league.tag)
-        context = {}
+
+        slack_linked = SlackAccount.objects.filter(lichess_username__iexact=self.request.user.username).exists()
+
+        context = {
+            'slack_linked': slack_linked
+        }
         return self.render('tournament/user_dashboard.html', context)
 
 class DocumentView(LeagueView):
@@ -1683,17 +1688,27 @@ class LoginView(LeagueView, UrlAuthMixin):
                     user = User.objects.filter(username__iexact=token.lichess_username).first()
                     if not user:
                         # Create the user with a password no one will ever use; it can always be manually reset if needed
-                        user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
+                        with reversion.create_revision():
+                            reversion.set_comment('Create user from lichess login')
+                            user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
                     user.backend = 'django.contrib.auth.backends.ModelBackend'
                     login(self.request, user)
 
                     if token.slack_user_id:
                         # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                        SlackAccount.objects.update_or_create(lichess_username=token.lichess_username, defaults={'slack_user_id': token.slack_user_id})
+                        with reversion.create_revision():
+                            reversion.set_comment('Link slack account')
+                            SlackAccount.objects.update_or_create(lichess_username=token.lichess_username, defaults={'slack_user_id': token.slack_user_id})
 
                     return redirect('by_league:user_dashboard', self.league.tag)
                 elif token.slack_user_id:
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
+                    if self.request.user.is_authenticated():
+                        # Already logged in, so associate right now
+                        with reversion.create_revision():
+                            reversion.set_comment('Link slack account')
+                            SlackAccount.objects.update_or_create(lichess_username=self.request.user.username, defaults={'slack_user_id': token.slack_user_id})
+                        return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
         if post:
             form = LoginForm(self.request.POST)

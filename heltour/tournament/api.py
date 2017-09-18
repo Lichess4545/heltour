@@ -462,6 +462,28 @@ def get_private_url(request):
 
     return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
 
+@require_GET
+@require_api_token
+def link_slack(request):
+    try:
+        user_id = request.GET.get('user_id', None)
+        display_name = request.GET.get('display_name', None)
+    except ValueError:
+        return HttpResponse('Bad request', status=400)
+
+    if not user_id:
+        return HttpResponse('Bad request', status=400)
+
+    token = LoginToken.objects.create(slack_user_id=user_id, expires=timezone.now() + timedelta(days=30))
+    league = League.objects.filter(is_default=True).first()
+    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('season__league__display_order').first()
+    if sp:
+        league = sp.season.league
+    url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
+    url = request.build_absolute_uri(url)
+
+    return JsonResponse({'url': url, 'expires': token.expires})
+
 @csrf_exempt
 @require_POST
 @require_api_token

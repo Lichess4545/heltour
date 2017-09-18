@@ -1835,6 +1835,12 @@ class PrivateUrlAuthAdmin(_BaseAdmin):
     search_fields = ('authenticated_user',)
 
 #-------------------------------------------------------------------------------
+@admin.register(SlackAccount)
+class SlackAccountAdmin(_BaseAdmin):
+    list_display = ('__unicode__', 'slack_user_id')
+    search_fields = ('lichess_username', 'slack_user_id')
+
+#-------------------------------------------------------------------------------
 @admin.register(Document)
 class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
