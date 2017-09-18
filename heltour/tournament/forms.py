@@ -313,3 +313,6 @@ class NotificationsForm(forms.Form):
             if type_ == 'before_game_time':
                 offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'), (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]
                 self.fields[type_ + '_offset'] = forms.TypedChoiceField(choices=offset_options, initial=int(setting.offset.total_seconds()) / 60, coerce=int)
+
+class LoginForm(forms.Form):
+    lichess_username = forms.CharField(max_length=255, required=False, validators=[username_validator])

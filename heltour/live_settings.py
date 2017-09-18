@@ -37,6 +37,7 @@ ALLOWED_HOSTS = [
     'heltour.lakin.ca',
     'localhost',
 ]
+LINK_PROTOCOL = 'https'
 
 
 # Application definition
@@ -278,7 +279,7 @@ FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
 
-LICHESS_DOMAIN = 'https://en.lichess.org/'
+LICHESS_DOMAIN = 'https://lichess.org/'
 
 # Testing overrides
 import sys

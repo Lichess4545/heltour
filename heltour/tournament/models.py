@@ -16,6 +16,7 @@ import logging
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
+from heltour import settings
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def getnestedattr(obj, k):
 
 def abs_url(url):
     site = Site.objects.get_current().domain
-    return 'https://%s%s' % (site, url)
+    return '%s://%s%s' % (settings.LINK_PROTOCOL, site, url)
 
 def add_system_comment(obj, text, user_name='System'):
     Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
@@ -1905,6 +1906,28 @@ class PrivateUrlAuth(_BaseModel):
 
     def __unicode__(self):
         return self.authenticated_user
+
+#-------------------------------------------------------------------------------
+class LoginToken(_BaseModel):
+    lichess_username = models.CharField(max_length=255, blank=True, validators=[username_validator])
+    slack_user_id = models.CharField(max_length=255, blank=True)
+    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    expires = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return self.expires < timezone.now()
+
+    def __unicode__(self):
+        return self.lichess_username or self.slack_user_id
+
+#-------------------------------------------------------------------------------
+class SlackAccount(_BaseModel):
+    lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
+    slack_user_id = models.CharField(max_length=255)
+
+    def __unicode__(self):
+        return self.lichess_username
 
 #-------------------------------------------------------------------------------
 class Document(_BaseModel):

@@ -16,6 +16,8 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.generic import View
 from django.utils.text import slugify
+from django.contrib.auth import login
+from django.contrib.auth.models import User
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
 from heltour.tournament.templatetags.tournament_extras import leagueurl
@@ -1665,6 +1667,50 @@ class NotificationsView(SeasonView, UrlAuthMixin):
             'form': form
         }
         return self.render('tournament/notifications.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
+class LoginView(LeagueView, UrlAuthMixin):
+    def view(self, secret_token=None, post=False):
+        slack_user_id = ''
+        if secret_token:
+            token = LoginToken.objects.filter(secret_token=secret_token).first()
+            if token and not token.is_expired():
+                if token.lichess_username:
+                    # Okay, we've successfully authenticated via lichess
+                    # Now we set it up so Django recognizes the user
+                    user = User.objects.filter(username__iexact=token.lichess_username).first()
+                    if not user:
+                        # Create the user with a password no one will ever use; it can always be manually reset if needed
+                        user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                    login(self.request, user)
+
+                    if token.slack_user_id:
+                        # Oh look, we've also associated the lichess account with a slack account. How convenient.
+                        SlackAccount.objects.update_or_create(lichess_username=token.lichess_username, defaults={'slack_user_id': token.slack_user_id})
+
+                    return redirect('by_league:user_dashboard', self.league.tag)
+                elif token.slack_user_id:
+                    # The user has been directed here from Slack. If they complete the login their accounts will be associated
+                    slack_user_id = token.slack_user_id
+        if post:
+            form = LoginForm(self.request.POST)
+            if form.is_valid():
+                username = form.cleaned_data['lichess_username']
+                login_token = LoginToken.objects.create(lichess_username=username, slack_user_id=slack_user_id, expires=timezone.now() + timedelta(days=1))
+                login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
+                msg = 'Click this link to complete the login process.\n\n%s' % login_link
+                mail_id = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
+                return redirect(settings.LICHESS_DOMAIN + 'inbox/' + mail_id)
+        else:
+            form = LoginForm()
+
+        context = {
+            'form': form,
+        }
+        return self.render('tournament/login.html', context)
 
     def view_post(self):
         return self.view(post=True)

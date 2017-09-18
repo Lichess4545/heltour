@@ -165,7 +165,7 @@ def send_mail(lichess_username, subject, text):
             logger.error('Error sending mail on lichess: %s' % (mail_response.text))
             return False
 
-        return True
+        return mail_json['id']
     except Exception:
         # Probably a configuration error
         if settings.DEBUG:
