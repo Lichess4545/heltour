@@ -17,6 +17,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from heltour import settings
+import reversion
 
 logger = logging.getLogger(__name__)
 
@@ -1926,6 +1927,13 @@ class LoginToken(_BaseModel):
 class SlackAccount(_BaseModel):
     lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
     slack_user_id = models.CharField(max_length=255)
+
+    @classmethod
+    def link(cls, lichess_username, slack_user_id):
+        with reversion.create_revision():
+            reversion.set_comment('Link slack account')
+            SlackAccount.objects.update_or_create(lichess_username=lichess_username, defaults={'slack_user_id': slack_user_id})
+            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username)
 
     def __unicode__(self):
         return self.lichess_username

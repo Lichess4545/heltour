@@ -1697,18 +1697,14 @@ class LoginView(LeagueView, UrlAuthMixin):
 
                     if token.slack_user_id:
                         # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                        with reversion.create_revision():
-                            reversion.set_comment('Link slack account')
-                            SlackAccount.objects.update_or_create(lichess_username=token.lichess_username, defaults={'slack_user_id': token.slack_user_id})
+                        SlackAccount.link(token.lichess_username, token.slack_user_id)
 
                     return redirect('by_league:user_dashboard', self.league.tag)
                 elif token.slack_user_id:
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
                     if self.request.user.is_authenticated():
                         # Already logged in, so associate right now
-                        with reversion.create_revision():
-                            reversion.set_comment('Link slack account')
-                            SlackAccount.objects.update_or_create(lichess_username=self.request.user.username, defaults={'slack_user_id': token.slack_user_id})
+                        SlackAccount.link(self.request.user.username, token.slack_user_id)
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
                     username_hint = token.username_hint
@@ -1730,8 +1726,8 @@ class LoginView(LeagueView, UrlAuthMixin):
         }
         return self.render('tournament/login.html', context)
 
-    def view_post(self):
-        return self.view(post=True)
+    def view_post(self, secret_token=None):
+        return self.view(secret_token, post=True)
 
 class TvView(LeagueView):
     def view(self):

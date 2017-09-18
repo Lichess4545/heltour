@@ -636,6 +636,10 @@ def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
             + '\nRed Card - %s' % list_str(reds)
     _send_notification('mod', league, message)
 
+@receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.notify')
+def slack_account_linked(lichess_username, **kwargs):
+    slackapi.send_message('@%s' % _slack_user(lichess_username), 'Your Slack account has been successfully linked to the lichess account `%s`.' % lichess_username)
+
 def _slack_user(obj):
     if obj is None:
         return '?'
