@@ -474,7 +474,7 @@ def link_slack(request):
     if not user_id:
         return HttpResponse('Bad request', status=400)
 
-    token = LoginToken.objects.create(slack_user_id=user_id, expires=timezone.now() + timedelta(days=30))
+    token = LoginToken.objects.create(slack_user_id=user_id, username_hint=display_name, expires=timezone.now() + timedelta(days=30))
     league = League.objects.filter(is_default=True).first()
     sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('-season__start_date').first()
     if sp:

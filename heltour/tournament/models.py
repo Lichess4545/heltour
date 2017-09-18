@@ -1910,6 +1910,7 @@ class PrivateUrlAuth(_BaseModel):
 #-------------------------------------------------------------------------------
 class LoginToken(_BaseModel):
     lichess_username = models.CharField(max_length=255, blank=True, validators=[username_validator])
+    username_hint = models.CharField(max_length=255, blank=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
     expires = models.DateTimeField()

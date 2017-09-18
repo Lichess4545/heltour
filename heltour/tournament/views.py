@@ -1679,6 +1679,7 @@ class NotificationsView(SeasonView, UrlAuthMixin):
 class LoginView(LeagueView, UrlAuthMixin):
     def view(self, secret_token=None, post=False):
         slack_user_id = ''
+        username_hint = ''
         if secret_token:
             token = LoginToken.objects.filter(secret_token=secret_token).first()
             if token and not token.is_expired():
@@ -1710,6 +1711,7 @@ class LoginView(LeagueView, UrlAuthMixin):
                             SlackAccount.objects.update_or_create(lichess_username=self.request.user.username, defaults={'slack_user_id': token.slack_user_id})
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
+                    username_hint = token.username_hint
         if post:
             form = LoginForm(self.request.POST)
             if form.is_valid():
@@ -1721,6 +1723,7 @@ class LoginView(LeagueView, UrlAuthMixin):
                 return redirect(settings.LICHESS_DOMAIN + 'inbox/' + mail_id)
         else:
             form = LoginForm()
+            form.fields['lichess_username'].initial = username_hint
 
         context = {
             'form': form,
