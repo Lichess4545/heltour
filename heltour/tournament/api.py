@@ -476,7 +476,7 @@ def link_slack(request):
 
     token = LoginToken.objects.create(slack_user_id=user_id, expires=timezone.now() + timedelta(days=30))
     league = League.objects.filter(is_default=True).first()
-    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('season__league__display_order').first()
+    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('-season__start_date').first()
     if sp:
         league = sp.season.league
     url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
