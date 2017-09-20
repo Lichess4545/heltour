@@ -484,6 +484,12 @@ def link_slack(request):
 
     return JsonResponse({'url': url, 'expires': token.expires})
 
+@require_GET
+@require_api_token
+def get_slack_user_map(request):
+    users = { p.lichess_username: p.slack_user_id for p in Player.objects.exclude(slack_user_id='') }
+    return JsonResponse({'users': users})
+
 @csrf_exempt
 @require_POST
 @require_api_token
