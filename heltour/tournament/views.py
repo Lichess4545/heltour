@@ -1123,9 +1123,14 @@ class UserDashboardView(LeagueView):
             return redirect('by_league:league_home', self.league.tag)
 
         slack_linked = SlackAccount.objects.filter(lichess_username__iexact=self.request.user.username).exists()
+        slack_linked_just_now = False
+        if self.request.session.get('slack_linked'):
+            slack_linked_just_now = True
+            del self.request.session['slack_linked']
 
         context = {
-            'slack_linked': slack_linked
+            'slack_linked': slack_linked,
+            'slack_linked_just_now': slack_linked_just_now
         }
         return self.render('tournament/user_dashboard.html', context)
 
@@ -1698,6 +1703,7 @@ class LoginView(LeagueView, UrlAuthMixin):
                     if token.slack_user_id:
                         # Oh look, we've also associated the lichess account with a slack account. How convenient.
                         SlackAccount.link(token.lichess_username, token.slack_user_id)
+                        self.request.session['slack_linked'] = True
 
                     return redirect('by_league:user_dashboard', self.league.tag)
                 elif token.slack_user_id:
@@ -1705,6 +1711,7 @@ class LoginView(LeagueView, UrlAuthMixin):
                     if self.request.user.is_authenticated():
                         # Already logged in, so associate right now
                         SlackAccount.link(self.request.user.username, token.slack_user_id)
+                        self.request.session['slack_linked'] = True
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
                     username_hint = token.username_hint
