@@ -1122,7 +1122,7 @@ class UserDashboardView(LeagueView):
         if not self.request.user.is_authenticated():
             return redirect('by_league:league_home', self.league.tag)
 
-        slack_linked = SlackAccount.objects.filter(lichess_username__iexact=self.request.user.username).exists()
+        slack_linked = Player.objects.filter(lichess_username__iexact=self.request.user.username).exclude(slack_user_id='').exists()
         slack_linked_just_now = False
         if self.request.session.get('slack_linked'):
             slack_linked_just_now = True
@@ -1702,7 +1702,7 @@ class LoginView(LeagueView, UrlAuthMixin):
 
                     if token.slack_user_id:
                         # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                        SlackAccount.link(token.lichess_username, token.slack_user_id)
+                        Player.link_slack_account(token.lichess_username, token.slack_user_id)
                         self.request.session['slack_linked'] = True
 
                     return redirect('by_league:user_dashboard', self.league.tag)
@@ -1710,7 +1710,7 @@ class LoginView(LeagueView, UrlAuthMixin):
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
                     if self.request.user.is_authenticated():
                         # Already logged in, so associate right now
-                        SlackAccount.link(self.request.user.username, token.slack_user_id)
+                        Player.link_slack_account(self.request.user.username, token.slack_user_id)
                         self.request.session['slack_linked'] = True
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id

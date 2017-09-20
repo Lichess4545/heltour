@@ -537,7 +537,7 @@ class Player(_BaseModel):
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
-    in_slack_group = models.BooleanField(default=False)
+    slack_user_id = models.CharField(max_length=255, blank=True)
     timezone_offset = models.DurationField(blank=True, null=True)
     account_status = models.CharField(default='normal', max_length=31, choices=ACCOUNT_STATUS_OPTIONS)
 
@@ -595,6 +595,15 @@ class Player(_BaseModel):
         is_closed = user_meta.get('disabled', False)
         self.account_status = 'closed' if is_closed else 'engine' if is_engine else 'booster' if is_booster else 'normal'
         self.save()
+
+    @classmethod
+    def link_slack_account(cls, lichess_username, slack_user_id):
+        player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username, defaults={'lichess_username': lichess_username})
+        with reversion.create_revision():
+            reversion.set_comment('Link slack account')
+            player.slack_user_id = slack_user_id
+            player.save()
+            signals.slack_account_linked.send(sender=self, lichess_username=lichess_username)
 
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
@@ -1922,21 +1931,6 @@ class LoginToken(_BaseModel):
 
     def __unicode__(self):
         return self.lichess_username or self.slack_user_id
-
-#-------------------------------------------------------------------------------
-class SlackAccount(_BaseModel):
-    lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
-    slack_user_id = models.CharField(max_length=255)
-
-    @classmethod
-    def link(cls, lichess_username, slack_user_id):
-        with reversion.create_revision():
-            reversion.set_comment('Link slack account')
-            SlackAccount.objects.update_or_create(lichess_username=lichess_username, defaults={'slack_user_id': slack_user_id})
-            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username)
-
-    def __unicode__(self):
-        return self.lichess_username
 
 #-------------------------------------------------------------------------------
 class Document(_BaseModel):

@@ -278,6 +278,7 @@ FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 
 SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
+CHESSTER_USER_ID = 'U0VCPUT7T'
 
 LICHESS_DOMAIN = 'https://lichess.org/'
 

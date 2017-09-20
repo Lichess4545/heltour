@@ -27,7 +27,7 @@ def invite_user(email):
             raise AlreadyInTeam
         raise SlackError(json['error'])
 
-SlackUser = namedtuple('SlackUser', ['id', 'name', 'email', 'tz_offset'])
+SlackUser = namedtuple('SlackUser', ['id', 'real_name', 'display_name', 'email', 'tz_offset'])
 SlackGroup = namedtuple('SlackGroup', ['id', 'name'])
 
 def get_user_list():
@@ -36,13 +36,7 @@ def get_user_list():
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
-    return [SlackUser(m['id'], m['name'], m['profile'].get('email', ''), m.get('tz_offset')) for m in json['members']]
-
-def get_user(name):
-    for u in get_user_list():
-        if u.name == name:
-            return u
-    return None
+    return [SlackUser(m['id'], m['profile'].get('real_name'), m['profile'].get('display_name'), m['profile'].get('email', ''), m.get('tz_offset')) for m in json['members']]
 
 def send_message(channel, text):
     url = _get_slack_webhook()

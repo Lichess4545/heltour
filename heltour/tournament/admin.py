@@ -26,7 +26,8 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow, ApproveRegistrationWorkflow
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
-from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
+from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
+    SimpleListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
@@ -663,8 +664,8 @@ class SeasonAdmin(_BaseAdmin):
         bad_player_status = [p for p in (active_players - withdrawn_players) if p.account_status != 'normal']
 
         latereg_list = PlayerLateRegistration.objects.filter(round=next_round)
-        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.in_slack_group]
-        not_on_slack += [(p, None, None) for p in active_players if not p.in_slack_group]
+        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.slack_user_id]
+        not_on_slack += [(p, None, None) for p in active_players if not p.slack_user_id]
 
         if last_round is not None:
             players_with_0f = set()
@@ -715,7 +716,7 @@ class SeasonAdmin(_BaseAdmin):
                 'name': sp.player.lichess_username,
                 'rating': sp.player.rating_for(season.league),
                 'has_20_games': sp.player.games_played_for(season.league) >= 20,
-                'in_slack': sp.player.in_slack_group,
+                'in_slack': bool(sp.player.slack_user_id),
                 'account_status': sp.player.account_status,
                 'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
                 'friends': sp.registration.friends if sp.registration else None
@@ -965,7 +966,7 @@ class SeasonAdmin(_BaseAdmin):
                     red_players.add(sp.player)
             elif reg is None or not reg.has_played_20_games:
                 red_players.add(sp.player)
-            if not sp.player.in_slack_group:
+            if not sp.player.slack_user_id:
                 red_players.add(sp.player)
             if sp.games_missed >= 2:
                 red_players.add(sp.player)
@@ -1275,9 +1276,9 @@ class PlayerWarningAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
-    search_fields = ('lichess_username', 'email')
+    search_fields = ('lichess_username', 'email', 'slack_user_id')
     list_filter = ('is_active',)
-    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'timezone_offset', 'account_status')
+    readonly_fields = ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile',)
     actions = ['update_selected_player_ratings']
     allow_all_staff = True
@@ -1745,17 +1746,33 @@ class RegistrationAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/reject_registration.html', context)
 
+class InSlackFilter(SimpleListFilter):
+    title = 'is in slack'
+    parameter_name = 'player__slack_user_id'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Yes',),
+            ('0', 'No',),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() in ('0', '1'):
+            kwargs = { '{0}__isnull'.format(self.parameter_name) : self.value() == '1' }
+            return queryset.filter(**kwargs)
+        return queryset
+
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
     search_fields = ('season__name', 'player__lichess_username')
-    list_filter = ('season', 'is_active', 'player__in_slack_group')
+    list_filter = ('season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
     league_id_field = 'season__league_id'
 
     def in_slack(self, sp):
-        return sp.player.in_slack_group
+        return bool(sp.player.slack_user_id)
     in_slack.boolean = True
 
 #-------------------------------------------------------------------------------
@@ -1833,12 +1850,6 @@ class ApiKeyAdmin(_BaseAdmin):
 class PrivateUrlAuthAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'expires')
     search_fields = ('authenticated_user',)
-
-#-------------------------------------------------------------------------------
-@admin.register(SlackAccount)
-class SlackAccountAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'slack_user_id')
-    search_fields = ('lichess_username', 'slack_user_id')
 
 #-------------------------------------------------------------------------------
 @admin.register(Document)

@@ -487,30 +487,6 @@ def link_slack(request):
 @csrf_exempt
 @require_POST
 @require_api_token
-def player_joined_slack(request):
-    try:
-        name = request.POST.get('name', None)
-    except ValueError:
-        return HttpResponse('Bad request', status=400)
-
-    if not name:
-        return HttpResponse('Bad request', status=400)
-    try:
-        player = Player.objects.get(lichess_username__iexact=name)
-    except Player.DoesNotExist:
-        return JsonResponse({'updated': 0, 'error': 'not_found'})
-
-    player.in_slack_group = True
-
-    with reversion.create_revision():
-        reversion.set_comment('API: player_joined_slack')
-        player.save()
-
-    return JsonResponse({'updated': 1})
-
-@csrf_exempt
-@require_POST
-@require_api_token
 def player_contact(request):
     try:
         sender = request.POST.get('sender', None)

@@ -198,15 +198,9 @@ def update_lichess_presence(self):
 
 @app.task(bind=True)
 def update_slack_users(self):
-    slack_users = {u.name.lower(): u for u in slackapi.get_user_list()}
+    slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
-        u = slack_users.get(p.lichess_username.lower())
-        in_slack_group = u != None
-        if in_slack_group != p.in_slack_group:
-            with reversion.create_revision():
-                reversion.set_comment('Joined slack.')
-                p.in_slack_group = in_slack_group
-                p.save()
+        u = slack_users.get(p.slack_user_id)
         if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
             p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
             p.save()
@@ -317,11 +311,6 @@ def validate_registration(self, reg_id):
     fail_reason = None
     warnings = []
 
-    if reg.already_in_slack_group:
-        slack_user = slackapi.get_user(reg.slack_username.lower()) or slackapi.get_user(reg.lichess_username.lower())
-        if slack_user == None:
-            reg.already_in_slack_group = False
-
     try:
         user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
         player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username, defaults={'lichess_username': reg.lichess_username})
@@ -330,6 +319,8 @@ def validate_registration(self, reg_id):
         reg.has_played_20_games = player.games_played_for(reg.season.league) >= 20
         if player.account_status != 'normal':
             fail_reason = 'The lichess user "%s" has the "%s" mark.' % (reg.lichess_username, player.account_status)
+        if reg.already_in_slack_group and not player.slack_user_id:
+            reg.already_in_slack_group = False
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 
@@ -381,7 +372,6 @@ def do_pairings_published(sender, round_id, **kwargs):
 
 @app.task(bind=True)
 def create_team_channel(self, team_ids):
-    username_to_id = {u.name: u.id for u in slackapi.get_user_list()}
     intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
                       + 'You need to pick a team captain and a team name by {season_start}.\n' \
                       + 'Once you\'ve chosen (or if you need help with anything), contact one of the moderators:\n' \
@@ -394,8 +384,7 @@ def create_team_channel(self, team_ids):
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime('%b %-d')
         intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start)
         team_members = team.teammember_set.select_related('player').nocache()
-        chesster_id = username_to_id['chesster']
-        user_ids = [username_to_id.get(tm.player.lichess_username.lower()) for tm in team_members]
+        user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
 
         try:
@@ -412,7 +401,7 @@ def create_team_channel(self, team_ids):
                 except slackapi.SlackError:
                     logger.exception('Could not invite %s to slack' % user_id)
                 time.sleep(1)
-        slackapi.invite_to_group(group.id, chesster_id)
+        slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
         time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')
