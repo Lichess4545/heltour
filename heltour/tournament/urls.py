@@ -73,6 +73,7 @@ league_urlpatterns = [
     url(r'^about/$', views.AboutView.as_view(), name='about'),
     url(r'^login/$', views.LoginView.as_view(), name='login'),
     url(r'^login/(?P<secret_token>\w+)/$', views.LoginView.as_view(), name='login_with_token'),
+    url(r'^logout/$', views.LogoutView.as_view(), name='logout'),
 ]
 
 api_urlpatterns = [

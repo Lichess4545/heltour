@@ -16,7 +16,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.generic import View
 from django.utils.text import slugify
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
@@ -1728,6 +1728,18 @@ class LoginView(LeagueView, UrlAuthMixin):
 
     def view_post(self, secret_token=None):
         return self.view(secret_token, post=True)
+
+class LogoutView(LeagueView, UrlAuthMixin):
+    def view(self, post=False):
+
+        if post:
+            logout(self.request)
+            return redirect('by_league:league_home', self.league.tag)
+
+        return self.render('tournament/logout.html', {})
+
+    def view_post(self):
+        return self.view(post=True)
 
 class TvView(LeagueView):
     def view(self):
