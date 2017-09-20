@@ -603,7 +603,7 @@ class Player(_BaseModel):
             reversion.set_comment('Link slack account')
             player.slack_user_id = slack_user_id
             player.save()
-            signals.slack_account_linked.send(sender=self, lichess_username=lichess_username)
+            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username)
 
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
