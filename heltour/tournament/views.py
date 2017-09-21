@@ -1663,17 +1663,19 @@ class LoginView(LeagueView):
                     login(self.request, user)
 
                     if token.slack_user_id:
-                        # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                        Player.link_slack_account(token.lichess_username, token.slack_user_id)
-                        self.request.session['slack_linked'] = True
+                        # Double check against the session to prevent certain kinds of attacks
+                        if self.request.session.get('slack_user_id') == token.slack_user_id:
+                            # Oh look, we've also associated the lichess account with a slack account. How convenient.
+                            if Player.link_slack_account(token.lichess_username, token.slack_user_id):
+                                self.request.session['slack_linked'] = True
 
                     return redirect('by_league:user_dashboard', self.league.tag)
                 elif token.slack_user_id:
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
                     if self.request.user.is_authenticated():
                         # Already logged in, so associate right now
-                        Player.link_slack_account(self.request.user.username, token.slack_user_id)
-                        self.request.session['slack_linked'] = True
+                        if Player.link_slack_account(self.request.user.username, token.slack_user_id):
+                            self.request.session['slack_linked'] = True
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
                     username_hint = token.username_hint
@@ -1681,11 +1683,19 @@ class LoginView(LeagueView):
             form = LoginForm(self.request.POST)
             if form.is_valid():
                 username = form.cleaned_data['lichess_username']
-                login_token = LoginToken.objects.create(lichess_username=username, slack_user_id=slack_user_id, expires=timezone.now() + timedelta(days=1))
-                login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
-                msg = 'Click this link to complete the login process.\n\n%s' % login_link
-                mail_id = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
-                return redirect(settings.LICHESS_DOMAIN + 'inbox/' + mail_id)
+                if slack_user_id:
+                    # As well as in the token, store the slack ID in the session for validation purposes
+                    self.request.session['slack_user_id'] = slack_user_id
+                login_token, _ = LoginToken.objects.get_or_create(
+                                                               lichess_username=username, slack_user_id=slack_user_id,
+                                                               expires__gt=timezone.now() + timedelta(hours=12),
+                                                               defaults={'expires':timezone.now() + timedelta(days=1)})
+                if not login_token.mail_id:
+                    login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
+                    msg = 'Click this link to complete the login process.\n\n%s' % login_link
+                    login_token.mail_id = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
+                    login_token.save()
+                return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
         else:
             form = LoginForm()
             form.fields['lichess_username'].initial = username_hint

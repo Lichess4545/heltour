@@ -371,6 +371,17 @@ def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
 
 @app.task(bind=True)
+def notify_slack_link(self, lichess_username):
+    player = Player.get_or_create(lichess_username)
+    email = slackapi.get_user(player.slack_user_id).email
+    msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
+    lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
+
+@receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.tasks')
+def do_notify_slack_link(lichess_username, **kwargs):
+    notify_slack_link.apply_async(args=[lichess_username], countdown=1)
+
+@app.task(bind=True)
 def create_team_channel(self, team_ids):
     intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
                       + 'You need to pick a team captain and a team name by {season_start}.\n' \

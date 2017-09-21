@@ -38,6 +38,15 @@ def get_user_list():
         raise SlackError(json['error'])
     return [SlackUser(m['id'], m['profile'].get('real_name'), m['profile'].get('display_name'), m['profile'].get('email', ''), m.get('tz_offset')) for m in json['members']]
 
+def get_user(user_id):
+    url = 'https://slack.com/api/users.info'
+    r = requests.get(url, params={'user': user_id, 'token': _get_slack_token()})
+    json = r.json()
+    if not json['ok']:
+        raise SlackError(json['error'])
+    m = json['user']
+    return SlackUser(m['id'], m['profile'].get('real_name'), m['profile'].get('display_name'), m['profile'].get('email', ''), m.get('tz_offset'))
+
 def send_message(channel, text):
     url = _get_slack_webhook()
     if not url:

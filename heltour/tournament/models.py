@@ -604,11 +604,15 @@ class Player(_BaseModel):
     @classmethod
     def link_slack_account(cls, lichess_username, slack_user_id):
         player = Player.get_or_create(lichess_username)
+        if player.slack_user_id == slack_user_id:
+            # No change needed
+            return False
         with reversion.create_revision():
             reversion.set_comment('Link slack account')
             player.slack_user_id = slack_user_id
             player.save()
             signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username)
+            return True
 
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
@@ -1928,6 +1932,7 @@ class LoginToken(_BaseModel):
     username_hint = models.CharField(max_length=255, blank=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    mail_id = models.CharField(max_length=255, blank=True)
     expires = models.DateTimeField()
     used = models.BooleanField(default=False)
 
