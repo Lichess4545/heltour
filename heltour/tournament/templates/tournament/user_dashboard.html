@@ -11,10 +11,30 @@
 			    <h3>{{ user.username }}</h3>
 		    </div>
 		    <div class="well-body">
+		    	<p>
+			    	<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
+			    		Public profile
+			    	</a>
+			    	<br/>
+					<a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">
+						Calendar
+					</a>
+					<br/>
+			    	<a href="{% leagueurl 'notifications' league.tag season.tag %}">
+			    		Notification settings
+			    	</a>
+				</p>
 				<form action="{% leagueurl 'logout' league.tag %}" method="post">
 				    {% csrf_token %}
 		        	<button type="submit" class="btn btn-default">Logout</button>
 				</form>
+			</div>
+		</div>
+		<div class="well">
+			<div class="well-head">
+				<h3>My Pairings</h3>
+			</div>
+			<div class="well-body">
 			</div>
 		</div>
 	</div>
@@ -39,6 +59,64 @@
 			</div>
 		</div>
 		{% endif %}
+		{% if active_season %}
+		<div class="well">
+			<div class="well-head">
+				<h3>{{ active_season.name }}</h3>
+			</div>
+			<div class="well-body">
+				{% if active_sp %}
+					<p>
+						<a class="btn btn-default" href="{% leagueurl 'edit_availability' league.tag active_season.tag %}">
+							Edit Availability
+						</a>
+						{% if active_sp.is_active %}
+						<a class="btn btn-default" href="{% leagueurl 'modrequest' league.tag active_season.tag 'withdraw' %}">
+							Withdraw
+						</a>
+						{% endif %}
+					</p>
+				{% else %}
+					{% if active_season.registration_open %}
+					<a class="btn btn-default" href="{% leagueurl 'register' league.tag active_season.tag %}">
+						Register
+					</a>
+					{% else %}
+					<p>Registration is closed.</p>
+					{% endif %}
+				{% endif %}
+			</div>
+		</div>
+		{% endif %}
+		{% if last_season %}
+		<div class="well">
+			<div class="well-head">
+				<h3>{{ last_season.name }}</h3>
+			</div>
+			<div class="well-body">
+				<a class="btn btn-default" href="{% leagueurl 'season_landing' league.tag last_season.tag %}">
+					Final Standings
+				</a>
+				{% if last_season.nominations_open %}
+				<a class="btn btn-default" href="{% leagueurl 'nominate' league.tag last_season.tag %}">
+					Game Nominations
+				</a>
+				{% endif %}
+			</div>
+		</div>
+		{% endif %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Other Leagues</h3>
+			</div>
+			<div class="well-body">
+				{% for other_league in other_leagues %}
+				<a class="btn btn-default" href="{% leagueurl 'user_dashboard' other_league.tag %}">
+					{{ other_league.name }}
+				</a>
+				{% endfor %}
+			</div>
+		</div>
 	</div>
 </div>
 {% endblock %}

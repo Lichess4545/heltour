@@ -597,8 +597,13 @@ class Player(_BaseModel):
         self.save()
 
     @classmethod
-    def link_slack_account(cls, lichess_username, slack_user_id):
+    def get_or_create(cls, lichess_username):
         player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username, defaults={'lichess_username': lichess_username})
+        return player
+
+    @classmethod
+    def link_slack_account(cls, lichess_username, slack_user_id):
+        player = Player.get_or_create(lichess_username)
         with reversion.create_revision():
             reversion.set_comment('Link slack account')
             player.slack_user_id = slack_user_id

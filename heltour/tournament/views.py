@@ -1122,15 +1122,27 @@ class UserDashboardView(LeagueView):
         if not self.request.user.is_authenticated():
             return redirect('by_league:league_home', self.league.tag)
 
-        slack_linked = Player.objects.filter(lichess_username__iexact=self.request.user.username).exclude(slack_user_id='').exists()
+        player = Player.get_or_create(self.request.user.username)
+
+        slack_linked = bool(player.slack_user_id)
         slack_linked_just_now = False
         if self.request.session.get('slack_linked'):
             slack_linked_just_now = True
             del self.request.session['slack_linked']
 
+        active_season = self.league.season_set.filter(is_active=True, is_completed=False).order_by('-start_date').first()
+        active_sp = player.seasonplayer_set.filter(season=active_season).first()
+        last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True, season__is_completed=True) \
+                        .order_by('-season__start_date').first()
+        last_season = last_sp.season if last_sp is not None else None
+
         context = {
+            'player': player,
             'slack_linked': slack_linked,
-            'slack_linked_just_now': slack_linked_just_now
+            'slack_linked_just_now': slack_linked_just_now,
+            'active_season': active_season,
+            'active_sp': active_sp,
+            'last_season': last_season
         }
         return self.render('tournament/user_dashboard.html', context)
 
