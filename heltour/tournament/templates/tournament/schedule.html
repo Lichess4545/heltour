@@ -11,13 +11,7 @@
 				<h3>Scheduling</h3>
 			</div>
 			<div class="well-body">
-				{% if not username %}
-				<p>This link is invalid or expired.</p>
-				{% elif not player %}
-				<p>Sorry, you must be registered in order to use this page.</p>
-				{% else %}
-				<p>Welcome, {{ username }}!</p>
-				{% endif %}
+				<p>Welcome, {{ player.lichess_username }}!</p>
 			</div>
 		</div>
 	</div>

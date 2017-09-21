@@ -11,17 +11,13 @@
 				<h3>Accept Game</h3>
 			</div>
 			<div class="well-body">
-				{% if not username %}
-				<p>This link is invalid or expired.</p>
-				{% else %}
-				<p>Welcome, {{ username }}!</p>
+				<p>Welcome, {{ player.lichess_username }}!</p>
 				<p>{{ msg }}</p>
 				{% if show_button %}
 				<form action="" method="post">
 				    {% csrf_token %}
 		        	<button type="submit" class="btn btn-primary single-field-btn">Confirm</button>
 				</form>
-				{% endif %}
 				{% endif %}
 			</div>
 		</div>
