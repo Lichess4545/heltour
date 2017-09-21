@@ -575,14 +575,13 @@ def mod_request_rejected(instance, **kwargs):
 def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
     season = round_.season
     league = season.league
-    auth = PrivateUrlAuth.objects.create(authenticated_user=player.lichess_username, expires=round_.end_date)
-    appeal_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'appeal_late_response', auth.secret_token]))
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
     message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
             + 'You are required to message your opponent within 48 hours of the round start. ' \
             + punishment + '\n' \
             + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
     if allow_continue:
-        continue_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'request_continuation', auth.secret_token]))
+        continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
         message += '\nIf you haven\'t but want to continue playing next round, <%s|click here>.' % continue_url
     _message_user(league, _slack_user(player), message)
 
@@ -599,8 +598,7 @@ def notify_opponent_unresponsive(round_, player, opponent, **kwargs):
 def notify_noshow(round_, player, opponent, **kwargs):
     season = round_.season
     league = season.league
-    auth = PrivateUrlAuth.objects.create(authenticated_user=player.lichess_username, expires=round_.end_date)
-    claim_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'claim_win_noshow', auth.secret_token]))
+    claim_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'claim_win_noshow']))
     message = 'Notice: It appears your opponent, <@%s>, has not shown up for your scheduled game time in %s. ' % (_slack_user(opponent), league.name) \
             + 'To claim a win by forfeit, <%s|click here>.' % claim_url
     _message_user(league, _slack_user(player), message)
@@ -609,14 +607,13 @@ def notify_noshow(round_, player, opponent, **kwargs):
 def notify_noshow_claim(round_, player, punishment, allow_continue, **kwargs):
     season = round_.season
     league = season.league
-    auth = PrivateUrlAuth.objects.create(authenticated_user=player.lichess_username, expires=round_.end_date)
-    appeal_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'appeal_noshow', auth.secret_token]))
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_noshow']))
     message = 'Notice: You didn\'t show up for your scheduled game time in %s. ' % league.name \
             + 'Your opponent has been given a win by forfeit. ' \
             + punishment + '\n' \
             + 'To appeal, <%s|click here>.' % appeal_url
     if allow_continue:
-        continue_url = abs_url(reverse('by_league:by_season:modrequest_with_token', args=[league.tag, season.tag, 'request_continuation', auth.secret_token]))
+        continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
         message += '\nOtherwise, if you want to continue playing next round, <%s|click here>.' % continue_url
     _message_user(league, _slack_user(player), message)
 

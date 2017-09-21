@@ -169,9 +169,8 @@ def do_alternate_search(season, round_, board_number, setting):
                 alt_username = alt_to_contact.season_player.player.lichess_username
                 league_tag = season.league.tag
                 season_tag = season.tag
-                auth = PrivateUrlAuth.objects.create(authenticated_user=alt_username, expires=round_.end_date)
-                accept_url = reverse('by_league:by_season:alternate_accept_with_token', args=[league_tag, season_tag, round_.number, auth.secret_token])
-                decline_url = reverse('by_league:by_season:alternate_decline_with_token', args=[league_tag, season_tag, round_.number, auth.secret_token])
+                accept_url = reverse('by_league:by_season:alternate_accept', args=[league_tag, season_tag, round_.number])
+                decline_url = reverse('by_league:by_season:alternate_decline', args=[league_tag, season_tag, round_.number])
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact, response_time=setting.unresponsive_interval, \
                                               round_=round_, accept_url=accept_url, decline_url=decline_url)
                 current_date = timezone.now()
