@@ -35,6 +35,35 @@
 				<h3>My Pairings</h3>
 			</div>
 			<div class="well-body">
+				<table class="my-pairings">
+					{% for round, pairing in my_pairings %}
+					<tr class="my-pairing">
+						<td class="league-icon {{ round.season.league.theme }}"></td>
+						<td>
+							<div class="details">
+								<span class="round">
+									{{ round.season }} - Round {{ round.number }}
+								</span>
+								<span class="players">
+									{{ pairing.white }} - {{ pairing.black }}
+								</span>
+								<span class="time">
+									{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}
+								</span>
+								<span class="result">
+									{% if pairing.game_link %}
+									<a href="{{ pairing.game_link }}">
+										{% if pairing.result %}{{ pairing.result_display }}{% else %}&#x2694;{% endif %}
+									</a>
+									{% else %}
+									{{ pairing.result_display }}
+									{% endif %}
+								</span>
+							</div>
+						</td>
+					</tr>
+					{% endfor %}
+				</table>
 			</div>
 		</div>
 	</div>

@@ -1125,13 +1125,31 @@ class UserDashboardView(LeagueView):
                         .order_by('-season__start_date').first()
         last_season = last_sp.season if last_sp is not None else None
 
+        active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False, season__is_active=True)
+        my_pairings = []
+        for r in active_rounds:
+            my_pairings += [(r, p) for p in r.pairings.filter(white=player).exclude(black=None) | r.pairings.filter(black=player).exclude(white=None)]
+
+        def sort_order(round_, pairing):
+            if pairing.game_link and not pairing.result:
+                # In progress
+                return (0, 0)
+            if pairing.scheduled_time and not pairing.result:
+                # Scheduled
+                return (1, pairing.scheduled_time)
+            # Unscheduled
+            return (2, round_.end_date)
+
+        my_pairings.sort(key=lambda (r, p): sort_order(r, p))
+
         context = {
             'player': player,
             'slack_linked': slack_linked,
             'slack_linked_just_now': slack_linked_just_now,
             'active_season': active_season,
             'active_sp': active_sp,
-            'last_season': last_season
+            'last_season': last_season,
+            'my_pairings': my_pairings
         }
         return self.render('tournament/user_dashboard.html', context)
 
