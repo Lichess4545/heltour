@@ -6,6 +6,26 @@
 {% block content %}
 <div class="row row-condensed-xs home-row">
 	<div class="col-md-6 col-xs-12">
+		{% if not slack_linked %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Link Slack Account</h3>
+			</div>
+			<div class="well-body">
+				<p>To participate in the league, you need to link your Slack account.</p>
+				<p>Send <a href="https://lichess4545.slack.com/messages/@chesster/">@chesster</a> the message <strong><code>link</code></strong> and follow the instructions.</p>
+			</div>
+		</div>
+		{% elif slack_linked_just_now %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Slack Linked</h3>
+			</div>
+			<div class="well-body">
+				<p>Your Slack account has been successfully linked!</p>
+			</div>
+		</div>
+		{% endif %}
 		<div class="well">
 			<div class="well-head">
 			    <h3>{{ user.username }}</h3>
@@ -68,26 +88,6 @@
 		</div>
 	</div>
 	<div class="col-md-6 col-xs-12">
-		{% if not slack_linked %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Link Slack Account</h3>
-			</div>
-			<div class="well-body">
-				<p>To participate in the league, you need to link your Slack account.</p>
-				<p>Send <a href="https://lichess4545.slack.com/messages/@chesster/">@chesster</a> the message <strong><code>link</code></strong> and follow the instructions.</p>
-			</div>
-		</div>
-		{% elif slack_linked_just_now %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Slack Linked</h3>
-			</div>
-			<div class="well-body">
-				<p>Your Slack account has been successfully linked!</p>
-			</div>
-		</div>
-		{% endif %}
 		{% if active_season %}
 		<div class="well">
 			<div class="well-head">
