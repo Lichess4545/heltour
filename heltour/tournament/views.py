@@ -94,6 +94,7 @@ class SeasonView(LeagueView):
 class LoginRequiredMixin:
     def _preprocess(self):
         if not self.request.user.is_authenticated():
+            self.request.session['login_redirect'] = self.request.build_absolute_uri()
             return redirect('by_league:login', self.league.tag)
         self.extra_context['player'] = self.player
 
@@ -1687,7 +1688,12 @@ class LoginView(LeagueView):
                             if Player.link_slack_account(token.lichess_username, token.slack_user_id):
                                 self.request.session['slack_linked'] = True
 
-                    return redirect('by_league:user_dashboard', self.league.tag)
+                    redir_url = self.request.session.get('login_redirect')
+                    if redir_url:
+                        self.request.session['login_redirect'] = None
+                        return redirect(redir_url)
+                    else:
+                        return redirect('by_league:user_dashboard', self.league.tag)
                 elif token.slack_user_id:
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
                     if self.request.user.is_authenticated():
