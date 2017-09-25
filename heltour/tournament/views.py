@@ -36,8 +36,6 @@ common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing,
 # Base classes
 
 class BaseView(View):
-    extra_context = {}
-
     def get(self, request, *args, **kwargs):
         self.read_context()
         return self.preprocess() or self.view(*self.args, **self.kwargs)
@@ -49,7 +47,7 @@ class BaseView(View):
         return self.preprocess() or self.view_post(*self.args, **self.kwargs)
 
     def read_context(self):
-        pass
+        self.extra_context = {}
 
     def render(self, template, context):
         context.update(self.extra_context)
@@ -66,6 +64,7 @@ class LeagueView(BaseView):
         season_tag = self.kwargs.pop('season_tag', None)
         self.league = _get_league(league_tag)
         self.season = _get_season(league_tag, season_tag, True)
+        self.extra_context = {}
 
     def render(self, template, context):
         context.update({
@@ -90,6 +89,7 @@ class SeasonView(LeagueView):
         self.league = _get_league(league_tag)
         self.season = _get_season(league_tag, season_tag, False)
         self._season_specified = season_tag is not None
+        self.extra_context = {}
 
 class LoginRequiredMixin:
     def _preprocess(self):
