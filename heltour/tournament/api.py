@@ -417,7 +417,9 @@ def link_slack(request):
     url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
     url = request.build_absolute_uri(url)
 
-    return JsonResponse({'url': url, 'expires': token.expires})
+    already_linked = [p.lichess_username for p in Player.objects.filter(slack_user_id=user_id)]
+
+    return JsonResponse({'url': url, 'already_linked': already_linked, 'expires': token.expires})
 
 @require_GET
 @require_api_token
