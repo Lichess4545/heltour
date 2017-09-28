@@ -1724,9 +1724,13 @@ class LoginView(LeagueView):
                 if not login_token.mail_id:
                     login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
                     msg = 'Click this link to complete the login process.\n\n%s' % login_link
-                    login_token.mail_id = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
-                    login_token.save()
-                return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
+                    result = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
+                    if result:
+                        login_token.mail_id = result
+                        login_token.save()
+                if login_token.mail_id:
+                    return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
+                form.add_error('lichess_username', 'A validation mail could not be sent. Check your spelling.')
         else:
             form = LoginForm()
             form.fields['lichess_username'].initial = username_hint
