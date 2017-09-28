@@ -20,18 +20,14 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'slack_username', 'email', 'classical_rating',
-            'peak_classical_rating', 'has_played_20_games', 'already_in_slack_group',
+            'lichess_username', 'email', 'classical_rating',
+            'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate', 'can_commit', 'friends', 'agreed_to_rules',
             'alternate_preference', 'weeks_unavailable',
         )
         labels = {
             'lichess_username': _(u'Your Lichess Username'),
-            'slack_username': _(u'Your Slack Username'),
             'email': _(u'Your Email'),
-        }
-        help_texts = {
-            'slack_username': _(u"Please, it should be the same. If you aren't on our Slack yet, please fill in N/A."),
         }
 
     def __init__(self, *args, **kwargs):
@@ -42,7 +38,6 @@ class RegistrationForm(forms.ModelForm):
         # Rating fields
         rating_type = league.get_rating_type_display()
         self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Lichess %s Rating' % rating_type))
-        self.fields['peak_classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Highest Peak Lichess %s Rating' % rating_type))
 
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',

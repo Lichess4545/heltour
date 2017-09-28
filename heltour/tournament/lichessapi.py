@@ -173,5 +173,18 @@ def send_mail(lichess_username, subject, text):
         logger.exception('Error sending lichess mail to %s' % lichess_username)
         return False
 
+def get_peak_rating(lichess_username, perf_type):
+    # This doesn't actually use the API proper, so it doesn't need the worker
+    try:
+        response = requests.get(settings.LICHESS_DOMAIN + '@/%s/perf/%s' % (lichess_username, perf_type), headers=_headers)
+        if response.status_code != 200:
+            logger.error('Received status %s when trying to retrieve peak rating on lichess: %s' % (response.status_code, response.text))
+            return None
+
+        return response.json()['stat']['highest']['int']
+    except Exception:
+        logger.exception('Error retrieving peak rating for %s' % lichess_username)
+        return None
+
 class ApiWorkerError(Exception):
     pass
