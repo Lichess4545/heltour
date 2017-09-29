@@ -595,7 +595,7 @@ class RegisterView(LeagueView):
                 player = Player.get_or_create(self.request.user.username)
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
-                form.fields['classical_rating'].initial = player.rating
+                form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
                 form.fields['has_played_20_games'].initial = player.games_played > 20
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
