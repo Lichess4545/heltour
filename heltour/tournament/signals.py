@@ -34,7 +34,7 @@ notify_opponent_unresponsive = Signal(providing_args=['round_', 'player', 'oppon
 notify_mods_unresponsive = Signal(providing_args=['round_', 'warnings', 'yellows', 'reds'])
 notify_noshow = Signal(providing_args=['round_', 'player', 'opponent'])
 notify_noshow_claim = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
-slack_account_linked = Signal(providing_args=['lichess_username'])
+slack_account_linked = Signal(providing_args=['lichess_username', 'slack_user_id'])
 
 # Automod signals
 automod_unresponsive = Signal(providing_args=['round_'])
