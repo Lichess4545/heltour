@@ -321,7 +321,7 @@ class Season(_BaseModel):
                         elif round_state.round_match_points == 1:
                             score.sb_score += score_dict[(round_state.round_opponent, last_round.number)].match_points / 2.0
                         if opponent in tied_team_set:
-                            score.head_to_head += round_state.match_points
+                            score.head_to_head += round_state.round_match_points
             score.save()
 
     def _calculate_lone_scores(self):
