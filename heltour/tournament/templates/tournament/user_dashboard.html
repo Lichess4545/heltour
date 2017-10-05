@@ -68,7 +68,7 @@
 									{{ pairing.white }} - {{ pairing.black }}
 								</span>
 								<span class="time">
-									{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}
+									{{ pairing.scheduled_time | date_el:"m/d H:i" }}
 								</span>
 								<span class="result">
 									{% if pairing.game_link %}

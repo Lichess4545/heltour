@@ -1,7 +1,7 @@
 from django import template
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
-from django.utils import timezone
+from django.utils import timezone, formats
 from datetime import timedelta
 
 register = template.Library()
@@ -129,3 +129,9 @@ def time_from_now(datetime):
             return '1 minute'
         else:
             return '%d minutes' % minutes
+
+@register.filter
+def date_el(datetime, arg=None):
+    if not datetime:
+        return ''
+    return mark_safe('<time datetime="%s">%s</time>' % (datetime.isoformat(), formats.date_format(datetime, arg)))

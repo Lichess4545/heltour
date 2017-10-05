@@ -60,7 +60,7 @@
 											?
 										{% endif %}
 									</td>
-									<td>{{ date_opened|date:"m/d H:i" }}</td>
+									<td>{{ date_opened|date_el:"m/d H:i" }}</td>
 								</tr>
 								{% endfor %} 
 							</tbody>
@@ -99,7 +99,7 @@
 											{{ alternate }}
 										</a>
 									</td>
-									<td>{{ date_filled|date:"m/d H:i" }}</td>
+									<td>{{ date_filled|date_el:"m/d H:i" }}</td>
 								</tr>
 								{% endfor %} 
 							</tbody>

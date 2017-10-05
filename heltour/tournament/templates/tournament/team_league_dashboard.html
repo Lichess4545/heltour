@@ -64,12 +64,12 @@
 				{% if next_round %}
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start Round {{ next_round.number }}</a>
-					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date:"m/d H:i" }}</span>
+					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date_el:"m/d H:i" }}</span>
 				</div>
 				{% elif last_round %}
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close Round {{ last_round.number }}</a>
-					<span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date:"m/d H:i" }}</span>
+					<span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date_el:"m/d H:i" }}</span>
 				</div>
 				{% elif not season.is_completed %}
 				<div class="dashboard-season-action">
