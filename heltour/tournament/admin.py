@@ -1287,6 +1287,11 @@ class PlayerAdmin(_BaseAdmin):
         # Don't let unprivileged users delete players
         return self.has_assigned_perm(request.user, 'delete')
 
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.has_perm('tournament.link_slack'):
+            return ('rating', 'games_played', 'timezone_offset', 'account_status')
+        return ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
+
     def clean_form(self, request, form):
         # Restrict what can be edited manually
         if self.has_assigned_perm(request.user, 'change'):

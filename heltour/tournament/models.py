@@ -572,6 +572,7 @@ class Player(_BaseModel):
         ordering = ['lichess_username']
         permissions = (
             ('invite_to_slack', 'Can invite to slack'),
+            ('link_slack', 'Can manually link slack accounts'),
         )
 
     def __init__(self, *args, **kwargs):
