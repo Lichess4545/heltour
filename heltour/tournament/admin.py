@@ -26,10 +26,12 @@ from heltour.tournament.workflows import RoundTransitionWorkflow, \
     UpdateBoardOrderWorkflow, ApproveRegistrationWorkflow
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
-from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
+from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
+    SimpleListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+import time
 from django.utils.text import slugify
 
 # Customize which sections are visible
@@ -40,7 +42,6 @@ def redirect_with_params(*args, **kwargs):
     params = kwargs.pop('params')
     response = redirect(*args, **kwargs)
     response['Location'] += params
-    print 'Redirect: ', response['Location']
     return response
 
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
@@ -306,7 +307,7 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
     list_display_links = ('__unicode__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'mod_report', 'export_games', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report', 'export_games', 'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -336,9 +337,15 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
                 self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email'),
+            url(r'^(?P<object_id>[0-9]+)/team_spam/$',
+                self.admin_site.admin_view(self.team_spam_view),
+                name='team_spam'),
             url(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
+            url(r'^(?P<object_id>[0-9]+)/pre_round_report/$',
+                self.admin_site.admin_view(self.pre_round_report_view),
+                name='pre_round_report'),
             url(r'^(?P<object_ids>[0-9,]+)/export_games/$',
                 self.admin_site.admin_view(self.export_games_view),
                 name='export_games'),
@@ -568,6 +575,41 @@ class SeasonAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/bulk_email.html', context)
 
+    def team_spam(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Team spam can only be sent one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:team_spam', object_id=queryset[0].pk)
+
+    def team_spam_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.bulk_email', season.league):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            form = forms.TeamSpamForm(season, request.POST)
+            if form.is_valid() and form.cleaned_data['confirm_send']:
+                teams = season.team_set.all()
+                for t in teams:
+                    if t.slack_channel:
+                        slackapi.send_message(t.slack_channel, form.cleaned_data['text'])
+                        time.sleep(1)
+                self.message_user(request, 'Spam sent to %d teams.' % len(teams), messages.INFO)
+                return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.TeamSpamForm(season)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Team spam',
+            'form': form
+        }
+
+        return render(request, 'tournament/admin/team_spam.html', context)
+
     def mod_report(self, request, queryset):
         if queryset.count() > 1:
             self.message_user(request, 'Can only generate mod report one season at a time.', messages.ERROR)
@@ -597,6 +639,74 @@ class SeasonAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/mod_report.html', context)
 
+    def pre_round_report(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Can only generate pre-round report one season at a time.', messages.ERROR)
+            return
+        return redirect('admin:pre_round_report', object_id=queryset[0].pk)
+
+    def pre_round_report_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.change_season', season.league):
+            raise PermissionDenied
+
+        last_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False).order_by('number').first()
+        next_round = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number').first()
+
+        season_players = season.seasonplayer_set.select_related('player').nocache()
+        active_players = {sp.player for sp in season_players if sp.is_active}
+        withdrawn_players = {wd.player for wd in PlayerWithdrawal.objects.filter(round=next_round)}
+        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=next_round, type='request_continuation', status='approved')}
+        red_cards = {sp.player for sp in season_players if sp.is_active and sp.games_missed >= 2} - withdrawn_players
+
+        missing_withdrawals = None
+        pairings_wo_results = None
+
+        pending_regs = [(reg.lichess_username, reg) for reg in Registration.objects.filter(season=season, status='pending')]
+
+        bad_player_status = [p for p in (active_players - withdrawn_players) if p.account_status != 'normal']
+
+        latereg_list = PlayerLateRegistration.objects.filter(round=next_round)
+        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.slack_user_id]
+        not_on_slack += [(p, None, None) for p in active_players if not p.slack_user_id]
+
+        if last_round is not None:
+            players_with_0f = set()
+            for p in last_round.pairings:
+                if p.result != '' and not p.game_played():
+                    if p.black_score() == 0:
+                        players_with_0f.add(p.black)
+                    if p.white_score() == 0:
+                        players_with_0f.add(p.white)
+            missing_withdrawals = (players_with_0f & active_players) - withdrawn_players - continuation_players
+
+            def text_class(p):
+                if p.game_link != '':
+                    return 'text-approved'
+                if p.scheduled_time and p.scheduled_time < timezone.now() - timedelta(hours=1):
+                    return 'text-rejected'
+                return ''
+
+            pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by('loneplayerpairing__pairing_order').filter(result='')]
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': 'Pre-round report',
+            'last_round': last_round,
+            'next_round': next_round,
+            'missing_withdrawals': sorted(missing_withdrawals),
+            'red_cards': sorted(red_cards),
+            'bad_player_status': sorted(bad_player_status),
+            'not_on_slack': sorted(not_on_slack),
+            'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()),
+            'pairings_wo_results': pairings_wo_results
+        }
+
+        return render(request, 'tournament/admin/pre_round_report.html', context)
+
     def export_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         if not request.user.has_perm('tournament.change_season', season.league):
@@ -609,8 +719,10 @@ class SeasonAdmin(_BaseAdmin):
                 'name': sp.player.lichess_username,
                 'rating': sp.player.rating_for(season.league),
                 'has_20_games': sp.player.games_played_for(season.league) >= 20,
-                'in_slack': sp.player.in_slack_group,
-                'account_status': sp.player.account_status
+                'in_slack': bool(sp.player.slack_user_id),
+                'account_status': sp.player.account_status,
+                'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
+                'friends': sp.registration.friends if sp.registration else None
             }
             reg = sp.registration
             if reg is not None:
@@ -664,6 +776,16 @@ class SeasonAdmin(_BaseAdmin):
             self.message_user(request, 'Board order updated.', messages.INFO)
         except IndexError:
             self.message_user(request, 'Error updating board order.', messages.ERROR)
+
+    def force_alternate_board_update(self, request, queryset):
+        try:
+            for season in queryset.all():
+                if not request.user.has_perm('tournament.manage_players', season.league):
+                    raise PermissionDenied
+                UpdateBoardOrderWorkflow(season).run(alternates_only=True)
+            self.message_user(request, 'Alternate order updated.', messages.INFO)
+        except IndexError:
+            self.message_user(request, 'Error updating alternate order.', messages.ERROR)
 
     def manage_players(self, request, queryset):
         if queryset.count() > 1:
@@ -872,7 +994,7 @@ class SeasonAdmin(_BaseAdmin):
                     red_players.add(sp.player)
             elif reg is None or not reg.has_played_20_games:
                 red_players.add(sp.player)
-            if not sp.player.in_slack_group:
+            if not sp.player.slack_user_id:
                 red_players.add(sp.player)
             if sp.games_missed >= 2:
                 red_players.add(sp.player)
@@ -1170,11 +1292,21 @@ class PlayerByeAdmin(_BaseAdmin):
     league_competitor_type = 'individual'
 
 #-------------------------------------------------------------------------------
+@admin.register(PlayerWarning)
+class PlayerWarningAdmin(_BaseAdmin):
+    list_display = ('__unicode__', 'type')
+    search_fields = ('player__lichess_username',)
+    list_filter = ('round__season', 'round__number', 'type')
+    raw_id_fields = ('round', 'player')
+    league_id_field = 'round__season__league_id'
+    league_competitor_type = 'individual'
+
+#-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
-    search_fields = ('lichess_username', 'email')
+    search_fields = ('lichess_username', 'email', 'slack_user_id')
     list_filter = ('is_active',)
-    readonly_fields = ('rating', 'games_played', 'in_slack_group', 'timezone_offset', 'account_status')
+    readonly_fields = ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile',)
     actions = ['update_selected_player_ratings']
     allow_all_staff = True
@@ -1182,6 +1314,11 @@ class PlayerAdmin(_BaseAdmin):
     def has_delete_permission(self, request, obj=None):
         # Don't let unprivileged users delete players
         return self.has_assigned_perm(request.user, 'delete')
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.has_perm('tournament.link_slack'):
+            return ('rating', 'games_played', 'timezone_offset', 'account_status')
+        return ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
 
     def clean_form(self, request, form):
         # Restrict what can be edited manually
@@ -1329,7 +1466,7 @@ class AlternateSearchAdmin(_BaseAdmin):
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
     list_display = ('__unicode__',)
-    league_id_field = 'season__league_id'
+    league_id_field = 'league_id'
     league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
@@ -1343,11 +1480,21 @@ class TeamPairingAdmin(_BaseAdmin):
     league_competitor_type = 'team'
 
 #-------------------------------------------------------------------------------
+class PlayerPresenceInline(admin.TabularInline):
+    model = PlayerPresence
+    extra = 0
+    exclude = ('round', 'player')
+    readonly_fields = ('first_msg_time', 'last_msg_time', 'online_for_game')
+    can_delete = False
+    max_num = 0
+
+#-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'scheduled_time', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
+    inlines = [PlayerPresenceInline]
     exclude = ('white_rating', 'black_rating', 'tv_state')
 
     def get_queryset(self, request):
@@ -1632,17 +1779,34 @@ class RegistrationAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/reject_registration.html', context)
 
+class InSlackFilter(SimpleListFilter):
+    title = 'is in slack'
+    parameter_name = 'player__slack_user_id'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Yes',),
+            ('0', 'No',),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == '0':
+            return queryset.filter(player__slack_user_id='')
+        if self.value() == '1':
+            return queryset.exclude(player__slack_user_id='')
+        return queryset
+
 #-------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
     search_fields = ('season__name', 'player__lichess_username')
-    list_filter = ('season', 'is_active', 'player__in_slack_group')
+    list_filter = ('season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
     league_id_field = 'season__league_id'
 
     def in_slack(self, sp):
-        return sp.player.in_slack_group
+        return bool(sp.player.slack_user_id)
     in_slack.boolean = True
 
 #-------------------------------------------------------------------------------
@@ -1814,3 +1978,143 @@ class ScheduledNotificationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
+
+#-------------------------------------------------------------------------------
+@admin.register(ModRequest)
+class ModRequestAdmin(_BaseAdmin):
+    list_display = ('review', 'type', 'status', 'season', 'date_created')
+    list_display_links = ()
+    list_filter = ('status', 'type', 'season')
+    search_fields = ('requestor__lichess_username',)
+    raw_id_fields = ('round', 'requester', 'pairing')
+    league_id_field = 'season__league_id'
+
+    def changelist_view(self, request, extra_context=None):
+        self.request = request
+        return super(ModRequestAdmin, self).changelist_view(request, extra_context=extra_context)
+
+    def review(self, obj):
+        _url = reverse('admin:tournament_modrequest_review', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
+        return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username)
+    review.allow_tags = True
+
+    def edit(self, obj):
+        return 'Edit'
+    edit.allow_tags = True
+
+    def get_urls(self):
+        urls = super(ModRequestAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/review/$',
+                self.admin_site.admin_view(self.review_request),
+                name='tournament_modrequest_review'),
+            url(r'^(?P<object_id>[0-9]+)/approve/$',
+                self.admin_site.admin_view(self.approve_request),
+                name='tournament_modrequest_approve'),
+            url(r'^(?P<object_id>[0-9]+)/reject/$',
+                self.admin_site.admin_view(self.reject_request),
+                name='tournament_modrequest_reject')
+        ]
+        return my_urls + urls
+
+    def review_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.ReviewModRequestForm(request.POST)
+            if form.is_valid():
+                params = '?_changelist_filters=' + urlquote(changelist_filters)
+                if 'approve' in form.data and obj.status == 'pending':
+                    return redirect_with_params('admin:tournament_modrequest_approve', object_id=object_id, params=params)
+                elif 'reject' in form.data and obj.status == 'pending':
+                    return redirect_with_params('admin:tournament_modrequest_reject', object_id=object_id, params=params)
+                elif 'edit' in form.data:
+                    return redirect_with_params('admin:tournament_modrequest_change', object_id, params=params)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_changelist', params=params)
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.ReviewModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Review mod request',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/review_modrequest.html', context)
+
+    def approve_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if obj.status != 'pending':
+            return redirect('admin:tournament_modrequest_review', object_id)
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.ApproveModRequestForm(request.POST)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    obj.approve(request.user.username, form.cleaned_data['response'])
+                    self.message_user(request, 'Request approved.', messages.INFO)
+                    return redirect_with_params('admin:tournament_modrequest_changelist', params='?' + changelist_filters)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.ApproveModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Confirm approval',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/approve_modrequest.html', context)
+
+    def reject_request(self, request, object_id):
+        obj = get_object_or_404(ModRequest, pk=object_id)
+        if not request.user.has_perm('tournament.change_modrequest', obj.season.league):
+            raise PermissionDenied
+
+        if obj.status != 'pending':
+            return redirect('admin:tournament_modrequest_review', object_id)
+
+        if request.method == 'POST':
+            changelist_filters = request.POST.get('_changelist_filters', '')
+            form = forms.RejectModRequestForm(request.POST)
+            if form.is_valid():
+                if 'confirm' in form.data:
+                    obj.reject(request.user.username, form.cleaned_data['response'])
+                    self.message_user(request, 'Request rejected.', messages.INFO)
+                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
+                else:
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+        else:
+            changelist_filters = request.GET.get('_changelist_filters', '')
+            form = forms.RejectModRequestForm()
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': obj,
+            'title': 'Confirm rejection',
+            'form': form,
+            'changelist_filters': changelist_filters
+        }
+
+        return render(request, 'tournament/admin/reject_modrequest.html', context)

@@ -23,6 +23,14 @@ $(function() {
 	window.dismissAddRelatedObjectPopup = dismissRelatedObjectPopup;
 	window.dismissChangeRelatedObjectPopup = dismissRelatedObjectPopup;
 	window.dismissDeleteRelatedObjectPopup = dismissRelatedObjectPopup;
+	
+	$('time').each(function(i, el) {
+		var $el = $(el);
+		var date = moment($el.attr('datetime'));
+		$el.tooltip({
+			title: date.format('llll') + ' UTC' + date.format('Z')
+		});
+	});
 });
 
 if ($('.cbreplay').length > 0) {

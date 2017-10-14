@@ -121,7 +121,11 @@ div.inline {
 .player-link,
 .player-link:hover,
 .player-link:active,
-.player-link:focus {
+.player-link:focus,
+.board-link,
+.board-link:hover,
+.board-link:active,
+.board-link:focus {
 	color: inherit;
 }
 
@@ -664,6 +668,56 @@ div.inline {
 	display: inline-block;
 }
 
+.my-pairing {
+	height: 80px;
+	border: 1px solid #e3e3e3;
+}
+
+.my-pairing .league-icon.blue {
+	width: 85px;
+	background: url(/static/tournament/img/all-for-one.png);
+	background-position: 6px 1px;
+	background-repeat: no-repeat;
+	background-size: 75px 75px;
+	background-color: #245164;
+}
+
+.my-pairing .league-icon.green {
+	width: 85px;
+	background: url(/static/tournament/img/wolf-head.png);
+	background-position: 6px 1px;
+	background-repeat: no-repeat;
+	background-size: 75px 75px;
+	background-color: #225622;
+}
+
+.my-pairing .league-icon.red {
+	width: 85px;
+	background: url(/static/tournament/img/power-lightning.png);
+	background-position: 6px 1px;
+	background-repeat: no-repeat;
+	background-size: 75px 75px;
+	background-color: #562222;
+}
+
+.my-pairing .details {
+	display: inline-block;
+	padding: 10px;
+}
+
+.my-pairing .round {
+	display: block;
+	font-weight: 600;
+}
+
+.my-pairing .players {
+	display: block;
+}
+
+.my-pairing .result {
+	float: right;
+}
+
 .navbar-brand {
 	padding-right: 5px;
 }
@@ -683,6 +737,11 @@ div.inline {
 #table-lone-pairings tr > td:nth-child(2),
 #table-lone-pairings tr > td:nth-child(4) {
 	width: 30px;
+}
+
+#table-lone-pairings img {
+	vertical-align: top;
+	padding-top: 3px;
 }
 
 #table-notifications {
@@ -733,6 +792,23 @@ div.inline {
 
 .table-menu .dropdown-toggle:hover {
 	background-color: #ddd;
+}
+
+#table-availability {
+	width: auto;
+}
+
+#table-availability input {
+	display: none;
+}
+
+#table-availability tbody td {
+	min-width: 115px;
+	height: 48px;
+}
+
+#table-availability tbody td:nth-child(1) {
+	min-width: auto;
 }
 
 @media (min-width: 768px) {

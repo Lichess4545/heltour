@@ -399,79 +399,62 @@ def league_document(request):
 
 @require_GET
 @require_api_token
-def get_private_url(request):
+def link_slack(request):
     try:
-        league_tag = request.GET.get('league', None)
-        season_tag = request.GET.get('season', None)
-        page = request.GET.get('page', None)
-        user = request.GET.get('user', None)
+        user_id = request.GET.get('user_id', None)
+        display_name = request.GET.get('display_name', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    if not user:
+    if not user_id:
         return HttpResponse('Bad request', status=400)
 
-    if page == 'nominate':
-        if not league_tag:
-            return HttpResponse('Bad request', status=400)
+    token = LoginToken.objects.create(slack_user_id=user_id, username_hint=display_name, expires=timezone.now() + timedelta(days=30))
+    league = League.objects.filter(is_default=True).first()
+    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('-season__start_date').first()
+    if sp:
+        league = sp.season.league
+    url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
+    url = request.build_absolute_uri(url)
 
-        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
-        if not season_tag:
-            url = reverse('by_league:nominate_with_token', args=[league_tag, auth.secret_token])
-        else:
-            url = reverse('by_league:by_season:nominate_with_token', args=[league_tag, season_tag, auth.secret_token])
-        url = request.build_absolute_uri(url)
+    already_linked = [p.lichess_username for p in Player.objects.filter(slack_user_id=user_id)]
 
-        return JsonResponse({'url': url, 'expires': auth.expires})
+    return JsonResponse({'url': url, 'already_linked': already_linked, 'expires': token.expires})
 
-    if page == 'notifications':
-        if not league_tag:
-            return HttpResponse('Bad request', status=400)
-
-        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
-        if not season_tag:
-            url = reverse('by_league:notifications_with_token', args=[league_tag, auth.secret_token])
-        else:
-            url = reverse('by_league:by_season:notifications_with_token', args=[league_tag, season_tag, auth.secret_token])
-        url = request.build_absolute_uri(url)
-
-        return JsonResponse({'url': url, 'expires': auth.expires})
-
-    if page == 'schedule':
-        if not league_tag:
-            return HttpResponse('Bad request', status=400)
-
-        auth = PrivateUrlAuth.objects.create(authenticated_user=user, expires=timezone.now() + timedelta(hours=1))
-        url = reverse('by_league:edit_schedule_with_token', args=[league_tag, auth.secret_token])
-        url = request.build_absolute_uri(url)
-
-        return JsonResponse({'url': url, 'expires': auth.expires})
-
-    return JsonResponse({'url': None, 'expires': None, 'error': 'invalid_page'})
+@require_GET
+@require_api_token
+def get_slack_user_map(request):
+    users = { p.lichess_username: p.slack_user_id for p in Player.objects.exclude(slack_user_id='') }
+    return JsonResponse({'users': users})
 
 @csrf_exempt
 @require_POST
 @require_api_token
-def player_joined_slack(request):
+def player_contact(request):
     try:
-        name = request.POST.get('name', None)
+        sender = request.POST.get('sender', None)
+        recip = request.POST.get('recip', None)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    if not name:
+    if not sender or not recip:
         return HttpResponse('Bad request', status=400)
-    try:
-        player = Player.objects.get(lichess_username__iexact=name)
-    except Player.DoesNotExist:
-        return JsonResponse({'updated': 0, 'error': 'not_found'})
 
-    player.in_slack_group = True
+    rounds = _get_active_rounds(None, None)
+    updated = 0
+    time = timezone.now()
+    for r in rounds:
+        pairings = r.pairings.filter(white__lichess_username__iexact=sender, black__lichess_username__iexact=recip) | \
+                   r.pairings.filter(white__lichess_username__iexact=recip, black__lichess_username__iexact=sender)
+        for p in pairings:
+            presence = p.get_player_presence(Player.objects.get(lichess_username__iexact=sender))
+            if not presence.first_msg_time:
+                presence.first_msg_time = time
+            presence.last_msg_time = time
+            presence.save()
+            updated += 1
 
-    with reversion.create_revision():
-        reversion.set_comment('API: player_joined_slack')
-        player.save()
-
-    return JsonResponse({'updated': 1})
+    return JsonResponse({'updated': updated})
 
 @csrf_exempt
 @require_POST

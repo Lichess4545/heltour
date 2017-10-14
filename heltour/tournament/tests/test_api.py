@@ -28,30 +28,3 @@ class _ApiTestsBase(TestCase):
         self.api_key = ApiKey.objects.create(name='test_key')
         self.client = Client(HTTP_AUTHORIZATION="Token {}".format(self.api_key.secret_token))
 
-
-class TestPlayerJoinedSlack(_ApiTestsBase):
-    def setUp(self):
-        super(TestPlayerJoinedSlack, self).setUp()
-        createCommonAPIData()
-
-    def test_template(self):
-        player = Player.objects.get(lichess_username='Player1')
-        self.assertFalse(player.in_slack_group)
-        url = reverse('api:player_joined_slack')
-
-        response = self.client.post(url, data={})
-        self.assertEqual(400, response.status_code)
-
-        data = {'name': 'ThisDoesntExist'}
-        response = self.client.post(url, data=data)
-        self.assertEqual(0, response.json()['updated'])
-        self.assertEqual('not_found', response.json()['error'])
-
-        data['name'] = 'player1'
-        response = self.client.post(url, data=data)
-        self.assertEqual(1, response.json()['updated'])
-
-        player = Player.objects.get(lichess_username='Player1')
-        self.assertTrue(player.in_slack_group)
-
-

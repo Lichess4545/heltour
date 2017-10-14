@@ -33,6 +33,7 @@ ALLOWED_HOSTS = [
     'staging.lichess4545.com',
     'localhost',
 ]
+LINK_PROTOCOL = 'https'
 
 
 # Application definition
@@ -194,6 +195,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=2),
         'args': ()
     },
+    'update_lichess_presence': {
+        'task': 'heltour.tournament.tasks.update_lichess_presence',
+        'schedule': timedelta(minutes=1),
+        'args': ()
+    },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),
@@ -237,7 +243,7 @@ CKEDITOR_CONFIGS = {
 CKEDITOR_UPLOAD_PATH = "uploads/"
 MEDIA_ROOT = 'media'
 MEDIA_URL = '/media/'
-CKEDITOR_ALLOW_NONIMAGE_FILES = False
+CKEDITOR_ALLOW_NONIMAGE_FILES = True
 
 RECAPTCHA_PUBLIC_KEY = ''
 RECAPTCHA_PRIVATE_KEY = ''
@@ -260,13 +266,18 @@ CACHEOPS = {
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/etc/heltour/gspread.conf'
-SLACK_API_TOKEN_FILE_PATH = '/etc/heltour/slack-token.conf'
-SLACK_WEBHOOK_FILE_PATH = '/etc/heltour/slack-webhook.conf'
-LICHESS_CREDS_FILE_PATH = '/etc/heltour/lichess-creds.conf'
-JAVAFO_COMMAND = 'java -jar /etc/heltour/javafo.jar'
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
+SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
+SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
+LICHESS_CREDS_FILE_PATH = '/home/lichess4545/etc/heltour/lichess-creds.conf'
+JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
+FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 
-LICHESS_DOMAIN = 'https://en.stage.lichess.org/'
+SLACK_APP_TOKEN = ''
+SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
+CHESSTER_USER_ID = 'U0VCPUT7T'
+
+LICHESS_DOMAIN = 'https://listage.ovh/'
 
 # Testing overrides
 import sys
@@ -286,8 +297,8 @@ except ImportError:
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os
 import json
-if os.path.exists("/etc/heltour/staging.json"):
-    overrides = json.loads(open("/etc/heltour/staging.json", "r").read())
+if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
+    overrides = json.loads(open("/home/lichess4545/etc/heltour/staging.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
     ADMINS = overrides.get("ADMINS", locals().get('ADMINS'))
     EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))
@@ -301,6 +312,8 @@ if os.path.exists("/etc/heltour/staging.json"):
     SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
     SLACK_WEBHOOK_FILE_PATH = overrides.get("SLACK_WEBHOOK_FILE_PATH", SLACK_WEBHOOK_FILE_PATH)
     LICHESS_CREDS_FILE_PATH = overrides.get("LICHESS_CREDS_FILE_PATH", LICHESS_CREDS_FILE_PATH)
+    FCM_API_KEY_FILE_PATH = overrides.get("FCM_API_KEY_FILE_PATH", FCM_API_KEY_FILE_PATH)
+    SLACK_APP_TOKEN = overrides.get("SLACK_APP_TOKEN", SLACK_APP_TOKEN)
     MEDIA_ROOT = overrides.get("MEDIA_ROOT", MEDIA_ROOT)
     SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
     RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)

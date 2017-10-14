@@ -52,17 +52,24 @@
 					<span class="dashboard-note">Pending: {{ pending_reg_count }}</span>
 				</div>
 				<div class="dashboard-season-action">
+					<a href="{% url 'admin:tournament_modrequest_changelist' %}?season__id__exact={{ season.pk }}&status__exact=pending" class="btn btn-default">Review Mod Requests</a>
+					<span class="dashboard-note">Pending: {{ pending_modreq_count }}</span>
+				</div>
+				<div class="dashboard-season-action">
 					<a href="{% url 'admin:manage_players' season.pk %}" class="btn btn-default">Manage Players</a>
 				</div>
 				{% if next_round %}
 				<div class="dashboard-season-action">
+					<a href="{% url 'admin:pre_round_report' season.pk %}" class="btn btn-default">Pre-Round Report</a>
+				</div>
+				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start Round {{ next_round.number }}</a>
-					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date:"m/d H:i" }}</span>
+					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date_el:"m/d H:i" }}</span>
 				</div>
 				{% elif last_round %}
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close Round {{ last_round.number }}</a>
-					<span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date:"m/d H:i" }}</span>
+					<span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date_el:"m/d H:i" }}</span>
 				</div>
 				{% elif not season.is_completed %}
 				<div class="dashboard-season-action">

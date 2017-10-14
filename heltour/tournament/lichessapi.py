@@ -53,6 +53,17 @@ def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=1
             yield meta
         lichess_usernames = lichess_usernames[300:]
 
+def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/api/users/status?priority=%s&max_retries=%s' % (settings.API_WORKER_HOST, priority, max_retries)
+    while len(lichess_usernames) > 0:
+        batch = lichess_usernames[:40]
+        result = _apicall('%s&ids=%s' % (url, ','.join(batch)), timeout)
+        if result == '':
+            raise ApiWorkerError('API failure')
+        for status in json.loads(result):
+            yield status
+        lichess_usernames = lichess_usernames[40:]
+
 def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3, timeout=120):
     page = 1
     while True:
@@ -154,6 +165,7 @@ def send_mail(lichess_username, subject, text):
         if login_cookies is None:
             return False
 
+        text = text + '\n\nThis is an automated message, do not reply.'
         mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
         mail_response = requests.post(settings.LICHESS_DOMAIN + 'inbox/new', data=mail_data, headers=_headers, cookies=login_cookies)
         if mail_response.status_code != 200:
@@ -164,13 +176,26 @@ def send_mail(lichess_username, subject, text):
             logger.error('Error sending mail on lichess: %s' % (mail_response.text))
             return False
 
-        return True
+        return mail_json['id']
     except Exception:
         # Probably a configuration error
         if settings.DEBUG:
             print 'Lichess mail to %s - [%s]:\n%s' % (lichess_username, subject, text)
         logger.exception('Error sending lichess mail to %s' % lichess_username)
         return False
+
+def get_peak_rating(lichess_username, perf_type):
+    # This doesn't actually use the API proper, so it doesn't need the worker
+    try:
+        response = requests.get(settings.LICHESS_DOMAIN + '@/%s/perf/%s' % (lichess_username, perf_type), headers=_headers)
+        if response.status_code != 200:
+            logger.error('Received status %s when trying to retrieve peak rating on lichess: %s' % (response.status_code, response.text))
+            return None
+
+        return response.json()['stat']['highest']['int']
+    except Exception:
+        logger.exception('Error retrieving peak rating for %s' % lichess_username)
+        return None
 
 class ApiWorkerError(Exception):
     pass

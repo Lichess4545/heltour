@@ -16,6 +16,8 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.generic import View
 from django.utils.text import slugify
+from django.contrib.auth import login, logout
+from django.contrib.auth.models import User
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
 from heltour.tournament.templatetags.tournament_extras import leagueurl
@@ -36,19 +38,25 @@ common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing,
 class BaseView(View):
     def get(self, request, *args, **kwargs):
         self.read_context()
-        return self.view(*self.args, **self.kwargs)
+        return self.preprocess() or self.view(*self.args, **self.kwargs)
 
     def post(self, request, *args, **kwargs):
         if not hasattr(self, 'view_post'):
             return super(BaseView, self).post(request, *args, **kwargs)
         self.read_context()
-        return self.view_post(*self.args, **self.kwargs)
+        return self.preprocess() or self.view_post(*self.args, **self.kwargs)
 
     def read_context(self):
-        pass
+        self.extra_context = {}
 
     def render(self, template, context):
+        context.update(self.extra_context)
         return render(self.request, template, context)
+
+    def preprocess(self):
+        if not hasattr(self, '_preprocess'):
+            return None
+        return self._preprocess()
 
 class LeagueView(BaseView):
     def read_context(self):
@@ -56,6 +64,7 @@ class LeagueView(BaseView):
         season_tag = self.kwargs.pop('season_tag', None)
         self.league = _get_league(league_tag)
         self.season = _get_season(league_tag, season_tag, True)
+        self.extra_context = {}
 
     def render(self, template, context):
         context.update({
@@ -64,6 +73,7 @@ class LeagueView(BaseView):
             'nav_tree': _get_nav_tree(self.league.tag, self.season.tag if self.season is not None else None),
             'other_leagues': League.objects.filter(is_active=True).order_by('display_order').exclude(pk=self.league.pk)
         })
+        context.update(self.extra_context)
         return render(self.request, template, context)
 
 class SeasonView(LeagueView):
@@ -71,7 +81,7 @@ class SeasonView(LeagueView):
         self.read_context()
         if not self._season_specified:
             return redirect('by_league:by_season:%s' % request.resolver_match.url_name, *self.args, league_tag=self.league.tag, season_tag=self.season.tag, **self.kwargs)
-        return self.view(*self.args, **self.kwargs)
+        return self.preprocess() or self.view(*self.args, **self.kwargs)
 
     def read_context(self):
         league_tag = self.kwargs.pop('league_tag')
@@ -79,31 +89,18 @@ class SeasonView(LeagueView):
         self.league = _get_league(league_tag)
         self.season = _get_season(league_tag, season_tag, False)
         self._season_specified = season_tag is not None
+        self.extra_context = {}
 
-class UrlAuthMixin:
-    def persist_url_auth(self, secret_token):
-        if secret_token is not None:
-            auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
-            if auth is not None and not auth.is_expired():
-                self.request.session['url_auth_token'] = secret_token
-                auth.used = True
-                auth.save()
-            return True
-        return False
+class LoginRequiredMixin:
+    def _preprocess(self):
+        if not self.request.user.is_authenticated():
+            self.request.session['login_redirect'] = self.request.build_absolute_uri()
+            return redirect('by_league:login', self.league.tag)
+        self.extra_context['player'] = self.player
 
-    def get_authenticated_user(self):
-        username = None
-        player = None
-
-        secret_token = self.request.session.get('url_auth_token', '')
-        auth = PrivateUrlAuth.objects.filter(secret_token=secret_token).first()
-        if auth is not None and not auth.is_expired():
-            username = auth.authenticated_user
-            player = Player.objects.filter(lichess_username__iexact=username).first()
-        # Clean up the DB
-        for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
-            expired_auth.delete()
-        return username, player
+    @property
+    def player(self):
+        return Player.get_or_create(self.request.user.username)
 
 class ICalMixin:
     def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
@@ -245,7 +242,7 @@ class SeasonLandingView(SeasonView):
 
     def team_view(self):
         @cached_as(SeasonDocument, Document, TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             if self.season.is_completed:
                 return self.team_completed_season_view()
 
@@ -271,11 +268,11 @@ class SeasonLandingView(SeasonView):
                 'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/team_season_landing.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def lone_view(self):
         @cached_as(SeasonDocument, Document, *common_lone_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             if self.season.is_completed:
                 return self.lone_completed_season_view()
 
@@ -301,7 +298,7 @@ class SeasonLandingView(SeasonView):
                 'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/lone_season_landing.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def team_completed_season_view(self):
         default_season, season_list = self.get_season_list()
@@ -426,11 +423,11 @@ class PairingsView(SeasonView):
     def team_view(self, round_number=None, team_number=None):
         @cached_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, TeamPlayerPairing,
                    PlayerPairing, *common_team_models)
-        def _view(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
+        def _view(league_tag, season_tag, round_number, team_number, is_staff, username, can_change_pairing):
             context = self.get_team_context(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing)
             return self.render('tournament/team_pairings.html', context)
         return _view(
-                     self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff,
+                     self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.username,
                      self.request.user.has_perm('tournament.change_pairing', self.league))
 
     def get_lone_context(self, round_number=None, team_number=None):
@@ -460,6 +457,13 @@ class PairingsView(SeasonView):
 
         active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=self.season, is_active=True)}
 
+        can_change_pairing = self.request.user.has_perm('tournament.change_pairing', self.league)
+
+        presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
+        if pairings:
+            contact_deadline = round_.start_date + timedelta(hours=48)
+            in_contact_period = timezone.now() < contact_deadline
+
         def pairing_error(pairing):
             if not self.request.user.is_staff:
                 return None
@@ -484,8 +488,25 @@ class PairingsView(SeasonView):
                 return 'Inactive player: %s' % bye.player.lichess_username
             return None
 
+        def status(player, pairing):
+            if not can_change_pairing:
+                return (None, None)
+            pres = presences.get((player.pk, pairing.pk))
+            if in_contact_period:
+                if not pres or not pres.first_msg_time:
+                    return (None, 'no contact yet')
+                else:
+                    return ('yes', 'in contact')
+            else:
+                if not pres or not pres.first_msg_time:
+                    return ('no', 'unresponsive')
+                elif pres.first_msg_time > contact_deadline:
+                    return ('alert', 'late contact')
+                else:
+                    return ('yes', 'in contact')
+
         # Add errors
-        pairings = [(p, pairing_error(p)) for p in pairings]
+        pairings = [(p, pairing_error(p)) + status(p.white, p) + status(p.black, p) for p in pairings]
         byes = [(b, bye_error(b)) for b in byes]
 
         return {
@@ -496,7 +517,7 @@ class PairingsView(SeasonView):
             'specified_round': specified_round,
             'next_pairing_order': next_pairing_order,
             'duplicate_players': duplicate_players,
-            'can_edit': self.request.user.has_perm('tournament.change_pairing', self.league)
+            'can_edit': can_change_pairing
         }
 
     def lone_view(self, round_number=None, team_number=None):
@@ -535,7 +556,7 @@ class ICalPairingsView(PairingsView, ICalMixin):
         uid_component = 'all'
 
         full_pairings_list = []
-        for pairing, error in context['pairings']:
+        for pairing, error, _, _, _, _ in context['pairings']:
             if error:
                 continue
             if pairing.scheduled_time is None:
@@ -570,6 +591,13 @@ class RegisterView(LeagueView):
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:
             form = RegistrationForm(season=reg_season)
+            if self.request.user.is_authenticated():
+                player = Player.get_or_create(self.request.user.username)
+                form.fields['lichess_username'].initial = player.lichess_username
+                form.fields['email'].initial = player.email
+                form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
+                form.fields['has_played_20_games'].initial = player.games_played > 20
+                form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
         context = {
             'form': form,
@@ -595,10 +623,48 @@ class RegistrationSuccessView(SeasonView):
         }
         return self.render('tournament/registration_success.html', context)
 
+class ModRequestView(SeasonView, LoginRequiredMixin):
+    def view(self, req_type, post=False):
+
+        if req_type not in MOD_REQUEST_SENDER:
+            raise Http404
+
+        if post:
+            form = ModRequestForm(self.request.POST)
+            if form.is_valid():
+                with reversion.create_revision():
+                    reversion.set_comment('Submitted mod request.')
+                    modreq = form.save(commit=False)
+                    modreq.season = self.season
+                    modreq.type = req_type
+                    modreq.requester = self.player
+                    modreq.status = 'pending'
+                    modreq.screenshot = self.request.FILES.get('screenshot')
+                    modreq.save()
+                return redirect(leagueurl('modrequest_success', self.league.tag, self.season.tag, req_type))
+        else:
+            form = ModRequestForm()
+
+        context = {
+            'form': form,
+            'req_type': ModRequest(type=req_type).get_type_display()
+        }
+        return self.render('tournament/modrequest.html', context)
+
+    def view_post(self, req_type):
+        return self.view(req_type, post=True)
+
+class ModRequestSuccessView(SeasonView):
+    def view(self, req_type):
+        context = {
+            'req_type': ModRequest(type=req_type).get_type_display()
+        }
+        return self.render('tournament/modrequest_success.html', context)
+
 class RostersView(SeasonView):
     def view(self):
         @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models)
-        def _view(league_tag, season_tag, is_staff, can_edit):
+        def _view(league_tag, season_tag, is_staff, username, can_edit):
             if self.league.competitor_type != 'team':
                 raise Http404
             if self.season is None:
@@ -655,7 +721,7 @@ class RostersView(SeasonView):
                 'can_edit': can_edit,
             }
             return self.render('tournament/team_rosters.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.has_perm('tournament.manage_players', self.league))
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username, self.request.user.has_perm('tournament.manage_players', self.league))
 
 class StandingsView(SeasonView):
     def view(self, section=None):
@@ -666,7 +732,7 @@ class StandingsView(SeasonView):
 
     def team_view(self):
         @cached_as(TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             round_numbers = list(range(1, self.season.rounds + 1))
             team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
             context = {
@@ -674,11 +740,11 @@ class StandingsView(SeasonView):
                 'team_scores': team_scores,
             }
             return self.render('tournament/team_standings.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def lone_view(self, section=None):
         @cached_as(*common_lone_models)
-        def _view(league_tag, season_tag, section, is_staff):
+        def _view(league_tag, season_tag, section, is_staff, username):
             round_numbers = list(range(1, self.season.rounds + 1))
             player_scores = _lone_player_scores(self.season)
 
@@ -712,7 +778,7 @@ class StandingsView(SeasonView):
                 'player_highlights': player_highlights,
             }
             return self.render('tournament/lone_standings.html', context)
-        return _view(self.league.tag, self.season.tag, section, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, section, self.request.user.is_staff, self.request.user.username)
 
 def _get_player_highlights(prize_winners):
     return [
@@ -763,7 +829,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
 class CrosstableView(SeasonView):
     def view(self):
         @cached_as(TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             if self.league.competitor_type != 'team':
                 raise Http404
             team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
@@ -773,12 +839,12 @@ class CrosstableView(SeasonView):
                 'team_scores': team_scores,
             }
             return self.render('tournament/team_crosstable.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
 class WallchartView(SeasonView):
     def view(self):
         @cached_as(*common_lone_models)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             if self.league.competitor_type == 'team':
                 raise Http404
             round_numbers = list(range(1, self.season.rounds + 1))
@@ -796,7 +862,7 @@ class WallchartView(SeasonView):
                 'player_highlights': player_highlights,
             }
             return self.render('tournament/lone_wallchart.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
 class StatsView(SeasonView):
     def view(self):
@@ -807,7 +873,7 @@ class StatsView(SeasonView):
 
     def team_view(self):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
                                                 .nocache()
@@ -849,11 +915,11 @@ class StatsView(SeasonView):
                 'boards': boards,
             }
             return self.render('tournament/team_stats.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def lone_view(self):
         @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing)
-        def _view(league_tag, season_tag, is_staff):
+        def _view(league_tag, season_tag, is_staff, username):
             all_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season) \
                                                 .select_related('loneplayerpairing', 'white', 'black') \
                                                 .nocache()
@@ -913,7 +979,7 @@ class StatsView(SeasonView):
                 'upset_percents': upset_percents,
             }
             return self.render('tournament/lone_stats.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
 class BoardScoresView(SeasonView):
     def view(self, board_number):
@@ -924,7 +990,7 @@ class BoardScoresView(SeasonView):
 
     def team_view(self, board_number):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
-        def _view(league_tag, season_tag, is_staff, board_number):
+        def _view(league_tag, season_tag, is_staff, username, board_number):
             board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .exclude(white=None).exclude(black=None) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
@@ -995,7 +1061,7 @@ class BoardScoresView(SeasonView):
                 'player_scores': ps_list
             }
             return self.render('tournament/team_board_scores.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, board_number)
+        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username, board_number)
 
 class LeagueDashboardView(LeagueView):
     def view(self):
@@ -1011,6 +1077,7 @@ class LeagueDashboardView(LeagueView):
             season_list.remove(default_season)
 
         pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
+        pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
 
         team_members = TeamMember.objects.filter(team__season=self.season).select_related('player').nocache()
         alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
@@ -1029,6 +1096,7 @@ class LeagueDashboardView(LeagueView):
             'default_season': default_season,
             'season_list': season_list,
             'pending_reg_count': pending_reg_count,
+            'pending_modreq_count': pending_modreq_count,
             'unassigned_player_count': unassigned_player_count,
             'alternate_search_count': alternate_search_count,
             'last_round': last_round,
@@ -1045,6 +1113,53 @@ class LeagueDashboardView(LeagueView):
     def lone_view(self):
         context = self._common_context()
         return self.render('tournament/lone_league_dashboard.html', context)
+
+class UserDashboardView(LeagueView):
+    def view(self):
+        if not self.request.user.is_authenticated():
+            return redirect('by_league:league_home', self.league.tag)
+
+        player = Player.get_or_create(self.request.user.username)
+
+        slack_linked = bool(player.slack_user_id)
+        slack_linked_just_now = False
+        if self.request.session.get('slack_linked'):
+            slack_linked_just_now = True
+            del self.request.session['slack_linked']
+
+        active_season = self.league.season_set.filter(is_active=True, is_completed=False).order_by('-start_date').first()
+        active_sp = player.seasonplayer_set.filter(season=active_season).first()
+        last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True, season__is_completed=True) \
+                        .order_by('-season__start_date').first()
+        last_season = last_sp.season if last_sp is not None else None
+
+        active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False, season__is_active=True)
+        my_pairings = []
+        for r in active_rounds:
+            my_pairings += [(r, p) for p in r.pairings.filter(white=player).exclude(black=None) | r.pairings.filter(black=player).exclude(white=None)]
+
+        def sort_order(round_, pairing):
+            if pairing.game_link and not pairing.result:
+                # In progress
+                return (0, 0)
+            if pairing.scheduled_time and not pairing.result:
+                # Scheduled
+                return (1, pairing.scheduled_time)
+            # Unscheduled
+            return (2, round_.end_date)
+
+        my_pairings.sort(key=lambda (r, p): sort_order(r, p))
+
+        context = {
+            'player': player,
+            'slack_linked': slack_linked,
+            'slack_linked_just_now': slack_linked_just_now,
+            'active_season': active_season,
+            'active_sp': active_sp,
+            'last_season': last_season,
+            'my_pairings': my_pairings
+        }
+        return self.render('tournament/user_dashboard.html', context)
 
 class DocumentView(LeagueView):
     def view(self, document_tag):
@@ -1256,15 +1371,12 @@ class TeamProfileView(LeagueView):
         }
         return self.render('tournament/team_profile.html', context)
 
-class NominateView(SeasonView, UrlAuthMixin):
-    def view(self, secret_token=None, post=False):
+class NominateView(SeasonView, LoginRequiredMixin):
+    def view(self, post=False):
         can_nominate = False
         current_nominations = []
         form = None
-
-        if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
-        username, player = self.get_authenticated_user()
+        player = self.player
 
         if self.league.competitor_type == 'team':
             season_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season).nocache()
@@ -1293,13 +1405,8 @@ class NominateView(SeasonView, UrlAuthMixin):
                 else:
                     form = NominateForm(self.season, player, current_nominations, max_nominations, season_pairings)
 
-        # Clean up the DB
-        for expired_auth in PrivateUrlAuth.objects.filter(expires__lt=timezone.now()):
-            expired_auth.delete()
-
         context = {
             'form': form,
-            'username': username,
             'can_nominate': can_nominate,
             'max_nominations': max_nominations,
             'current_nominations': current_nominations,
@@ -1309,16 +1416,14 @@ class NominateView(SeasonView, UrlAuthMixin):
     def view_post(self):
         return self.view(post=True)
 
-class DeleteNominationView(SeasonView, UrlAuthMixin):
+class DeleteNominationView(SeasonView, LoginRequiredMixin):
     def view(self, nomination_id, post=False):
         form = None
 
-        username, player = self.get_authenticated_user()
-
-        if player is None or not self.season.nominations_open:
+        if not self.season.nominations_open:
             return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
 
-        nomination_to_delete = GameNomination.objects.filter(season=self.season, nominating_player=player, pk=nomination_id).first()
+        nomination_to_delete = GameNomination.objects.filter(season=self.season, nominating_player=self.player, pk=nomination_id).first()
         if nomination_to_delete is None:
             return redirect('by_league:by_season:nominate', self.league.tag, self.season.tag)
 
@@ -1332,7 +1437,6 @@ class DeleteNominationView(SeasonView, UrlAuthMixin):
 
         context = {
             'form': form,
-            'username': username,
             'nomination_to_delete': nomination_to_delete,
         }
         return self.render('tournament/nomination_delete.html', context)
@@ -1340,20 +1444,62 @@ class DeleteNominationView(SeasonView, UrlAuthMixin):
     def view_post(self, nomination_id):
         return self.view(nomination_id, post=True)
 
-class ScheduleView(LeagueView, UrlAuthMixin):
-    def view(self, secret_token=None, post=False):
-        if self.persist_url_auth(secret_token):
-            return redirect('by_league:edit_schedule', self.league.tag)
-        username, player = self.get_authenticated_user()
+class ScheduleView(LeagueView, LoginRequiredMixin):
+    def view(self, post=False):
 
-        times = player.availabletime_set.filter(league=self.league) if player is not None else None
+        times = self.player.availabletime_set.filter(league=self.league) if self.player is not None else None
 
         context = {
-            'username': username,
-            'player': player,
+            'player': self.player,
             'times': times,
         }
         return self.render('tournament/schedule.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
+class AvailabilityView(SeasonView, LoginRequiredMixin):
+    def view(self, post=False):
+        player = self.player
+
+        player_list = [player]
+        include_current_round = self.league.competitor_type == 'team'
+        if include_current_round:
+            round_list = list(self.season.round_set.order_by('number').filter(is_completed=False))
+        else:
+            round_list = list(self.season.round_set.order_by('number').filter(publish_pairings=False))
+        round_data = None
+
+        if player is not None:
+
+            # Add team members if the user is a captain
+            team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
+            if team_member is not None and team_member.is_captain:
+                team = team_member.team
+                for tm in team.teammember_set.order_by('board_number').select_related('player').nocache():
+                    if tm.player not in player_list:
+                        player_list.append(tm.player)
+
+            availability_set = PlayerAvailability.objects.filter(player__in=player_list, round__in=round_list).nocache()
+            is_available_dict = {(av.round_id, av.player_id): av.is_available for av in availability_set}
+
+            if post:
+                for r in round_list:
+                    for p in player_list:
+                        field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
+                        is_available = self.request.POST.get(field_name) != 'on'
+                        if is_available != is_available_dict.get((r.id, p.id), True):
+                            PlayerAvailability.objects.update_or_create(player=p, round=r, defaults={ 'is_available': is_available })
+                return redirect('by_league:by_season:edit_availability', self.league.tag, self.season.tag)
+
+            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list]) for r in round_list]
+
+
+        context = {
+            'player_list': player_list,
+            'round_data': round_data,
+        }
+        return self.render('tournament/availability.html', context)
 
     def view_post(self):
         return self.view(post=True)
@@ -1413,20 +1559,15 @@ class AlternatesView(SeasonView):
         }
         return self.render('tournament/alternates.html', context)
 
-class AlternateAcceptView(SeasonView, UrlAuthMixin):
-    def view(self, round_number, secret_token=None, post=False):
+class AlternateAcceptView(SeasonView, LoginRequiredMixin):
+    def view(self, round_number, post=False):
         round_number = int(round_number)
-        if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:alternate_accept', self.league.tag, self.season.tag, round_number)
-        username, player = self.get_authenticated_user()
 
         round_ = alternates_manager.current_round(self.season)
 
-        alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=player).first()
+        alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=self.player).first()
         show_button = False
-        if not username:
-            msg = ''
-        elif alt is None:
+        if alt is None:
             msg = 'You are not an alternate in %s.' % self.season
         elif round_ is None:
             msg = 'There is no round currently in progress.'
@@ -1455,7 +1596,6 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
             msg = 'Sorry, no games are currently available for round %d.' % round_.number
 
         context = {
-            'username': username,
             'msg': msg,
             'show_button': show_button
         }
@@ -1464,20 +1604,15 @@ class AlternateAcceptView(SeasonView, UrlAuthMixin):
     def view_post(self, round_number):
         return self.view(round_number, post=True)
 
-class AlternateDeclineView(SeasonView, UrlAuthMixin):
-    def view(self, round_number, secret_token=None, post=False):
+class AlternateDeclineView(SeasonView, LoginRequiredMixin):
+    def view(self, round_number, post=False):
         round_number = int(round_number)
-        if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:alternate_decline', self.league.tag, self.season.tag, round_number)
-        username, player = self.get_authenticated_user()
 
         round_ = alternates_manager.current_round(self.season)
 
-        alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=player).first()
+        alt = Alternate.objects.filter(season_player__season=self.season, season_player__player=self.player).first()
         show_button = False
-        if not username:
-            msg = ''
-        elif alt is None:
+        if alt is None:
             msg = 'You are not an alternate in %s.' % self.season
         elif round_ is None:
             msg = 'There is no round currently in progress.'
@@ -1499,7 +1634,6 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
                 show_button = True
 
         context = {
-            'username': username,
             'msg': msg,
             'show_button': show_button
         }
@@ -1508,37 +1642,115 @@ class AlternateDeclineView(SeasonView, UrlAuthMixin):
     def view_post(self, round_number):
         return self.view(round_number, post=True)
 
-class NotificationsView(SeasonView, UrlAuthMixin):
-    def view(self, secret_token=None, post=False):
-        if self.persist_url_auth(secret_token):
-            return redirect('by_league:by_season:notifications', self.league.tag, self.season.tag)
-        username, player = self.get_authenticated_user()
-
-        if player is not None:
-            if post:
-                form = NotificationsForm(self.league, player, self.request.POST)
-                if form.is_valid():
-                    PlayerNotificationSetting.objects.filter(player=player, league=self.league).delete()
-                    for type_, _ in PLAYER_NOTIFICATION_TYPES:
-                        if type_ == 'alternate_needed' and self.league.competitor_type != 'team':
-                            continue
-                        setting = PlayerNotificationSetting(player=player, league=self.league, type=type_)
-                        setting.enable_lichess_mail = form.cleaned_data[type_ + '_lichess']
-                        setting.enable_slack_im = form.cleaned_data[type_ + '_slack']
-                        setting.enable_slack_mpim = form.cleaned_data[type_ + '_slack_wo']
-                        setting.offset = timedelta(minutes=form.cleaned_data[type_ + '_offset']) if (type_ + '_offset') in form.cleaned_data else None
-                        setting.save()
-            else:
-                form = NotificationsForm(self.league, player)
+class NotificationsView(SeasonView, LoginRequiredMixin):
+    def view(self, post=False):
+        player = self.player
+        if post:
+            form = NotificationsForm(self.league, player, self.request.POST)
+            if form.is_valid():
+                PlayerNotificationSetting.objects.filter(player=player, league=self.league).delete()
+                for type_, _ in PLAYER_NOTIFICATION_TYPES:
+                    if type_ == 'alternate_needed' and self.league.competitor_type != 'team':
+                        continue
+                    setting = PlayerNotificationSetting(player=player, league=self.league, type=type_)
+                    setting.enable_lichess_mail = form.cleaned_data[type_ + '_lichess']
+                    setting.enable_slack_im = form.cleaned_data[type_ + '_slack']
+                    setting.enable_slack_mpim = form.cleaned_data[type_ + '_slack_wo']
+                    setting.offset = timedelta(minutes=form.cleaned_data[type_ + '_offset']) if (type_ + '_offset') in form.cleaned_data else None
+                    setting.save()
         else:
-            form = None
+            form = NotificationsForm(self.league, player)
 
         context = {
-            'username': username,
-            'player': player,
             'form': form
         }
         return self.render('tournament/notifications.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
+class LoginView(LeagueView):
+    def view(self, secret_token=None, post=False):
+        slack_user_id = ''
+        username_hint = ''
+        if secret_token:
+            token = LoginToken.objects.filter(secret_token=secret_token).first()
+            if token and not token.is_expired():
+                if token.lichess_username:
+                    # Okay, we've successfully authenticated via lichess
+                    # Now we set it up so Django recognizes the user
+                    user = User.objects.filter(username__iexact=token.lichess_username).first()
+                    if not user:
+                        # Create the user with a password no one will ever use; it can always be manually reset if needed
+                        with reversion.create_revision():
+                            reversion.set_comment('Create user from lichess login')
+                            user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                    login(self.request, user)
+
+                    if token.slack_user_id:
+                        # Double check against the session to prevent certain kinds of attacks
+                        if self.request.session.get('slack_user_id') == token.slack_user_id:
+                            # Oh look, we've also associated the lichess account with a slack account. How convenient.
+                            if Player.link_slack_account(token.lichess_username, token.slack_user_id):
+                                self.request.session['slack_linked'] = True
+
+                    redir_url = self.request.session.get('login_redirect')
+                    if redir_url:
+                        self.request.session['login_redirect'] = None
+                        return redirect(redir_url)
+                    else:
+                        return redirect('by_league:user_dashboard', self.league.tag)
+                elif token.slack_user_id:
+                    # The user has been directed here from Slack. If they complete the login their accounts will be associated
+                    if self.request.user.is_authenticated():
+                        # Already logged in, so associate right now
+                        if Player.link_slack_account(self.request.user.username, token.slack_user_id):
+                            self.request.session['slack_linked'] = True
+                        return redirect('by_league:user_dashboard', self.league.tag)
+                    slack_user_id = token.slack_user_id
+                    username_hint = token.username_hint
+        if post:
+            form = LoginForm(self.request.POST)
+            if form.is_valid():
+                username = form.cleaned_data['lichess_username']
+                if slack_user_id:
+                    # As well as in the token, store the slack ID in the session for validation purposes
+                    self.request.session['slack_user_id'] = slack_user_id
+                login_token, _ = LoginToken.objects.get_or_create(
+                                                               lichess_username=username, slack_user_id=slack_user_id,
+                                                               expires__gt=timezone.now() + timedelta(hours=12),
+                                                               defaults={'expires':timezone.now() + timedelta(days=1)})
+                if not login_token.mail_id:
+                    login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
+                    msg = 'Click this link to complete the login process.\n\n%s' % login_link
+                    result = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
+                    if result:
+                        login_token.mail_id = result
+                        login_token.save()
+                if login_token.mail_id:
+                    return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
+                form.add_error('lichess_username', 'A validation mail could not be sent. Check your spelling.')
+        else:
+            form = LoginForm()
+            form.fields['lichess_username'].initial = username_hint
+
+        context = {
+            'form': form,
+        }
+        return self.render('tournament/login.html', context)
+
+    def view_post(self, secret_token=None):
+        return self.view(secret_token, post=True)
+
+class LogoutView(LeagueView):
+    def view(self, post=False):
+
+        if post:
+            logout(self.request)
+            return redirect('by_league:league_home', self.league.tag)
+
+        return self.render('tournament/logout.html', {})
 
     def view_post(self):
         return self.view(post=True)

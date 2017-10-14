@@ -1,4 +1,6 @@
 from heltour.tournament.models import LeagueModerator, League
+from django.views.generic.base import View
+from django.http.response import HttpResponse
 
 class LeagueAuthBackend(object):
 
@@ -22,3 +24,7 @@ class LeagueAuthBackend(object):
         if app_label != 'tournament':
             return False
         return LeagueModerator.objects.filter(player__lichess_username__iexact=user_obj.username).exists()
+
+class SlackAuth(View):
+    def view(self):
+        return HttpResponse('ok')

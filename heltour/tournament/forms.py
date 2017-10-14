@@ -20,18 +20,14 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'slack_username', 'email', 'classical_rating',
-            'peak_classical_rating', 'has_played_20_games', 'already_in_slack_group',
+            'lichess_username', 'email', 'classical_rating',
+            'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate', 'can_commit', 'friends', 'agreed_to_rules',
             'alternate_preference', 'weeks_unavailable',
         )
         labels = {
             'lichess_username': _(u'Your Lichess Username'),
-            'slack_username': _(u'Your Slack Username'),
             'email': _(u'Your Email'),
-        }
-        help_texts = {
-            'slack_username': _(u"Please, it should be the same. If you aren't on our Slack yet, please fill in N/A."),
         }
 
     def __init__(self, *args, **kwargs):
@@ -42,7 +38,6 @@ class RegistrationForm(forms.ModelForm):
         # Rating fields
         rating_type = league.get_rating_type_display()
         self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Lichess %s Rating' % rating_type))
-        self.fields['peak_classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Highest Peak Lichess %s Rating' % rating_type))
 
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
@@ -74,7 +69,7 @@ class RegistrationForm(forms.ModelForm):
         # Friends
         if league.competitor_type == 'team':
             self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),
-                                                     help_text=_(u'Note: All players must register. All players must join Slack. All players should also request each other.'))
+                                                     help_text=_(u'Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
         else:
             del self.fields['friends']
 
@@ -166,6 +161,26 @@ class RejectRegistrationForm(forms.Form):
         _ = kwargs.pop('registration')
         super(RejectRegistrationForm, self).__init__(*args, **kwargs)
 
+class ModRequestForm(forms.ModelForm):
+    class Meta:
+        model = ModRequest
+        fields = (
+            'notes', 'screenshot'
+        )
+        labels = {
+            'notes': _(u'Notes'),
+            'screenshot': _(u'Screenshot (if applicable)'),
+        }
+
+class ReviewModRequestForm(forms.Form):
+    pass
+
+class ApproveModRequestForm(forms.Form):
+    response = forms.CharField(required=False, max_length=1024, widget=forms.Textarea)
+
+class RejectModRequestForm(forms.Form):
+    response = forms.CharField(required=False, max_length=1024, widget=forms.Textarea)
+
 class ImportSeasonForm(forms.Form):
     spreadsheet_url = forms.CharField(label='Spreadsheet URL', max_length=1023)
     season_name = forms.CharField(label='Season name', max_length=255)
@@ -256,6 +271,15 @@ class BulkEmailForm(forms.Form):
 
         self.fields['confirm_send'].label = 'Yes, I\'m sure - send emails to %d players in %s' % (season.seasonplayer_set.count(), season.name)
 
+class TeamSpamForm(forms.Form):
+    text = forms.CharField(max_length=4096, required=True, widget=forms.Textarea)
+    confirm_send = forms.BooleanField()
+
+    def __init__(self, season, *args, **kwargs):
+        super(TeamSpamForm, self).__init__(*args, **kwargs)
+
+        self.fields['confirm_send'].label = 'Yes, I\'m sure - send spam to %d teams in %s' % (season.team_set.count(), season.name)
+
 class TvFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
         current_league = kwargs.pop('current_league')
@@ -284,3 +308,6 @@ class NotificationsForm(forms.Form):
             if type_ == 'before_game_time':
                 offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'), (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]
                 self.fields[type_ + '_offset'] = forms.TypedChoiceField(choices=offset_options, initial=int(setting.offset.total_seconds()) / 60, coerce=int)
+
+class LoginForm(forms.Form):
+    lichess_username = forms.CharField(max_length=255, required=False, validators=[username_validator])

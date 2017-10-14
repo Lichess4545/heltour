@@ -1,4 +1,4 @@
-{% with "44" as static_version %}<!DOCTYPE html>
+{% with "50" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -8,7 +8,7 @@
     <title>{% block title %}{{ league.name }}{% endblock %}</title>
 
     {% load staticfiles tournament_extras %}
-    <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans:400,700" rel="stylesheet">
     <link rel="shortcut icon" type="image/png" href="{% block iconpath %}{% static 'tournament/img/favicon.png' %}{% endblock %}?v={{ static_version }}"/>
     {% block common_css %}
     <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
@@ -57,6 +57,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="{% static "lib/js/bootstrap.min.js" %}?v={{ static_version }}"></script>
     <script src="{% static "tournament/js/common.js" %}?v={{ static_version }}"></script>
+	<script type="text/javascript" src="{% static 'lib/js/moment.min.js' %}"></script>
     {% endblock %}
     {% block js %}{% endblock %}
 </body>

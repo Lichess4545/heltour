@@ -15,6 +15,9 @@ from heltour.tournament import signals
 import logging
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
+from django_comments.models import Comment
+from heltour import settings
+import reversion
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +36,11 @@ def getnestedattr(obj, k):
 
 def abs_url(url):
     site = Site.objects.get_current().domain
-    return 'https://%s%s' % (site, url)
+    return '%s://%s%s' % (settings.LINK_PROTOCOL, site, url)
+
+def add_system_comment(obj, text, user_name='System'):
+    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
+                           comment=text, submit_date=timezone.now(), is_public=True)
 
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
@@ -314,7 +321,7 @@ class Season(_BaseModel):
                         elif round_state.round_match_points == 1:
                             score.sb_score += score_dict[(round_state.round_opponent, last_round.number)].match_points / 2.0
                         if opponent in tied_team_set:
-                            score.head_to_head += round_state.match_points
+                            score.head_to_head += round_state.round_match_points
             score.save()
 
     def _calculate_lone_scores(self):
@@ -509,6 +516,10 @@ class Round(_BaseModel):
         return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=self)
               | PlayerPairing.objects.filter(loneplayerpairing__round=self)).nocache()
 
+    def pairing_for(self, player):
+        pairings = self.pairings
+        return (pairings.filter(white=player) | pairings.filter(black=player)).first()
+
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
 
@@ -531,7 +542,7 @@ class Player(_BaseModel):
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
-    in_slack_group = models.BooleanField(default=False)
+    slack_user_id = models.CharField(max_length=255, blank=True)
     timezone_offset = models.DurationField(blank=True, null=True)
     account_status = models.CharField(default='normal', max_length=31, choices=ACCOUNT_STATUS_OPTIONS)
 
@@ -566,6 +577,7 @@ class Player(_BaseModel):
         ordering = ['lichess_username']
         permissions = (
             ('invite_to_slack', 'Can invite to slack'),
+            ('link_slack', 'Can manually link slack accounts'),
         )
 
     def __init__(self, *args, **kwargs):
@@ -589,6 +601,24 @@ class Player(_BaseModel):
         is_closed = user_meta.get('disabled', False)
         self.account_status = 'closed' if is_closed else 'engine' if is_engine else 'booster' if is_booster else 'normal'
         self.save()
+
+    @classmethod
+    def get_or_create(cls, lichess_username):
+        player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username, defaults={'lichess_username': lichess_username})
+        return player
+
+    @classmethod
+    def link_slack_account(cls, lichess_username, slack_user_id):
+        player = Player.get_or_create(lichess_username)
+        if player.slack_user_id == slack_user_id:
+            # No change needed
+            return False
+        with reversion.create_revision():
+            reversion.set_comment('Link slack account')
+            player.slack_user_id = slack_user_id
+            player.save()
+            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username, slack_user_id=slack_user_id)
+            return True
 
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
@@ -1240,6 +1270,12 @@ class PlayerPairing(_BaseModel):
             return self.loneplayerpairing.round
         return None
 
+    def get_player_presence(self, player):
+        presence = self.playerpresence_set.filter(player=player).first()
+        if not presence:
+            presence = PlayerPresence.objects.create(pairing=self, player=player, round=self.get_round())
+        return presence
+
     def __unicode__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
 
@@ -1414,7 +1450,7 @@ class Registration(_BaseModel):
     email = models.EmailField(max_length=255)
 
     classical_rating = models.PositiveIntegerField()
-    peak_classical_rating = models.PositiveIntegerField()
+    peak_classical_rating = models.PositiveIntegerField(blank=True, null=True)
     has_played_20_games = models.BooleanField()
     already_in_slack_group = models.BooleanField()
     previous_season_alternate = models.CharField(blank=True, max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
@@ -1499,6 +1535,15 @@ class SeasonPlayer(_BaseModel):
             if league is None:
                 league = self.season.league
             return self.player.rating_for(league)
+
+    @property
+    def card_color(self):
+        if self.games_missed >= 2:
+            return 'red'
+        elif self.games_missed == 1:
+            return 'yellow'
+        else:
+            return None
 
     def get_loneplayerscore(self):
         try:
@@ -1833,6 +1878,7 @@ class AlternatesManagerSetting(_BaseModel):
     is_active = models.BooleanField(default=True)
     contact_interval = models.DurationField(default=timedelta(hours=8), help_text='How long before the next alternate will be contacted during the round.')
     unresponsive_interval = models.DurationField(default=timedelta(hours=24), help_text='How long after being contacted until an alternate will be marked as unresponsive.')
+    rating_flex = models.PositiveIntegerField(default=0, help_text='How far out of a board\'s rating range an alternate can be if it helps alternate balance.')
 
     contact_before_round_start = models.BooleanField(default=True, help_text='If we should search for alternates before the pairings are published. Has no effect for round 1.')
     contact_offset_before_round_start = models.DurationField(default=timedelta(hours=48), help_text='How long before the round starts we should start searching for alternates. Also ends the previous round searches early.')
@@ -1935,6 +1981,22 @@ class PrivateUrlAuth(_BaseModel):
         return self.authenticated_user
 
 #-------------------------------------------------------------------------------
+class LoginToken(_BaseModel):
+    lichess_username = models.CharField(max_length=255, blank=True, validators=[username_validator])
+    username_hint = models.CharField(max_length=255, blank=True)
+    slack_user_id = models.CharField(max_length=255, blank=True)
+    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    mail_id = models.CharField(max_length=255, blank=True)
+    expires = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return self.expires < timezone.now()
+
+    def __unicode__(self):
+        return self.lichess_username or self.slack_user_id
+
+#-------------------------------------------------------------------------------
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()
@@ -2022,6 +2084,8 @@ SCHEDULED_EVENT_TYPES = (
     ('start_round_transition', 'Start round transition'),
     ('notify_players_unscheduled', 'Notify players of unscheduled games'),
     ('notify_players_game_time', 'Notify players of their game time'),
+    ('automod_unresponsive', 'Auto-mod unresponsive players'),
+    ('automod_noshow', 'Auto-mod no-shows'),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
@@ -2058,6 +2122,10 @@ class ScheduledEvent(_BaseModel):
             signals.notify_players_unscheduled.send(sender=self.__class__, round_=obj)
         elif self.type == 'notify_players_game_time' and isinstance(obj, PlayerPairing):
             signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
+        elif self.type == 'automod_unresponsive' and isinstance(obj, Round):
+            signals.automod_unresponsive.send(sender=self.__class__, round_=obj)
+        elif self.type == 'automod_noshow' and isinstance(obj, PlayerPairing):
+            signals.automod_noshow.send(sender=self.__class__, pairing=obj)
 
     def clean(self):
         if self.league_id and self.season_id and self.season.league != self.league:
@@ -2127,6 +2195,37 @@ class PlayerNotificationSetting(_BaseModel):
                 raise ValidationError('Offset is not applicable for this type')
 
 #-------------------------------------------------------------------------------
+class PlayerPresence(_BaseModel):
+    player = models.ForeignKey(Player)
+    pairing = models.ForeignKey(PlayerPairing)
+    round = models.ForeignKey(Round)
+
+    first_msg_time = models.DateTimeField(null=True, blank=True)
+    last_msg_time = models.DateTimeField(null=True, blank=True)
+    online_for_game = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return '%s' % (self.player)
+
+PLAYER_WARNING_TYPE_OPTIONS = (
+    ('unresponsive', 'unresponsive'),
+    ('card_unresponsive', 'card for unresponsive'),
+    ('card_noshow', 'card for no-show'),
+)
+
+#-------------------------------------------------------------------------------
+class PlayerWarning(_BaseModel):
+    round = models.ForeignKey(Round, null=True, blank=True)
+    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
+    type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
+
+    class Meta:
+        unique_together = ('round', 'player', 'type')
+
+    def __unicode__(self):
+        return '%s - %s' % (self.player.lichess_username, self.get_type_display())
+
+#-------------------------------------------------------------------------------
 class ScheduledNotification(_BaseModel):
     setting = models.ForeignKey(PlayerNotificationSetting)
     pairing = models.ForeignKey(PlayerPairing)
@@ -2155,3 +2254,72 @@ class ScheduledNotification(_BaseModel):
     def clean(self):
         if self.setting.offset is None:
             raise ValidationError('Setting must have an offset')
+
+#-------------------------------------------------------------------------------
+class FcmSub(_BaseModel):
+    slack_user_id = models.CharField(max_length=31)
+    reg_id = models.CharField(max_length=4096, unique=True)
+
+MOD_REQUEST_STATUS_OPTIONS = (
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+)
+
+MOD_REQUEST_TYPE_OPTIONS = (
+    ('withdraw', 'Withdraw'),
+    ('reregister', 'Re-register'),
+    ('appeal_late_response', 'Appeal late response'),
+    ('appeal_noshow', 'Appeal no-show'),
+    ('claim_win_noshow', 'Claim a forfeit win (no-show)'),
+    ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
+    ('claim_draw_scheduling', 'Claim a scheduling draw'),
+    ('claim_loss', 'Claim a forfeit loss'),
+    ('request_continuation', 'Request continuation'),
+)
+
+# A plain string literal won't work as a Django signal sender since it will have a unique object reference
+# By using a common dict we can make sure we're working with the same object (using `intern` would also work)
+# This also has the advantage that typos will create a KeyError instead of silently failing
+MOD_REQUEST_SENDER = { a: a for a, _ in MOD_REQUEST_TYPE_OPTIONS }
+
+#-------------------------------------------------------------------------------
+class ModRequest(_BaseModel):
+    season = models.ForeignKey(Season)
+    round = models.ForeignKey(Round, null=True, blank=True)
+    pairing = models.ForeignKey(PlayerPairing, null=True, blank=True)
+    requester = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
+    type = models.CharField(max_length=255, choices=MOD_REQUEST_TYPE_OPTIONS)
+    status = models.CharField(max_length=31, choices=MOD_REQUEST_STATUS_OPTIONS)
+    status_changed_by = models.CharField(blank=True, max_length=255)
+    status_changed_date = models.DateTimeField(blank=True, null=True)
+
+    notes = models.TextField(blank=True)
+    # TODO: Multiple screenshot support?
+    screenshot = models.ImageField(upload_to='screenshots/%Y/%m/%d/', null=True, blank=True)
+    response = models.TextField(blank=True)
+
+    def approve(self, user='System', response=''):
+        self.status = 'approved'
+        self.status_changed_by = user
+        self.status_changed_date = timezone.now()
+        self.response = response
+        self.save()
+        signals.mod_request_approved.send(sender=MOD_REQUEST_SENDER[self.type], instance=self)
+
+    def reject(self, user='System', response=''):
+        self.status = 'rejected'
+        self.status_changed_by = user
+        self.status_changed_date = timezone.now()
+        self.response = response
+        self.save()
+        signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response)
+
+    def clean(self):
+        pass
+        # TODO: This validation isn't working because type is not populated in the form.
+#         if not self.screenshot and self.type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
+#             raise ValidationError('Screenshot is required')
+
+    def __unicode__(self):
+        return '%s - %s' % (self.requester.lichess_username, self.get_type_display())

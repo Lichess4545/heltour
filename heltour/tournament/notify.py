@@ -322,7 +322,7 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
 
     # Send a DM to the alternate, regardless of settings
     round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
-    message = '@%s: A team needs an alternate for %s. Would you like to play? Please respond within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
+    message = '@%s: A team needs an alternate for %s. Would you like to play? Please click one of the following links within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
               % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), abs_url(accept_url), abs_url(decline_url))
     _message_user(league, _slack_user(player), message)
 
@@ -530,6 +530,112 @@ def game_warning(pairing, warning, **kwargs):
            + 'If this is not a league game, you may ignore this message.'
 
     send_pairing_notification('game_warning', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+@receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.notify')
+def mod_request_created(instance, **kwargs):
+    review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+    message = '<@%s> created a request: <%s|%s>' % (_slack_user(instance.requester), review_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
+
+@receiver(signals.mod_request_approved, dispatch_uid='heltour.tournament.notify')
+def mod_request_approved(instance, **kwargs):
+    if instance.status_changed_by == 'System':
+        message = 'Auto-approved.'
+        if instance.response:
+            message += ' Response: %s' % instance.response
+    else:
+        review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+        message = '%s approved a request by <@%s>: <%s|%s>' % \
+                  (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
+
+    message = 'Your request for %s (%s) has been approved.' % (instance.season, instance.get_type_display())
+    if instance.response:
+        message += ' %s' % instance.response
+    _message_user(instance.season.league, _slack_user(instance.requester), message)
+
+@receiver(signals.mod_request_rejected, dispatch_uid='heltour.tournament.notify')
+def mod_request_rejected(instance, **kwargs):
+    if instance.status_changed_by == 'System':
+        message = 'Auto-rejected.'
+        if instance.response:
+            message += ' Response: %s' % instance.response
+    else:
+        review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
+        message = '@%s rejected a request by <@%s>: <%s|%s>' % \
+                  (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
+    _send_notification('mod', instance.season.league, message)
+
+    message = 'Your request for (%s) has been rejected.' % (instance.season, instance.get_type_display())
+    if instance.response:
+        message += ' %s' % instance.response
+    _message_user(instance.season.league, _slack_user(instance.requester), message)
+
+@receiver(signals.notify_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
+    season = round_.season
+    league = season.league
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
+    message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
+            + 'You are required to message your opponent within 48 hours of the round start. ' \
+            + punishment + '\n' \
+            + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
+    if allow_continue:
+        continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
+        message += '\nIf you haven\'t but want to continue playing next round, <%s|click here>.' % continue_url
+    _message_user(league, _slack_user(player), message)
+
+@receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_opponent_unresponsive(round_, player, opponent, **kwargs):
+    season = round_.season
+    league = season.league
+    message = 'Notice: Your %s opponent hasn\'t messaged you in the provided chat. ' % league.name \
+            + 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. ' \
+            + 'Contact a mod to request a new pairing.'
+    _message_user(league, _slack_user(player), message)
+
+@receiver(signals.notify_noshow, dispatch_uid='heltour.tournament.notify')
+def notify_noshow(round_, player, opponent, **kwargs):
+    season = round_.season
+    league = season.league
+    claim_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'claim_win_noshow']))
+    message = 'Notice: It appears your opponent, <@%s>, has not shown up for your scheduled game time in %s. ' % (_slack_user(opponent), league.name) \
+            + 'To claim a win by forfeit, <%s|click here>.' % claim_url
+    _message_user(league, _slack_user(player), message)
+
+@receiver(signals.notify_noshow_claim, dispatch_uid='heltour.tournament.notify')
+def notify_noshow_claim(round_, player, punishment, allow_continue, **kwargs):
+    season = round_.season
+    league = season.league
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_noshow']))
+    message = 'Notice: You didn\'t show up for your scheduled game time in %s. ' % league.name \
+            + 'Your opponent has been given a win by forfeit. ' \
+            + punishment + '\n' \
+            + 'To appeal, <%s|click here>.' % appeal_url
+    if allow_continue:
+        continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
+        message += '\nOtherwise, if you want to continue playing next round, <%s|click here>.' % continue_url
+    _message_user(league, _slack_user(player), message)
+
+@receiver(signals.notify_mods_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
+    season = round_.season
+    league = season.league
+    def list_str(players):
+        if players:
+            users = sorted((_slack_user(p) for p in players))
+            return ', '.join(('<@%s>' % u for u in users))
+        else:
+            return '(no players)'
+    message = 'The following actions have been taken for unresponsive players:' \
+            + '\nWarning - %s' % list_str(warnings) \
+            + '\nYellow Card - %s' % list_str(yellows) \
+            + '\nRed Card - %s' % list_str(reds)
+    _send_notification('mod', league, message)
+
+@receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.notify')
+def slack_account_linked(lichess_username, slack_user_id, **kwargs):
+    slackapi.send_message(slack_user_id, 'Your Slack account has been successfully linked to the lichess account `%s`.' % lichess_username)
 
 def _slack_user(obj):
     if obj is None:

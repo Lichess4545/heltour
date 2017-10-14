@@ -14,7 +14,6 @@ from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
 from django.contrib.sites.models import Site
-from django_comments.models import Comment
 import time
 
 logger = get_task_logger(__name__)
@@ -30,7 +29,6 @@ def update_player_ratings(self):
             updated += 1
         logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))
     except Exception as e:
-        print e
         logger.warning('Error getting ratings: %s' % e)
 
 @app.task(bind=True)
@@ -166,7 +164,7 @@ def update_tv_state(self):
                     game.tv_state = 'hide'
                 if 'status' in meta and meta['status'] == 'draw':
                     game.result = '1/2-1/2'
-                elif 'winner' in meta:
+                elif 'winner' in meta and meta['status'] != 'timeout': # timeout = claim victory (which isn't allowed)
                     if meta['winner'] == 'white':
                         game.result = '1-0'
                     elif meta['winner'] == 'black':
@@ -176,16 +174,33 @@ def update_tv_state(self):
                 logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
 
 @app.task(bind=True)
+def update_lichess_presence(self):
+    games_starting = PlayerPairing.objects.filter(\
+                                                  result='', game_link='', \
+                                                  scheduled_time__lt=timezone.now() + timedelta(minutes=5), \
+                                                  scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
+                                                  .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
+    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
+                     games_starting.filter(teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
+
+    users = {}
+    for game in games_starting:
+        users[game.white.lichess_username.lower()] = game.white
+        users[game.black.lichess_username.lower()] = game.black
+    for status in lichessapi.enumerate_user_statuses(users.keys(), priority=1, timeout=60):
+        if status.get('online'):
+            user = users[status.get('id').lower()]
+            for g in games_starting:
+                if user in (g.white, g.black):
+                    presence = g.get_player_presence(user)
+                    presence.online_for_game = True
+                    presence.save()
+
+@app.task(bind=True)
 def update_slack_users(self):
-    slack_users = {u.name.lower(): u for u in slackapi.get_user_list()}
+    slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
-        u = slack_users.get(p.lichess_username.lower())
-        in_slack_group = u != None
-        if in_slack_group != p.in_slack_group:
-            with reversion.create_revision():
-                reversion.set_comment('Joined slack.')
-                p.in_slack_group = in_slack_group
-                p.save()
+        u = slack_users.get(p.slack_user_id)
         if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
             p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
             p.save()
@@ -296,19 +311,17 @@ def validate_registration(self, reg_id):
     fail_reason = None
     warnings = []
 
-    if reg.already_in_slack_group:
-        slack_user = slackapi.get_user(reg.slack_username.lower()) or slackapi.get_user(reg.lichess_username.lower())
-        if slack_user == None:
-            reg.already_in_slack_group = False
-
     try:
         user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
         player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username, defaults={'lichess_username': reg.lichess_username})
         player.update_profile(user_meta)
         reg.classical_rating = player.rating_for(reg.season.league)
+        reg.peak_classical_rating = lichessapi.get_peak_rating(reg.lichess_username, reg.season.league.rating_type)
         reg.has_played_20_games = player.games_played_for(reg.season.league) >= 20
         if player.account_status != 'normal':
             fail_reason = 'The lichess user "%s" has the "%s" mark.' % (reg.lichess_username, player.account_status)
+        if reg.already_in_slack_group and not player.slack_user_id:
+            reg.already_in_slack_group = False
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 
@@ -331,15 +344,11 @@ def validate_registration(self, reg_id):
         reg.validation_ok = True
         reg.validation_warning = False
         comment_text = 'Validated.'
-    _add_system_comment(reg, comment_text)
+    add_system_comment(reg, comment_text)
 
     with reversion.create_revision():
         reversion.set_comment('Validated registration.')
         reg.save()
-
-def _add_system_comment(obj, text, user_name='System'):
-    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
-                           comment=text, submit_date=timezone.now(), is_public=True)
 
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
 def registration_saved(instance, created, **kwargs):
@@ -363,8 +372,18 @@ def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
 
 @app.task(bind=True)
+def notify_slack_link(self, lichess_username):
+    player = Player.get_or_create(lichess_username)
+    email = slackapi.get_user(player.slack_user_id).email
+    msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
+    lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
+
+@receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.tasks')
+def do_notify_slack_link(lichess_username, **kwargs):
+    notify_slack_link.apply_async(args=[lichess_username], countdown=1)
+
+@app.task(bind=True)
 def create_team_channel(self, team_ids):
-    username_to_id = {u.name: u.id for u in slackapi.get_user_list()}
     intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
                       + 'You need to pick a team captain and a team name by {season_start}.\n' \
                       + 'Once you\'ve chosen (or if you need help with anything), contact one of the moderators:\n' \
@@ -377,8 +396,7 @@ def create_team_channel(self, team_ids):
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime('%b %-d')
         intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start)
         team_members = team.teammember_set.select_related('player').nocache()
-        chesster_id = username_to_id['chesster']
-        user_ids = [username_to_id.get(tm.player.lichess_username.lower()) for tm in team_members]
+        user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
 
         try:
@@ -395,7 +413,7 @@ def create_team_channel(self, team_ids):
                 except slackapi.SlackError:
                     logger.exception('Could not invite %s to slack' % user_id)
                 time.sleep(1)
-        slackapi.invite_to_group(group.id, chesster_id)
+        slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
         time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')

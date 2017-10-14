@@ -69,7 +69,7 @@ setTimeout(function () {
 					</tr>
 					</thead>
 					<tbody>
-					{% for pairing, error in pairings %}
+					{% for pairing, error, white_img, white_status, black_img, black_status in pairings %}
 					<tr{% if error %} class="row-error" title="{{ error }}"{% endif %}>
 						<td class="text-center hidden-xs">{{ pairing.pairing_order }}</td>
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
@@ -79,6 +79,9 @@ setTimeout(function () {
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
 									{{ pairing.white.lichess_username }} <span class="visible-xs"></span> ({% white_rating pairing %})
 								</a>
+								{% if white_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg" title="{{ white_status }}" />
+								{% endif %}
 							</div>
 							{% endif %}
 						</td>
@@ -89,6 +92,9 @@ setTimeout(function () {
 								<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
 									{{ pairing.black.lichess_username }} <span class="visible-xs"></span> ({% black_rating pairing %})
 								</a>
+								{% if black_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ black_status }}" />
+								{% endif %}
 							</div>
 							{% endif %}
 						</td>
@@ -101,7 +107,7 @@ setTimeout(function () {
 							{{ pairing.result_display }}
 							{% endif %}
 						</td>
-						<td>{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}</td>{% if can_edit %}
+						<td>{{ pairing.scheduled_time | date_el:"m/d H:i" }}</td>{% if can_edit %}
 						<td>
 							<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
 					            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">

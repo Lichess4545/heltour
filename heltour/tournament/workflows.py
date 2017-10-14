@@ -6,6 +6,7 @@ from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
+import alternates_manager
 
 class RoundTransitionWorkflow():
 
@@ -127,7 +128,8 @@ class UpdateBoardOrderWorkflow():
             alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
 
             boundaries = self.calc_alternate_boundaries(ratings_by_board)
-            self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board)
+            flex = self.season.alternates_manager_setting().rating_flex
+            self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board, flex)
             self.update_alternate_buckets(boundaries)
             self.assign_alternates_to_buckets()
 
@@ -135,18 +137,53 @@ class UpdateBoardOrderWorkflow():
         for team in self.season.team_set.all():
             with reversion.create_revision():
                 change_descriptions = []
-                members = list(team.teammember_set.all())
-                members.sort(key=lambda m: m.player.rating_for(self.season.league), reverse=True)
+                members = list(team.teammember_set.order_by('board_number'))
                 occupied_boards = [m.board_number for m in members]
-                occupied_boards.sort()
-                for i, board_number in enumerate(occupied_boards):
-                    m = members[i]
-                    if m.board_number != board_number:
-                        old_member = TeamMember.objects.filter(team=team, board_number=board_number).first()
-                        new_member, _ = TeamMember.objects.update_or_create(team=team, board_number=board_number, \
-                                                               defaults={ 'player': m.player, 'is_captain': m.is_captain,
-                                                                          'is_vice_captain': m.is_vice_captain })
-                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_member, new_member))
+                old_order = {m.board_number: m for m in members}
+                new_order = {m.board_number: m for m in members}
+
+                alternate_search_round = alternates_manager.current_round(self.season)
+
+                def invariant(board_num):
+                    search = AlternateSearch.objects.filter(round=alternate_search_round, team=team, board_number=board_num, is_active=True).first()
+                    assignment = AlternateAssignment.objects.filter(round=alternate_search_round, team=team, board_number=board_num).first()
+                    return assignment or (search and search.still_needs_alternate())
+
+                # Do a modified bubble sort - this lets us restrict swaps in some cases
+                min_delta_for_change = 0
+                while True:
+                    has_changes = False
+                    for i in range(len(occupied_boards) - 1):
+                        j = occupied_boards[i]
+                        k = occupied_boards[i + 1]
+                        higher_bd = new_order[j]
+                        lower_bd = new_order[k]
+                        higher_rtg = higher_bd.player.rating_for(self.season.league) or 0
+                        lower_rtg = lower_bd.player.rating_for(self.season.league) or 0
+                        if lower_rtg - higher_rtg > min_delta_for_change:
+                            has_changes = True
+                            # Remove boards from consideration if they are locked
+                            # We could do this at the start but it would be too slow due to the DB queries
+                            # The condition above is relatively rare so the performance impact is less this way
+                            if invariant(j):
+                                occupied_boards.remove(j)
+                                break
+                            if invariant(k):
+                                occupied_boards.remove(k)
+                                break
+                            new_order[j] = lower_bd
+                            new_order[k] = higher_bd
+                    if not has_changes:
+                        break
+
+                # Commit the changes to the actual model
+                for board_number in occupied_boards:
+                    if old_order[board_number] != new_order[board_number]:
+                        m = new_order[board_number]
+                        TeamMember.objects.update_or_create(team=team, board_number=board_number, \
+                                                  defaults={ 'player': m.player, 'is_captain': m.is_captain,
+                                                             'is_vice_captain': m.is_vice_captain })
+                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_order[board_number], m))
                 reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
     def calc_alternate_boundaries(self, ratings_by_board):
@@ -170,7 +207,7 @@ class UpdateBoardOrderWorkflow():
                 boundaries.append((left + right) / 2)
         return boundaries
 
-    def smooth_alternate_boundaries(self, boundaries, alternates, ratings_by_board):
+    def smooth_alternate_boundaries(self, boundaries, alternates, ratings_by_board, flex):
         # If we have enough data, modify the boundaries to try and smooth out the number of players per board
         if all((len(r_list) >= 4 for r_list in ratings_by_board)):
             iter_count = 20
@@ -182,8 +219,8 @@ class UpdateBoardOrderWorkflow():
                 boundary = boundaries[i + 1]
                 # Split the difference between the highest/lowest 2 players on each board to determine
                 # the absolute most we're willing the change the boundary
-                higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2
-                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2
+                higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2 - flex
+                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2 + flex
                 if boundary < higher_board_min and boundary < lower_board_max:
                     delta_up = max(higher_board_min, lower_board_max) - boundary
                     delta_down = 0
@@ -222,13 +259,15 @@ class UpdateBoardOrderWorkflow():
 
     def update_alternate_buckets(self, boundaries):
         # Update the buckets
-        for board_num in range(1, self.season.boards + 1):
-            min_rating = boundaries[board_num]
-            max_rating = boundaries[board_num - 1]
-            if min_rating is None and max_rating is None:
-                AlternateBucket.objects.filter(season=self.season, board_number=board_num).delete()
-            else:
-                AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
+        with reversion.create_revision():
+            reversion.set_comment('Updated alternate order')
+            for board_num in range(1, self.season.boards + 1):
+                min_rating = boundaries[board_num]
+                max_rating = boundaries[board_num - 1]
+                if min_rating is None and max_rating is None:
+                    AlternateBucket.objects.filter(season=self.season, board_number=board_num).delete()
+                else:
+                    AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
 
     def assign_alternates_to_buckets(self):
         for alt in Alternate.objects.filter(season_player__season=self.season):
@@ -308,17 +347,13 @@ class ApproveRegistrationWorkflow():
             reversion.set_user(request.user)
             reversion.set_comment('Approved registration.')
 
-            player, created = Player.objects.update_or_create(
+            player, _ = Player.objects.update_or_create(
                 lichess_username__iexact=reg.lichess_username,
                 defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
             )
             if player.rating is None:
                 # This is automatically set, so don't change it if we already have a rating
                 player.rating = reg.classical_rating
-                player.save()
-            if created and reg.already_in_slack_group:
-                # This is automatically set, so don't change it if the player already exists
-                player.in_slack_group = True
                 player.save()
 
         if self.is_late:
