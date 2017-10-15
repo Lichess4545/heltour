@@ -1117,7 +1117,7 @@ def game_meta_to_pgn(game_meta, pairing=None):
             event_text = '%s - %s' % (round_.season.league.name, round_.season.name)
             round_number = round_.number
 
-    result = '1/2-1/2' if g.get('status') == 'draw' else '1-0' if g.get('winner') == 'white' else '0-1' if g.get('winner') == 'black' else '*'
+    result = '1-0' if g.get('winner') == 'white' else '0-1' if g.get('winner') == 'black' else '*' if g.get('status') in ('started', 'aborted') else '1/2-1/2'
     headers = []
     headers.append(('Event', event_text))
     headers.append(('Site', g['url']))
