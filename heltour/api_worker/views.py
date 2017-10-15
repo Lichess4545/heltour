@@ -7,7 +7,7 @@ from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, retry_count=0):
-    url = "https://en.lichess.org/%s" % path
+    url = "https://lichess.org/%s" % path
 
     try:
         if method == 'POST':

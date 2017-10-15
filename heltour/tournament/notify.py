@@ -94,7 +94,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
     league_set = {sp.season.league for sp in season_players} | {reg.season.league for reg in pending_regs}
     for league in league_set:
         latest_season = league.season_set.filter(is_active=True).order_by('-start_date', '-id').first()
-        lichess_profile_url = 'https://en.lichess.org/@/%s' % instance.lichess_username
+        lichess_profile_url = 'https://lichess.org/@/%s' % instance.lichess_username
         if latest_season is not None:
             player_profile_url = abs_url(reverse('by_league:by_season:player_profile', args=[league.tag, latest_season.tag, instance.lichess_username]))
         else:
@@ -452,7 +452,7 @@ def notify_players_round_start(round_, **kwargs):
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
-           + 'Send a <https://en.lichess.org/?user={opponent}#friend|lichess challenge> for a rated {time_control} game as {color}.'
+           + 'Send a <https://lichess.org/?user={opponent}#friend|lichess challenge> for a rated {time_control} game as {color}.'
 
     mp_msg = 'Your game is about to start.\n' \
            + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
@@ -462,7 +462,7 @@ def notify_players_game_time(pairing, **kwargs):
     li_msg = 'Your game is about to start.\n' \
            + '@{white} (white pieces) vs @{black} (black pieces)\n' \
            + 'Send a challenge for a rated {time_control} game as {color}.\n' \
-           + 'https://en.lichess.org/?user={opponent}#friend' \
+           + 'https://lichess.org/?user={opponent}#friend' \
 
     if pairing.game_link == '' and pairing.result == '':
         send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)

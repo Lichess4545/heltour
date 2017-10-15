@@ -88,7 +88,7 @@
 	    ground.set(m.d);
     } else {
     	$.ajax({
-    	      url:'https://en.lichess.org/api/game/' + game.id,
+    	      url:'https://lichess.org/api/game/' + game.id,
     	      data: {
     	        with_moves: 1
     	      },
@@ -178,7 +178,7 @@
 	  		}
 	  	} else {
 		  	var $g = $('#game-template').clone().attr('id', null).data('id', g.id);
-		  	$g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
+		  	$g.find('.chessground').wrap('<a href="https://lichess.org/' + g.id + '"></a>');
 		  	$('#games-row').append($g);
 		  	if (g.matches_filter) {
 		  		$g.show();
@@ -289,7 +289,7 @@
 		  if (g && g.id !== currentGameId && g.matches_filter) {
 			  $('#single-game-container').empty();
 			  var $g = $('#game-template').clone().attr('id', null).data('id', g.id);
-		      $g.find('.chessground').wrap('<a href="https://en.lichess.org/' + g.id + '"></a>');
+		      $g.find('.chessground').wrap('<a href="https://lichess.org/' + g.id + '"></a>');
 			  $('#single-game-container').append($g);
 		  	  $g.show();
 		  	  newBoard($g, g, messages[g.id]);
