@@ -28,7 +28,7 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
         cache.set(redis_key, '', timeout=60)
     else:
         # Retry
-        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, params, priority, max_retries, retry_count + 1)
+        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data, params, priority, max_retries, retry_count + 1)
 
     if r is not None and r.status_code == 429:
         # Too many requests
