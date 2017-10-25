@@ -19,11 +19,13 @@
 				        <span class="caret"></span>
 				    </button>
 				    <ul class="dropdown-menu">
-				    	{% if default_season %}
-					    <li><a href="{% leagueurl 'league_dashboard' league.tag None %}">{{ default_season.name }}</a></li>
+				    	{% if current_season_list %}
+					    {% for s in current_season_list %}
+					    <li><a href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a></li>
+					    {% endfor %}
 					    <li role="separator" class="divider"></li>
 					    {% endif %}
-					    {% for s in season_list %}
+					    {% for s in completed_season_list %}
 					    <li><a href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a></li>
 					    {% endfor %}
 				    </ul>

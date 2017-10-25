@@ -1072,9 +1072,9 @@ class LeagueDashboardView(LeagueView):
 
     def _common_context(self):
         default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', '-id'))
-        if default_season is not None:
-            season_list.remove(default_season)
+        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', 'name'))
+        current_season_list = [s for s in season_list if not s.is_completed]
+        completed_season_list = [s for s in season_list if s.is_completed]
 
         pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
@@ -1095,6 +1095,8 @@ class LeagueDashboardView(LeagueView):
         return {
             'default_season': default_season,
             'season_list': season_list,
+            'current_season_list': current_season_list,
+            'completed_season_list': completed_season_list,
             'pending_reg_count': pending_reg_count,
             'pending_modreq_count': pending_modreq_count,
             'unassigned_player_count': unassigned_player_count,
