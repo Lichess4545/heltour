@@ -147,6 +147,14 @@ class LeagueSetting(_BaseModel):
     def __unicode__(self):
         return '%s Settings' % self.league
 
+#-------------------------------------------------------------------------------
+class SectionGroup(_BaseModel):
+    league = models.ForeignKey(League)
+    name = models.CharField(max_length=255)
+
+    def __unicode__(self):
+        return self.name
+
 PLAYOFF_OPTIONS = (
     (0, 'None'),
     (1, 'Finals'),
@@ -158,6 +166,8 @@ PLAYOFF_OPTIONS = (
 class Season(_BaseModel):
     league = models.ForeignKey(League)
     name = models.CharField(max_length=255)
+    section_group = models.ForeignKey(SectionGroup, blank=True, null=True)
+    section_name = models.CharField(max_length=255, blank=True, null=True)
     tag = models.SlugField(help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
@@ -188,6 +198,8 @@ class Season(_BaseModel):
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
             raise ValidationError('Boards must be specified for a team season')
+        if self.league_id and self.section_group and self.section_group.league_id != self.league_id:
+            raise ValidationError('Section group league must match')
 
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point

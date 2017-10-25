@@ -301,6 +301,14 @@ class LeagueSettingAdmin(_BaseAdmin):
     league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
+@admin.register(SectionGroup)
+class SectionGroupAdmin(_BaseAdmin):
+    list_display = ('__unicode__', 'league')
+    search_fields = ('name',)
+    list_filter = ('league',)
+    league_id_field = 'league_id'
+
+#-------------------------------------------------------------------------------
 @admin.register(Season)
 class SeasonAdmin(_BaseAdmin):
     list_display = ('__unicode__', 'league',)
