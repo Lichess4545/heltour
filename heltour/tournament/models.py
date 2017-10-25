@@ -147,14 +147,6 @@ class LeagueSetting(_BaseModel):
     def __unicode__(self):
         return '%s Settings' % self.league
 
-#-------------------------------------------------------------------------------
-class SectionGroup(_BaseModel):
-    league = models.ForeignKey(League)
-    name = models.CharField(max_length=255)
-
-    def __unicode__(self):
-        return self.name
-
 PLAYOFF_OPTIONS = (
     (0, 'None'),
     (1, 'Finals'),
@@ -166,8 +158,6 @@ PLAYOFF_OPTIONS = (
 class Season(_BaseModel):
     league = models.ForeignKey(League)
     name = models.CharField(max_length=255)
-    section_group = models.ForeignKey(SectionGroup, blank=True, null=True)
-    section_name = models.CharField(max_length=255, blank=True, null=True)
     tag = models.SlugField(help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
@@ -198,8 +188,6 @@ class Season(_BaseModel):
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
             raise ValidationError('Boards must be specified for a team season')
-        if self.league_id and self.section_group and self.section_group.league_id != self.league_id:
-            raise ValidationError('Section group league must match')
 
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
@@ -529,6 +517,29 @@ class Round(_BaseModel):
 
     def __unicode__(self):
         return "%s - Round %d" % (self.season, self.number)
+
+#-------------------------------------------------------------------------------
+class SectionGroup(_BaseModel):
+    league = models.ForeignKey(League)
+    name = models.CharField(max_length=255)
+
+    def __unicode__(self):
+        return self.name
+
+#-------------------------------------------------------------------------------
+class Section(_BaseModel):
+    season = models.OneToOneField(Season)
+    section_group = models.ForeignKey(SectionGroup, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    min_rating = models.PositiveIntegerField(blank=True, null=True)
+    max_rating = models.PositiveIntegerField(blank=True, null=True)
+
+    def clean(self):
+        if self.season and self.section_group and self.season.league_id != self.section_group.league_id:
+            raise ValidationError('Season and section group leagues must match')
+
+    def __unicode__(self):
+        return self.name
 
 username_validator = RegexValidator('^[\w-]+$')
 
