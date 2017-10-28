@@ -42,9 +42,9 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			</div>
 		    <div class="well-body">
 		    	{% if registration_season.is_started %}
-		    	<p>{{ registration_season.name }} ends on {{ registration_season.end_date|date_or_q }}.</p>
+		    	<p>{{ registration_season.section_group_name }} ends on {{ registration_season.end_date|date_or_q }}.</p>
 		    	{% else %}
-				<p>{{ registration_season.name }} starts on {{ registration_season.start_date|date_or_q }}.</p>
+				<p>{{ registration_season.section_group_name }} starts on {{ registration_season.start_date|date_or_q }}.</p>
 				{% endif %}
 				<a href="{% leagueurl 'register' league.tag None %}" class="btn btn-default">Register Now</a>
 			</div>

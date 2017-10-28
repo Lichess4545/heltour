@@ -23,7 +23,7 @@ class RegistrationForm(forms.ModelForm):
             'lichess_username', 'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate', 'can_commit', 'friends', 'agreed_to_rules',
-            'alternate_preference', 'weeks_unavailable',
+            'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
             'lichess_username': _(u'Your Lichess Username'),
@@ -96,6 +96,16 @@ class RegistrationForm(forms.ModelForm):
         else:
             del self.fields['alternate_preference']
 
+        section_list = self.season.section_list()
+        if len(section_list) > 1:
+            section_options = [('', 'No preference (use my rating)')]
+            section_options += [(s.section.id, s.section.name) for s in section_list]
+            self.fields['section_preference'] = forms.ChoiceField(required=False, choices=section_options, widget=forms.RadioSelect,
+                                                                    label=_(u'Which section would you prefer to play in?'),
+                                                                    help_text=_(u'You may be placed in a different section depending on eligibility.'))
+        else:
+            del self.fields['section_preference']
+
         # Weeks unavailable
         if self.season.round_duration == timedelta(days=7):
             weeks = [(r.number, 'Round %s (%s - %s)' %
@@ -134,6 +144,10 @@ class RegistrationForm(forms.ModelForm):
             raise ValidationError('You can\'t mark yourself as unavailable for all upcoming rounds.')
         return ','.join(self.cleaned_data['weeks_unavailable'])
 
+    def clean_section_preference(self):
+        if self.cleaned_data['section_preference'] == '':
+            return None
+        return Section.objects.get(pk=int(self.cleaned_data['section_preference']))
 
 class ReviewRegistrationForm(forms.Form):
     pass

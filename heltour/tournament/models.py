@@ -436,6 +436,16 @@ class Season(_BaseModel):
             return None
         return self.league.alternatesmanagersetting
 
+    def section_list(self):
+        if not hasattr(self, 'section'):
+            return [self]
+        return Season.objects.filter(section__section_group_id=self.section.section_group_id).order_by('section__order')
+
+    def section_group_name(self):
+        if not hasattr(self, 'section'):
+            return self.name
+        return self.section.section_group.name
+
     def __unicode__(self):
         return self.name
 
@@ -1429,6 +1439,7 @@ class Registration(_BaseModel):
     friends = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
     alternate_preference = models.CharField(blank=True, max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
+    section_preference = models.ForeignKey(Section, blank=True, null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
