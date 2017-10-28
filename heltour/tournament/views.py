@@ -182,14 +182,14 @@ class LeagueHomeView(LeagueView):
             }
             return self.render('tournament/team_league_home.html', context)
 
-        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=self.season.pk)
+        _, completed_seasons = _get_season_lists(self.league)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True)[:5], 1))
 
         context = {
             'team_scores': team_scores,
-            'season_list': season_list,
+            'completed_seasons': completed_seasons,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
@@ -214,7 +214,7 @@ class LeagueHomeView(LeagueView):
             }
             return self.render('tournament/lone_league_home.html', context)
 
-        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id').exclude(pk=self.season.pk)
+        _, completed_seasons = _get_season_lists(self.league)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         player_scores = _lone_player_scores(self.season, final=True)[:5]
@@ -227,7 +227,7 @@ class LeagueHomeView(LeagueView):
 
         context = {
             'player_scores': player_scores,
-            'season_list': season_list,
+            'completed_seasons': completed_seasons,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
@@ -250,7 +250,8 @@ class SeasonLandingView(SeasonView):
             if self.season.is_completed:
                 return self.team_completed_season_view()
 
-            default_season, season_list = self.get_season_list()
+            current_seasons, completed_seasons = _get_season_lists(self.league)
+            has_more_seasons = len(current_seasons) + len(completed_seasons) > 1
 
             active_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
                                         .order_by('-number') \
@@ -262,8 +263,9 @@ class SeasonLandingView(SeasonView):
             links_doc = SeasonDocument.objects.filter(season=self.season, type='links').first()
 
             context = {
-                'default_season': default_season,
-                'season_list': season_list,
+                'has_more_seasons': has_more_seasons,
+                'current_seasons': current_seasons,
+                'completed_seasons': completed_seasons,
                 'active_round': active_round,
                 'last_round': last_round,
                 'last_round_pairings': last_round_pairings,
@@ -280,7 +282,8 @@ class SeasonLandingView(SeasonView):
             if self.season.is_completed:
                 return self.lone_completed_season_view()
 
-            default_season, season_list = self.get_season_list()
+            current_seasons, completed_seasons = _get_season_lists(self.league)
+            has_more_seasons = len(current_seasons) + len(completed_seasons) > 1
 
             active_round = Round.objects.filter(season=self.season, publish_pairings=True, is_completed=False, start_date__lt=timezone.now(), end_date__gt=timezone.now()) \
                                         .order_by('-number') \
@@ -292,8 +295,9 @@ class SeasonLandingView(SeasonView):
             links_doc = SeasonDocument.objects.filter(season=self.season, type='links').first()
 
             context = {
-                'default_season': default_season,
-                'season_list': season_list,
+                'has_more_seasons': has_more_seasons,
+                'current_seasons': current_seasons,
+                'completed_seasons': completed_seasons,
                 'active_round': active_round,
                 'last_round': last_round,
                 'last_round_pairings': last_round_pairings,
@@ -305,7 +309,8 @@ class SeasonLandingView(SeasonView):
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def team_completed_season_view(self):
-        default_season, season_list = self.get_season_list()
+        current_seasons, completed_seasons = _get_season_lists(self.league)
+        has_more_seasons = len(current_seasons) + len(completed_seasons) > 1
 
         round_numbers = list(range(1, self.season.rounds + 1))
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
@@ -317,8 +322,9 @@ class SeasonLandingView(SeasonView):
         links_doc = SeasonDocument.objects.filter(season=self.season, type='links').first()
 
         context = {
-            'default_season': default_season,
-            'season_list': season_list,
+            'has_more_seasons': has_more_seasons,
+            'current_seasons': current_seasons,
+            'completed_seasons': completed_seasons,
             'round_numbers': round_numbers,
             'team_scores': team_scores,
             'first_team': first_team,
@@ -330,7 +336,8 @@ class SeasonLandingView(SeasonView):
         return self.render('tournament/team_completed_season_landing.html', context)
 
     def lone_completed_season_view(self):
-        default_season, season_list = self.get_season_list()
+        current_seasons, completed_seasons = _get_season_lists(self.league)
+        has_more_seasons = len(current_seasons) + len(completed_seasons) > 1
 
         round_numbers = list(range(1, self.season.rounds + 1))
         player_scores = _lone_player_scores(self.season)
@@ -351,8 +358,9 @@ class SeasonLandingView(SeasonView):
         links_doc = SeasonDocument.objects.filter(season=self.season, type='links').first()
 
         context = {
-            'default_season': default_season,
-            'season_list': season_list,
+            'has_more_seasons': has_more_seasons,
+            'current_seasons': current_seasons,
+            'completed_seasons': completed_seasons,
             'round_numbers': round_numbers,
             'player_scores': player_scores,
             'first_player': first_player,
@@ -364,13 +372,6 @@ class SeasonLandingView(SeasonView):
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
         }
         return self.render('tournament/lone_completed_season_landing.html', context)
-
-    def get_season_list(self):
-        default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = Season.objects.filter(league=self.league, is_active=True).order_by('-start_date', '-id')
-        if default_season:
-            season_list = season_list.exclude(pk=default_season.pk)
-        return default_season, season_list
 
 class PairingsView(SeasonView):
     def view(self, round_number=None, team_number=None):
@@ -1075,10 +1076,7 @@ class LeagueDashboardView(LeagueView):
             return self.lone_view()
 
     def _common_context(self):
-        default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', 'section__order'))
-        current_season_list = [s for s in season_list if not s.is_completed]
-        completed_season_list = [s for s in season_list if s.is_completed]
+        current_season_list, completed_season_list = _get_season_lists(self.league)
 
         pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
@@ -1097,8 +1095,6 @@ class LeagueDashboardView(LeagueView):
         next_round = Round.objects.filter(season=self.season, publish_pairings=False, is_completed=False).order_by('number').first()
 
         return {
-            'default_season': default_season,
-            'season_list': season_list,
             'current_season_list': current_season_list,
             'completed_season_list': completed_season_list,
             'pending_reg_count': pending_reg_count,
@@ -1902,10 +1898,16 @@ def _get_season(league_tag, season_tag, allow_none=False):
         return get_object_or_404(Season, league=_get_league(league_tag), tag=season_tag)
 
 def _get_default_season(league_tag, allow_none=False):
-    season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', '-id').first()
+    season = Season.objects.filter(league=_get_league(league_tag), is_active=True).order_by('-start_date', 'section__order', '-id').first()
     if not allow_none and season is None:
         raise Http404
     return season
+
+def _get_season_lists(league):
+    season_list = list(Season.objects.filter(league=league, is_active=True).order_by('-start_date', 'section__order', '-id'))
+    current_season_list = [s for s in season_list if not s.is_completed]
+    completed_season_list = [s for s in season_list if s.is_completed]
+    return current_season_list, completed_season_list
 
 @cached_as(NavItem)
 def _get_nav_tree(league_tag, season_tag):

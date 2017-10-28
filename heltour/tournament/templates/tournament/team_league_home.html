@@ -127,7 +127,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			</div>
 		</div>
 		{% endif %}
-		{% if season_list %}
+		{% if completed_seasons %}
 		<div class="well">
 			<div class="well-head">
 				<h3>Previous Seasons</h3>
@@ -139,7 +139,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 				        <span class="caret"></span>
 				    </button>
 				    <ul class="dropdown-menu">
-					    {% for s in season_list %}
+					    {% for s in completed_seasons %}
 					    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
 					    {% endfor %}
 				    </ul>

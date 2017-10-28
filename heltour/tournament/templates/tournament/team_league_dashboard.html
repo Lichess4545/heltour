@@ -12,7 +12,7 @@
 		    </div>
 		    <div class="well-body">
 		    	{% if can_view_dashboard %}
-				{% if season_list %}
+				{% if current_season_list or completed_season_list %}
 				<div class="dropdown inline">
 				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 				        {% if season %}{{ season.name }}{% else %}Choose a Season{% endif %}
