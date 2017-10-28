@@ -1075,7 +1075,7 @@ class LeagueDashboardView(LeagueView):
             return self.lone_view()
 
     def _common_context(self):
-        current_season_list, completed_season_list = _get_season_lists(self.league)
+        current_season_list, completed_season_list = _get_season_lists(self.league, active_only=False)
 
         pending_reg_count = len(Registration.objects.filter(season=self.season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
@@ -1902,8 +1902,10 @@ def _get_default_season(league_tag, allow_none=False):
         raise Http404
     return season
 
-def _get_season_lists(league):
-    season_list = list(Season.objects.filter(league=league, is_active=True).order_by('-start_date', 'section__order', '-id'))
+def _get_season_lists(league, active_only=True):
+    season_list = Season.objects.filter(league=league).order_by('-start_date', 'section__order', '-id')
+    if active_only:
+        season_list = season_list.filter(is_active=True)
     current_season_list = [s for s in season_list if not s.is_completed]
     completed_season_list = [s for s in season_list if s.is_completed]
     return current_season_list, completed_season_list
