@@ -550,7 +550,7 @@ class Section(_BaseModel):
             raise ValidationError('Season and section group leagues must match')
 
     def __unicode__(self):
-        return self.name
+        return '%s - %s' % (self.name, self.section_group.name)
 
 username_validator = RegexValidator('^[\w-]+$')
 

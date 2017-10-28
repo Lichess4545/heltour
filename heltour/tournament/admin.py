@@ -311,7 +311,7 @@ class SectionGroupAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Section)
 class SectionAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'section_group', 'season', 'min_rating', 'max_rating')
+    list_display = ('__unicode__', 'season', 'min_rating', 'max_rating')
     search_fields = ('name', 'season__name')
     list_filter = ('season__league',)
     league_id_field = 'season__league_id'

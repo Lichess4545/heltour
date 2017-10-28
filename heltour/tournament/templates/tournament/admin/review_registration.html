@@ -100,6 +100,13 @@
 		</div>
 		{% endif %}
 		
+		{% if original.section_preference %}
+		<div class="form-row">
+			<label>Section preference:</label>
+		    {{ original.section_preference.name }}
+		</div>
+		{% endif %}
+		
 		<div class="form-row">
 			<label>Weeks unavailable:</label>
 		    {{ original.weeks_unavailable }}
