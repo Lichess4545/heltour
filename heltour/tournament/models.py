@@ -1439,7 +1439,7 @@ class Registration(_BaseModel):
     friends = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
     alternate_preference = models.CharField(blank=True, max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS)
-    section_preference = models.ForeignKey(Section, blank=True, null=True)
+    section_preference = models.ForeignKey(Section, on_delete=models.SET_NULL, blank=True, null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
