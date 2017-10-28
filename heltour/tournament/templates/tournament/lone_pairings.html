@@ -23,6 +23,7 @@ setTimeout(function () {
 				<h3>Pairings</h3>
 			</div>
 			<div class="well-body">
+				{% include 'tournament/section_switcher.html' with url_name='pairings' %}
 				{% if round_number_list %}
 				<div class="dropdown inline round-switcher">
 				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">

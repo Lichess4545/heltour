@@ -1,0 +1,18 @@
+{% load staticfiles tournament_extras %}
+{% if section_list %}
+<div class="dropdown round-switcher inline">
+    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+        {{ season.section.name }}
+        <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+	    {% for s in section_list %}
+		{% if url_name %}
+		<li><a href="{% leagueurl url_name league.tag s.tag %}">{{ s.section.name }}</a></li>
+		{% else %}
+		<li><a href="{% leagueurl request.resolver_match.url_name league.tag s.tag %}">{{ s.section.name }}</a></li>
+		{% endif %}
+	    {% endfor %}
+    </ul>
+</div>
+{% endif %}

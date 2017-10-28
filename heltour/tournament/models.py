@@ -529,8 +529,9 @@ class SectionGroup(_BaseModel):
 #-------------------------------------------------------------------------------
 class Section(_BaseModel):
     season = models.OneToOneField(Season)
-    section_group = models.ForeignKey(SectionGroup, blank=True, null=True)
-    name = models.CharField(max_length=255, blank=True, null=True)
+    section_group = models.ForeignKey(SectionGroup)
+    name = models.CharField(max_length=255)
+    order = models.PositiveIntegerField()
     min_rating = models.PositiveIntegerField(blank=True, null=True)
     max_rating = models.PositiveIntegerField(blank=True, null=True)
 

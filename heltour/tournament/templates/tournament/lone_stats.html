@@ -51,6 +51,7 @@
 				<h3>Stats</h3>
 			</div>
 			<div class="well-body">
+				{% include 'tournament/section_switcher.html' %}
 				{% if has_win_rate_stats %}
 				<h4>Win Rate</h4>
 				<div class="table-responsive">
@@ -132,7 +133,9 @@
 				</div>
 				{% endif %}
 				{% if not has_win_rate_stats and not has_rating_delta_stats %}
-				<p>No stats available.</p>
+				<div class="row">
+					<div class="col-md-12">No stats available.</div>
+				</div>
 				{% endif %}
 			</div>
 		</div>

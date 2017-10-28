@@ -15,6 +15,7 @@
 				</div>
 			</div>
 			<div class="well-body">
+				{% include 'tournament/section_switcher.html' %}
 				{% if player_scores %}
 				<div class="table-responsive">
 					<table class="table table-striped table-condensed-sm" id="table-lone-standings">
@@ -65,7 +66,9 @@
 					</table>
 				</div>
 				{% else %}
-				No results available.
+				<div class="row">
+					<div class="col-md-12">No results available.</div>
+				</div>
 				{% endif %}
 			</div>
 		</div>

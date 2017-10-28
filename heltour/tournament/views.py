@@ -90,6 +90,10 @@ class SeasonView(LeagueView):
         self.season = _get_season(league_tag, season_tag, False)
         self._season_specified = season_tag is not None
         self.extra_context = {}
+        if self.season and hasattr(self.season, 'section'):
+            section_list = Season.objects.filter(section__section_group_id=self.season.section.section_group_id).order_by('section__order')
+            if len(section_list) > 1:
+                self.extra_context['section_list'] = section_list
 
 class LoginRequiredMixin:
     def _preprocess(self):
@@ -1072,7 +1076,7 @@ class LeagueDashboardView(LeagueView):
 
     def _common_context(self):
         default_season = _get_default_season(self.league.tag, allow_none=True)
-        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', 'name'))
+        season_list = list(Season.objects.filter(league=self.league).order_by('-start_date', 'section__order'))
         current_season_list = [s for s in season_list if not s.is_completed]
         completed_season_list = [s for s in season_list if s.is_completed]
 
