@@ -13,6 +13,14 @@
 {% endif %}
 {% endspaceless %}{% endblock %}
 
+{% block meta %}{% spaceless %}
+{% if league.theme == 'blue' %}
+<meta property="og:image" content="{% static 'tournament/img/all-for-one-blue.png' %}" />
+{% elif league.theme == 'green' %}
+<meta property="og:image" content="{% static 'tournament/img/wolf-head-green.png' %}" />
+{% endif %}
+{% endspaceless %}{% endblock %}
+
 {% block body %}
     <nav class="navbar navbar-default">
 	  <div class="container-fluid">
