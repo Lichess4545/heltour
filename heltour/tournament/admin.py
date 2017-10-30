@@ -1563,16 +1563,19 @@ class LonePlayerPairingAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(_BaseAdmin):
-    list_display = ('review', 'email', 'status', 'valid', 'season', 'date_created')
+    list_display = ('review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating', 'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
-    list_filter = ('status', 'season',)
+    list_filter = ('status', 'season', 'section_preference__name')
     actions = ('validate', 'approve')
     league_id_field = 'season__league_id'
 
     def changelist_view(self, request, extra_context=None):
         self.request = request
         return super(RegistrationAdmin, self).changelist_view(request, extra_context=extra_context)
+
+    def section(self, obj):
+        return obj.section_preference.name if obj.section_preference else ''
 
     def review(self, obj):
         _url = reverse('admin:review_registration', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)

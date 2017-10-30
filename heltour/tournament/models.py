@@ -540,7 +540,7 @@ class SectionGroup(_BaseModel):
 class Section(_BaseModel):
     season = models.OneToOneField(Season)
     section_group = models.ForeignKey(SectionGroup)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name='section name')
     order = models.PositiveIntegerField()
     min_rating = models.PositiveIntegerField(blank=True, null=True)
     max_rating = models.PositiveIntegerField(blank=True, null=True)
@@ -1430,8 +1430,8 @@ class Registration(_BaseModel):
     slack_username = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
 
-    classical_rating = models.PositiveIntegerField()
-    peak_classical_rating = models.PositiveIntegerField(blank=True, null=True)
+    classical_rating = models.PositiveIntegerField(verbose_name='rating')
+    peak_classical_rating = models.PositiveIntegerField(blank=True, null=True, verbose_name='peak rating')
     has_played_20_games = models.BooleanField()
     already_in_slack_group = models.BooleanField()
     previous_season_alternate = models.CharField(blank=True, max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
