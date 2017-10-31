@@ -9,13 +9,17 @@ from django.dispatch.dispatcher import receiver
 import logging
 from heltour.tournament import lichessapi
 import time
+import sys
 
 logger = logging.getLogger(__name__)
 
 def _send_notification(notification_type, league, text):
     if league.enable_notifications:
         for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
-            slackapi.send_message(ln.slack_channel, text)
+            try:
+                slackapi.send_message(ln.slack_channel, text)
+            except Exception:
+                logger.error(sys.exc_info())
 
 def _message_user(league, username, text):
     if league.enable_notifications:
