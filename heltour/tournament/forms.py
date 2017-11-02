@@ -165,9 +165,17 @@ class ApproveRegistrationForm(forms.Form):
         self.fields['send_confirm_email'].initial = workflow.default_send_confirm_email
         self.fields['invite_to_slack'].initial = workflow.default_invite_to_slack
 
+        section_list = reg.season.section_list()
+        if len(section_list) > 1:
+            section_options = [(season.id, season.section.name) for season in section_list]
+            self.fields['section'] = forms.ChoiceField(choices=section_options, initial=workflow.default_section.id)
+
         if workflow.is_late:
             self.fields['retroactive_byes'] = forms.IntegerField(initial=workflow.default_byes)
             self.fields['late_join_points'] = forms.FloatField(initial=workflow.default_ljp)
+
+    def clean_section(self):
+        return Season.objects.get(pk=int(self.cleaned_data['section']))
 
 class RejectRegistrationForm(forms.Form):
 

@@ -549,6 +549,14 @@ class Section(_BaseModel):
         if self.season and self.section_group and self.season.league_id != self.section_group.league_id:
             raise ValidationError('Season and section group leagues must match')
 
+    def is_eligible(self, player):
+        rating = player.rating_for(self.season.league)
+        if self.min_rating is not None and (rating is None or rating < self.min_rating):
+            return False
+        if self.max_rating is not None and (rating is None or rating >= self.max_rating):
+            return False
+        return True
+
     def __unicode__(self):
         return '%s - %s' % (self.name, self.section_group.name)
 
@@ -1427,7 +1435,7 @@ class Registration(_BaseModel):
     status_changed_date = models.DateTimeField(blank=True, null=True)
 
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
-    slack_username = models.CharField(max_length=255)
+    slack_username = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=255)
 
     classical_rating = models.PositiveIntegerField(verbose_name='rating')

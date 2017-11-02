@@ -1628,6 +1628,7 @@ class RegistrationAdmin(_BaseAdmin):
 
                 send_confirm_email = workflow.default_send_confirm_email
                 invite_to_slack = workflow.default_invite_to_slack
+                default_section = workflow.default_section
                 if workflow.is_late:
                     retroactive_byes = workflow.default_byes
                     late_join_points = workflow.default_ljp
@@ -1635,7 +1636,7 @@ class RegistrationAdmin(_BaseAdmin):
                     retroactive_byes = None
                     late_join_points = None
 
-                workflow.approve_reg(request, None, send_confirm_email, invite_to_slack, retroactive_byes, late_join_points)
+                workflow.approve_reg(request, None, send_confirm_email, invite_to_slack, default_section, retroactive_byes, late_join_points)
                 count += 1
 
         self.message_user(request, '%d approved.' % count, messages.INFO)
@@ -1697,6 +1698,7 @@ class RegistrationAdmin(_BaseAdmin):
                                          self,
                                          form.cleaned_data['send_confirm_email'],
                                          form.cleaned_data['invite_to_slack'],
+                                         form.cleaned_data.get('section', reg.season),
                                          form.cleaned_data.get('retroactive_byes'),
                                          form.cleaned_data.get('late_join_points'))
                     return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)

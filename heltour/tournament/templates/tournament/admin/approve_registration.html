@@ -52,6 +52,13 @@
 	    	<label for="{{ form.send_confirm_email.id_for_label }}">Send a confirmation email to <span class="text-email">{{ confirm_email }}</span></label>
 		</div>
 		
+		{% if form.section %}
+	    <div class="action-checkbox">
+	    	<label for="{{ form.section.id_for_label }}">Section:</label>
+			{{ form.section }}
+		</div>
+		{% endif %}
+		
 		{% if form.late_join_points %}
 	    <div class="action-checkbox">
 	    	<label for="{{ form.retroactive_byes.id_for_label }}">Retroactive byes:</label>

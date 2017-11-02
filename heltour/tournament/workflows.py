@@ -277,7 +277,6 @@ class ApproveRegistrationWorkflow():
 
     def __init__(self, reg):
         self.reg = reg
-        self.season = reg.season
         self.league = reg.season.league
 
     @property
@@ -294,12 +293,28 @@ class ApproveRegistrationWorkflow():
         return min(self.active_round_count, 2)
 
     @property
+    def default_section(self):
+        if not hasattr(self.reg.season, 'section'):
+            return self.reg.season
+        player = Player.get_or_create(self.reg.lichess_username)
+        if self.reg.section_preference is not None and self.reg.section_preference.is_eligible(player):
+            return self.reg.section_preference.season
+        section_list = self.reg.season.section_list()
+        # Assume least restrictive sections are first, and that we should default to more restrictive
+        for season in reversed(section_list):
+            if hasattr(season, 'section') and season.section.is_eligible(player):
+                return season
+        return self.reg.season
+
+    @property
     def default_ljp(self):
         # Try and calculate LjP below, but use 0 if we can't
         default_ljp = 0
+        season = self.default_section
+        active_round_count = self.active_round_count
 
-        if self.default_byes < self.active_round_count:
-            season_players = self.season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
+        if self.default_byes < active_round_count:
+            season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
             player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
             rating = self.reg.classical_rating if player is None else player.rating_for(self.league)
 
@@ -316,8 +331,8 @@ class ApproveRegistrationWorkflow():
             if len(close_player_scores_adjusted) > 0:
                 # Calculate the average of the scores
                 average_score = sum(close_player_scores_adjusted) / len(close_player_scores_adjusted)
-                if self.active_round_count > 1 and self.season.round_set.filter(publish_pairings=True, is_completed=False).count():
-                    expected_score = average_score * self.active_round_count / (self.active_round_count - 1)
+                if active_round_count > 1 and season.round_set.filter(publish_pairings=True, is_completed=False).count():
+                    expected_score = average_score * active_round_count / (active_round_count - 1)
                 else:
                     expected_score = average_score
                 expected_score_rounded = round(2.0 * expected_score) / 2.0
@@ -328,13 +343,13 @@ class ApproveRegistrationWorkflow():
 
     @property
     def active_round_count(self):
-        return self.season.round_set.filter(publish_pairings=True).count()
+        return self.default_section.round_set.filter(publish_pairings=True).count()
 
     @property
     def is_late(self):
         return self.league.competitor_type != 'team' and self.active_round_count > 0
 
-    def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, retroactive_byes, late_join_points):
+    def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, season, retroactive_byes, late_join_points):
         reg = self.reg
 
         # Limit changes to moderators
@@ -358,7 +373,7 @@ class ApproveRegistrationWorkflow():
 
         if self.is_late:
             # Late registration
-            next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+            next_round = Round.objects.filter(season=season, publish_pairings=False).order_by('number').first()
             if next_round is not None:
                 with reversion.create_revision():
                     reversion.set_user(request.user)
@@ -373,13 +388,13 @@ class ApproveRegistrationWorkflow():
 
             sp, created = SeasonPlayer.objects.update_or_create(
                 player=player,
-                season=reg.season,
+                season=season,
                 defaults={'registration': reg, 'is_active': not self.is_late}
             )
 
             if created and self.league.competitor_type == 'team':
                 # Add a yellow card for players that had a red card their previous season
-                last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(season=self.season).order_by('-season__start_date').first()
+                last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(season=season).order_by('-season__start_date').first()
                 if last_sp is not None and last_sp.games_missed >= 2:
                     sp.games_missed = 1
                     sp.save()
@@ -387,18 +402,18 @@ class ApproveRegistrationWorkflow():
         # Set availability
         for week_number in reg.weeks_unavailable.split(','):
             if week_number != '':
-                round_ = Round.objects.filter(season=reg.season, number=int(week_number)).first()
+                round_ = Round.objects.filter(season=season, number=int(week_number)).first()
                 if round_ is not None:
                     with reversion.create_revision():
                         reversion.set_user(request.user)
                         reversion.set_comment('Approved registration.')
                         PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
 
-        if reg.season.league.competitor_type == 'team':
+        if season.league.competitor_type == 'team':
             subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
             msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
             msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
-        elif reg.season.league.rating_type == 'blitz':
+        elif season.league.rating_type == 'blitz':
             # TODO: Make the email template a league setting
             subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt', {'reg': reg})
             msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt', {'reg': reg})
