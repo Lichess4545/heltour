@@ -10,9 +10,9 @@
 {% if has_win_rate_stats %}
 <script type="text/javascript">
   google.charts.load('current', {'packages':['corechart']});
-  google.charts.setOnLoadCallback(drawChart);
-  function drawChart() {
-
+  google.charts.setOnLoadCallback(drawCharts);
+  
+  function drawResultChart() {
     // Create the data table.
     var data = google.visualization.arrayToDataTable([
         ['', 'White Win', { role: 'style' }, 'Draw', { role: 'style' }, 'Black Win', { role: 'style' }],
@@ -39,6 +39,37 @@
     var chart = new google.visualization.ColumnChart(document.getElementById('result-chart-div'));
     chart.draw(data, options);
   }
+  
+  function drawRatingChart(title, rating_data, div_name) {
+    // Create the data table.
+    var data = google.visualization.arrayToDataTable(rating_data);
+  	
+    // Set chart options
+    var options = {'title': title,
+                   'width': 600,
+                   'height': 300,
+                   'chartArea': {'width': '80%', 'height': '70%', 'left': '10%'},
+                   'legend': { position: 'none' },
+                   'fontName': 'Noto Sans',
+                   'fontSize': 14,
+                   'histogram': {'bucketSize': 100}};
+
+    // Instantiate and draw our chart, passing in some options.
+    var chart = new google.visualization.Histogram(document.getElementById(div_name));
+    chart.draw(data, options);
+  }
+  
+  function drawCharts() {
+  	drawResultChart();
+  	drawRatingChart('Active Players', [
+        ['', 'Rating'],
+        {% for r in active_player_ratings %}['', {{ r }}],{% endfor %}
+    ], 'active-rating-chart-div');
+  	drawRatingChart('All Players', [
+        ['', 'Rating'],
+        {% for r in all_player_ratings %}['', {{ r }}],{% endfor %}
+    ], 'all-rating-chart-div');
+  }
 </script>
 {% endif %}
 {% endblock %}
@@ -52,6 +83,14 @@
 			</div>
 			<div class="well-body">
 				{% include 'tournament/section_switcher.html' %}
+				{% if all_player_ratings %}
+				<h4>Rating Distribution</h4>
+				<div class="table-responsive">
+					<div id="active-rating-chart-div" style="height: 300px;"></div>
+					<div id="all-rating-chart-div" style="height: 300px;"></div>
+					<br/>
+				</div>
+				{% endif %}
 				{% if has_win_rate_stats %}
 				<h4>Win Rate</h4>
 				<div class="table-responsive">

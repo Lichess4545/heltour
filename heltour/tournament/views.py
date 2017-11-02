@@ -971,6 +971,10 @@ class StatsView(SeasonView):
             rating_delta_percents = tuple((c / total for c in rating_delta_counts))
             upset_percents = tuple((c1 / float(c2) if c2 > 0 else 0 for c1, c2 in zip(upset_counts, rating_delta_counts)))
 
+            season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
+            active_player_ratings = [sp.player.rating_for(self.league) for sp in season_players.filter(is_active=True)]
+            all_player_ratings = [sp.player.rating_for(self.league) for sp in season_players]
+
             context = {
                 'has_win_rate_stats': win_counts != (0, 0, 0, 0),
                 'win_rating_delta': win_rating_delta,
@@ -981,6 +985,8 @@ class StatsView(SeasonView):
                 'rating_delta_percents': rating_delta_percents,
                 'rating_delta_average': rating_delta_average,
                 'upset_percents': upset_percents,
+                'active_player_ratings': active_player_ratings,
+                'all_player_ratings': all_player_ratings,
             }
             return self.render('tournament/lone_stats.html', context)
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
