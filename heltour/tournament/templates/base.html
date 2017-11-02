@@ -15,9 +15,9 @@
 
 {% block meta %}{% spaceless %}
 {% if league.theme == 'blue' %}
-<meta property="og:image" content="{% static 'tournament/img/all-for-one-blue.png' %}" />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/all-for-one-blue.png' %}" />
 {% elif league.theme == 'green' %}
-<meta property="og:image" content="{% static 'tournament/img/wolf-head-green.png' %}" />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/wolf-head-green.png' %}" />
 {% endif %}
 {% endspaceless %}{% endblock %}
 
