@@ -7,7 +7,6 @@
 
 {% block js %}
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-{% if has_win_rate_stats %}
 <script type="text/javascript">
   google.charts.load('current', {'packages':['corechart']});
   google.charts.setOnLoadCallback(drawCharts);
@@ -52,7 +51,8 @@
                    'legend': { position: 'none' },
                    'fontName': 'Noto Sans',
                    'fontSize': 14,
-                   'histogram': {'bucketSize': 100}};
+                   'histogram': {'bucketSize': 100},
+                   'hAxis': {'format': '#'}};
 
     // Instantiate and draw our chart, passing in some options.
     var chart = new google.visualization.Histogram(document.getElementById(div_name));
@@ -60,18 +60,23 @@
   }
   
   function drawCharts() {
+    {% if has_win_rate_stats %}
   	drawResultChart();
+  	{% endif %}
+  	{% if active_player_ratings %}
   	drawRatingChart('Active Players', [
         ['', 'Rating'],
         {% for r in active_player_ratings %}['', {{ r }}],{% endfor %}
     ], 'active-rating-chart-div');
+    {% endif %}
+    {% if all_player_ratings %}
   	drawRatingChart('All Players', [
         ['', 'Rating'],
         {% for r in all_player_ratings %}['', {{ r }}],{% endfor %}
     ], 'all-rating-chart-div');
+    {% endif %}
   }
 </script>
-{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -171,7 +176,7 @@
 					</table>
 				</div>
 				{% endif %}
-				{% if not has_win_rate_stats and not has_rating_delta_stats %}
+				{% if not has_win_rate_stats and not has_rating_delta_stats and not all_player_ratings %}
 				<div class="row">
 					<div class="col-md-12">No stats available.</div>
 				</div>

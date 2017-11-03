@@ -924,6 +924,10 @@ class StatsView(SeasonView):
     def lone_view(self):
         @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing)
         def _view(league_tag, season_tag, is_staff, username):
+            season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
+            active_player_ratings = [sp.player.rating_for(self.league) for sp in season_players.filter(is_active=True)]
+            all_player_ratings = [sp.player.rating_for(self.league) for sp in season_players]
+
             all_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season) \
                                                 .select_related('loneplayerpairing', 'white', 'black') \
                                                 .nocache()
@@ -961,7 +965,10 @@ class StatsView(SeasonView):
                     counts[1] += 1
 
             if total == 0:
-                return self.render('tournament/lone_stats.html', {})
+                return self.render('tournament/lone_stats.html', {
+                    'active_player_ratings': active_player_ratings,
+                    'all_player_ratings': all_player_ratings,
+                })
 
             win_counts = tuple(counts)
             win_percents = tuple((c / total for c in counts))
@@ -970,10 +977,6 @@ class StatsView(SeasonView):
             rating_delta_counts = tuple(rating_delta_counts)
             rating_delta_percents = tuple((c / total for c in rating_delta_counts))
             upset_percents = tuple((c1 / float(c2) if c2 > 0 else 0 for c1, c2 in zip(upset_counts, rating_delta_counts)))
-
-            season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
-            active_player_ratings = [sp.player.rating_for(self.league) for sp in season_players.filter(is_active=True)]
-            all_player_ratings = [sp.player.rating_for(self.league) for sp in season_players]
 
             context = {
                 'has_win_rate_stats': win_counts != (0, 0, 0, 0),
