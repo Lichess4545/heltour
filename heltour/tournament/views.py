@@ -922,7 +922,7 @@ class StatsView(SeasonView):
         return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
 
     def lone_view(self):
-        @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing)
+        @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing, SeasonPlayer)
         def _view(league_tag, season_tag, is_staff, username):
             season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
             active_player_ratings = [sp.player.rating_for(self.league) for sp in season_players.filter(is_active=True)]
