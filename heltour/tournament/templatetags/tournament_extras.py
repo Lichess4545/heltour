@@ -135,3 +135,30 @@ def date_el(datetime, arg=None):
     if not datetime:
         return ''
     return mark_safe('<time datetime="%s">%s</time>' % (datetime.isoformat(), formats.date_format(datetime, arg)))
+
+@register.filter
+def mean(lst):
+    if len(lst) == 0:
+        return ''
+    return sum(lst) / len(lst)
+
+@register.filter
+def median(lst):
+    c = len(lst)
+    if c == 0:
+        return ''
+    if c % 2 == 0:
+        return (lst[c / 2 - 1] + lst[c / 2]) / 2
+    return lst[int(c / 2)]
+
+@register.filter
+def maximum(lst):
+    if len(lst) == 0:
+        return ''
+    return max(lst)
+
+@register.filter
+def minimum(lst):
+    if len(lst) == 0:
+        return ''
+    return min(lst)

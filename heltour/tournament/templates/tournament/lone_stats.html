@@ -92,7 +92,25 @@
 				<h4>Rating Distribution</h4>
 				<div class="table-responsive">
 					<div id="active-rating-chart-div" style="height: 300px;"></div>
+					<table class="table table-condensed-xs table-stats">
+						<tr>
+							<td>Count: {{ active_player_ratings|length }}</td>
+							<td>Mean: {{ active_player_ratings|mean }}</td>
+							<td>Median: {{ active_player_ratings|median }}</td>
+							<td>Min: {{ active_player_ratings|minimum }}</td>
+							<td>Max: {{ active_player_ratings|maximum }}</td>
+						</tr>
+					</table>
 					<div id="all-rating-chart-div" style="height: 300px;"></div>
+					<table class="table table-condensed-xs table-stats">
+						<tr>
+							<td>Count: {{ all_player_ratings|length }}</td>
+							<td>Mean: {{ all_player_ratings|mean }}</td>
+							<td>Median: {{ all_player_ratings|median }}</td>
+							<td>Min: {{ all_player_ratings|minimum }}</td>
+							<td>Max: {{ all_player_ratings|maximum }}</td>
+						</tr>
+					</table>
 					<br/>
 				</div>
 				{% endif %}
