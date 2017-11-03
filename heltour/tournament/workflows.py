@@ -351,6 +351,8 @@ class ApproveRegistrationWorkflow():
 
     def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, season, retroactive_byes, late_join_points):
         reg = self.reg
+        if season != reg.season:
+            reg.season = season
 
         # Limit changes to moderators
         mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
