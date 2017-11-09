@@ -288,10 +288,10 @@ class BulkEmailForm(forms.Form):
     text_content = forms.CharField(max_length=4096, required=True, widget=forms.Textarea)
     confirm_send = forms.BooleanField()
 
-    def __init__(self, season, *args, **kwargs):
+    def __init__(self, player_count, *args, **kwargs):
         super(BulkEmailForm, self).__init__(*args, **kwargs)
 
-        self.fields['confirm_send'].label = 'Yes, I\'m sure - send emails to %d players in %s' % (season.seasonplayer_set.count(), season.name)
+        self.fields['confirm_send'].label = 'Yes, I\'m sure - send emails to %d players' % (player_count)
 
 class TeamSpamForm(forms.Form):
     text = forms.CharField(max_length=4096, required=True, widget=forms.Textarea)

@@ -554,7 +554,7 @@ class SeasonAdmin(_BaseAdmin):
             raise PermissionDenied
 
         if request.method == 'POST':
-            form = forms.BulkEmailForm(season, request.POST)
+            form = forms.BulkEmailForm(season.seasonplayer_set.count(), request.POST)
             if form.is_valid() and form.cleaned_data['confirm_send']:
                 season_players = season.seasonplayer_set.all()
                 email_addresses = {sp.player.email for sp in season_players if sp.player.email != ''}
@@ -575,7 +575,7 @@ class SeasonAdmin(_BaseAdmin):
                 self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
                 return redirect('admin:tournament_season_changelist')
         else:
-            form = forms.BulkEmailForm(season)
+            form = forms.BulkEmailForm(season.seasonplayer_set.count())
 
         context = {
             'has_permission': True,
@@ -1794,13 +1794,67 @@ class InSlackFilter(SimpleListFilter):
 class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
     search_fields = ('season__name', 'player__lichess_username')
-    list_filter = ('season', 'is_active', InSlackFilter)
+    list_filter = ('season__league', 'season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
     league_id_field = 'season__league_id'
+    actions = ['bulk_email']
 
     def in_slack(self, sp):
         return bool(sp.player.slack_user_id)
     in_slack.boolean = True
+
+    def get_urls(self):
+        urls = super(SeasonPlayerAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_ids>[0-9,]+)/bulk_email/$',
+                self.admin_site.admin_view(self.bulk_email_view),
+                name='bulk_email_by_players'),
+        ]
+        return my_urls + urls
+
+    def bulk_email(self, request, queryset):
+        return redirect('admin:bulk_email_by_players', object_ids=','.join((str(sp.id) for sp in queryset)))
+
+    def bulk_email_view(self, request, object_ids):
+        season_players = SeasonPlayer.objects.filter(id__in=[int(i) for i in object_ids.split(',')]).select_related('season', 'player').nocache()
+        seasons = {sp.season for sp in season_players}
+        for season in seasons:
+            if not request.user.has_perm('tournament.bulk_email', season.league):
+                raise PermissionDenied
+
+        if request.method == 'POST':
+            form = forms.BulkEmailForm(len(season_players), request.POST)
+            if form.is_valid() and form.cleaned_data['confirm_send']:
+                email_addresses = {sp.player.email for sp in season_players if sp.player.email != ''}
+                email_messages = []
+                for addr in email_addresses:
+                    message = EmailMultiAlternatives(
+                        form.cleaned_data['subject'],
+                        form.cleaned_data['text_content'],
+                        settings.DEFAULT_FROM_EMAIL,
+                        [addr]
+                    )
+                    message.attach_alternative(form.cleaned_data['html_content'], 'text/html')
+                    email_messages.append(message)
+                conn = mail.get_connection()
+                conn.open()
+                conn.send_messages(email_messages)
+                conn.close()
+                self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
+                return redirect('admin:tournament_season_changelist')
+        else:
+            form = forms.BulkEmailForm(len(season_players))
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': 'Bulk email',
+            'title': 'Bulk email',
+            'form': form
+        }
+
+        return render(request, 'tournament/admin/bulk_email.html', context)
 
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerScore)
