@@ -1797,7 +1797,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     list_filter = ('season__league', 'season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
     league_id_field = 'season__league_id'
-    actions = ['bulk_email']
+    actions = ['bulk_email', 'link_reminder']
 
     def in_slack(self, sp):
         return bool(sp.player.slack_user_id)
@@ -1811,6 +1811,21 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 name='bulk_email_by_players'),
         ]
         return my_urls + urls
+
+    def link_reminder(self, request, queryset):
+        slack_users = slackapi.get_user_list()
+        by_email = {u.email: u.id for u in slack_users}
+
+        for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related('player').nocache():
+            uid = by_email.get(sp.player.email)
+            if uid:
+                token = LoginToken.objects.create(slack_user_id=uid, username_hint=sp.player.lichess_username, expires=timezone.now() + timedelta(days=30))
+                url = reverse('by_league:login_with_token', args=[sp.season.league.tag, token.secret_token])
+                url = request.build_absolute_uri(url)
+                text = 'Reminder: You need to link your Slack and Lichess accounts. <%s|Click here> to do that now. Contact a mod if you need help.' % url
+                slackapi.send_message(uid, text)
+
+        return redirect('admin:tournament_seasonplayer_changelist')
 
     def bulk_email(self, request, queryset):
         return redirect('admin:bulk_email_by_players', object_ids=','.join((str(sp.id) for sp in queryset)))
