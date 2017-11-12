@@ -1841,7 +1841,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 conn.send_messages(email_messages)
                 conn.close()
                 self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
-                return redirect('admin:tournament_season_changelist')
+                return redirect('admin:tournament_seasonplayer_changelist')
         else:
             form = forms.BulkEmailForm(len(season_players))
 
