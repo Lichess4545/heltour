@@ -452,6 +452,36 @@ def notify_players_round_start(round_, **kwargs):
         send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
         time.sleep(1)
 
+@receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
+def notify_players_late_pairing(round_, pairing, **kwargs):
+    im_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
+           + 'Send a direct message to your opponent, <@{opponent}>, within 48 hours.\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+
+    mp_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
+           + 'Message your opponent here within 48 hours.\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+
+    li_subject = 'Round {round} - {league}'
+    li_msg = 'You have been paired for Round {round} in {season}.\n' \
+           + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
+           + 'Message your opponent on Slack within 48 hours.\n' \
+           + '{slack_url}\n' \
+           + 'When you have agreed on a time, post it in {scheduling_channel}.'
+
+    season = round_.season
+    league = season.league
+    if not league.enable_notifications:
+        return
+    if not round_.publish_pairings or round_.is_completed:
+        logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
+        return
+
+    send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    time.sleep(1)
+
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \

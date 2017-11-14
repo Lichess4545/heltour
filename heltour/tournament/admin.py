@@ -1484,6 +1484,16 @@ class PlayerPairingAdmin(_BaseAdmin):
     raw_id_fields = ('white', 'black')
     inlines = [PlayerPresenceInline]
     exclude = ('white_rating', 'black_rating', 'tv_state')
+    actions = ['send_pairing_notification']
+
+    def send_pairing_notification(self, request, queryset):
+        count = 0
+        for pairing in queryset.all():
+            round_ = pairing.get_round()
+            if round_ is not None:
+                signals.notify_players_late_pairing.send(sender=self, round_=round_, pairing=pairing)
+                count += 1
+        self.message_user(request, 'Notifications sent for %d pairings.' % count, messages.INFO)
 
     def get_queryset(self, request):
         queryset = super(_BaseAdmin, self).get_queryset(request)
