@@ -216,23 +216,26 @@ class LeagueHomeView(LeagueView):
         _, completed_seasons = _get_season_lists(self.league)
         registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
-        player_scores = _lone_player_scores(self.season, final=True)[:5]
+        current_seasons = self.season.section_list()
+        current_seasons_with_more = []
+        for season in current_seasons:
+            player_scores = _lone_player_scores(season, final=True)[:5]
 
-        if self.season.is_completed:
-            prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=self.season)
-            player_highlights = _get_player_highlights(prize_winners)
-        else:
-            player_highlights = []
+            if self.season.is_completed:
+                prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=season)
+                player_highlights = _get_player_highlights(prize_winners)
+            else:
+                player_highlights = []
+            current_seasons_with_more.append((season, player_scores, player_highlights))
 
         context = {
-            'player_scores': player_scores,
+            'current_seasons_with_more': current_seasons_with_more,
             'completed_seasons': completed_seasons,
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             'registration_season': registration_season,
             'other_leagues': other_leagues,
-            'player_highlights': player_highlights,
         }
         return self.render('tournament/lone_league_home.html', context)
 

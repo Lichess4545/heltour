@@ -82,6 +82,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 		</div>
 	</div>
 	<div class="col-md-6 col-xs-12">
+		{% for season, player_scores, player_highlights in current_seasons_with_more %}
 		{% if player_scores %}
 		<div class="well">
 			<div class="well-head">
@@ -121,6 +122,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			</div>
 		</div>
 		{% endif %}
+		{% endfor %}
 		{% if completed_seasons %}
 		<div class="well">
 			<div class="well-head">
