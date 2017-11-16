@@ -1137,8 +1137,9 @@ class UserDashboardView(LeagueView):
             slack_linked_just_now = True
             del self.request.session['slack_linked']
 
-        active_season = self.league.season_set.filter(is_active=True, is_completed=False).order_by('-start_date').first()
-        active_sp = player.seasonplayer_set.filter(season=active_season).first()
+        active_seasons = self.league.season_set.filter(is_active=True, is_completed=False).order_by('-start_date')
+        active_seasons_with_sp = [(s, player.seasonplayer_set.filter(season=s).first()) for s in active_seasons]
+        active_seasons_with_sp = filter(lambda s:s[1], active_seasons_with_sp)
         last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True, season__is_completed=True) \
                         .order_by('-season__start_date').first()
         last_season = last_sp.season if last_sp is not None else None
@@ -1164,8 +1165,7 @@ class UserDashboardView(LeagueView):
             'player': player,
             'slack_linked': slack_linked,
             'slack_linked_just_now': slack_linked_just_now,
-            'active_season': active_season,
-            'active_sp': active_sp,
+            'active_seasons_with_sp': active_seasons_with_sp,
             'last_season': last_season,
             'my_pairings': my_pairings
         }

@@ -88,7 +88,7 @@
 		</div>
 	</div>
 	<div class="col-md-6 col-xs-12">
-		{% if active_season %}
+		{% for active_season, active_sp in active_seasons_with_sp %}
 		<div class="well">
 			<div class="well-head">
 				<h3>{{ active_season.name }}</h3>
@@ -116,7 +116,7 @@
 				{% endif %}
 			</div>
 		</div>
-		{% endif %}
+		{% endfor %}
 		{% if last_season %}
 		<div class="well">
 			<div class="well-head">
