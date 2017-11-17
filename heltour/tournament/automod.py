@@ -144,7 +144,7 @@ def claim_win_noshow_created(instance, **kwargs):
 
     if p.get_player_presence(instance.requester).online_for_game \
        and not p.get_player_presence(opponent).online_for_game \
-       and timezone.now() > p.scheduled_time + timedelta(minutes=23):
+       and timezone.now() > p.scheduled_time + timedelta(minutes=21):
         instance.approve(response='You\'ve been given a win by forfeit.')
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
