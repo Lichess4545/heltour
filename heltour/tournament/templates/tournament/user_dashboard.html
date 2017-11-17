@@ -105,6 +105,15 @@
 						</a>
 						{% endif %}
 					</p>
+					{% if active_sp.games_missed %}
+					<p>
+						{% if active_sp.games_missed > 1 %}
+						You have a red card.<span class="with-red-card"></span>
+						{% else %}
+						You have a yellow card.<span class="with-yellow-card"></span>
+						{% endif %}
+					</p>
+					{% endif %}
 				{% else %}
 					{% if active_season.registration_open %}
 					<a class="btn btn-default" href="{% leagueurl 'register' league.tag active_season.tag %}">

@@ -31,11 +31,12 @@
 						</thead>
 						<tbody>
 							{% for number, player_score, round_scores in player_scores %}
+							{% with player_score.season_player as sp %}
 							<tr>
 								<td class="text-center">{{ number }}</td>
-								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
-										{{ player_score.season_player.player.lichess_username }}
+								<td class="{% highlightclass player_highlights sp.player %}{% if sp.games_missed > 1 %}with-red-card{% elif sp.games_missed > 0 %}with-yellow-card{% endif %}">
+									<a href="{% leagueurl 'player_profile' league.tag season.tag sp.player.lichess_username %}">
+										{{ sp.player.lichess_username }}
 									</a>
 								</td>
 								{% for result_code, opponent_num, color, cumul_score in round_scores %}
@@ -51,7 +52,7 @@
 							</tr>
 							<tr>
 								<td></td>
-								<td class="text-left">{% seed_rating player_score.season_player %}</td>
+								<td class="text-left">{% seed_rating sp %}</td>
 								{% for result_code, opponent_num, color, cumul_score in round_scores %}
 								<td class="text-left">
 									{% if result_code %}
@@ -61,6 +62,7 @@
 								{% endfor %}
 								<td class="text-center">{{ player_score.final_standings_points_display }}</td>
 							</tr>
+							{% endwith %}
 							{% endfor %}
 						</tbody>
 					</table>

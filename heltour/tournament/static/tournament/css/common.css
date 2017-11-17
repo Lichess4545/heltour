@@ -489,6 +489,33 @@ div.inline {
 	background-position: right 1px top 2px;
 }
 
+.with-yellow-card:after {
+	content: '';
+	background: url(/static/tournament/img/yellow-card.png);
+	background-position: right 0px top 2px;
+	background-repeat: no-repeat;
+	background-size: 18px 18px;
+	background-color: #fffcab;
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	vertical-align: middle;
+	margin-left: 5px;
+}
+.with-red-card:after {
+	content: '';
+	background: url(/static/tournament/img/yellow-card-filled.png);
+	background-position: right 0px top 2px;
+	background-repeat: no-repeat;
+	background-size: 18px 18px;
+	background-color: #ffabab;
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	vertical-align: middle;
+	margin-left: 5px;
+}
+
 .legend-swatch {
 	min-width: 20px;
 	width: 20px;

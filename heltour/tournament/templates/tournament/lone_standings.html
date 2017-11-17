@@ -60,14 +60,15 @@
 						</thead>
 						<tbody>
 							{% for number, player_score, round_scores in player_scores %}
+							{% with player_score.season_player as sp %}
 							<tr{% if not season.is_completed and player_score.late_join_points > 0 %} class="temporary-rank"{% endif %}>
 								<td class="text-center rank-value">{{ number }}</td>
-								<td class="{% highlightclass player_highlights player_score.season_player.player %}">
-									<a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
-										{{ player_score.season_player.player.lichess_username }}
+								<td class="{% highlightclass player_highlights sp.player %}{% if sp.games_missed > 1 %}with-red-card{% elif sp.games_missed > 0 %}with-yellow-card{% endif %}">
+									<a href="{% leagueurl 'player_profile' league.tag season.tag sp.player.lichess_username %}">
+										{{ sp.player.lichess_username }}
 									</a>
 								</td>
-								<td class="text-center">{% player_rating player_score.season_player %}</td>
+								<td class="text-center">{% player_rating sp %}</td>
 								{% for result_code, opponent_num, _, _ in round_scores %}
 								<td>{{ result_code|default_if_none:'' }}{% if opponent_num and result_code %}{{ opponent_num }}{% else %}---{% endif %}</td>
 								{% endfor %}
@@ -84,6 +85,7 @@
 								<td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
 								<td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
 							</tr>
+							{% endwith %}
 							{% endfor %}
 						</tbody>
 					</table>
