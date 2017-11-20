@@ -710,11 +710,11 @@ class SeasonAdmin(_BaseAdmin):
             'title': 'Pre-round report',
             'last_round': last_round,
             'next_round': next_round,
-            'missing_withdrawals': sorted(missing_withdrawals),
-            'red_cards': sorted(red_cards),
-            'bad_player_status': sorted(bad_player_status),
-            'not_on_slack': sorted(not_on_slack),
-            'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()),
+            'missing_withdrawals': sorted(missing_withdrawals) if missing_withdrawals is not None else None,
+            'red_cards': sorted(red_cards) if missing_withdrawals is not None else None,
+            'bad_player_status': sorted(bad_player_status) if bad_player_status is not None else None,
+            'not_on_slack': sorted(not_on_slack) if not_on_slack is not None else None,
+            'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()) if pending_regs is not None else None,
             'pairings_wo_results': pairings_wo_results
         }
 

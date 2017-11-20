@@ -23,7 +23,7 @@
 			<tr>
 			{% for season_player in active_players %}
 				<td>
-					<div class="pairing-player{% if season_player.player.account_status != 'normal' %} row-error" title="Marked as {{ season_player.player.account_status }}{% endif %}">
+					<div class="pairing-player{% if season_player.player.account_status != 'normal' %} row-error" title="Marked as {{ season_player.player.account_status }}{% elif not season_player.player.slack_user_id %} row-error" title="Not in slack{% endif %}">
 						<a href="{% leagueurl 'player_profile' original.league.tag original.tag season_player.player.lichess_username %}">
 							{{ season_player.player.lichess_username }} ({% player_rating season_player %})
 						</a>
