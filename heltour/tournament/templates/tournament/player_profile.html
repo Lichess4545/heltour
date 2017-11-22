@@ -35,7 +35,9 @@
 				<h3>Contact</h3>
 			</div>
 			<div class="well-body">
-				<div><a href="https://lichess4545.slack.com/messages/@{{ player.lichess_username }}/">Message {{ player.lichess_username }} on Slack</a></div>
+				{% if player.slack_user_id %}
+				<div><a href="https://lichess4545.slack.com/messages/{{ player.slack_user_id }}/">Message {{ player.lichess_username }} on Slack</a></div>
+				{% endif %}
 				<div><a href="https://lichess.org/inbox/new?user={{ player.lichess_username }}">Message {{ player.lichess_username }} on Lichess</a></div>
 			</div>
 		</div>
