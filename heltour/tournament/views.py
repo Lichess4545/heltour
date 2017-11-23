@@ -1475,6 +1475,16 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
     def view(self, post=False):
         player = self.player
 
+        if not post and not SeasonPlayer.objects.filter(player=player, season=self.season).exists():
+            # Look for another section this player is participating in
+            section_list = self.season.section_list()
+            active_sp = player.seasonplayer_set.filter(season__in=section_list, is_active=True).first()
+            if active_sp:
+                return redirect('by_league:by_season:edit_availability', self.league.tag, active_sp.season.tag)
+            inactive_sp = player.seasonplayer_set.filter(season__in=section_list).first()
+            if inactive_sp:
+                return redirect('by_league:by_season:edit_availability', self.league.tag, inactive_sp.season.tag)
+
         player_list = [player]
         include_current_round = self.league.competitor_type == 'team'
         if include_current_round:
