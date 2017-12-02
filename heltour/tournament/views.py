@@ -603,7 +603,7 @@ class RegisterView(LeagueView):
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
                 form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
-                form.fields['has_played_20_games'].initial = player.games_played > 20
+                form.fields['has_played_20_games'].initial = not player.provisional_for(reg_season.league)
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
         context = {

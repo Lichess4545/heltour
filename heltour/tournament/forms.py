@@ -41,8 +41,8 @@ class RegistrationForm(forms.ModelForm):
 
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                                                                    label=_(u'Have you played more than 20 rated games of %s chess on Lichess?' % rating_type.lower()),
-                                                                    help_text=_(u'If no, this must be fulfilled ASAP.'),)
+                                                                    label=_(u'Is your %s rating established (not provisional)?' % rating_type.lower()),
+                                                                    help_text=_(u'If it is provisional, it must be established ASAP by playing more games.'),)
 
         # In slack
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS,

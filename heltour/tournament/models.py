@@ -671,6 +671,14 @@ class Player(_BaseModel):
             return self.blitz_games_played
         return self.games_played # classical
 
+    def provisional_for(self, league):
+        if self.profile is None:
+            return True
+        perf = self.profile['perfs'].get(league.rating_type)
+        if perf is None:
+            return True
+        return perf.get('prov', False)
+
     @property
     def timezone_str(self):
         if self.timezone_offset == None:

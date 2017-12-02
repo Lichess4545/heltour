@@ -790,7 +790,7 @@ class SeasonAdmin(_BaseAdmin):
 
         reg = season_player.registration
         if player.games_played is not None:
-            has_played_20_games = player.games_played >= 20
+            has_played_20_games = not player.provisional_for(season.league)
         else:
             has_played_20_games = reg is not None and reg.has_played_20_games
 
