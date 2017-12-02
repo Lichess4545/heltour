@@ -1965,13 +1965,14 @@ class DocumentAdmin(_BaseAdmin):
 
     def get_queryset(self, request):
         queryset = super(_BaseAdmin, self).get_queryset(request)
-        if self.has_assigned_perm(request.user, 'change'):
+        if request.user.is_superuser:
             return queryset
-        return queryset.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
-             | queryset.filter(leaguedocument__allow_all_editors=True) \
-             | queryset.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
-             | queryset.filter(seasondocument__allow_all_editors=True) \
-             | queryset.filter(leaguedocument=None, seasondocument=None)
+        filtered_queryset = queryset.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+                          | queryset.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+                          | queryset.filter(owner=request.user)
+        if self.has_assigned_perm(request.user, 'change'):
+            filtered_queryset |= queryset.filter(allow_editors=True)
+        return filtered_queryset
 
     def get_league_id(self, obj):
         if hasattr(obj, 'leaguedocument'):
@@ -1981,19 +1982,26 @@ class DocumentAdmin(_BaseAdmin):
         else:
             return None
 
-    def edits_allowed(self, obj):
-        return hasattr(obj, 'leaguedocument') and obj.leaguedocument.allow_all_editors or \
-               hasattr(obj, 'seasondocument') and obj.seasondocument.allow_all_editors
-
     def has_league_perm(self, user, action, obj):
         if obj is None:
             return bool(self.authorized_leagues(user))
         else:
-            league_id = self.get_league_id(obj)
-            return league_id is None or league_id in self.authorized_leagues(user) or action == 'change' and self.edits_allowed(obj)
+            return user.is_superuser or obj.owned_by(user) \
+                or self.get_league_id(obj) in self.authorized_leagues(user) \
+                or action == 'change' and obj.allow_editors and self.has_assigned_perm(user, 'change')
 
-    def clean_form(self, request, form):
-        pass
+    def has_change_permission(self, request, obj=None):
+        return self.has_league_perm(request.user, 'change', obj)
+
+    def get_changeform_initial_data(self, request):
+        get_data = super(DocumentAdmin, self).get_changeform_initial_data(request)
+        get_data['owner'] = request.user.pk
+        return get_data
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None or request.user.is_superuser or obj.owned_by(request.user):
+            return ()
+        return ('allow_editors', 'owner')
 
 #-------------------------------------------------------------------------------
 @admin.register(LeagueDocument)

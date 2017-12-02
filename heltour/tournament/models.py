@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 import select2.fields
 from heltour.tournament import signals
 import logging
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
@@ -1990,6 +1991,11 @@ class LoginToken(_BaseModel):
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()
+    allow_editors = models.BooleanField(default=False, verbose_name='Allow designated editors')
+    owner = select2.fields.ForeignKey(User, ajax=True, search_field='username', limit_choices_to=models.Q(is_staff=True))
+
+    def owned_by(self, user):
+        return self.owner == user
 
     def __unicode__(self):
         return self.name
@@ -2007,7 +2013,6 @@ class LeagueDocument(_BaseModel):
     document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
-    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('league', 'tag')
@@ -2029,7 +2034,6 @@ class SeasonDocument(_BaseModel):
     document = models.OneToOneField(Document)
     tag = models.SlugField(help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
     type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
-    allow_all_editors = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('season', 'tag')
