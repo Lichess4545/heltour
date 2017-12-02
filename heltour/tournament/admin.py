@@ -1304,21 +1304,14 @@ class PlayerAdmin(_BaseAdmin):
         return self.has_assigned_perm(request.user, 'delete')
 
     def get_readonly_fields(self, request, obj=None):
-        if request.user.has_perm('tournament.link_slack'):
-            return ('rating', 'games_played', 'timezone_offset', 'account_status')
-        return ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
-
-    def clean_form(self, request, form):
-        # Restrict what can be edited manually
-        if self.has_assigned_perm(request.user, 'change'):
-            return
-        if form.instance.pk is None:
-            return
-        old_username = form.instance.lichess_username.lower()
-        if old_username != form.cleaned_data['lichess_username'].lower():
-            raise ValidationError('No permission to change a player\'s username')
-        if old_username != request.user.username.lower() and LeagueModerator.objects.filter(player__lichess_username__iexact=old_username).exists():
-            raise ValidationError('No permission to change a mod\'s info')
+        fields = []
+        if not self.has_assigned_perm(request.user, 'change'):
+            fields += ('lichess_username', 'email', 'is_active')
+        fields += ['rating', 'games_played']
+        if not request.user.has_perm('tournament.link_slack'):
+            fields += ['slack_user_id']
+        fields += ['timezone_offset', 'account_status']
+        return fields
 
     def update_selected_player_ratings(self, request, queryset):
 #         try:
