@@ -19,6 +19,7 @@ import settings
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^impersonate/', include('impersonate.urls')),
     url(r'^', include('heltour.%s.urls' % settings.HELTOUR_APP)),
 ]
 

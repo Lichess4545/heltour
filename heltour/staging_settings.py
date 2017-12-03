@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'heltour.comments',
     'captcha',
     'select2',
+    'impersonate',
 ]
 
 COMMENTS_APP = 'heltour.comments'
@@ -78,6 +79,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'impersonate.middleware.ImpersonateMiddleware',
 ]
 
 ROOT_URLCONF = 'heltour.urls'
@@ -137,6 +139,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'heltour.tournament.auth.LeagueAuthBackend']
+
+IMPERSONATE_REDIRECT_URL = '/'
 
 
 # Internationalization
