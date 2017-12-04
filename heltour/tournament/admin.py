@@ -1991,6 +1991,9 @@ class DocumentAdmin(_BaseAdmin):
         get_data['owner'] = request.user.pk
         return get_data
 
+    def clean_form(self, request, form):
+        pass
+
     def get_readonly_fields(self, request, obj=None):
         if obj is None or request.user.is_superuser or obj.owned_by(request.user):
             return ()
