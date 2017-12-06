@@ -600,7 +600,7 @@ def mod_request_rejected(instance, **kwargs):
                   (instance.status_changed_by, _slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
 
-    message = 'Your request for (%s) has been rejected.' % (instance.season, instance.get_type_display())
+    message = 'Your request for %s (%s) has been rejected.' % (instance.season, instance.get_type_display())
     if instance.response:
         message += ' %s' % instance.response
     _message_user(instance.season.league, _slack_user(instance.requester), message)
