@@ -45,6 +45,9 @@
 			    <h3>{{ season.name }}</h3>
 		    </div>
 		    <div class="well-body">
+			    {% if season.is_completed %}
+			    <p>This season is completed.{% if current_season_list %} <a href="{% leagueurl 'league_dashboard' league.tag current_season_list.0.tag %}">Latest</a>{% endif %}</p>
+			    {% endif %}
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:tournament_season_change' season.pk %}" class="btn btn-default">Edit Season</a>
 					<span class="dashboard-note">Registration: {% if season.registration_open %}Open{% else %}Closed{% endif %}</span>

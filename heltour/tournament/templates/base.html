@@ -81,7 +81,7 @@
 	        {% endfor %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
-	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league.tag None %}">Dashboard</a></li>{% endif %}
+	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league.tag season.tag %}">Dashboard</a></li>{% endif %}
 	        <li><a href="{% leagueurl 'register' league.tag None %}">Register</a></li>
 	        {% if user.is_authenticated %}
 	        <li><a href="{% leagueurl 'user_dashboard' league.tag None %}">{{ user.username }}</a></li>
