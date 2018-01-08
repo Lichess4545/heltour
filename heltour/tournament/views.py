@@ -1260,20 +1260,27 @@ class PlayerProfileView(LeagueView):
         season_player = SeasonPlayer.objects.filter(season=self.season, player=player).first()
 
         if self.season is None:
-            games = None
+            games = {}
+            byes = {}
         elif self.season.league.competitor_type == 'team':
             pairings = TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)
-            games = [(p.team_pairing.round, p, p.white_team() if p.white == player else p.black_team()) for p in pairings.filter(team_pairing__round__season=self.season).exclude(result='').order_by('team_pairing__round__number').nocache()]
+            games = {p.team_pairing.round.number: (p, p.white_team() if p.white == player else p.black_team()) for p in pairings.filter(team_pairing__round__season=self.season).exclude(result='').order_by('team_pairing__round__number').nocache()}
+            byes = {}
         else:
             pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
-            games = [(p.round, p, None) for p in pairings.filter(round__season=self.season).exclude(result='').order_by('round__number').nocache()]
+            games = {p.round.number: (p, None) for p in pairings.filter(round__season=self.season).exclude(result='').order_by('round__number').nocache()}
+            byes = {b.round.number: b for b in PlayerBye.objects.filter(player=player)}
 
         # Calculate performance rating
         season_score = 0
         season_score_total = 0
         season_perf = PerfRatingCalc()
-        if games:
-            for round_, p, team in games:
+
+        history = []
+        for round_ in self.season.round_set.filter(is_completed=True).order_by('number'):
+            if round_.number in games:
+                (p, team) = games[round_.number]
+                history.append((round_, p, None, team))
                 game_score = p.white_score() if p.white == player else p.black_score()
                 if game_score is not None:
                     season_score += game_score
@@ -1286,6 +1293,8 @@ class PlayerProfileView(LeagueView):
                     else:
                         opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display(self.league)
                     season_perf.add_game(game_score, opp_rating)
+            elif round_.number in byes:
+                history.append((round_, None, byes[round_.number].get_type_display(), None))
         season_perf_rating = season_perf.calculate()
 
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
@@ -1293,12 +1302,7 @@ class PlayerProfileView(LeagueView):
 
         schedule = []
         for round_ in self.season.round_set.filter(is_completed=False).order_by('number'):
-            if not round_.publish_pairings:
-                pairing = None
-            elif self.season.league.competitor_type == 'team':
-                pairing = pairings.filter(team_pairing__round=round_).first()
-            else:
-                pairing = pairings.filter(round=round_).first()
+            pairing = games.get(round_.number) if round_.publish_pairings else None
             if pairing is not None:
                 if pairing.result != '':
                     continue
@@ -1319,9 +1323,8 @@ class PlayerProfileView(LeagueView):
                     continue
                 schedule.append((round_, None, 'Available', None))
             else:
-                bye = PlayerBye.objects.filter(round=round_, player=player).first()
-                if bye is not None:
-                    schedule.append((round_, None, bye.get_type_display(), None))
+                if round_.number in byes:
+                    schedule.append((round_, None, byes[round_.number].get_type_display(), None))
                     continue
                 if not player.is_available_for(round_):
                     schedule.append((round_, None, 'Unavailable', None))
@@ -1335,10 +1338,10 @@ class PlayerProfileView(LeagueView):
             'has_other_seasons': has_other_seasons,
             'other_season_leagues': other_season_leagues,
             'season_player': season_player,
-            'games': games,
+            'history': history,
+            'schedule': schedule,
             'team_member': team_member,
             'alternate': alternate,
-            'schedule': schedule,
             'season_perf': season_perf,
             'season_perf_rating': season_perf_rating,
             'season_score': season_score,

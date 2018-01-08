@@ -85,13 +85,14 @@
 					<div>Board {{ alternate.board_number }}</div>
 				</div>
 				{% endif %}
-				{% if games %}
+				{% if history %}
 				<div class="player-profile-section">
 					<strong>Games</strong>
 					<table>
-					{% for round_, pairing, team in games %}
+					{% for round_, pairing, status, team in history %}
 					<tr>
 						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
+						{% if pairing %}
 						<td>
 							{% if pairing.white == player %}
 							{{ pairing.white.lichess_username }} <span class="hidden-xs">({% white_rating pairing %})</span></span>
@@ -101,6 +102,11 @@
 							- {{ pairing.black.lichess_username }} <span class="hidden-xs">({% black_rating pairing %})</span></span>
 							{% endif %}
 						</td>
+						{% else %}
+						<td>
+							{{ status }}
+						</td>
+						{% endif %}
 						<td class="text-center">
 							{% if pairing.game_link %}<a href="{{ pairing.game_link }}">{{ pairing.result_display }}</a>
 							{% else %}{{ pairing.result_display }}{% endif %}
