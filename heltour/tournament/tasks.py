@@ -365,11 +365,37 @@ def pairings_published(self, round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
     slackapi.send_control_message('refresh pairings %s' % round_.season.league.tag)
     alternates_manager.round_pairings_published(round_)
+    signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
+    signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
 def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
+
+@app.task(bind=True)
+def schedule_publish(self, round_id):
+    round_ = Round.objects.get(pk=round_id)
+    round_.publish_pairings = True
+    round_.save()
+    # Update ranks in case of manual edits
+    rank_dict = lone_player_pairing_rank_dict(round_.season)
+    for lpp in round_.loneplayerpairing_set.all().nocache():
+        lpp.refresh_ranks(rank_dict)
+        with reversion.create_revision():
+            reversion.set_comment('Published pairings.')
+            lpp.save()
+    for bye in round_.playerbye_set.all():
+        bye.refresh_rank(rank_dict)
+        with reversion.create_revision():
+            reversion.set_comment('Published pairings.')
+            bye.save()
+
+@receiver(signals.do_schedule_publish, dispatch_uid='heltour.tournament.tasks')
+def do_schedule_publish(sender, round_id, eta, **kwargs):
+    schedule_publish.apply_async(args=[round_id], eta=eta)
+    if eta > timezone.now():
+        signals.publish_scheduled.send(sender=do_schedule_publish, round_id=round_id, eta=eta)
 
 @app.task(bind=True)
 def notify_slack_link(self, lichess_username):

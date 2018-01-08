@@ -138,6 +138,16 @@ def notify_mods_pending_regs(round_, **kwargs):
     message = '<%s|%d pending registrations>' % (list_url, pending_count)
     _send_notification('mod', round_.season.league, message)
 
+@receiver(signals.notify_mods_pairings_published, dispatch_uid='heltour.tournament.notify')
+def notify_mods_pairings_published(round_, **kwargs):
+    message = '%s pairings published.' % round_
+    _send_notification('mod', round_.season.league, message)
+
+@receiver(signals.notify_mods_round_start_done, dispatch_uid='heltour.tournament.notify')
+def notify_mods_round_start_done(round_, **kwargs):
+    message = '%s notifications sent.' % round_
+    _send_notification('mod', round_.season.league, message)
+
 @receiver(signals.pairings_generated, dispatch_uid='heltour.tournament.notify')
 def pairings_generated(round_, **kwargs):
     league = round_.season.league
@@ -156,6 +166,12 @@ def starting_round_transition(season, msg_list, **kwargs):
     league = season.league
     message = 'Starting automatic round transition...' + ''.join(['\n' + text for text, _ in msg_list])
     _send_notification('mod', league, message)
+
+@receiver(signals.publish_scheduled, dispatch_uid='heltour.tournament.notify')
+def publish_scheduled(round_id, eta, **kwargs):
+    round_ = Round.objects.get(id=round_id)
+    message = '%s pairings will be published in %d minutes.' % (round_, (eta - timezone.now()).total_seconds() / 60)
+    _send_notification('mod', round_.season.league, message)
 
 @receiver(signals.alternate_search_started, dispatch_uid='heltour.tournament.notify')
 def alternate_search_started(season, team, board_number, round_, **kwargs):

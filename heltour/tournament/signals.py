@@ -3,6 +3,7 @@ from django.dispatch.dispatcher import Signal
 # Signals that run tasks
 do_generate_pairings = Signal(providing_args=['round_id', 'overwrite'])
 do_round_transition = Signal(providing_args=['round_id'])
+do_schedule_publish = Signal(providing_args=['round_id', 'eta'])
 do_pairings_published = Signal(providing_args=['round_id'])
 do_validate_registration = Signal(providing_args=['reg_id'])
 do_create_team_channel = Signal(providing_args=['team_ids'])
@@ -13,6 +14,8 @@ player_account_status_changed = Signal(providing_args=['instance', 'old_value', 
 notify_mods_unscheduled = Signal(providing_args=['round_'])
 notify_mods_no_result = Signal(providing_args=['round_'])
 notify_mods_pending_regs = Signal(providing_args=['round_'])
+notify_mods_pairings_published = Signal(providing_args=['round_'])
+notify_mods_round_start_done = Signal(providing_args=['round_'])
 pairings_generated = Signal(providing_args=['round_'])
 no_round_transition = Signal(providing_args=['season', 'warnings'])
 starting_round_transition = Signal(providing_args=['season', 'msg_list'])
@@ -36,6 +39,7 @@ notify_mods_unresponsive = Signal(providing_args=['round_', 'warnings', 'yellows
 notify_noshow = Signal(providing_args=['round_', 'player', 'opponent'])
 notify_noshow_claim = Signal(providing_args=['round_', 'player', 'punishment', 'allow_continue'])
 slack_account_linked = Signal(providing_args=['lichess_username', 'slack_user_id'])
+publish_scheduled = Signal(providing_args=['round_id', 'eta'])
 
 # Automod signals
 automod_unresponsive = Signal(providing_args=['round_'])

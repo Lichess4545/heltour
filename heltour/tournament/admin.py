@@ -1145,23 +1145,12 @@ class RoundAdmin(_BaseAdmin):
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
                 if 'publish' in form.data:
-                    round_.publish_pairings = True
-                    round_.save()
-                    # Update ranks in case of manual edits
-                    rank_dict = lone_player_pairing_rank_dict(round_.season)
-                    for lpp in round_.loneplayerpairing_set.all().nocache():
-                        lpp.refresh_ranks(rank_dict)
-                        with reversion.create_revision():
-                            reversion.set_user(request.user)
-                            reversion.set_comment('Published pairings.')
-                            lpp.save()
-                    for bye in round_.playerbye_set.all():
-                        bye.refresh_rank(rank_dict)
-                        with reversion.create_revision():
-                            reversion.set_user(request.user)
-                            reversion.set_comment('Published pairings.')
-                            bye.save()
+                    signals.do_schedule_publish.send(sender=self, round_id=round_.id, eta=timezone.now())
                     self.message_user(request, 'Pairings published.', messages.INFO)
+                elif 'schedule' in form.data:
+                    publish_time = max(round_.start_date, timezone.now())
+                    signals.do_schedule_publish.send(sender=self, round_id=round_.id, eta=publish_time)
+                    self.message_user(request, 'Pairings scheduled to be published in %d minutes.' % ((publish_time - timezone.now()).total_seconds() / 60), messages.INFO)
                 elif 'delete' in form.data:
                     try:
                         # Note: no reversion required for deleting things
