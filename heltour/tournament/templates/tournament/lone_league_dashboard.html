@@ -53,7 +53,7 @@
 					<span class="dashboard-note">Registration: {% if season.registration_open %}Open{% else %}Closed{% endif %}</span>
 				</div>
 				<div class="dashboard-season-action">
-					<a href="{% url 'admin:tournament_registration_changelist' %}?season__id__exact={{ season.pk }}&status__exact=pending" class="btn btn-default">Review Registrations</a>
+					<a href="{% url 'admin:tournament_registration_changelist' %}?season__id__exact={{ reg_season.pk }}&status__exact=pending" class="btn btn-default">Review Registrations</a>
 					<span class="dashboard-note">Pending: {{ pending_reg_count }}</span>
 				</div>
 				<div class="dashboard-season-action">
