@@ -182,4 +182,11 @@
 		{% endfor %}
 	</tbody>
 </table>
+
+<h2>Ready?</h2>
+<p>
+	<a href="{% url 'admin:round_transition' original.pk %}">
+	    Start Round
+	</a>
+</p>
 {% endblock %}
