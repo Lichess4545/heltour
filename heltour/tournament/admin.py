@@ -1024,17 +1024,27 @@ class SeasonAdmin(_BaseAdmin):
         active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
         inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
 
+        projected_active = {sp.player for sp in active_players}
+
         def get_data(r):
             regs = r.playerlateregistration_set.order_by('player__lichess_username')
             wds = r.playerwithdrawal_set.order_by('player__lichess_username')
-            byes = r.playerbye_set.order_by('player__lichess_username')
-            unavailables = r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username')
 
-            # Don't show "unavailable" for players that already have a bye
+            for reg in regs:
+                projected_active.add(reg.player)
+            for wd in wds:
+                projected_active.remove(wd.player)
+
+            byes = r.playerbye_set.order_by('player__lichess_username')
             players_with_byes = {b.player for b in byes}
-            unavailables = [u for u in unavailables if u.player not in players_with_byes]
+
+            def show(avail):
+                return avail.player in projected_active and avail.player not in players_with_byes
+
+            unavailables = [avail for avail in r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username') if show(avail)]
 
             return r, regs, wds, byes, unavailables
+
 
         rounds = Round.objects.filter(season=season, is_completed=False).order_by('number')
         round_data = [get_data(r) for r in rounds]
