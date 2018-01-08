@@ -114,20 +114,20 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
 def notify_mods_unscheduled(round_, **kwargs):
     unscheduled_pairings = round_.pairings.filter(result='', scheduled_time=None).exclude(white=None).exclude(black=None).nocache()
     if len(unscheduled_pairings) == 0:
-        message = 'All games in round %d are scheduled.' % round_.number
+        message = '%s - All games are scheduled.' % round_
     else:
         pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in unscheduled_pairings)
-        message = 'The following games are unscheduled: %s' % (', '.join(pairing_strs))
+        message = '%s - The following games are unscheduled: %s' % (round_, ', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
 @receiver(signals.notify_mods_no_result, dispatch_uid='heltour.tournament.notify')
 def notify_mods_no_result(round_, **kwargs):
     no_result_pairings = round_.pairings.filter(result='').exclude(white=None).exclude(black=None).nocache()
     if len(no_result_pairings) == 0:
-        message = 'All games in round %d have results.' % round_.number
+        message = '%s - All games have results.' % round_
     else:
         pairing_strs = ('@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in no_result_pairings)
-        message = 'The following games are missing results: %s' % (', '.join(pairing_strs))
+        message = '%s - The following games are missing results: %s' % (round_, ', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
 @receiver(signals.notify_mods_pending_regs, dispatch_uid='heltour.tournament.notify')
