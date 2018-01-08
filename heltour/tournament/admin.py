@@ -1030,10 +1030,11 @@ class SeasonAdmin(_BaseAdmin):
             regs = r.playerlateregistration_set.order_by('player__lichess_username')
             wds = r.playerwithdrawal_set.order_by('player__lichess_username')
 
-            for reg in regs:
-                projected_active.add(reg.player)
-            for wd in wds:
-                projected_active.remove(wd.player)
+            if not r.publish_pairings:
+                for reg in regs:
+                    projected_active.add(reg.player)
+                for wd in wds:
+                    projected_active.remove(wd.player)
 
             byes = r.playerbye_set.order_by('player__lichess_username')
             players_with_byes = {b.player for b in byes}
