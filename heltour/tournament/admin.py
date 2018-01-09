@@ -682,6 +682,8 @@ class SeasonAdmin(_BaseAdmin):
         not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.slack_user_id]
         not_on_slack += [(p, None, None) for p in active_players if not p.slack_user_id]
 
+        pending_mod_reqs = ModRequest.objects.filter(season=season, status='pending')
+
         if last_round is not None:
             players_with_0f = set()
             for p in last_round.pairings:
@@ -713,6 +715,7 @@ class SeasonAdmin(_BaseAdmin):
             'red_cards': sorted(red_cards) if missing_withdrawals is not None else None,
             'bad_player_status': sorted(bad_player_status) if bad_player_status is not None else None,
             'not_on_slack': sorted(not_on_slack) if not_on_slack is not None else None,
+            'pending_mod_reqs': pending_mod_reqs,
             'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()) if pending_regs is not None else None,
             'pairings_wo_results': pairings_wo_results
         }

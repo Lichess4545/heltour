@@ -110,6 +110,33 @@
 	</tbody>
 </table>
 
+<h2>Pending mod requests</h2>
+<p>Process mod requests in advance.</p>
+<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Type</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for req in pending_mod_reqs %}
+		<tr>
+			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag req.requester.lichess_username %}">{{ req.requester.lichess_username }}</a></td>
+			<td>
+			    {{ req.get_type_display }}
+		    </td>
+			<td>
+				<a href="{% url 'admin:tournament_modrequest_review' req.pk %}">
+		            Review
+		        </a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+
 <h2>Pending registrations</h2>
 <p>Try and process registrations in advance.</p>
 <table>
