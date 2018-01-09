@@ -88,3 +88,17 @@ td > dl {
 .select2-container.django-select2 {
 	width: auto;
 }
+
+.move-link {
+	display: inline-block;
+	background: url(/static/admin/img/selector-icons.svg);
+	background-position: 0px 80px;
+	width: 16px;
+	height: 16px;
+	margin-top: 2px;
+	vertical-align: bottom;
+}
+
+.delete-link {
+	vertical-align: top;
+}

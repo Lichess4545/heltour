@@ -97,8 +97,11 @@
 			<td>{{ days|default_if_none:'Already active' }}</td>
 			<td>
 				{% if latereg %}
-				<a href="{% url 'admin:tournament_playerlateregistration_change' latereg.pk %}?_popup=1" id="change-playerlateregistration-{{ latereg.pk }}" class="change-link popup-link" title="Change selected player late registration">
-		            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+				<a href="{% url 'admin:move_latereg' latereg.pk %}?_popup=1" id="move-playerlateregistration-{{ latereg.pk }}" class="move-link popup-link" title="Move selected player late registration">
+		            &nbsp;
+		        </a>
+				<a href="{% url 'admin:tournament_playerlateregistration_delete' latereg.pk %}?_popup=1" id="delete-playerlateregistration-{{ latereg.pk }}" class="delete-link popup-link" title="Delete selected player late registration">
+		            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Change">
 		        </a>
 		        {% endif %}
 			</td>
