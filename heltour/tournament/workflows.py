@@ -275,9 +275,11 @@ class UpdateBoardOrderWorkflow():
 
 class ApproveRegistrationWorkflow():
 
-    def __init__(self, reg):
+    def __init__(self, reg, round_number=None):
         self.reg = reg
+        self.player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
         self.league = reg.season.league
+        self.round_number = round_number
 
     @property
     def default_send_confirm_email(self):
@@ -290,7 +292,17 @@ class ApproveRegistrationWorkflow():
     @property
     def default_byes(self):
         # Give up to 2 byes by default, one for each round
-        return min(self.active_round_count, 2)
+        bye_count = min(self.active_round_count, 2)
+        if self.player:
+            rounds = self.reg.season.round_set.all()
+            for round_number in range(self.active_round_count - 1, self.active_round_count + 1):
+                round_ = find(rounds, number=round_number)
+                pairings = round_.loneplayerpairing_set.filter(white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
+                byes = round_.playerbye_set.filter(player=self.player)
+                if pairings.count() > 0 or byes.count() > 0:
+                    # A pairing/bye already exists for the round
+                    bye_count -= 1
+        return bye_count
 
     @property
     def default_section(self):
@@ -315,8 +327,9 @@ class ApproveRegistrationWorkflow():
 
         if self.default_byes < active_round_count:
             season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
-            player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
-            rating = self.reg.classical_rating if player is None else player.rating_for(self.league)
+            rating = self.reg.classical_rating if self.player is None else self.player.rating_for(self.league)
+            sp = SeasonPlayer.objects.filter(season=season, player=self.player).first()
+            current_points = sp.get_loneplayerscore().points if sp else 0
 
             # Get the scores of players +/- 100 rating points (or a wider range if not enough players are close)
             diff = 100
@@ -337,12 +350,14 @@ class ApproveRegistrationWorkflow():
                     expected_score = average_score
                 expected_score_rounded = round(2.0 * expected_score) / 2.0
                 # Subtract 0.5, and another 0.5 for each bye
-                default_ljp = max(expected_score_rounded - 0.5 - self.default_byes * 0.5, 0)
+                default_ljp = max(expected_score_rounded - 0.5 - self.default_byes * 0.5 - current_points, 0)
                 # Hopefully we now have a reasonable value for LjP
         return default_ljp
 
     @property
     def active_round_count(self):
+        if self.round_number:
+            return self.round_number - 1
         return self.default_section.round_set.filter(publish_pairings=True).count()
 
     @property
@@ -467,14 +482,12 @@ class ApproveRegistrationWorkflow():
         if modeladmin:
             modeladmin.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
 
-
 class MoveLateRegWorkflow():
 
     def __init__(self, reg):
         self.reg = reg
         self.round = reg.round
         self.season = self.round.season
-        self.league = self.season.league
 
     @property
     def next_round(self):
@@ -486,7 +499,7 @@ class MoveLateRegWorkflow():
             return False
         sp = self.season.seasonplayer_set.filter(player=self.reg.player).first()
         if update_fields and sp and sp.registration:
-            subwf = ApproveRegistrationWorkflow(sp.registration)
+            subwf = ApproveRegistrationWorkflow(sp.registration, round_number=self.reg.round.number)
             next_round = subwf.default_section.round_set.filter(number=self.round.number + 1).first()
             if not next_round:
                 return False
@@ -496,3 +509,22 @@ class MoveLateRegWorkflow():
         self.reg.save()
         return True
 
+class RefreshLateRegWorkflow():
+
+    def __init__(self, reg):
+        self.reg = reg
+        self.round = reg.round
+        self.season = self.round.season
+
+    def run(self):
+        sp = self.season.seasonplayer_set.filter(player=self.reg.player).first()
+        if sp and sp.registration:
+            subwf = ApproveRegistrationWorkflow(sp.registration, round_number=self.reg.round.number)
+            next_round = subwf.default_section.round_set.filter(number=self.round.number).first()
+            if not next_round:
+                return False
+            self.reg.retroactive_byes = subwf.default_byes
+            self.reg.late_join_points = subwf.default_ljp
+            self.reg.round = next_round
+            self.reg.save()
+        return True

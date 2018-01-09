@@ -1254,7 +1254,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
-    actions = ['move_to_next_round']
+    actions = ['refresh_fields', 'move_to_next_round']
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -1266,6 +1266,13 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
                 name='move_latereg'),
         ]
         return my_urls + urls
+
+    def refresh_fields(self, request, queryset):
+        for reg in queryset.all():
+            wf = RefreshLateRegWorkflow(reg)
+            wf.run()
+        self.message_user(request, 'Fields updated.', messages.INFO)
+        return redirect('admin:tournament_playerlateregistration_changelist')
 
     def move_to_next_round(self, request, queryset):
         if queryset.count() > 1:
