@@ -749,7 +749,7 @@ class PlayerLateRegistration(_BaseModel):
 
             # Set the late-join points
             score = sp.get_loneplayerscore()
-            score.late_join_points = self.late_join_points
+            score.late_join_points = max(score.late_join_points, self.late_join_points)
             score.save()
 
     def save(self, *args, **kwargs):
