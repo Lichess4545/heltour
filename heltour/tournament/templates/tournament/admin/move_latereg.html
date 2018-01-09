@@ -1,0 +1,26 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+
+{% block content %}
+{% if next_round %}
+<form action="" method="post">
+	{% csrf_token %}
+	<div class="aligned">
+		<p>Registration for {{ original.player }} will be moved from Round {{ original.round.number }} to {{ next_round.number }}.</p>
+		{{ form.prev_round }}
+		<div class="form-row">
+			<div class="checkbox-row">
+				{{ form.update_fields }}
+				<label for="{{ form.update_fields.id_for_label }}" class="vCheckboxLabel">
+					{{ form.update_fields.label }}
+				</label>
+			</div>
+		</div>
+	</div>
+	<div class="submit-row">
+		<input class="default" value="Go" name="confirm" type="submit">
+	</div>
+</form>
+{% else %}
+<p>No next round.</p>
+{% endif %}
+{% endblock %}

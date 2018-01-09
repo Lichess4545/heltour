@@ -466,3 +466,33 @@ class ApproveRegistrationWorkflow():
 
         if modeladmin:
             modeladmin.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
+
+
+class MoveLateRegWorkflow():
+
+    def __init__(self, reg):
+        self.reg = reg
+        self.round = reg.round
+        self.season = self.round.season
+        self.league = self.season.league
+
+    @property
+    def next_round(self):
+        return self.season.round_set.filter(number=self.round.number + 1).first()
+
+    def run(self, update_fields):
+        next_round = self.next_round
+        if not next_round:
+            return False
+        sp = self.season.seasonplayer_set.filter(player=self.reg.player).first()
+        if update_fields and sp and sp.registration:
+            subwf = ApproveRegistrationWorkflow(sp.registration)
+            next_round = subwf.default_section.round_set.filter(number=self.round.number + 1).first()
+            if not next_round:
+                return False
+            self.reg.retroactive_byes = subwf.default_byes
+            self.reg.late_join_points = subwf.default_ljp
+        self.reg.round = next_round
+        self.reg.save()
+        return True
+

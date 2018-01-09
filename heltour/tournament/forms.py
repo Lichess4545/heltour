@@ -333,3 +333,12 @@ class NotificationsForm(forms.Form):
 
 class LoginForm(forms.Form):
     lichess_username = forms.CharField(max_length=255, required=False, validators=[username_validator])
+
+class MoveLateRegForm(forms.Form):
+    update_fields = forms.BooleanField(initial=True)
+    prev_round = forms.IntegerField(widget=forms.HiddenInput)
+
+    def __init__(self, *args, **kwargs):
+        reg = kwargs.pop('reg')
+        super(MoveLateRegForm, self).__init__(*args, **kwargs)
+        self.fields['prev_round'].initial = reg.round.number

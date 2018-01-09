@@ -22,8 +22,7 @@ from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
 from django.utils.html import format_html
-from heltour.tournament.workflows import RoundTransitionWorkflow, \
-    UpdateBoardOrderWorkflow, ApproveRegistrationWorkflow
+from heltour.tournament.workflows import *
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
@@ -1255,8 +1254,57 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
+    actions = ['move_to_next_round']
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
+
+    def get_urls(self):
+        urls = super(PlayerLateRegistrationAdmin, self).get_urls()
+        my_urls = [
+            url(r'^(?P<object_id>[0-9]+)/move_latereg/$',
+                self.admin_site.admin_view(self.move_latereg_view),
+                name='move_latereg'),
+        ]
+        return my_urls + urls
+
+    def move_to_next_round(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Late registrations can only be moved one at a time.', messages.ERROR)
+            return
+        return redirect('admin:move_latereg', object_id=queryset[0].pk)
+
+    def move_latereg_view(self, request, object_id):
+        reg = get_object_or_404(PlayerLateRegistration, pk=object_id)
+        if not request.user.has_perm('tournament.change_playerlateregistration', reg.round.season.league):
+            raise PermissionDenied
+
+        workflow = MoveLateRegWorkflow(reg)
+
+        if request.method == 'POST':
+            form = forms.MoveLateRegForm(request.POST, reg=reg)
+            if form.is_valid():
+                update_fields = form.cleaned_data['update_fields']
+                prev_round = form.cleaned_data['prev_round']
+                if prev_round == reg.round.number:
+                    workflow.run(update_fields)
+                    reg.refresh_from_db()
+                    self.message_user(request, 'Late reg moved to round %d.' % (reg.round.number), messages.INFO)
+                return redirect('admin:tournament_playerlateregistration_changelist')
+        else:
+            form = forms.MoveLateRegForm(reg=reg)
+
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': reg,
+            'title': 'Move late registration',
+            'form': form,
+            'next_round': workflow.next_round
+        }
+
+        return render(request, 'tournament/admin/move_latereg.html', context)
+
 
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawal)
