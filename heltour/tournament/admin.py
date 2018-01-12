@@ -1036,7 +1036,10 @@ class SeasonAdmin(_BaseAdmin):
                 for reg in regs:
                     projected_active.add(reg.player)
                 for wd in wds:
-                    projected_active.remove(wd.player)
+                    try:
+                        projected_active.remove(wd.player)
+                    except KeyError:
+                        pass
 
             byes = r.playerbye_set.order_by('player__lichess_username')
             players_with_byes = {b.player for b in byes}
