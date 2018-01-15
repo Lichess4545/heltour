@@ -295,7 +295,7 @@ class ApproveRegistrationWorkflow():
         bye_count = min(self.active_round_count, 2)
         if self.player:
             rounds = self.reg.season.round_set.all()
-            for round_number in range(self.active_round_count - 1, self.active_round_count + 1):
+            for round_number in range(self.active_round_count - bye_count + 1, self.active_round_count + 1):
                 round_ = find(rounds, number=round_number)
                 pairings = round_.loneplayerpairing_set.filter(white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
                 byes = round_.playerbye_set.filter(player=self.player)
