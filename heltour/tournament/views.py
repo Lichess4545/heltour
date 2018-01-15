@@ -1267,16 +1267,18 @@ class PlayerProfileView(LeagueView):
 
         season_player = SeasonPlayer.objects.filter(season=self.season, player=player).first()
 
+        games = defaultdict(list)
         if self.season is None:
-            games = {}
             byes = {}
         elif self.season.league.competitor_type == 'team':
             pairings = TeamPlayerPairing.objects.filter(white=player) | TeamPlayerPairing.objects.filter(black=player)
-            games = {p.team_pairing.round.number: p for p in pairings.filter(team_pairing__round__season=self.season).order_by('team_pairing__round__number').nocache()}
+            for p in pairings.filter(team_pairing__round__season=self.season).order_by('team_pairing__round__number').nocache():
+                games[p.team_pairing.round.number].append(p)
             byes = {}
         else:
             pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
-            games = {p.round.number: p for p in pairings.filter(round__season=self.season).order_by('round__number').nocache()}
+            for p in pairings.filter(round__season=self.season).order_by('round__number').nocache():
+                games[p.round.number].append(p)
             byes = {b.round.number: b for b in PlayerBye.objects.filter(player=player)}
 
         # Calculate performance rating
@@ -1287,22 +1289,22 @@ class PlayerProfileView(LeagueView):
         history = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
             if round_.number in games:
-                p = games[round_.number]
-                if p.result == '':
-                    continue
-                history.append((round_, p, None, None))
-                game_score = p.white_score() if p.white == player else p.black_score()
-                if game_score is not None:
-                    season_score += game_score
-                    season_score_total += 1
-                # Add pairing to performance calculation
-                if p.game_played() and p.white is not None and p.black is not None:
-                    sp = SeasonPlayer.objects.filter(season=self.season, player=p.black if p.white == player else p.white).first()
-                    if sp is not None and sp.seed_rating is not None:
-                        opp_rating = sp.seed_rating
-                    else:
-                        opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display(self.league)
-                    season_perf.add_game(game_score, opp_rating)
+                for p in games[round_.number]:
+                    if p.result == '':
+                        continue
+                    history.append((round_, p, None, None))
+                    game_score = p.white_score() if p.white == player else p.black_score()
+                    if game_score is not None:
+                        season_score += game_score
+                        season_score_total += 1
+                    # Add pairing to performance calculation
+                    if p.game_played() and p.white is not None and p.black is not None:
+                        sp = SeasonPlayer.objects.filter(season=self.season, player=p.black if p.white == player else p.white).first()
+                        if sp is not None and sp.seed_rating is not None:
+                            opp_rating = sp.seed_rating
+                        else:
+                            opp_rating = p.black_rating_display() if p.white == player else p.white_rating_display(self.league)
+                        season_perf.add_game(game_score, opp_rating)
             elif round_.number in byes:
                 bye = byes[round_.number]
                 history.append((round_, None, bye.get_type_display(), None))
@@ -1315,13 +1317,11 @@ class PlayerProfileView(LeagueView):
 
         schedule = []
         for round_ in self.season.round_set.filter(is_completed=False).order_by('number'):
-            pairing = None
             if round_.number in games and round_.publish_pairings:
-                pairing = games[round_.number]
-            if pairing is not None:
-                if pairing.result != '':
-                    continue
-                schedule.append((round_, pairing, None, None))
+                for pairing in games[round_.number]:
+                    if pairing.result != '':
+                        continue
+                    schedule.append((round_, pairing, None, None))
                 continue
             if self.season.league.competitor_type == 'team':
                 assignment = AlternateAssignment.objects.filter(round=round_, player=player).first()
