@@ -63,7 +63,6 @@ class _BaseAdmin(VersionAdmin):
 
     league_id_field = None
     league_competitor_type = None
-    allow_all_staff = False
 
     def has_assigned_perm(self, user, perm_type):
         return 'tournament.%s_%s' % (perm_type, self.opts.model_name) in user.get_all_permissions()
@@ -87,7 +86,7 @@ class _BaseAdmin(VersionAdmin):
 
     def get_queryset(self, request):
         queryset = super(_BaseAdmin, self).get_queryset(request)
-        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
+        if self.has_assigned_perm(request.user, 'change'):
             return queryset
         if self.league_id_field is None:
             return queryset.none()
@@ -98,17 +97,17 @@ class _BaseAdmin(VersionAdmin):
         return super(_BaseAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
-        if self.allow_all_staff or self.has_assigned_perm(request.user, 'add'):
+        if self.has_assigned_perm(request.user, 'add'):
             return True
         return self.has_league_perm(request.user, 'add', None)
 
     def has_change_permission(self, request, obj=None):
-        if self.allow_all_staff or self.has_assigned_perm(request.user, 'change'):
+        if self.has_assigned_perm(request.user, 'change'):
             return True
         return self.has_league_perm(request.user, 'change', obj)
 
     def has_delete_permission(self, request, obj=None):
-        if self.allow_all_staff or self.has_assigned_perm(request.user, 'delete'):
+        if self.has_assigned_perm(request.user, 'delete'):
             return True
         return self.has_league_perm(request.user, 'delete', obj)
 
@@ -123,8 +122,6 @@ class _BaseAdmin(VersionAdmin):
         return form
 
     def clean_form(self, request, form):
-        if self.allow_all_staff:
-            return
         if form.instance.pk is None and self.has_assigned_perm(request.user, 'add'):
             return
         if form.instance.pk is not None and self.has_assigned_perm(request.user, 'change'):
@@ -1358,7 +1355,6 @@ class PlayerAdmin(_BaseAdmin):
     readonly_fields = ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile',)
     actions = ['update_selected_player_ratings']
-    allow_all_staff = True
 
     def has_delete_permission(self, request, obj=None):
         # Don't let unprivileged users delete players
@@ -1366,7 +1362,7 @@ class PlayerAdmin(_BaseAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         fields = []
-        if not self.has_assigned_perm(request.user, 'change'):
+        if not request.user.has_perm('tournament.change_player_details'):
             fields += ('lichess_username', 'email', 'is_active')
         fields += ['rating', 'games_played']
         if not request.user.has_perm('tournament.link_slack'):
@@ -2038,7 +2034,7 @@ class DocumentAdmin(_BaseAdmin):
 
     def has_league_perm(self, user, action, obj):
         if obj is None:
-            return bool(self.authorized_leagues(user))
+            return bool(self.authorized_leagues(user)) or Document.objects.filter(owner=user).exists()
         else:
             return user.is_superuser or obj.owned_by(user) \
                 or self.get_league_id(obj) in self.authorized_leagues(user) \

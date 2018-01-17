@@ -614,6 +614,7 @@ class Player(_BaseModel):
     class Meta:
         ordering = ['lichess_username']
         permissions = (
+            ('change_player_details', 'Can change player details'),
             ('invite_to_slack', 'Can invite to slack'),
             ('link_slack', 'Can manually link slack accounts'),
         )
