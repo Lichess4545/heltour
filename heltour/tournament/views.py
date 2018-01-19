@@ -1279,7 +1279,7 @@ class PlayerProfileView(LeagueView):
             pairings = LonePlayerPairing.objects.filter(white=player) | LonePlayerPairing.objects.filter(black=player)
             for p in pairings.filter(round__season=self.season).order_by('round__number').nocache():
                 games[p.round.number].append(p)
-            byes = {b.round.number: b for b in PlayerBye.objects.filter(player=player)}
+            byes = {b.round.number: b for b in PlayerBye.objects.filter(round__season=self.season, player=player)}
 
         # Calculate performance rating
         season_score = 0
