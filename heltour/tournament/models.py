@@ -447,6 +447,11 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
+    @property
+    def pairings(self):
+        return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self)
+              | PlayerPairing.objects.filter(loneplayerpairing__round__season=self)).nocache()
+
     def __unicode__(self):
         return self.name
 

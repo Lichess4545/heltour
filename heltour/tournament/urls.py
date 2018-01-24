@@ -81,6 +81,7 @@ api_urlpatterns = [
     url(r'^get_slack_user_map/$', api.get_slack_user_map, name='get_slack_user_map'),
     url(r'^game_warning/$', api.game_warning, name='game_warning'),
     url(r'^player_contact/$', api.player_contact, name='player_contact'),
+    url(r'^get_season_games/$', api.get_season_games, name='get_season_games'),
 ]
 
 app_urlpatterns = [

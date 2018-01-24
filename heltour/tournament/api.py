@@ -490,3 +490,49 @@ def game_warning(request):
     signals.game_warning.send(sender=game_warning, pairing=pairings[0], warning=reason)
 
     return JsonResponse({'updated': 1})
+
+@require_GET
+def get_season_games(request):
+    # No API token required - this one is public
+    league_tag = request.GET.get('league', None)
+    season_tag = request.GET.get('season', None)
+
+    if not league_tag:
+        return HttpResponse('Bad request: league required', status=400)
+    if not season_tag:
+        return HttpResponse('Bad request: season required', status=400)
+
+    games = []
+
+    seasons = Season.objects.order_by('-start_date', '-id')
+    if league_tag is not None:
+        seasons = seasons.filter(league__tag=league_tag)
+    if season_tag is not None:
+        seasons = seasons.filter(tag=season_tag)
+    else:
+        seasons = seasons.filter(is_active=True)
+
+    for s in seasons:
+        for p in s.pairings.select_related('white', 'black', 'teamplayerpairing__team_pairing__round',
+                                           'teamplayerpairing__team_pairing__white_team',
+                                           'teamplayerpairing__team_pairing__black_team'):
+            game_id = get_gameid_from_gamelink(p.game_link)
+            if game_id:
+                r = p.get_round()
+                g = {
+                    'league': s.league.name,
+                    'season': s.name,
+                    'round': r.number if r else None,
+                    'game_id': game_id,
+                    'white': p.white.lichess_username if p.white else None,
+                    'black': p.black.lichess_username if p.black else None,
+                    'result': p.result
+                }
+                if hasattr(p, 'teamplayerpairing'):
+                    g.update({
+                        'white_team': p.teamplayerpairing.white_team().name,
+                        'black_team': p.teamplayerpairing.black_team().name
+                    })
+                games.append(g)
+
+    return JsonResponse({'games': games})
