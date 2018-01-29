@@ -348,11 +348,7 @@ class SeasonLandingView(SeasonView):
         second_player = player_scores[1][1] if len(player_scores) > 1 else None
         third_player = player_scores[2][1] if len(player_scores) > 2 else None
 
-        u1600_winner = SeasonPrizeWinner.objects.filter(season_prize__season=self.season, season_prize__max_rating=1600, season_prize__rank=1).first()
-        if u1600_winner is not None:
-            u1600_player = find([ps[1] for ps in player_scores], season_player__player=u1600_winner.player)
-        else:
-            u1600_player = None
+        ribbons = SeasonPrizeWinner.objects.filter(season_prize__season=self.season, season_prize__max_rating__isnull=False, season_prize__rank=1)
 
         prize_winners = SeasonPrizeWinner.objects.filter(season_prize__season=self.season)
         player_highlights = _get_player_highlights(prize_winners)
@@ -368,7 +364,7 @@ class SeasonLandingView(SeasonView):
             'first_player': first_player,
             'second_player': second_player,
             'third_player': third_player,
-            'u1600_player': u1600_player,
+            'ribbons': ribbons,
             'player_highlights': player_highlights,
             'links_doc': links_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),

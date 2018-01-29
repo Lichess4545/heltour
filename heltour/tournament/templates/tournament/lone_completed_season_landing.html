@@ -51,19 +51,19 @@
 							</div>
 							{% endif %}
 						</div>
+						{% for ribbon in ribbons %}
 						<div class="u1600-winner">
-							{% if u1600_player %}
 							<div class="winners-trophy">
 								<img src="{% static 'tournament/img/blue-ribbon.png' %}"/>
 							</div>
 							<div class="winners-name">
-								U1600<br/>
-								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag u1600_player.season_player.player.lichess_username %}">
-									{{ u1600_player.season_player.player.lichess_username }}
+								U{{ ribbon.season_prize.max_rating }}<br/>
+								<a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag ribbon.player.lichess_username %}">
+									{{ ribbon.player.lichess_username }}
 								</a>
 							</div>
-							{% endif %}
 						</div>
+						{% endfor %}
 					</div>
 				</div>
 			</div>
