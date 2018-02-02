@@ -730,7 +730,7 @@ class SeasonAdmin(_BaseAdmin):
             info = {
                 'name': sp.player.lichess_username,
                 'rating': sp.player.rating_for(season.league),
-                'has_20_games': sp.player.games_played_for(season.league) >= 20,
+                'has_20_games': not sp.player.provisional_for(season.league),
                 'in_slack': bool(sp.player.slack_user_id),
                 'account_status': sp.player.account_status,
                 'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
@@ -976,10 +976,7 @@ class SeasonAdmin(_BaseAdmin):
         purple_players = set()
         for sp in season_player_objs:
             reg = sp.registration
-            if sp.player.games_played is not None:
-                if sp.player.games_played < 20:
-                    red_players.add(sp.player)
-            elif reg is None or not reg.has_played_20_games:
+            if sp.player.provisional_for(league):
                 red_players.add(sp.player)
             if not sp.player.slack_user_id:
                 red_players.add(sp.player)
