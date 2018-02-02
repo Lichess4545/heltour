@@ -18,6 +18,7 @@ from django.views.generic import View
 from django.utils.text import slugify
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
+from ipware import get_client_ip
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
 from heltour.tournament.templatetags.tournament_extras import leagueurl
@@ -1726,7 +1727,8 @@ class LoginView(LeagueView):
 
                     if token.slack_user_id:
                         # Double check against the session to prevent certain kinds of attacks
-                        if self.request.session.get('slack_user_id') == token.slack_user_id:
+                        if self.request.session.get('slack_user_id') == token.slack_user_id \
+                           or token.source_ip and token.source_ip == get_client_ip(self.request)[0]:
                             # Oh look, we've also associated the lichess account with a slack account. How convenient.
                             if Player.link_slack_account(token.lichess_username, token.slack_user_id):
                                 self.request.session['slack_linked'] = True
@@ -1755,6 +1757,7 @@ class LoginView(LeagueView):
                     self.request.session['slack_user_id'] = slack_user_id
                 login_token, _ = LoginToken.objects.get_or_create(
                                                                lichess_username=username, slack_user_id=slack_user_id,
+                                                               source_ip=get_client_ip(self.request)[0],
                                                                expires__gt=timezone.now() + timedelta(hours=12),
                                                                defaults={'expires':timezone.now() + timedelta(days=1)})
                 if not login_token.mail_id:

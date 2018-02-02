@@ -14,6 +14,7 @@ django-redis==4.4.4
 django-recaptcha==1.0.5
 django-select2-forms==1.1.28
 django-impersonate==1.2.1
+django-ipware==2.0.1
 websocket-client==0.40.0
 celery==3.1.23
 icalendar==3.11.2

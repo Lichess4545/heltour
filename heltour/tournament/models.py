@@ -1992,6 +1992,7 @@ class LoginToken(_BaseModel):
     slack_user_id = models.CharField(max_length=255, blank=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
     mail_id = models.CharField(max_length=255, blank=True)
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
     expires = models.DateTimeField()
     used = models.BooleanField(default=False)
 
