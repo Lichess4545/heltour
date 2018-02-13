@@ -62,18 +62,20 @@ def automod_unresponsive(round_, **kwargs):
         if not white_present:
             player_unresponsive(round_, p, p.white, groups)
             if black_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white)
+                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white, pairing=p)
             time.sleep(1)
         if not black_present:
             player_unresponsive(round_, p, p.black, groups)
             if white_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black)
+                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black, pairing=p)
             time.sleep(1)
     signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
 
 def player_unresponsive(round_, pairing, player, groups):
-    has_warning = PlayerWarning.objects.filter(player=player, round__season=round_.season, type='unresponsive').exists()
-    if not has_warning:
+    season = round_.season
+    league = season.league
+    has_warning = PlayerWarning.objects.filter(player=player, round__season=season, type='unresponsive').exists()
+    if not has_warning and league.get_leaguesetting().warning_for_late_response:
         with reversion.create_revision():
             reversion.set_comment('Automatic warning for unresponsiveness')
             PlayerWarning.objects.create(player=player, round=round_, type='unresponsive')
@@ -87,6 +89,10 @@ def player_unresponsive(round_, pairing, player, groups):
         punishment = 'You have been given a %s card.' % card_color
         allow_continue = card_color != 'red'
         groups[card_color].append(player)
+    if league.competitor_type == 'team':
+        avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
+        avail.is_available = False
+        avail.save()
     signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')

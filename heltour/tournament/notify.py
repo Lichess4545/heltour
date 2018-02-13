@@ -45,7 +45,8 @@ def league_comment(league, comment, **kwargs):
     obj = comment.content_object
     admin_url = abs_url(reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
     message = '%s commented on %s <%s|%s>:\n>>> %s' % (comment.user_name, comment.content_type.name, admin_url, obj, comment.comment)
-    _send_notification('mod', league, message)
+    if league.get_leaguesetting().notify_for_comments:
+        _send_notification('mod', league, message)
 
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.notify')
 def registration_saved(instance, created, **kwargs):
@@ -56,7 +57,11 @@ def registration_saved(instance, created, **kwargs):
     list_url = abs_url(reverse('admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(instance.season.pk))
     pending_count = instance.season.registration_set.filter(status='pending', season=instance.season).count()
     message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url, pending_count)
-    _send_notification('mod', league, message)
+
+    pre_season = timezone.now() < instance.season.start_date
+    setting = league.get_leaguesetting()
+    if not pre_season and setting.notify_for_registrations or pre_season and setting.notify_for_pre_season_registrations:
+        _send_notification('mod', league, message)
 
 @receiver(post_save, sender=PlayerLateRegistration, dispatch_uid='heltour.tournament.notify')
 def latereg_saved(instance, created, **kwargs):
@@ -65,7 +70,8 @@ def latereg_saved(instance, created, **kwargs):
     league = instance.round.season.league
     manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
     message = '@%s <%s|added> for round %d' % (instance.player, manage_url, instance.round.number)
-    _send_notification('mod', league, message)
+    if league.get_leaguesetting().notify_for_latereg_and_withdraw:
+        _send_notification('mod', league, message)
 
 @receiver(post_save, sender=PlayerWithdrawal, dispatch_uid='heltour.tournament.notify')
 def withdrawal_saved(instance, created, **kwargs):
@@ -74,7 +80,8 @@ def withdrawal_saved(instance, created, **kwargs):
     league = instance.round.season.league
     manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
     message = '@%s <%s|withdrawn> for round %d' % (instance.player, manage_url, instance.round.number)
-    _send_notification('mod', league, message)
+    if league.get_leaguesetting().notify_for_latereg_and_withdraw:
+        _send_notification('mod', league, message)
 
 @receiver(signals.pairing_forfeit_changed, dispatch_uid='heltour.tournament.notify')
 def pairing_forfeit_changed(instance, **kwargs):
@@ -85,7 +92,8 @@ def pairing_forfeit_changed(instance, **kwargs):
     white = instance.white.lichess_username.lower() if instance.white is not None else '?'
     black = instance.black.lichess_username.lower() if instance.black is not None else '?'
     message = '@%s vs @%s %s' % (white, black, instance.result or '*')
-    _send_notification('mod', league, message)
+    if league.get_leaguesetting().notify_for_forfeits:
+        _send_notification('mod', league, message)
 
 @receiver(signals.player_account_status_changed, dispatch_uid='heltour.tournament.notify')
 def player_account_status_changed(instance, old_value, new_value, **kwargs):
@@ -639,13 +647,23 @@ def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
     _message_user(league, _slack_user(player), message)
 
 @receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
-def notify_opponent_unresponsive(round_, player, opponent, **kwargs):
+def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
     season = round_.season
     league = season.league
-    message = 'Notice: Your %s opponent hasn\'t messaged you in the provided chat. ' % league.name \
-            + 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. ' \
-            + 'Contact a mod to request a new pairing.'
-    _message_user(league, _slack_user(player), message)
+    if league.competitor_type == 'team':
+        tpp = pairing.teamplayerpairing
+        if tpp.white == opponent:
+            team = tpp.white_team()
+        else:
+            team = tpp.black_team()
+        message = '%s<@%s> appears to be unresponsive on board %d of "%s" in round %d.' \
+                  % (_captains_ping(team, round_), _slack_user(player), tpp.board_number, team.name, round_.number)
+        _send_notification('captains', league, message)
+    else:
+        message = 'Notice: Your %s opponent hasn\'t messaged you in the provided chat. ' % league.name \
+                + 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. ' \
+                + 'Contact a mod to request a new pairing.'
+        _message_user(league, _slack_user(player), message)
 
 @receiver(signals.notify_noshow, dispatch_uid='heltour.tournament.notify')
 def notify_noshow(round_, player, opponent, **kwargs):

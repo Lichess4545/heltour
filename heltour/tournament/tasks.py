@@ -363,7 +363,16 @@ def do_validate_registration(reg_id, **kwargs):
 @app.task(bind=True)
 def pairings_published(self, round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
-    slackapi.send_control_message('refresh pairings %s' % round_.season.league.tag)
+    season = round_.season
+    league = season.league
+
+    if round_.number == season.rounds and season.registration_open and league.get_leaguesetting().close_registration_at_last_round:
+        with reversion.create_revision():
+            reversion.set_comment('Close registration')
+            season.registration_open = False
+            season.save()
+
+    slackapi.send_control_message('refresh pairings %s' % league.tag)
     alternates_manager.round_pairings_published(round_)
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)

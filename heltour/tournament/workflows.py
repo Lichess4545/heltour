@@ -412,7 +412,7 @@ class ApproveRegistrationWorkflow():
             if created:
                 # Add a yellow card for players that had a red card their previous season
                 last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(season=season).order_by('-season__start_date').first()
-                if last_sp is not None and last_sp.games_missed >= 2:
+                if last_sp is not None and last_sp.games_missed >= 2 and self.league.get_leaguesetting().carry_over_red_cards_as_yellow:
                     sp.games_missed = 1
                     sp.save()
 

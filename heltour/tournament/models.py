@@ -142,6 +142,14 @@ class League(_BaseModel):
 
 class LeagueSetting(_BaseModel):
     league = models.OneToOneField(League)
+    notify_for_comments = models.BooleanField(default=True)
+    notify_for_latereg_and_withdraw = models.BooleanField(default=True)
+    notify_for_forfeits = models.BooleanField(default=True)
+    notify_for_registrations = models.BooleanField(default=True)
+    notify_for_pre_season_registrations = models.BooleanField(default=False)
+    close_registration_at_last_round = models.BooleanField(default=True)
+    warning_for_late_response = models.BooleanField(default=True)
+    carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
 
