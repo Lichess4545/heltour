@@ -14,11 +14,11 @@ INTERNAL_IPS = ['127.0.0.1', '192.168.56.100']
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 CELERYBEAT_SCHEDULE = {
-#     'alternates_manager_tick': {
-#         'task': 'heltour.tournament.tasks.update_lichess_presence',
-#         'schedule': timedelta(seconds=5),
-#         'args': ()
-#     },
+    'alternates_manager_tick': {
+        'task': 'heltour.tournament.tasks.alternates_manager_tick',
+        'schedule': timedelta(seconds=5),
+        'args': ()
+    },
     'run_scheduled_events': {
         'task': 'heltour.tournament.tasks.run_scheduled_events',
         'schedule': timedelta(seconds=5),

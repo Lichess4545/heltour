@@ -633,7 +633,7 @@ def mod_request_rejected(instance, **kwargs):
     _message_user(instance.season.league, _slack_user(instance.requester), message)
 
 @receiver(signals.notify_unresponsive, dispatch_uid='heltour.tournament.notify')
-def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
+def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **kwargs):
     season = round_.season
     league = season.league
     appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
@@ -646,20 +646,21 @@ def notify_unresponsive(round_, player, punishment, allow_continue, **kwargs):
         message += '\nIf you haven\'t but want to continue playing next round, <%s|click here>.' % continue_url
     _message_user(league, _slack_user(player), message)
 
-@receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
-def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
-    season = round_.season
-    league = season.league
     if league.competitor_type == 'team':
         tpp = pairing.teamplayerpairing
-        if tpp.white == opponent:
+        if tpp.white == player:
             team = tpp.white_team()
         else:
             team = tpp.black_team()
         message = '%s<@%s> appears to be unresponsive on board %d of "%s" in round %d.' \
                   % (_captains_ping(team, round_), _slack_user(player), tpp.board_number, team.name, round_.number)
         _send_notification('captains', league, message)
-    else:
+
+@receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
+def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
+    season = round_.season
+    league = season.league
+    if league.competitor_type != 'team':
         message = 'Notice: Your %s opponent hasn\'t messaged you in the provided chat. ' % league.name \
                 + 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. ' \
                 + 'Contact a mod to request a new pairing.'

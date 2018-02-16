@@ -80,20 +80,20 @@ def player_unresponsive(round_, pairing, player, groups):
             reversion.set_comment('Automatic warning for unresponsiveness')
             PlayerWarning.objects.create(player=player, round=round_, type='unresponsive')
         punishment = 'You may receive a yellow card.'
-        allow_continue = True
+        allow_continue = league.competitor_type != 'team'
         groups['warning'].append(player)
     else:
         card_color = give_card(round_, player, 'card_unresponsive')
         if not card_color:
             return
         punishment = 'You have been given a %s card.' % card_color
-        allow_continue = card_color != 'red'
+        allow_continue = card_color != 'red' and league.competitor_type != 'team'
         groups[card_color].append(player)
     if league.competitor_type == 'team':
         avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
         avail.is_available = False
         avail.save()
-    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue)
+    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue, pairing=pairing)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_approved(instance, **kwargs):
@@ -173,7 +173,7 @@ def claim_win_noshow_approved(instance, **kwargs):
     if not card_color:
         return
     punishment = 'You have been given a %s card.' % card_color
-    allow_continue = card_color != 'red'
+    allow_continue = card_color != 'red' and instance.season.league.competitor_type != 'team'
     signals.notify_noshow_claim.send(sender=claim_win_noshow_approved, round_=instance.round, player=opponent, punishment=punishment, allow_continue=allow_continue)
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
