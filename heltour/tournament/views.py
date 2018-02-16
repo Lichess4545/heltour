@@ -25,6 +25,7 @@ from heltour.tournament.templatetags.tournament_extras import leagueurl
 from .forms import *
 from .models import *
 from heltour.tournament.forms import DeleteNominationForm
+from django.utils.html import format_html
 
 
 # Helpers for view caching definitions
@@ -1769,7 +1770,7 @@ class LoginView(LeagueView):
                         login_token.save()
                 if login_token.mail_id:
                     return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
-                form.add_error('lichess_username', 'A validation mail could not be sent. Check your spelling.')
+                form.add_error('lichess_username', format_html('A validation mail could not be sent. Check your spelling and <a href="https://lichess.org/account/preferences/privacy">privacy settings</a>.'))
         else:
             form = LoginForm()
             form.fields['lichess_username'].initial = username_hint
