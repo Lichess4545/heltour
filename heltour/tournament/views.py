@@ -88,13 +88,16 @@ class SeasonView(LeagueView):
     def read_context(self):
         league_tag = self.kwargs.pop('league_tag')
         season_tag = self.kwargs.pop('season_tag', None)
-        self.league = _get_league(league_tag)
-        self.season = _get_season(league_tag, season_tag, False)
+        self.set_league_and_season(league_tag, season_tag)
         self._season_specified = season_tag is not None
         self.extra_context = {}
         section_list = self.season.section_list()
         if len(section_list) > 1:
             self.extra_context['section_list'] = section_list
+
+    def set_league_and_season(self, league_tag, season_tag):
+        self.league = _get_league(league_tag)
+        self.season = _get_season(league_tag, season_tag, False)
 
 class LoginRequiredMixin:
     def _preprocess(self):
@@ -1146,7 +1149,7 @@ class UserDashboardView(LeagueView):
             slack_linked_just_now = True
             del self.request.session['slack_linked']
 
-        active_seasons = self.league.season_set.filter(is_active=True, is_completed=False).order_by('-start_date')
+        active_seasons = self.league.season_set.filter(is_completed=False).order_by('-start_date')
         active_seasons_with_sp = [(s, player.seasonplayer_set.filter(season=s).first()) for s in active_seasons]
         active_seasons_with_sp = filter(lambda s:s[1], active_seasons_with_sp)
         last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True, season__is_completed=True) \
@@ -1541,6 +1544,17 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
 
     def view_post(self):
         return self.view(post=True)
+
+    def set_league_and_season(self, league_tag, season_tag):
+        self.league = _get_league(league_tag)
+        if self.request.user.is_authenticated():
+            league_seasons = self.league.season_set.filter(is_completed=False)
+            active_sp = self.player.seasonplayer_set.filter(season__in=league_seasons, is_active=True) \
+                                   .order_by('-season__start_date', 'season__section__order', '-season__id').first()
+            if active_sp:
+                self.season = active_sp.season
+                return
+        self.season = _get_season(league_tag, season_tag, False)
 
 class AlternatesView(SeasonView):
     def view(self):
