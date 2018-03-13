@@ -184,9 +184,9 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
         pairings = white_pairings | black_pairings
     if white is not None:
-        pairings = pairings.filter(white__lichess_username__iexact=white)
+        pairings = pairings.filter(white__lichess_username__iexact=white) | pairings.filter(white__slack_user_id__iexact=white)
     if black is not None:
-        pairings = pairings.filter(black__lichess_username__iexact=black)
+        pairings = pairings.filter(black__lichess_username__iexact=black) | pairings.filter(white__slack_user_id__iexact=black)
     if scheduled == True:
         pairings = pairings.exclude(result='', scheduled_time=None)
     if scheduled == False:
