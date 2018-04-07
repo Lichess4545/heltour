@@ -7,6 +7,7 @@
 <tr><td>Peak Rating:</td><td>{{ reg.peak_classical_rating }}</td></tr>
 <tr><td>Registration date:</td><td>{{ reg.date_created.date }}</td></tr>
 <tr><td>Friends:</td><td>{{ reg.friends }}</td></tr>
+<tr><td>Avoid:</td><td>{{ reg.avoid }}</td></tr>
 <tr><td>Alt Pref:</td><td class="{% if reg.alternate_preference == 'alternate' %}text-approved{% endif %}">{{ reg.get_alternate_preference_display }}</td></tr>
 {% endif %}
 <tr><td>Established rating:</td><td class="{% if not has_played_20_games %}text-rejected{% endif %}">{{ has_played_20_games|yesno:'Yes,No' }}</td></tr>

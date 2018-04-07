@@ -87,7 +87,14 @@
 		    {{ original.friends }}
 		</div>
 		{% endif %}
-		
+
+		{% if is_team %}
+		<div class="form-row">
+			<label>Avoid for pairings:</label>
+		    {{ original.avoid }}
+		</div>
+		{% endif %}	
+
 		<div class="form-row">
 			<label>Agreed to rules:</label>
 		    <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
