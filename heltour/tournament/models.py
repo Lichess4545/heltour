@@ -142,6 +142,7 @@ class League(_BaseModel):
 
 class LeagueSetting(_BaseModel):
     league = models.OneToOneField(League)
+    contact_period = models.DurationField(default=timedelta(hours=48))
     notify_for_comments = models.BooleanField(default=True)
     notify_for_latereg_and_withdraw = models.BooleanField(default=True)
     notify_for_forfeits = models.BooleanField(default=True)

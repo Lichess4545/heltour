@@ -410,6 +410,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'league': league.name,
         'time_control': league.time_control,
         'offset': _offset_str(offset),
+        'contact_period': _offset_str(league.get_leaguesetting().contact_period),
         'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling',
         'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
     }
@@ -446,18 +447,18 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Send a direct message to your opponent, <@{opponent}>, within 48 hours.\n' \
+           + 'Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Message your opponent here within 48 hours.\n' \
+           + 'Message your opponent here within {contact_period}.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
-           + 'Message your opponent on Slack within 48 hours.\n' \
+           + 'Message your opponent on Slack within {contact_period}.\n' \
            + '{slack_url}\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel}.'
 
@@ -483,18 +484,18 @@ def notify_players_round_start(round_, **kwargs):
 def notify_players_late_pairing(round_, pairing, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Send a direct message to your opponent, <@{opponent}>, within 48 hours.\n' \
+           + 'Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Message your opponent here within 48 hours.\n' \
+           + 'Message your opponent here within {contact_period}.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
            + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
-           + 'Message your opponent on Slack within 48 hours.\n' \
+           + 'Message your opponent on Slack within {contact_period}.\n' \
            + '{slack_url}\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel}.'
 
@@ -638,7 +639,7 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
     league = season.league
     appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
     message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
-            + 'You are required to message your opponent within 48 hours of the round start. ' \
+            + 'You are required to message your opponent within %s of the round start. ' % _offset_str(league.get_leaguesetting().contact_period) \
             + punishment + '\n' \
             + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
     if allow_continue:

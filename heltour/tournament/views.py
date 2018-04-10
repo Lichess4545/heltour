@@ -469,7 +469,7 @@ class PairingsView(SeasonView):
 
         presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
         if pairings:
-            contact_deadline = round_.start_date + timedelta(hours=48)
+            contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
             in_contact_period = timezone.now() < contact_deadline
 
         def pairing_error(pairing):
