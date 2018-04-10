@@ -22,7 +22,7 @@ class RegistrationForm(forms.ModelForm):
         fields = (
             'lichess_username', 'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
-            'previous_season_alternate', 'can_commit', 'friends', 'agreed_to_rules',
+            'previous_season_alternate', 'can_commit', 'friends', 'avoid', 'agreed_to_rules',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
@@ -66,13 +66,15 @@ class RegistrationForm(forms.ModelForm):
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
                    label=_(u'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
                            % (self.season.rounds, time_control, start_time)))
-        # Friends
+        # Friends and avoid
         if league.competitor_type == 'team':
             self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),
                                                      help_text=_(u'Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
+            self.fields['avoid'] = forms.CharField(required=False, label=_(u'Are there any players you would like NOT to be paired with?'),
+                                                     help_text=_(u'Note: Please enter their exact lichess usernames.'))
         else:
             del self.fields['friends']
-
+            del self.fields['avoid']
         # Agree to rules
         rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
         if rules_doc is not None:

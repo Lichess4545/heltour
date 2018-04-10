@@ -734,7 +734,8 @@ class SeasonAdmin(_BaseAdmin):
                 'in_slack': bool(sp.player.slack_user_id),
                 'account_status': sp.player.account_status,
                 'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
-                'friends': sp.registration.friends if sp.registration else None
+                'friends': sp.registration.friends if sp.registration else None,
+                'avoid': sp.registration.avoid if sp.registration else None
             }
             reg = sp.registration
             if reg is not None:
