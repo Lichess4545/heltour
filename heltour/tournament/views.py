@@ -806,7 +806,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     elif season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:
-        sort_key = lambda s: s.pairing_sort_key()
+        sort_key = lambda s: s.intermediate_standings_sort_key()
     raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
                                        .select_related('season_player__player', 'season_player__season__league').nocache()
     player_scores = list(enumerate(sorted(raw_player_scores, key=sort_key, reverse=True), 1))

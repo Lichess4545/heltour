@@ -1659,6 +1659,9 @@ class LonePlayerScore(_BaseModel):
     def pairing_sort_key(self):
         return (self.points + self.late_join_points, self.season_player.player_rating_display())
 
+    def intermediate_standings_sort_key(self):
+        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
+
     def final_standings_sort_key(self):
         return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
