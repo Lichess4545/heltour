@@ -63,8 +63,8 @@ PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
-        'live': ['lichess4545@ushio.lichess.org'],
-        'staging': ['lichess4545@ushio.lichess.org'],
+        'live': ['lichess4545@lichess4545.com'],
+        'staging': ['lichess4545@lichess4545.com'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
