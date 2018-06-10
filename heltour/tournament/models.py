@@ -620,6 +620,24 @@ class Player(_BaseModel):
             return None
         return blitz.get('games')
 
+    @property
+    def rapid_rating(self):
+        if self.profile is None:
+            return None
+        rapid = self.profile['perfs'].get('rapid')
+        if rapid is None:
+            return None
+        return rapid.get('rating')
+
+    @property
+    def rapid_games_played(self):
+        if self.profile is None:
+            return None
+        rapid = self.profile['perfs'].get('rapid')
+        if rapid is None:
+            return None
+        return rapid.get('games')
+
     def player_rating_display(self, league=None):
         return self.rating_for(league)
 
@@ -681,11 +699,15 @@ class Player(_BaseModel):
     def rating_for(self, league):
         if league is not None and league.rating_type == 'blitz':
             return self.blitz_rating
+        if league is not None and league.rating_type == 'rapid':
+            return self.rapid_rating
         return self.rating # classical
 
     def games_played_for(self, league):
         if league is not None and league.rating_type == 'blitz':
             return self.blitz_games_played
+        if league is not None and league.rating_type == 'rapid':
+            return self.rapid_games_played
         return self.games_played # classical
 
     def provisional_for(self, league):
