@@ -1,5 +1,5 @@
 .navbar {
-	background-color: #f4c842;
+	background-color: #c69501;
 }
 
 .navbar .navbar-brand {
@@ -14,7 +14,7 @@
 .navbar .navbar-brand:hover,
 .navbar .navbar-brand:focus,
 .navbar .navbar-nav > li > a {
-	color: #000000;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav > li.active > a,
@@ -24,17 +24,17 @@
 .navbar .navbar-nav > .open > a:hover,
 .navbar .navbar-nav > .open > a:focus {
 	background-color: #557f97;
-	color: #000000;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav > li > a:hover,
 .navbar .navbar-nav > li > a:focus {
 	background-color: #3c687d;
-	color: #000000;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav .dropdown-menu {
-	border-color: #f4c842;
+	border-color: #c69501;
 }
 
 .navbar .navbar-toggle .icon-bar {
@@ -53,7 +53,7 @@
 
 .well-head {
 	background-color: #557f97;
-	color: #000000;
+	color: #FFFFFF;
 	padding: 3px 15px 3px 15px;
 }
 
@@ -63,23 +63,23 @@
 
 .well-body {
 	padding: 15px;
-	background-color: #000000;
+	background-color: #FFFFFF;
 }
 
 
 .btn-primary {
 	background: linear-gradient(#557f97, #355f77);
-	color: #000000;
+	color: #FFFFFF;
 }
 
 .btn-default {
 	background: linear-gradient(#f9f9f9, #d9d9d9);
-	color: #000000;
+	color: #FFFFFF;
 }
 
 .btn-default:hover,
 .btn-default:focus {
-	color: #000000;
+	color: #FFFFFF;
 }
 
 
@@ -99,11 +99,11 @@
 	.navbar .navbar-nav .open .dropdown-menu > li > a:hover,
 	.navbar .navbar-nav .open .dropdown-menu > li > a:focus {
 		background-color: #3c687d;
-		color: #000000;
+		color: #FFFFFF;
 	}
 
 	.navbar .navbar-nav .open .dropdown-menu > li > a {
-		color: #000000;
+		color: #FFFFFF;
 	}
 }
 @media (max-width: 991px) {
