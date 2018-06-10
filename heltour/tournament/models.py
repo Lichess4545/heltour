@@ -77,9 +77,11 @@ THEME_OPTIONS = (
     ('blue', 'Blue'),
     ('green', 'Green'),
     ('red', 'Red'),
+    ('yellow', 'Yellow'),
 )
 RATING_TYPE_OPTIONS = (
     ('classical', 'Classical'),
+    ('rapid', 'Rapid'),
     ('blitz', 'Blitz'),
 )
 COMPETITOR_TYPE_OPTIONS = (

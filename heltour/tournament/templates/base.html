@@ -8,6 +8,8 @@
 {% static 'tournament/img/wolf-head-favicon.png' %}
 {% elif league.theme == 'red' %}
 {% static 'tournament/img/power-lighting-favicon.png' %}
+{% elif league.theme == 'yellow' %}
+{% static 'tournament/img/dice-favicon.png' %}
 {% else %}
 {{ block.super }}
 {% endif %}
@@ -18,6 +20,8 @@
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/all-for-one-blue.png' %}" />
 {% elif league.theme == 'green' %}
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/wolf-head-green.png' %}" />
+{% elif league.theme == 'yellow' %}
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/dice-yellow.png' %}" />
 {% endif %}
 {% endspaceless %}{% endblock %}
 
