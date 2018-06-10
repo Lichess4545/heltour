@@ -95,13 +95,13 @@
 		margin-left: -15px;
 		min-width: calc(100% + 30px);
 	}
-	
+
 	.navbar .navbar-nav .open .dropdown-menu > li > a:hover,
 	.navbar .navbar-nav .open .dropdown-menu > li > a:focus {
 		background-color: #3c687d;
 		color: #ffffff;
 	}
-	
+
 	.navbar .navbar-nav .open .dropdown-menu > li > a {
 		color: #ffffff;
 	}
