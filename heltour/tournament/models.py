@@ -666,7 +666,7 @@ class Player(_BaseModel):
             if self.profile is None:
                 return None
             return self.profile['perfs'].get(league.rating_type, {}).get('rating')
-        return rating
+        return self.rating
 
     def games_played_for(self, league):
         if league:
