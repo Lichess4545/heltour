@@ -82,6 +82,7 @@ THEME_OPTIONS = (
 RATING_TYPE_OPTIONS = (
     ('classical', 'Classical'),
     ('rapid', 'Rapid'),
+    ('chess960', 'Chess 960'),
     ('blitz', 'Blitz'),
 )
 COMPETITOR_TYPE_OPTIONS = (

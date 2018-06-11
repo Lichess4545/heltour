@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='league',
             name='rating_type',
-            field=models.CharField(choices=[('classical', 'Classical'), ('rapid', 'Rapid'), ('blitz', 'Blitz')], max_length=32),
+            field=models.CharField(choices=[('classical', 'Classical'), ('rapid', 'Rapid'), ('chess960', 'Chess 960'), ('blitz', 'Blitz')], max_length=32),
         ),
         migrations.AlterField(
             model_name='league',
