@@ -1,10 +1,10 @@
 .navbar {
-	background-color: #245164;
+	background-color: #c69501;
 }
 
 .navbar .navbar-brand {
 	padding-left: 59px;
-	background: url(/static/tournament/img/all-for-one.png);
+	background: url(/static/tournament/img/dice.png);
 	background-position: 5px 0px;
 	background-repeat: no-repeat;
 	background-size: 50px 50px;
@@ -14,7 +14,7 @@
 .navbar .navbar-brand:hover,
 .navbar .navbar-brand:focus,
 .navbar .navbar-nav > li > a {
-	color: #ffffff;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav > li.active > a,
@@ -23,18 +23,18 @@
 .navbar .navbar-nav > .open > a,
 .navbar .navbar-nav > .open > a:hover,
 .navbar .navbar-nav > .open > a:focus {
-	background-color: #557f97;
-	color: #ffffff;
+	background-color: #f4c842;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav > li > a:hover,
 .navbar .navbar-nav > li > a:focus {
-	background-color: #3c687d;
-	color: #ffffff;
+	background-color: #f4c842;
+	color: #FFFFFF;
 }
 
 .navbar .navbar-nav .dropdown-menu {
-	border-color: #245164;
+	border-color: #c69501;
 }
 
 .navbar .navbar-toggle .icon-bar {
@@ -43,7 +43,7 @@
 
 .navbar .navbar-toggle:hover,
 .navbar .navbar-toggle:focus {
-	background-color: #3c687d;
+	background-color: #f4c842;
 }
 
 
@@ -52,8 +52,8 @@
 }
 
 .well-head {
-	background-color: #557f97;
-	color: #ffffff;
+	background-color: #c69501;
+	color: #FFFFFF;
 	padding: 3px 15px 3px 15px;
 }
 
@@ -63,13 +63,13 @@
 
 .well-body {
 	padding: 15px;
-	background-color: #ffffff;
+	background-color: #FFFFFF;
 }
 
 
 .btn-primary {
-	background: linear-gradient(#557f97, #355f77);
-	color: #ffffff;
+	background: linear-gradient(#f4c842, #dbad23);
+	color: #000000;
 }
 
 .btn-default {
@@ -79,7 +79,7 @@
 
 .btn-default:hover,
 .btn-default:focus {
-	color: #000000;
+	color: #FFFFFF;
 }
 
 
@@ -98,12 +98,12 @@
 
 	.navbar .navbar-nav .open .dropdown-menu > li > a:hover,
 	.navbar .navbar-nav .open .dropdown-menu > li > a:focus {
-		background-color: #3c687d;
-		color: #ffffff;
+		background-color: #f4c842;
+		color: #FFFFFF;
 	}
 
 	.navbar .navbar-nav .open .dropdown-menu > li > a {
-		color: #ffffff;
+		color: #FFFFFF;
 	}
 }
 @media (max-width: 991px) {

@@ -77,9 +77,12 @@ THEME_OPTIONS = (
     ('blue', 'Blue'),
     ('green', 'Green'),
     ('red', 'Red'),
+    ('yellow', 'Yellow'),
 )
 RATING_TYPE_OPTIONS = (
     ('classical', 'Classical'),
+    ('rapid', 'Rapid'),
+    ('chess960', 'Chess 960'),
     ('blitz', 'Blitz'),
 )
 COMPETITOR_TYPE_OPTIONS = (
@@ -600,24 +603,6 @@ class Player(_BaseModel):
 
     profile = JSONField(blank=True, null=True)
 
-    @property
-    def blitz_rating(self):
-        if self.profile is None:
-            return None
-        blitz = self.profile['perfs'].get('blitz')
-        if blitz is None:
-            return None
-        return blitz.get('rating')
-
-    @property
-    def blitz_games_played(self):
-        if self.profile is None:
-            return None
-        blitz = self.profile['perfs'].get('blitz')
-        if blitz is None:
-            return None
-        return blitz.get('games')
-
     def player_rating_display(self, league=None):
         return self.rating_for(league)
 
@@ -677,13 +662,18 @@ class Player(_BaseModel):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
 
     def rating_for(self, league):
-        if league is not None and league.rating_type == 'blitz':
-            return self.blitz_rating
-        return self.rating # classical
+        if league:
+            if self.profile is None:
+                return None
+            return self.profile['perfs'].get(league.rating_type, {}).get('rating')
+        return self.rating
 
     def games_played_for(self, league):
-        if league is not None and league.rating_type == 'blitz':
-            return self.blitz_games_played
+        if league:
+            if self.profile is None:
+                return None
+            return self.profile['perfs'].get(league.rating_type, {}).get('games')
+
         return self.games_played # classical
 
     def provisional_for(self, league):

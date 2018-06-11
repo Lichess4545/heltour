@@ -57,9 +57,9 @@ class RegistrationForm(forms.ModelForm):
 
         # Can commit
         time_control = league.time_control
-        if league.rating_type == 'classical':
+        if league.rating_type != 'blitz':
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                   label=_(u'Are you able to commit to 1 long time control game (%s currently) of classical chess on Lichess.org per week?' % time_control))
+                   label=_(u'Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (time_control, league.rating_type)))
         else:
             start_time = '' if self.season.start_date is None else \
                          ' on %s at %s UTC' % (self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))
