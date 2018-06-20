@@ -2116,7 +2116,7 @@ class ModRequestAdmin(_BaseAdmin):
     list_display = ('review', 'type', 'status', 'season', 'date_created')
     list_display_links = ()
     list_filter = ('status', 'type', 'season')
-    search_fields = ('requestor__lichess_username',)
+    search_fields = ('requester__lichess_username',)
     raw_id_fields = ('round', 'requester', 'pairing')
     league_id_field = 'season__league_id'
 
