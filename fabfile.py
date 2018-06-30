@@ -63,8 +63,8 @@ PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
-        'live': ['lichess4545@lichess4545.com'],
-        'staging': ['lichess4545@lichess4545.com'],
+        'live': ['lichess4545@marta.lichess.ovh'],
+        'staging': ['lichess4545@marta.lichess.ovh'],
     }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -107,7 +107,7 @@ def deploylive():
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lichess4545@lichess4545.com', 'certs']
+                exclude=['env', 'data', 'lichess4545@marta.lichess.ovh', 'certs']
             )
         run("echo \"/home/lichess4545/web/www.lichess4545.com/current/\" > /home/lichess4545/web/www.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
@@ -137,7 +137,7 @@ def deploystaging():
                 remote_directory,
                 local_directory
             )(
-                exclude=['env', 'data', 'lichess4545@lichess4545.com', 'certs']
+                exclude=['env', 'data', 'lichess4545@marta.lichess.ovh', 'certs']
             )
         run("echo \"/home/lichess4545/web/staging.lichess4545.com/current/\" > /home/lichess4545/web/staging.lichess4545.com/env/lib/python2.7/site-packages/heltour.pth")
 
