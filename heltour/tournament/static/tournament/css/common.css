@@ -57,27 +57,27 @@ h2 {
 }
 
 .input-mini {
-    max-width: 60px;
+	max-width: 60px;
 }
 
 .input-small {
-    max-width: 90px;
+	max-width: 90px;
 }
 
 .input-medium {
-    max-width: 150px;
+	max-width: 150px;
 }
 
 .input-large {
-    max-width: 210px;
+	max-width: 210px;
 }
 
 .input-xlarge {
-    max-width: 270px;
+	max-width: 270px;
 }
 
 .input-xxlarge {
-    max-width: 530px;
+	max-width: 530px;
 }
 
 .single-field-btn {
@@ -386,15 +386,15 @@ div.inline {
 
 #table-rosters .cell-player .player-name {
 	display: inline-block;
-    vertical-align:top;
-    max-width: 100%;
+	vertical-align:top;
+	max-width: 100%;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-    overflow: hidden;
+	overflow: hidden;
 }
 
 #table-rosters .cell-player.captain .player-name {
-    max-width: calc(100% - 25px);
+	max-width: calc(100% - 25px);
 }
 
 #table-rosters .cell-player.captain:after,
@@ -422,11 +422,11 @@ div.inline {
 
 #table-alternates table .cell-player .player-name {
 	display: inline-block;
-    vertical-align:top;
-    max-width: 100%;
+	vertical-align:top;
+	max-width: 100%;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-    overflow: hidden;
+	overflow: hidden;
 }
 
 .player-unavailable {
@@ -693,7 +693,7 @@ div.inline {
 	background-repeat: no-repeat;
 	background-size: 48px 48px;
 	background-color: #c69501;
-    color: #FFFFFF;
+	color: #FFFFFF;
 }
 
 .league-home-details {
@@ -772,8 +772,15 @@ div.inline {
 }
 
 #table-lone-pairings tr > td:nth-child(2),
-#table-lone-pairings tr > td:nth-child(4) {
+#table-lone-pairings tr > td:nth-child(5) {
 	width: 30px;
+}
+#table-lone-pairings tr > td:nth-child(5) {
+	margin-left: 10px;
+}
+#table-lone-pairings tr > td:nth-child(3),
+#table-lone-pairings tr > td:nth-child(6) {
+	width: 16px;
 }
 
 #table-lone-pairings img {
@@ -916,7 +923,7 @@ div.inline {
 		table-layout: auto;
 	}
 	#table-rosters .cell-player.captain .player-name {
-	    max-width: 100%;
+		max-width: 100%;
 	}
 }
 @media (max-width: 767px) {
@@ -939,8 +946,8 @@ div.inline {
 	.pairing-player {
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	    overflow: hidden;
-	    max-width: 120px;
+		overflow: hidden;
+		max-width: 120px;
 	}
 	#home-league-list {
 		max-width: 350px;
