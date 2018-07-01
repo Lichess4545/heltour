@@ -25,6 +25,7 @@ from baste import (
         Mercurial,
         OrderedDict,
         project_relative,
+        python_dependency,
         PgLoadPlain,
         RsyncDeployment,
         RsyncMedia,
@@ -88,9 +89,9 @@ def update():
         repo.update()
 
     for repo in python_repos.values():
-        strabulous.python_dependency(repo.name, PYTHON_VERSION)
+        python_dependency(repo.name, PYTHON_VERSION)
 
-    strabulous.python_dependency('heltour', PYTHON_VERSION)
+    python_dependency('heltour', PYTHON_VERSION)
     local("pip install -r {}".format(project_relative("requirements.txt")))
 
 up = update # defines 'up' as the shortcut for 'update'
