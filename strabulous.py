@@ -11,13 +11,12 @@ import datetime
 import os.path
 
 from fabric.api import (
-    local, settings, hosts, get, run, put
+    local, settings, hosts, get, run, put, hide
 )
 from fabric import colors
 from fabric.contrib.console import confirm
 
 from baste import (
-    python_dependency,
     project_relative,
     RsyncMedia,
     RsyncDeployment,
@@ -25,6 +24,28 @@ from baste import (
     PgLoadPlain,
 )
 
+
+#-------------------------------------------------------------------------------
+def python_dependency(package, python_version, dir=None):
+    """Adds the given package as a dependency for the given python version."""
+
+    # Figure out the directory we'll be symlinking to.
+    if dir is None:
+        base_dir = project_relative(package)
+        if os.path.exists(os.path.join(base_dir, "__init__.py")):
+            dir = os.path.join(base_dir, '..')
+        elif os.path.exists(os.path.join(base_dir, package, "__init__.py")):
+            dir = base_dir
+        elif os.path.exists(os.path.join(base_dir, 'src', package, "__init__.py")):
+            dir = os.path.join(base_dir, 'src')
+
+    pth_file = "env/lib/%s/site-packages/%s.pth" % (python_version, package)
+    pth_file = project_relative(pth_file)
+    python_path = dir
+    create_pth_file = "echo \"%s\" > %s" % (python_path, pth_file)
+    print(colors.green("[install] ") + package)
+    with hide('running'):
+        local("rm %s; %s" % (pth_file, create_pth_file))
 
 #-------------------------------------------------------------------------------
 def update(all_repos, python_repos, python_package_name, python_version):
