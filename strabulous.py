@@ -11,13 +11,12 @@ import datetime
 import os.path
 
 from fabric.api import (
-    local, settings, hosts, get, run, put
+    local, settings, hosts, get, run, put, hide
 )
 from fabric import colors
 from fabric.contrib.console import confirm
 
 from baste import (
-    python_dependency,
     project_relative,
     RsyncMedia,
     RsyncDeployment,
@@ -78,7 +77,10 @@ def latest_live_db(live_backup_script_path, live_latest_sql_file_path, python_pa
         if confirm(colors.red("Create a new backup?")):
             run(live_backup_script_path)
         local_target = project_relative("data/latestdb.sql.bz2")
-        local_db = get(live_latest_sql_file_path, local_target)[0]
+        if confirm(colors.red("Download New backup?")):
+            local_db = get(live_latest_sql_file_path, local_target)[0]
+        else:
+            local_db = local_target
         with settings(warn_only=True):
             if confirm(colors.red("You should only run this when others aren't looking over your shoulder. Show database password?")):
                 local("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
