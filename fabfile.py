@@ -74,7 +74,7 @@ python_repos = OrderedDict([(repo.name, repo) for repo in []])
 static_file_repos = OrderedDict([(repo.name, repo) for repo in []])
 all_repos = python_repos.copy()
 all_repos.update(static_file_repos)
-all_repos['baste'] = Mercurial('env/src/baste', 'ssh://hg@bitbucket.org/lakin.wecker/baste')
+all_repos['baste'] = Mercurial('env/src/baste', 'https://bitbucket.org/lakin.wecker/baste')
 all_repos['container'] = Git('.', 'git@github.com:lakinwecker/heltour.git', 'master')
 
 #-------------------------------------------------------------------------------
