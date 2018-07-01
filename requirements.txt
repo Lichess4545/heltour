@@ -1,7 +1,7 @@
 django==1.9.7
 django-reversion==2.0.5
 fabric==1.11.1
-psycopg2==2.6.1
+psycopg2==2.7.5
 django-debug-toolbar==1.5
 requests[security]==2.13.0
 django-bootstrap3==7.0.1
