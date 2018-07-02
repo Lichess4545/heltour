@@ -441,7 +441,7 @@ class PairingsView(SeasonView):
 
         # Add presences
         pairing_lists = [
-            [((p,) + status(p.white, p) + status(p.black, p)) for p in p_list]
+            [((p,) + status(p.white_team_player(), p) + status(p.black_team_player(), p)) for p in p_list]
             for p_list in pairing_lists
         ]
         unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round__number=round_number, is_available=False) \
