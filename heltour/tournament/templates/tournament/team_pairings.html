@@ -68,7 +68,7 @@ setTimeout(function () {
 				<table class="table table-condensed-xs" id="table-team-pairings">
 					{% for pairing_list in pairing_lists %}
 					<tr class="header-row">
-                        {% with pairing_list.0.0.team_pairing as team_pairing %}
+						{% with pairing_list.0.0.team_pairing as team_pairing %}
 						<th>
 							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
 								{{ team_pairing.white_team_name }}
@@ -85,7 +85,7 @@ setTimeout(function () {
 								{{ team_pairing.black_team_name }}
 							</a>
 						</th>
-                        {% endwith %}
+						{% endwith %}
 						<th class="cell-time table-menu">
 							{% if forloop.counter == 1 %}
 							<div class="dropdown">
@@ -118,8 +118,14 @@ setTimeout(function () {
 								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span> ({% white_team_rating pairing %})
 								{% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
-							{% if white_img %}
-							<img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg" title="{{ white_status }}" />
+							{% if pairing.white_team_color == "white" %}
+								{% if white_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg" title="{{ white_status }}" />
+								{% endif %}
+							{% else %}
+								{% if black_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ white_status }}" />
+								{% endif %}
 							{% endif %}
 							{% endif %}
 						</td>
@@ -151,8 +157,14 @@ setTimeout(function () {
 						{% endif %}
 						<td class="text-right pairing-player player-{{ pairing.black_team_color }}">
 							{% if pairing.black_team_player %}
-							{% if black_img %}
-							<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ black_status }}" />
+							{% if pairing.black_team_color == "white" %}
+								{% if white_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg" title="{{ white_status }}" />
+								{% endif %}
+							{% else %}
+								{% if black_img %}
+								<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ white_status }}" />
+								{% endif %}
 							{% endif %}
 							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 								{{ pairing.black_team_player.lichess_username }} <span class="visible-xs"></span> ({% black_team_rating pairing %})
