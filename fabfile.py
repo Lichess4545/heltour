@@ -47,6 +47,11 @@ def import_db_user():
     from heltour.settings import DATABASES
     return DATABASES['default']['USER']
 
+#-------------------------------------------------------------------------------
+def get_password():
+    from heltour.settings import DATABASES
+    return DATABASES['default']['PASSWORD']
+
 
 
 #-------------------------------------------------------------------------------
@@ -185,7 +190,7 @@ def restartchesster():
 def createdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
-    strabulous.createdb(PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
+    strabulous.createdb(DATABASE_NAME, DATABASE_USER, get_password)
 
 #-------------------------------------------------------------------------------
 def latestdb():
@@ -197,7 +202,7 @@ def latestdb():
 
     if env.roles == ['live']:
         LIVE_LATEST_SQL_FILE_PATH = "/home/lichess4545/backups/heltour-sql/hourly/latest.sql.bz2"
-        strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, PYTHON_PACKAGE_NAME, DATABASE_NAME, DATABASE_USER)
+        strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, DATABASE_NAME, DATABASE_USER, get_password)
     elif env.roles == ['staging']:
         local("mkdir -p {}".format(project_relative("data")))
         local_target = project_relative("data/latestdb.sql.bz2")

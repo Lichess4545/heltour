@@ -383,6 +383,23 @@ class PairingsView(SeasonView):
         else:
             return self.lone_view(round_number, team_number)
 
+    def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline, can_view_precenses):
+        if not can_view_precenses:
+            return (None, None)
+        pres = presences.get((player.pk, pairing.pk))
+        if in_contact_period:
+            if not pres or not pres.first_msg_time:
+                return (None, 'no contact yet')
+            else:
+                return ('yes', 'in contact')
+        else:
+            if not pres or not pres.first_msg_time:
+                return ('no', 'unresponsive')
+            elif pres.first_msg_time > contact_deadline:
+                return ('alert', 'late contact')
+            else:
+                return ('yes', 'in contact')
+
     def get_team_context(self, league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
         specified_round = round_number is not None
         round_number_list = [round_.number for round_ in Round.objects.filter(season=self.season, publish_pairings=True).order_by('-number')]
@@ -401,18 +418,40 @@ class PairingsView(SeasonView):
             team_pairings = team_pairings.filter(white_team=current_team) | team_pairings.filter(black_team=current_team)
         else:
             current_team = None
+
         pairing_lists = [list(
                               team_pairing.teamplayerpairing_set.order_by('board_number')
                                           .select_related('white', 'black')
                                           .nocache()
                         ) for team_pairing in team_pairings]
+        presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
+        if pairing_lists:
+            contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
+            in_contact_period = timezone.now() < contact_deadline
+
+        def status(player, pairing):
+            return self._player_status(
+                player,
+                pairing,
+                presences,
+                in_contact_period,
+                contact_deadline,
+                can_change_pairing
+            )
+
+        # Add presences
+        pairing_lists = [
+            [((p,) + status(p.white, p) + status(p.black, p)) for p in p_list]
+            for p_list in pairing_lists
+        ]
         unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round__season=self.season, round__number=round_number, is_available=False) \
                                                                              .select_related('player')
                                                                              .nocache()}
         captains = {tm.player for tm in TeamMember.objects.filter(team__season=self.season, is_captain=True)}
 
         # Show the legend if at least one the players in the visible pairings is unavailable
-        show_legend = len(unavailable_players & ({p.white for plist in pairing_lists for p in plist} | {p.black for plist in pairing_lists for p in plist})) > 0
+        show_legend = len(unavailable_players & ({p[0].white for plist in pairing_lists for p in plist} | {p[0].black for plist in pairing_lists for p in plist})) > 0
+
 
         return {
             'round_number': round_number,
@@ -497,21 +536,14 @@ class PairingsView(SeasonView):
             return None
 
         def status(player, pairing):
-            if not can_change_pairing:
-                return (None, None)
-            pres = presences.get((player.pk, pairing.pk))
-            if in_contact_period:
-                if not pres or not pres.first_msg_time:
-                    return (None, 'no contact yet')
-                else:
-                    return ('yes', 'in contact')
-            else:
-                if not pres or not pres.first_msg_time:
-                    return ('no', 'unresponsive')
-                elif pres.first_msg_time > contact_deadline:
-                    return ('alert', 'late contact')
-                else:
-                    return ('yes', 'in contact')
+            return self._player_status(
+                player,
+                pairing,
+                presences,
+                in_contact_period,
+                contact_deadline,
+                can_change_pairing
+            )
 
         # Add errors
         pairings = [(p, pairing_error(p)) + status(p.white, p) + status(p.black, p) for p in pairings]
