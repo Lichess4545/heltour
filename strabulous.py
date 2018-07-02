@@ -38,26 +38,11 @@ def update(all_repos, python_repos, python_package_name, python_version):
     python_dependency(python_package_name, python_version)
 
 #-------------------------------------------------------------------------------
-def createdb(python_package_name, database_name, database_user):
-    print(
-        colors.green("Look up the password to set for the user with: ") +
-        colors.blue("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
-    )
-    if confirm(colors.red("You should only run this when others aren't looking over your shoulder. Run the command?")):
-        local("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
+def createdb(database_name, database_user, get_password):
+    if confirm(colors.red("Show DB Password? You should only run this when others aren't looking over your shoulder. Run the command?")):
+        print(colors.blue("Password: ") + colors.yellow(get_password()))
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         UbuntuPgCreateDbAndUser(database_name, database_user)()
-
-#-------------------------------------------------------------------------------
-def upload_sshkey(password_file_name, ssh_key_path):
-    run("mkdir -p ~/.ssh")
-    local_key = "~/.ssh/id_rsa.pub"
-    target = "%s/id_rsa.pub" % ssh_key_path
-    put(local_key, target)
-    run("cat ~/id_rsa.pub >> .ssh/authorized_keys")
-    run("chmod 0700 .ssh")
-    run("chmod 0600 .ssh/*")
-    run("rm ~/id_rsa.pub")
 
 
 #-------------------------------------------------------------------------------
@@ -72,7 +57,7 @@ def latest_live_media(live_media_path, local_media_path, password_file_name, liv
         )()
 
 #-------------------------------------------------------------------------------
-def latest_live_db(live_backup_script_path, live_latest_sql_file_path, python_package_name, database_name, database_user):
+def latest_live_db(live_backup_script_path, live_latest_sql_file_path, database_name, database_user, get_password):
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         if confirm(colors.red("Create a new backup?")):
             run(live_backup_script_path)
@@ -82,7 +67,7 @@ def latest_live_db(live_backup_script_path, live_latest_sql_file_path, python_pa
         else:
             local_db = local_target
         with settings(warn_only=True):
-            if confirm(colors.red("You should only run this when others aren't looking over your shoulder. Show database password?")):
-                local("cat %s/live_settings.py | grep \"PASSWORD\"" % python_package_name)
+            if confirm(colors.red("Show password? You should only run this when others aren't looking over your shoulder. Show database password?")):
+                print(colors.blue("Password: ") + colors.yellow(get_password()))
             PgLoadPlain(local_db, database_name, database_user)()
 
