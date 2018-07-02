@@ -68,22 +68,24 @@ setTimeout(function () {
 				<table class="table table-condensed-xs" id="table-team-pairings">
 					{% for pairing_list in pairing_lists %}
 					<tr class="header-row">
+                        {% with pairing_list.0.0.team_pairing as team_pairing %}
 						<th>
-							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing_list.0.team_pairing.white_team.number %}">
-								{{ pairing_list.0.team_pairing.white_team_name }}
+							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
+								{{ team_pairing.white_team_name }}
 							</a>
 						</th>
-						<th class="cell-score {% resultclass pairing_list.0.team_pairing.white_points pairing_list.0.team_pairing.black_points %}">
-							{{ pairing_list.0.team_pairing.white_points_display|formatscore }}
+						<th class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
+							{{ team_pairing.white_points_display|formatscore }}
 						</th>
-						<th class="cell-score {% resultclass pairing_list.0.team_pairing.black_points pairing_list.0.team_pairing.white_points %}">
-							{{ pairing_list.0.team_pairing.black_points_display|formatscore }}
+						<th class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
+							{{ team_pairing.black_points_display|formatscore }}
 						</th>
 						<th class="text-right">
-							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag pairing_list.0.team_pairing.black_team.number %}">
-								{{ pairing_list.0.team_pairing.black_team_name }}
+							<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">
+								{{ team_pairing.black_team_name }}
 							</a>
 						</th>
+                        {% endwith %}
 						<th class="cell-time table-menu">
 							{% if forloop.counter == 1 %}
 							<div class="dropdown">
@@ -104,7 +106,7 @@ setTimeout(function () {
 						</th>{% if can_edit %}
 						<th class="cell-edit">&nbsp;</th>{% endif %}
 					</tr>
-					{% for pairing in pairing_list %}
+					{% for pairing, white_img, white_status, black_img, black_status in pairing_list %}
 					<tr>
 						<td class="pairing-player player-{{ pairing.white_team_color }}">
 							{% if pairing.white_team_player %}
@@ -116,6 +118,9 @@ setTimeout(function () {
 								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span> ({% white_team_rating pairing %})
 								{% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
+							{% if white_img %}
+							<img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg" title="{{ white_status }}" />
+							{% endif %}
 							{% endif %}
 						</td>
 						{% if pairing.game_link and not pairing.result %}
@@ -146,6 +151,9 @@ setTimeout(function () {
 						{% endif %}
 						<td class="text-right pairing-player player-{{ pairing.black_team_color }}">
 							{% if pairing.black_team_player %}
+							{% if black_img %}
+							<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ black_status }}" />
+							{% endif %}
 							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 								{{ pairing.black_team_player.lichess_username }} <span class="visible-xs"></span> ({% black_team_rating pairing %})
 								{% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
