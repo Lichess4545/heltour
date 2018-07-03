@@ -152,7 +152,7 @@ setTimeout(function () {
 						<td class="text-right pairing-player player-{{ pairing.black_team_color }}">
 							{% if pairing.black_team_player %}
 							{% if black_img %}
-							<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ white_status }}" />
+							<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ black_status }}" />
 							{% endif %}
 							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
 								{{ pairing.black_team_player.lichess_username }} <span class="visible-xs"></span> ({% black_team_rating pairing %})
