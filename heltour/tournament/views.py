@@ -424,6 +424,7 @@ class PairingsView(SeasonView):
                                           .select_related('white', 'black')
                                           .nocache()
                         ) for team_pairing in team_pairings]
+        round_ = Round.objects.filter(number=round_number, season=self.season).first()
         presences = {(pp.player_id, pp.pairing_id): pp for pp in PlayerPresence.objects.filter(round=round_)}
         if pairing_lists:
             contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
