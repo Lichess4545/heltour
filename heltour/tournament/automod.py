@@ -105,6 +105,7 @@ def appeal_late_response_approved(instance, **kwargs):
         else:
             revoke_card(instance.round, instance.requester, 'card_unresponsive')
 
+
 @receiver(signals.automod_noshow, dispatch_uid='heltour.tournament.automod')
 def automod_noshow(pairing, **kwargs):
     if pairing.game_link:
@@ -195,6 +196,59 @@ def appeal_noshow_approved(instance, **kwargs):
         reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
         instance.pairing.result = ''
         instance.pairing.save()
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+def claim_draw_scheduling_created(instance, **kwargs):
+    # Figure out which round to add the claim on
+    if not instance.round:
+        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
+        instance.save()
+    if not instance.pairing:
+        instance.pairing = instance.round.pairing_for(instance.requester)
+        instance.save()
+
+    # Check that the requester is part of the season
+    sp = SeasonPlayer.objects.filter(player=instance.requester, season=instance.season).first()
+    if sp is None:
+        instance.reject(response='You aren\'t currently a participant in %s.' % instance.season)
+        return
+
+    if not instance.round:
+        instance.reject(response='You can\'t claim a scheduling draw at this time.')
+        return
+
+    if not instance.pairing:
+        instance.reject(response='You don\'t currently have a pairing you can claim a scheduling draw for.')
+        return
+
+    p = instance.pairing
+    opponent = p.white if p.white != instance.requester else p.black
+
+    #if p.get_player_presence(instance.requester).online_for_game \
+    #   and not p.get_player_presence(opponent).online_for_game \
+    #   and timezone.now() > p.scheduled_time + timedelta(minutes=21):
+    #    instance.approve(response='You\'ve been given a win by forfeit.')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+def claim_draw_scheduling_approved(instance, **kwargs):
+    p = instance.pairing
+    opponent = p.white if p.white != instance.requester else p.black
+
+    with reversion.create_revision():
+        reversion.set_comment('Auto forfeit for no-show')
+        p.result = '1/2Z-1/2Z'
+        p.save()
+    add_system_comment(p, '%s scheduling draw' % opponent.lichess_username)
+    sp = SeasonPlayer.objects.filter(player=opponent, season=instance.season).first()
+    add_system_comment(sp, 'Round %d scheduling draw' % instance.round.number)
+
+    #3card_color = give_card(instance.round, opponent, 'card_noshow')
+    #if not card_color:
+    #    return
+    #punishment = 'You have been given a %s card.' % card_color
+    #allow_continue = card_color != 'red' and instance.season.league.competitor_type != 'team'
+    signals.notify_scheduling_claim.send(sender=claim_draw_scheduling_approved, round_=instance.round, player=opponent)
+
 
 def give_card(round_, player, type_):
     # TODO: Unit tests?
