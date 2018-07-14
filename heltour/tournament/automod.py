@@ -62,7 +62,6 @@ def automod_unresponsive(round_, **kwargs):
             white_avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=p.white)
             black_avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=p.black)
             if not white_avail.is_available or not black_avail.is_available:
-                time.sleep(1)
                 continue
         #check who is not present
         white_present = p.get_player_presence(p.white).first_msg_time is not None
