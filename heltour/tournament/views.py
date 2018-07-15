@@ -1346,7 +1346,7 @@ class PlayerProfileView(LeagueView):
                 season_score_total += 1
         season_perf_rating = season_perf.calculate()
         
-        def league_performance(season):
+        def season_performance(season):
             season_score = 0
             season_score_total = 0
             season_perf = PerfRatingCalc()
@@ -1388,25 +1388,44 @@ class PlayerProfileView(LeagueView):
                     season_score_total += 1
             return season_perf
 
-        def league_performance_loop(leaguetype):
+        def league_performance(seasons):
             league_perf_obj = PerfRatingCalc()
-            for season in leaguetype:
+            for season in seasons:
                 print(season[0])
-                league_perf_obj.merge(league_performance(season[0]))
+                league_perf_obj.merge(season_performance(season[0]))
                 print(league_perf_obj._game_count)
-            league_perf = league_perf_obj.calculate()
-            return league_perf
+            return league_perf_obj
+
+        career_performance_4545 = "N/A"
+        career_score_4545 = "N/A"
+        career_score_total_4545 = "N/A"
+        career_performance_LoneWolf = "N/A"
+        career_score_LoneWolf = "N/A"
+        career_score_total_LoneWolf = "N/A"
+        career_performance_BlitzBattle = "N/A"
+        career_score_BlitzBattle = "N/A"
+        career_score_total_BlitzBattle = "N/A"
 
         for leaguetype in other_season_leagues:
             if leaguetype[0].name == "Lichess4545 League":
-                career_performance_4545 = league_performance_loop(leaguetype[1])
-                print(career_performance_4545)
+                career_4545 = league_performance(leaguetype[1])
+                career_performance_4545 = career_4545.calculate()
+                career_score_4545 = career_4545._score
+                print(career_score_4545)
+                career_score_total_4545 = career_4545._game_count
+                print(career_score_total_4545)
+
             if leaguetype[0].name == "Lichess LoneWolf":
-                career_performance_LoneWolf = league_performance_loop(leaguetype[1])
-                print(career_performance_LoneWolf)
+                career_LoneWolf = league_performance(leaguetype[1])
+                career_performance_LoneWolf = career_LoneWolf.calculate()
+                career_score_LoneWolf = career_LoneWolf._score
+                career_score_total_LoneWolf = career_LoneWolf._game_count
+
             if leaguetype[0].name == "Blitz Battle":
-                career_performance_BlitzBattle = league_performance_loop(leaguetype[1])
-                print(career_performance_BlitzBattle)
+                career_BlitzBattle = league_performance(leaguetype[1])
+                career_performance_BlitzBattle = career_BlitzBattle.calculate()
+                career_score_BlitzBattle = career_BlitzBattle._score
+                career_score_total_BlitzBattle = career_BlitzBattle._game_count
 
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
         alternate = Alternate.objects.filter(season_player=season_player).first()
@@ -1459,6 +1478,15 @@ class PlayerProfileView(LeagueView):
             'season_perf_rating': season_perf_rating,
             'season_score': season_score,
             'season_score_total': season_score_total,
+            'career_performance_4545': career_performance_4545,
+            'career_score_4545': career_score_4545,
+            'career_score_total_4545': career_score_total_4545,
+            'career_performance_LoneWolf': career_performance_LoneWolf,
+            'career_score_LoneWolf': career_score_LoneWolf,
+            'career_score_total_LoneWolf': career_score_total_LoneWolf,
+            'career_performance_BlitzBattle': career_performance_BlitzBattle,
+            'career_score_BlitzBattle': career_score_BlitzBattle,
+            'career_score_total_BlitzBattle': career_score_total_BlitzBattle,
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
         }
         return self.render('tournament/player_profile.html', context)
