@@ -1391,9 +1391,7 @@ class PlayerProfileView(LeagueView):
         def league_performance(seasons):
             league_perf_obj = PerfRatingCalc()
             for season in seasons:
-                print(season[0])
                 league_perf_obj.merge(season_performance(season[0]))
-                print(league_perf_obj._game_count)
             return league_perf_obj
 
         for leaguetype in other_season_leagues:
@@ -1454,7 +1452,7 @@ class PlayerProfileView(LeagueView):
             'season_score_total': season_score_total,
             'career_performance': performances[0],
             'career_score': performances[1],
-            'career_score_total': performances[2], #might break if not participated in any leagues
+            'career_score_total': performances[2],
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
         }
         return self.render('tournament/player_profile.html', context)
