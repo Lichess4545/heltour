@@ -181,11 +181,11 @@
 				<h3>Career Statistics</h3>
 			</div>
 			<div class="well-body">
-				<table>
-					{% if career_score_total_4545 %}
+				<table cellspacing="10">
+					{% if career_score_total %}
 					<tr>
-						<td><strong>4545 League Score:</strong> {{ career_score_4545|floatformat }}/{{ career_score_total_4545 }}</td>
-						{% if career_performance_4545 %}<td><strong>Perf rating:</strong> <span title="{{ career_performance_4545.debug }}">{{ career_performance_4545 }}</span></td>{% endif %}
+						<td><strong>Career Score:</strong> {{ career_score|floatformat }}/{{ career_score_total }}</td>
+						{% if career_performance %}<td><strong>Perf rating:</strong> <span title="{{ career_performance.debug }}">{{ career_performance }}</span></td>{% endif %}
 					</tr>
 					{% endif %}
 				</table>

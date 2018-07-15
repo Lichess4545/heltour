@@ -1396,36 +1396,10 @@ class PlayerProfileView(LeagueView):
                 print(league_perf_obj._game_count)
             return league_perf_obj
 
-        career_performance_4545 = "N/A"
-        career_score_4545 = "N/A"
-        career_score_total_4545 = "N/A"
-        career_performance_LoneWolf = "N/A"
-        career_score_LoneWolf = "N/A"
-        career_score_total_LoneWolf = "N/A"
-        career_performance_BlitzBattle = "N/A"
-        career_score_BlitzBattle = "N/A"
-        career_score_total_BlitzBattle = "N/A"
-
         for leaguetype in other_season_leagues:
-            if leaguetype[0].name == "Lichess4545 League":
-                career_4545 = league_performance(leaguetype[1])
-                career_performance_4545 = career_4545.calculate()
-                career_score_4545 = career_4545._score
-                print(career_score_4545)
-                career_score_total_4545 = career_4545._game_count
-                print(career_score_total_4545)
-
-            if leaguetype[0].name == "Lichess LoneWolf":
-                career_LoneWolf = league_performance(leaguetype[1])
-                career_performance_LoneWolf = career_LoneWolf.calculate()
-                career_score_LoneWolf = career_LoneWolf._score
-                career_score_total_LoneWolf = career_LoneWolf._game_count
-
-            if leaguetype[0].name == "Blitz Battle":
-                career_BlitzBattle = league_performance(leaguetype[1])
-                career_performance_BlitzBattle = career_BlitzBattle.calculate()
-                career_score_BlitzBattle = career_BlitzBattle._score
-                career_score_total_BlitzBattle = career_BlitzBattle._game_count
+            if leaguetype[0].tag == self.league.tag:
+                career = league_performance(leaguetype[1])
+                performances = [career.calculate(), career._score, career._game_count]
 
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
         alternate = Alternate.objects.filter(season_player=season_player).first()
@@ -1478,15 +1452,9 @@ class PlayerProfileView(LeagueView):
             'season_perf_rating': season_perf_rating,
             'season_score': season_score,
             'season_score_total': season_score_total,
-            'career_performance_4545': career_performance_4545,
-            'career_score_4545': career_score_4545,
-            'career_score_total_4545': career_score_total_4545,
-            'career_performance_LoneWolf': career_performance_LoneWolf,
-            'career_score_LoneWolf': career_score_LoneWolf,
-            'career_score_total_LoneWolf': career_score_total_LoneWolf,
-            'career_performance_BlitzBattle': career_performance_BlitzBattle,
-            'career_score_BlitzBattle': career_score_BlitzBattle,
-            'career_score_total_BlitzBattle': career_score_total_BlitzBattle,
+            'career_performance': performances[0],
+            'career_score': performances[1],
+            'career_score_total': performances[2], #might break if not participated in any leagues
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
         }
         return self.render('tournament/player_profile.html', context)
