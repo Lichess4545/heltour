@@ -220,13 +220,16 @@ def claim_draw_scheduling_created(instance, **kwargs):
     if not instance.pairing:
         instance.reject(response='You don\'t currently have a pairing you can claim a scheduling draw for.')
         return
+    
+    if instance.pairing.result:
+        instance.reject(response='You cannot claim a scheduling draw for a game which already has a set result.')
+        return
 
-    p = instance.pairing
-    opponent = p.white if p.white != instance.requester else p.black
+    instance.approve(response='Your game has been ruled a scheduling draw.')
 
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
-def claim_draw_scheduling_approved(instance, **kwargs):
+def claim_scheduling_draw_approved(instance, **kwargs):
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
 
@@ -234,11 +237,9 @@ def claim_draw_scheduling_approved(instance, **kwargs):
         reversion.set_comment('Scheduling draw')
         p.result = '1/2Z-1/2Z'
         p.save()
-    add_system_comment(p, '%s scheduling draw' % opponent.lichess_username)
-    sp = SeasonPlayer.objects.filter(player=opponent, season=instance.season).first()
-    add_system_comment(sp, 'Round %d scheduling draw' % instance.round.number)
+    add_system_comment(p, 'scheduling draw')
 
-    signals.notify_scheduling_claim.send(sender=claim_draw_scheduling_approved, round_=instance.round, player=opponent)
+    signals.notify_scheduling_draw_claim.send(sender=claim_scheduling_draw_approved, round_=instance.round, player=opponent)
 
 
 def give_card(round_, player, type_):
