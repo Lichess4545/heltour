@@ -231,7 +231,7 @@ def claim_draw_scheduling_approved(instance, **kwargs):
     opponent = p.white if p.white != instance.requester else p.black
 
     with reversion.create_revision():
-        reversion.set_comment('Auto forfeit for no-show')
+        reversion.set_comment('Scheduling draw')
         p.result = '1/2Z-1/2Z'
         p.save()
     add_system_comment(p, '%s scheduling draw' % opponent.lichess_username)
