@@ -661,7 +661,7 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
 def notify_scheduling_draw_claim(round_,player, **kwargs):
     season = round_.season
     league = season.league
-    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_scheduling_draw']))
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_draw_scheduling']))
     message = 'Notice: Your %s game has been ruled a scheduling draw. ' % league.name \
             + 'If you disagree with this, <%s|click here> to appeal. ' %appeal_url \
             + 'Please provide reasons and a screenshot of the conversation with your opponent.'
