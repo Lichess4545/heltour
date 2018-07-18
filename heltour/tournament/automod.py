@@ -207,6 +207,7 @@ def claim_draw_scheduling_created(instance, **kwargs):
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
+
     # Check that the requester is part of the season
     sp = SeasonPlayer.objects.filter(player=instance.requester, season=instance.season).first()
     if sp is None:
@@ -222,24 +223,43 @@ def claim_draw_scheduling_created(instance, **kwargs):
         return
     
     if instance.pairing.result:
-        instance.reject(response='You cannot claim a scheduling draw for a game which already has a set result.')
+        instance.reject(response='You can\'t claim a scheduling draw for a game which already has a set result.')
         return
 
-    instance.approve(response='Your game has been ruled a scheduling draw.')
-
+    add_system_comment(instance.pairing, 'Scheduling draw claim made by %s' % instance.requester)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
 def claim_scheduling_draw_approved(instance, **kwargs):
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
-
+    comment_ = 'Scheduling draw claim approved by %s' % instance.status_changed_by
     with reversion.create_revision():
-        reversion.set_comment('Scheduling draw')
+        reversion.set_comment(comment_)
         p.result = '1/2Z-1/2Z'
         p.save()
-    add_system_comment(p, 'scheduling draw')
-
+    add_system_comment(p, comment_)
     signals.notify_scheduling_draw_claim.send(sender=claim_scheduling_draw_approved, round_=instance.round, player=opponent)
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+def appeal_scheduling_draw_created(instance, **kwargs):
+    # Figure out which round to use    
+    if not instance.round:
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
+        instance.save()
+    if not instance.pairing:
+        instance.pairing = instance.round.pairing_for(instance.requester)
+        instance.save()
+    add_system_comment(instance.pairing,'Scheduling draw appeal by %s' % instance.requester)
+
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+def appeal_scheduling_draw_approved(instance, **kwargs):
+    comment_ = 'Scheduling draw appeal approved by %s' % instance.status_changed_by
+    with reversion.create_revision():
+        reversion.set_comment(comment_)
+        instance.pairing.result = ''
+        instance.pairing.save()
+    add_system_comment(instance.pairing,comment_)
 
 
 def give_card(round_, player, type_):
