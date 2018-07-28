@@ -2283,6 +2283,7 @@ MOD_REQUEST_TYPE_OPTIONS = (
     ('reregister', 'Re-register'),
     ('appeal_late_response', 'Appeal late response'),
     ('appeal_noshow', 'Appeal no-show'),
+    ('appeal_draw_scheduling', 'Appeal scheduling draw'),
     ('claim_win_noshow', 'Claim a forfeit win (no-show)'),
     ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
     ('claim_draw_scheduling', 'Claim a scheduling draw'),

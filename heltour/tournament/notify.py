@@ -657,6 +657,16 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
                   % (_captains_ping(team, round_), _slack_user(player), tpp.board_number, team.name, round_.number)
         _send_notification('captains', league, message)
 
+@receiver(signals.notify_scheduling_draw_claim, dispatch_uid='heltour.tournament.notify')
+def notify_scheduling_draw_claim(round_,player, **kwargs):
+    season = round_.season
+    league = season.league
+    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_draw_scheduling']))
+    message = 'Notice: Your %s game has been ruled a scheduling draw. ' % league.name \
+            + 'If you disagree with this, <%s|click here> to appeal. ' %appeal_url \
+            + 'Please provide reasons and a screenshot of the conversation with your opponent.'
+    _message_user(league, _slack_user(player),message)
+
 @receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
 def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
     season = round_.season
