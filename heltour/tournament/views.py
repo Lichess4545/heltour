@@ -1327,7 +1327,7 @@ class PlayerProfileView(LeagueView):
                         if p.result == '':
                             continue
                         if isCurrentSeason:
-                        	history.append((round_, p, None, None))
+                            history.append((round_, p, None, None))
                         game_score = p.white_score() if p.white == player else p.black_score()
                         if game_score is not None:
                             season_score += game_score
@@ -1343,13 +1343,13 @@ class PlayerProfileView(LeagueView):
                 elif round_.number in byes:
                     bye = byes[round_.number]
                     if isCurrentSeason:
-    	                history.append((round_, None, bye.get_type_display(), None))
+                        history.append((round_, None, bye.get_type_display(), None))
                     season_score += bye.score()
                     season_score_total += 1
-            return season_score, season_score_total, season_perf, history, games
+            return season_score, season_score_total, season_perf, history, games, byes
 
         #calculate performance for current season
-        season_score, season_score_total, season_perf, history, games = season_performance(self.season, isCurrentSeason=True)
+        season_score, season_score_total, season_perf, history, games, byes = season_performance(self.season, isCurrentSeason=True)
         season_perf_rating = season_perf.calculate()
 
         #calculate performance for all seasons in current league
@@ -1358,10 +1358,10 @@ class PlayerProfileView(LeagueView):
         career_perf = PerfRatingCalc()
 
         for season in [sp.season for sp in player.seasonplayer_set.filter(season__league=self.league)]:
-        	part_career_score, part_career_score_total, part_career_perf, _, _ = season_performance(season)
-        	career_score += part_career_score
-        	career_score_total += part_career_score_total
-        	career_perf.merge(part_career_perf)
+            part_career_score, part_career_score_total, part_career_perf, _, _, _ = season_performance(season)
+            career_score += part_career_score
+            career_score_total += part_career_score_total
+            career_perf.merge(part_career_perf)
         career_perf = career_perf.calculate()
 
         team_member = TeamMember.objects.filter(team__season=self.season, player=player).first()
