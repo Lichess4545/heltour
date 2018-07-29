@@ -8,3 +8,4 @@ certs
 celerybeat-schedule
 *eclipse*
 data
+.idea
