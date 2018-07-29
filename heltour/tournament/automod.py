@@ -57,6 +57,13 @@ def withdraw_approved(instance, **kwargs):
 def automod_unresponsive(round_, **kwargs):
     groups = { 'warning': [], 'yellow': [], 'red': [] }
     for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
+        #verify that neither player is previously marked unavailable
+        if round_.season.league.competitor_type == 'team':
+            white_avail = PlayerAvailability.objects.filter(round=round_, player=p.white, is_available=False).first()
+            black_avail = PlayerAvailability.objects.filter(round=round_, player=p.black, is_available=False).first()
+            if not white_avail or not black_avail:
+                continue
+        #check who is not present
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
         if not white_present:
