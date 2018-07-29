@@ -56,6 +56,7 @@
 	            	{% if league.competitor_type == 'team' %}
 	        		<li><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
 	        		<li><a href="{% leagueurl 'rosters' league.tag season.tag %}">Rosters</a></li>
+	        		<li><a href="{% leagueurl 'alternates' league.tag season.tag %}">Alternates</a></li>
 	        		<li><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
 	        		<li><a href="{% leagueurl 'crosstable' league.tag season.tag %}">Crosstable</a></li>
 	        		<li><a href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a></li>
