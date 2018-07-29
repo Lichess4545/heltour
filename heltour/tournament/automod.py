@@ -59,9 +59,9 @@ def automod_unresponsive(round_, **kwargs):
     for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
         #verify that neither player is previously marked unavailable
         if round_.season.league.competitor_type == 'team':
-            white_avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=p.white)
-            black_avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=p.black)
-            if not white_avail.is_available or not black_avail.is_available:
+            white_avail = PlayerAvailability.objects.filter(round=round_, player=p.white, is_available=False).first()
+            black_avail = PlayerAvailability.objects.filter(round=round_, player=p.black, is_available=False).first()
+            if not white_avail or not black_avail:
                 continue
         #check who is not present
         white_present = p.get_player_presence(p.white).first_msg_time is not None
