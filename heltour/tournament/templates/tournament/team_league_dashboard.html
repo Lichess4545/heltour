@@ -57,6 +57,10 @@
 					<span class="dashboard-note">Pending: {{ pending_reg_count }}</span>
 				</div>
 				<div class="dashboard-season-action">
+					<a href="{% url 'admin:tournament_modrequest_changelist' %}?season__id__exact={{ reg_season.pk }}&status__exact=pending" class="btn btn-default">Review Mod Requests</a>
+					<span class="dashboard-note">Pending: {{ pending_modreq_count }}</span>
+				</div>
+				<div class="dashboard-season-action">
 					<a href="{% url 'admin:manage_players' season.pk %}" class="btn btn-default">Edit Rosters</a>
 					<span class="dashboard-note">Unassigned players: {{ unassigned_player_count }}</span>
 				</div>
@@ -66,7 +70,13 @@
 					<span class="dashboard-note">Open spots: {{ alternate_search_count }}</span>
 				</div>
 				{% endif %}
+				<div class="dashboard-season-action">
+					<a href="{% url 'admin:team_spam' season.pk %}" class="btn btn-default">Message All Teams</a>
+				</div>
 				{% if next_round %}
+				<div class="dashboard-season-action">
+					<a href="{% url 'admin:pre_round_report' season.pk %}" class="btn btn-default">Pre-Round Report</a>
+                </div>
 				<div class="dashboard-season-action">
 					<a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start Round {{ next_round.number }}</a>
 					<span class="dashboard-note">Scheduled time: {{ next_round.start_date | date_el:"m/d H:i" }}</span>
