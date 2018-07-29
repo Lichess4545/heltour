@@ -128,7 +128,7 @@ def claim_win_noshow_created(instance, **kwargs):
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
         instance.save()
-    if not instance.pairing:
+    if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
@@ -183,7 +183,7 @@ def appeal_noshow_created(instance, **kwargs):
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
         instance.save()
-    if not instance.pairing:
+    if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
@@ -203,7 +203,7 @@ def claim_draw_scheduling_created(instance, **kwargs):
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
         instance.save()
-    if not instance.pairing:
+    if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
@@ -246,7 +246,7 @@ def appeal_scheduling_draw_created(instance, **kwargs):
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
         instance.save()
-    if not instance.pairing:
+    if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
     add_system_comment(instance.pairing,'Scheduling draw appeal by %s' % instance.requester)
