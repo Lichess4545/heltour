@@ -176,6 +176,23 @@
 			</div>
 		</div>
 		{% endif %}
+		{% if career_score_total %}
+		<div class="well">
+			<div class="well-head">
+				<h3>Career Statistics</h3>
+			</div>
+			<div class="well-body">
+				<div class="player-profile-section">
+					<table>
+						<tr>
+							<td><strong>Career Score:</strong> {{ career_score|floatformat }}/{{ career_score_total }}</td>
+							{% if career_perf %}<td><strong>Perf rating:</strong><span title="{{ career_perf.debug }}">{{ career_perf }}</span></td>{% endif %}
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		{% endif %}
 	</div>
 </div>
 {% endblock %}
