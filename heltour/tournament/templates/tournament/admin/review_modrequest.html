@@ -48,6 +48,25 @@
 		    </a>
 		    {% endif %}
 		</div>
+
+		<div class="form-row">
+			<label>Round:</label>
+			{{ original.round|default_if_none:'?' }}
+		</div>
+
+        {% if original.pairing %}
+		<div class="form-row">
+			<label>Pairing:</label>
+			{{ original.pairing }}
+		</div>
+        {% endif %}
+
+        {% if original.pairing.result %}
+		<div class="form-row">
+			<label>Result:</label>
+			{{ original.pairing.result }}
+		</div>
+        {% endif %}
 		
 	</div>
 	
