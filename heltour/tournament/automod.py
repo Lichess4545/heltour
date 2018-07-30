@@ -48,6 +48,9 @@ def withdraw_created(instance, **kwargs):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
 def withdraw_approved(instance, **kwargs):
+    if not instance.round:
+        return
+
     # Add the withdrawal if it doesn't already exist
     with reversion.create_revision():
         reversion.set_comment('Withdraw request approved by %s' % instance.status_changed_by)
@@ -104,6 +107,9 @@ def player_unresponsive(round_, pairing, player, groups):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_approved(instance, **kwargs):
+    if not instance.pairing:
+        return
+
     with reversion.create_revision():
         reversion.set_comment('Late response appeal approved by %s' % instance.status_changed_by)
         warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round, type='unresponsive').first()
@@ -163,6 +169,9 @@ def claim_win_noshow_created(instance, **kwargs):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
 def claim_win_noshow_approved(instance, **kwargs):
+    if not instance.pairing:
+        return
+
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
 
@@ -196,6 +205,9 @@ def appeal_noshow_created(instance, **kwargs):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
 def appeal_noshow_approved(instance, **kwargs):
+    if not instance.pairing:
+        return
+
     with reversion.create_revision():
         reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
         revoke_card(instance.round, instance.requester, 'card_noshow')
@@ -237,6 +249,9 @@ def claim_draw_scheduling_created(instance, **kwargs):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
 def claim_scheduling_draw_approved(instance, **kwargs):
+    if not instance.pairing:
+        return
+
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
     comment_ = 'Scheduling draw claim approved by %s' % instance.status_changed_by
@@ -261,6 +276,9 @@ def appeal_scheduling_draw_created(instance, **kwargs):
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
 def appeal_scheduling_draw_approved(instance, **kwargs):
+    if not instance.pairing:
+        return
+
     comment_ = 'Scheduling draw appeal approved by %s' % instance.status_changed_by
     with reversion.create_revision():
         reversion.set_comment(comment_)
