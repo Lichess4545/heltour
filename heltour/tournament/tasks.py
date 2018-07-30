@@ -384,9 +384,13 @@ def do_pairings_published(sender, round_id, **kwargs):
 
 @app.task(bind=True)
 def schedule_publish(self, round_id):
-    round_ = Round.objects.get(pk=round_id)
-    round_.publish_pairings = True
-    round_.save()
+    with cache.lock('schedule_publish'):
+        round_ = Round.objects.get(pk=round_id)
+        if round_.publish_pairings:
+            # Already published
+            return
+        round_.publish_pairings = True
+        round_.save()
     # Update ranks in case of manual edits
     rank_dict = lone_player_pairing_rank_dict(round_.season)
     for lpp in round_.loneplayerpairing_set.all().nocache():
