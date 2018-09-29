@@ -110,7 +110,7 @@ setTimeout(function () {
 					<tr>
 						<td class="pairing-player player-{{ pairing.white_team_color }}">
 							{% if pairing.white_team_player %}
-							<a class="download-games" href="https://lichess.org/api/games/use/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}" target="_blank" rel="nofollow">
+							<a class="download-games" href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}" target="_blank" rel="nofollow">
 								<img src="{% static "tournament/img/download-icon.svg" %}">
 							</a>
 							<span class="color-dot left hidden-xs"></span>
