@@ -145,13 +145,16 @@ def update_tv_state(self):
         try:
             league = game.get_round().season.league
             for meta in lichessapi.get_latest_game_metas(game.white.lichess_username, 5, priority=1, timeout=300):
-                if meta['players']['white']['userId'].lower() == game.white.lichess_username.lower() and \
-                        meta['players']['black']['userId'].lower() == game.black.lichess_username.lower() and \
-                        meta['clock']['initial'] == league.time_control_initial() and \
-                        meta['clock']['increment'] == league.time_control_increment() and \
-                        meta['rated'] == True:
-                    game.game_link = get_gamelink_from_gameid(meta['id'])
-                    game.save()
+                try:
+                    if meta['players']['white']['user']['id'].lower() == game.white.lichess_username.lower() and \
+                            meta['players']['black']['user']['id'].lower() == game.black.lichess_username.lower() and \
+                            meta['clock']['initial'] == league.time_control_initial() and \
+                            meta['clock']['increment'] == league.time_control_increment() and \
+                            meta['rated'] == True:
+                        game.game_link = get_gamelink_from_gameid(meta['id'])
+                        game.save()
+                except KeyError:
+                    pass
         except Exception as e:
             logger.warning('Error updating tv state for %s: %s' % (game, e))
 

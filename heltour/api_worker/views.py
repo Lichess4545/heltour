@@ -6,14 +6,17 @@ from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
-def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, retry_count=0):
+def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format, retry_count=0):
     url = "https://lichess.org/%s" % path
 
     try:
+        headers = {}
+        if format:
+            headers['Accept'] = format
         if method == 'POST':
-            r = requests.post(url, params=params, data=post_data)
+            r = requests.post(url, params=params, data=post_data, headers=headers)
         else:
-            r = requests.get(url, params)
+            r = requests.get(url, params, headers=headers)
 
         if r.status_code == 200:
             # Success
@@ -28,7 +31,7 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
         cache.set(redis_key, '', timeout=60)
     else:
         # Retry
-        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data, params, priority, max_retries, retry_count + 1)
+        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data, params, priority, max_retries, format, retry_count + 1)
 
     if r is not None and r.status_code == 429:
         # Too many requests
@@ -41,8 +44,9 @@ def lichess_api_call(request, path):
     params = request.GET.dict()
     priority = int(params.pop('priority', 0))
     max_retries = int(params.pop('max_retries', 3))
+    format = params.pop('format', None)
     redis_key = get_random_string(length=16)
-    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body, params, priority, max_retries)
+    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body, params, priority, max_retries, format)
     return HttpResponse(redis_key)
 
 @csrf_exempt
