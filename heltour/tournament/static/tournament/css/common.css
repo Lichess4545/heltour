@@ -201,9 +201,9 @@ div.inline {
 .pairings-row {
 	max-width: 800px;
 }
-.pairing-player .download-games,
-.pairing-player .download-games img {
-	width: 16px;
+.download-games,
+.download-games img {
+	width: 10px;
 }
 
 .cell-win {

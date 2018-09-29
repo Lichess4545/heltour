@@ -78,8 +78,8 @@ setTimeout(function () {
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
 							{% if pairing.white %}
-							<a href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/bookshelf.svg" %}">
+							<a class="download-games" href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/download-icon.svg" %}">
 							</a>
 							{% endif %}
 						</td>
@@ -98,8 +98,8 @@ setTimeout(function () {
 						<td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
 						<td>
 							{% if pairing.black %}
-							<a href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/bookshelf.svg" %}">
+							<a class="download-games" href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/download-icon.svg" %}">
 							</a>
 							{% endif %}
 						</td>
@@ -142,8 +142,8 @@ setTimeout(function () {
 						<td class="hidden-xs"></td>
 						<td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
 						<td>
-                            <a href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}" target="_blank">
-								<img src="{% static "tournament/img/bookshelf.svg" %}">
+                            <a class="download-games" href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}" target="_blank">
+								<img src="{% static "tournament/img/download-icon.svg" %}">
 							</a>
 						</td>
 						<td>
