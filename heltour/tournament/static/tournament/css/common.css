@@ -205,6 +205,9 @@ div.inline {
 .download-games img {
 	width: 10px;
 }
+.download-games img {
+	margin-top: -3px;
+}
 
 .cell-win {
 	background-color: #b7e1cd;
