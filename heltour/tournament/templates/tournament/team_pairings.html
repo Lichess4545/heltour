@@ -110,8 +110,8 @@ setTimeout(function () {
 					<tr>
 						<td class="pairing-player player-{{ pairing.white_team_color }}">
 							{% if pairing.white_team_player %}
-							<a href="https://lichess.org/games/export/{{ pairing.white_team_player.lichess_username }}?perfType=classical,rapid&color={{ pairing.white_team_color }}" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/book-pile.png" %}">
+							<a class="download-games" href="https://lichess.org/api/games/use/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/bookshelf.svg" %}">
 							</a>
 							<span class="color-dot left hidden-xs"></span>
 							<a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
@@ -159,8 +159,8 @@ setTimeout(function () {
 								{% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							<span class="color-dot right"></span>
-							<a href="https://lichess.org/games/export/{{ pairing.black_team_player.lichess_username }}?perfType=classical,rapid&color={{ pairing.black_team_color }}" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/book-pile.png" %}">
+							<a class="download-games" href="https://lichess.org/api/games/user/{{ pairing.black_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.black_team_color }}" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/bookshelf.svg" %}">
 							</a>
 							{% endif %}
 						</td>

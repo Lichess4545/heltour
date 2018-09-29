@@ -201,6 +201,10 @@ div.inline {
 .pairings-row {
 	max-width: 800px;
 }
+.pairing-player .download-games,
+.pairing-player .download-games img {
+	width: 16px;
+}
 
 .cell-win {
 	background-color: #b7e1cd;

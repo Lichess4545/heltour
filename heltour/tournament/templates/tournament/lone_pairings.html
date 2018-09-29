@@ -78,8 +78,8 @@ setTimeout(function () {
 						<td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
 						<td>
 							{% if pairing.white %}
-							<a href="https://lichess.org/games/export/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/book-pile.png" %}">
+							<a href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/bookshelf.svg" %}">
 							</a>
 							{% endif %}
 						</td>
@@ -98,8 +98,8 @@ setTimeout(function () {
 						<td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
 						<td>
 							{% if pairing.black %}
-							<a href="https://lichess.org/games/export/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black" target="_blank" rel="nofollow">
-								<img src="{% static "tournament/img/book-pile.png" %}">
+							<a href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black" target="_blank" rel="nofollow">
+								<img src="{% static "tournament/img/bookshelf.svg" %}">
 							</a>
 							{% endif %}
 						</td>
@@ -142,8 +142,8 @@ setTimeout(function () {
 						<td class="hidden-xs"></td>
 						<td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
 						<td>
-							<a href="https://lichess.org/games/export/{{ bye.player.lichess_username }}?perfType=classical,rapid" target="_blank">
-								<img src="{% static "tournament/img/book-pile.png" %}">
+                            <a href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}" target="_blank">
+								<img src="{% static "tournament/img/bookshelf.svg" %}">
 							</a>
 						</td>
 						<td>
