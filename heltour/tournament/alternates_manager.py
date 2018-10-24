@@ -125,8 +125,8 @@ def do_alternate_search(season, round_, board_number, setting):
     # Continue the search for an alternate to fill each open spot
     for p in players_that_need_replacements:
         search, created = AlternateSearch.objects.get_or_create(round=round_, team=teams_by_player[p], board_number=board_number)
-        if not search.is_active or search.status == 'all_contacted':
-            # Search is over (or was manually disabled), move on to the next open spot
+        if not search.is_active:
+            # Search is manually disabled, move on to the next open spot
             continue
 
         if created or search.status == 'completed':
@@ -184,14 +184,15 @@ def do_alternate_search(season, round_, board_number, setting):
                     search.last_alternate_contact_date = current_date
                     search.save()
             except IndexError:
-                # No alternates left, so the search is over
-                # The spot can still be filled if previously-contacted alternates end up responding
-                signals.alternate_search_all_contacted.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
-                                            board_number=board_number, round_=round_, number_contacted=len(alternates_contacted))
-                with reversion.create_revision():
-                    reversion.set_comment('All alternates contacted')
-                    search.status = 'all_contacted'
-                    search.save()
+                # No alternates left, so the search is over for now
+                # The spot can still be filled if contacted alternates end up responding or new alternates are added
+                if search.status != 'all_contacted':
+                    signals.alternate_search_all_contacted.send(sender=do_alternate_search, season=season, team=teams_by_player[p], \
+                                                board_number=board_number, round_=round_, number_contacted=len(alternates_contacted))
+                    with reversion.create_revision():
+                        reversion.set_comment('All alternates contacted')
+                        search.status = 'all_contacted'
+                        search.save()
 
 def round_pairings_published(round_):
     if round_ != current_round(round_.season):
