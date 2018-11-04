@@ -3,7 +3,7 @@ django-reversion==2.0.5
 fabric==1.11.1
 psycopg2==2.7.5
 django-debug-toolbar==1.5
-requests[security]==2.13.0
+requests[security]==2.20.0
 django-bootstrap3==7.0.1
 gspread==0.4.1
 oauth2client==2.2.0
