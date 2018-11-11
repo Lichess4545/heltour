@@ -4,8 +4,8 @@ from heltour.tournament.models import *
 from django_comments.models import Comment
 from django.contrib.auth.models import User, Group
 from django.contrib.sessions.models import Session
-from django.contrib.sessions.models import Session
 from reversion.models import Revision
+from impersonate.models import ImpersonationLog
 
 class Command(BaseCommand):
     help = "Cleanse your local database of sensitive things"
@@ -19,30 +19,27 @@ class Command(BaseCommand):
             u.user_permissions.all().delete()
         Group.objects.all().delete()
         for p in Player.objects.all():
-            p.profile = None
             p.email = "email-{}@example.com".format(p.id)
             p.slack_user_id = ''
             p.save()
         for t in Team.objects.all():
             t.slack_channel = ''
             t.save()
-        Registration.objects.filter(status='Rejected').delete()
-        Registration.objects.filter(status='Pending').delete()
+        Registration.objects.filter(status='rejected').delete()
+        Registration.objects.filter(status='pending').delete()
         for r in Registration.objects.all():
             r.email = "email-{}@example.com".format(r.id)
-            r.status = 'Approved'
+            r.status = 'approved'
             r.validation_ok = True
             r.validation_warning = False
             r.friends = ''
             r.avoid = ''
             r.slack_username = ''
             r.save()
+        LeagueModerator.objects.all().delete()
         Comment.objects.all().delete()
         FcmSub.objects.all().delete()
         GameNomination.objects.all().delete()
-        SeasonPrizeWinner.objects.all().delete()
-        SeasonPrize.objects.all().delete()
-        GameSelection.objects.all().delete()
         ApiKey.objects.all().delete()
         PrivateUrlAuth.objects.all().delete()
         LoginToken.objects.all().delete()
@@ -54,3 +51,4 @@ class Command(BaseCommand):
         ModRequest.objects.all().delete()
         LeagueChannel.objects.all().delete()
         Revision.objects.all().delete()
+        ImpersonationLog.objects.all().delete()
