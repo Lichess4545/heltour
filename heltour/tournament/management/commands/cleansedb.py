@@ -1,4 +1,5 @@
 from django.core.management import BaseCommand
+from django.utils import timezone
 from heltour.tournament.models import *
 
 from django_comments.models import Comment
@@ -15,12 +16,16 @@ class Command(BaseCommand):
         for u in User.objects.all():
             u.set_password("09876default1234")
             u.email = "email-{}@example.com".format(u.id)
+            u.is_staff = False
+            u.last_login = None
+            u.date_joined = timezone.now()
             u.save()
             u.user_permissions.all().delete()
         Group.objects.all().delete()
         for p in Player.objects.all():
             p.email = "email-{}@example.com".format(p.id)
             p.slack_user_id = ''
+            p.timezone_offset = None
             p.save()
         for t in Team.objects.all():
             t.slack_channel = ''
@@ -52,3 +57,6 @@ class Command(BaseCommand):
         LeagueChannel.objects.all().delete()
         Revision.objects.all().delete()
         ImpersonationLog.objects.all().delete()
+        ScheduledNotification.objects.all().delete()
+        PlayerPresence.objects.all().delete()
+        PlayerWarning.objects.all().delete()
