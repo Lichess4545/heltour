@@ -740,7 +740,8 @@ class SeasonAdmin(_BaseAdmin):
             reg = sp.registration
             if reg is not None:
                 info.update({
-                    'prefers_alt': reg.alternate_preference == 'alternate'
+                    'prefers_alt': reg.alternate_preference == 'alternate',
+                    'previous_season_alternate': reg.previous_season_alternate,
                 })
             players.append(info)
 
