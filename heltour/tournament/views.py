@@ -18,6 +18,9 @@ from django.views.generic import View
 from django.utils.text import slugify
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
+from smtplib import SMTPException
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from ipware import get_client_ip
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
@@ -621,13 +624,27 @@ class RegisterView(LeagueView):
             reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
-
         if post:
             form = RegistrationForm(self.request.POST, season=reg_season)
             if form.is_valid():
                 with reversion.create_revision():
                     reversion.set_comment('Submitted registration.')
                     form.save()
+                # send registration received email
+                subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
+                msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
+                msg_html = render_to_string('tournament/emails/registration_received.html', {'reg': form.instance})
+                try:
+                    send_mail(
+                        subject,
+                        msg_plain,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [form.cleaned_data['email']],
+                        html_message=msg_html,
+                    )
+                except SMTPException:
+                    logger.exception('A confirmation email could not be sent.')
+
                 self.request.session['reg_email'] = form.cleaned_data['email']
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:

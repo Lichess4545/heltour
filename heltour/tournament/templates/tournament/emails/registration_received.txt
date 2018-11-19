@@ -1,0 +1,8 @@
+{% load tournament_extras %}Hi {{ reg.lichess_username }}!
+
+Your registration for {{ reg.season.name }} has been recorded.
+
+A confirmation email will be sent to you once a moderator approves your registration.
+
+Regards,
+The {{ reg.season.league.name }} Mods
