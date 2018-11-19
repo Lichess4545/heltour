@@ -6,3 +6,4 @@ INTERNAL_IPS = ['127.0.0.1']
 JAVAFO_COMMAND = 'java -jar /home/vagrant/heltour/javafo.jar'
 STATIC_ROOT = '/home/vagrant/heltour/static'
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
