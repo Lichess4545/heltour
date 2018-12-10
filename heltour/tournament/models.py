@@ -2193,9 +2193,12 @@ class PlayerNotificationSetting(_BaseModel):
         # Return (but don't create) the default setting based on the type
         obj = PlayerNotificationSetting(**kwargs)
         type_ = kwargs.get('type')
-        if type_ == 'before_game_time' and obj.offset is not None and obj.offset != timedelta(minutes=60):
-            # Non-default offset, so leave everything disabled
-            return obj
+        if type_ == 'before_game_time' and obj.offset is not None:
+            del kwargs['offset']
+            has_other_offset = PlayerNotificationSetting.objects.filter(**kwargs).exists()
+            if has_other_offset or obj.offset != timedelta(minutes=60):
+                # Non-default offset, so leave everything disabled
+                return obj
         obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
         obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
         obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
