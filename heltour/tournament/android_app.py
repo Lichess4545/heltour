@@ -22,7 +22,7 @@ available_topics = [('[Team]', 'team_a'), ('[Lonewolf]', 'lonewolf_a'), ('[Ladde
 @csrf_exempt
 @require_POST
 def slack_event(request):
-    args = json.loads(request.body)
+    args = json.loads(request.body.decode('utf-8'))
     token = args.get('token')
     if token != settings.SLACK_APP_TOKEN:
         # Discard request - couldn't verify it was from Slack
@@ -67,7 +67,7 @@ def process_slack_message(users, channel, sender, text, ts):
 @csrf_exempt
 @require_POST
 def fcm_register(request):
-    args = json.loads(request.body)
+    args = json.loads(request.body.decode('utf-8'))
     slack_token = args.get('slack_token')
     reg_id = args.get('reg_id')
 
@@ -86,7 +86,7 @@ def fcm_register(request):
 @csrf_exempt
 @require_POST
 def fcm_unregister(request):
-    args = json.loads(request.body)
+    args = json.loads(request.body.decode('utf-8'))
     reg_id = args.get('reg_id')
 
     FcmSub.objects.filter(reg_id=reg_id).delete()

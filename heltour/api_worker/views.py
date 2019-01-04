@@ -46,17 +46,17 @@ def lichess_api_call(request, path):
     max_retries = int(params.pop('max_retries', 3))
     format = params.pop('format', None)
     redis_key = get_random_string(length=16)
-    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body, params, priority, max_retries, format)
+    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body.decode('utf-8'), params, priority, max_retries, format)
     return HttpResponse(redis_key)
 
 @csrf_exempt
 def watch(request):
-    game_ids = request.body.split(',')
+    game_ids = request.body.decode('utf-8').split(',')
     result = worker.watch_games(game_ids)
     return JsonResponse({'result': result})
 
 @csrf_exempt
 def watch_add(request):
-    game_id = request.body
+    game_id = request.body.decode('utf-8')
     worker.add_watch(game_id)
     return JsonResponse({'ok': True})

@@ -313,9 +313,9 @@ class TvFilterForm(forms.Form):
         super(TvFilterForm, self).__init__(*args, **kwargs)
 
         self.fields['league'] = forms.ChoiceField(choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues], initial=current_league.tag)
-        if boards is not None and boards > 0:
+        if boards is not None and len(boards) > 0:
             self.fields['board'] = forms.ChoiceField(choices=[('all', 'All Boards')] + [(n, 'Board %d' % n) for n in boards])
-        if teams is not None and boards > 0:
+        if teams is not None and len(teams) > 0:
             self.fields['team'] = forms.ChoiceField(choices=[('all', 'All Teams')] + [(team.number, team.name) for team in teams])
 
 class TvTimezoneForm(forms.Form):
