@@ -62,7 +62,7 @@
 									</td>
 									<td>{{ date_opened|date_el:"m/d H:i" }}</td>
 								</tr>
-								{% endfor %} 
+								{% endfor %}
 							</tbody>
 						</table>
 					</div>
@@ -110,7 +110,7 @@
 					<table class="table table-condensed-sm" id="table-alternates">
 						<thead>
 							<tr>
-								{% for board_number, _ in alternates_by_board %}
+								{% for board_number, _, _ in alternates_by_board %}
 								<th>Board {{ board_number }}</th>
 								{% endfor %}
 							</tr>
