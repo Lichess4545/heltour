@@ -1,7 +1,7 @@
 import requests
 from heltour import settings
 from collections import namedtuple
-import slackapi
+from . import slackapi
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from heltour.tournament.models import *

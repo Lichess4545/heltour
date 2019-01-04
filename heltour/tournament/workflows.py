@@ -6,7 +6,7 @@ from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
-import alternates_manager
+from . import alternates_manager
 
 class RoundTransitionWorkflow():
 

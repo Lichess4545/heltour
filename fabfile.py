@@ -90,10 +90,10 @@ def update():
     """
     Update all of the dependencies to their latest versions.
     """
-    for repo in all_repos.values():
+    for repo in list(all_repos.values()):
         repo.update()
 
-    for repo in python_repos.values():
+    for repo in list(python_repos.values()):
         python_dependency(repo.name, PYTHON_VERSION)
 
     python_dependency('heltour', PYTHON_VERSION)
@@ -197,7 +197,7 @@ def latestdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
     if not env.roles:
-        print "Usage: fab -R [staging|live] latestdb"
+        print("Usage: fab -R [staging|live] latestdb")
         return
 
     if env.roles == ['live']:
@@ -248,7 +248,7 @@ def letsencrypt(real_cert=False):
     now = datetime.datetime.now()
     outdir = project_relative(now.strftime("certs/%Y-%m"))
     if os.path.exists(outdir):
-        print colors.red("{0} exists, bailing to avoid overwriting files".format(outdir))
+        print(colors.red("{0} exists, bailing to avoid overwriting files".format(outdir)))
         return
     key = "{0}/privkey1.pem".format(outdir)
     csr = "{0}/signreq.der".format(outdir)

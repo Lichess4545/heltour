@@ -8,7 +8,7 @@ In this file, we attempt to provide backups as follows:
     1 backup per week for 4 weeks
     1 backup per month for 6 months.
 """
-import commands
+import subprocess
 import datetime
 import itertools
 import os
@@ -172,9 +172,9 @@ DEBUG=False
 #-------------------------------------------------------------------------------
 def run(command):
     if DEBUG:
-        print command
+        print(command)
     else:
-        return commands.getoutput(command)
+        return subprocess.getoutput(command)
 
 #-------------------------------------------------------------------------------
 def find_backups(target_directory, pattern="*.sql.bz2"):
@@ -249,7 +249,7 @@ def remove_backups(files, cutoff_time):
     def older_than(item):
         item_time, item = item
         return item_time < cutoff_time
-    files_to_remove = itertools.ifilter(older_than, files)
+    files_to_remove = filter(older_than, files)
     for item in files_to_remove:
         date_time, file_path = item
         run("rm %s" % file_path)
@@ -301,9 +301,9 @@ if __name__ == "__main__":
     weekly_backups = parse_backups(weekly_find_output, date_format=weekly_format)
     monthly_backups = parse_backups(monthly_find_output, date_format=monthly_format)
 
-    if DEBUG: print "Monthly"
+    if DEBUG: print("Monthly")
     remove_backups(monthly_backups, monthly_cutoff(12))
-    if DEBUG: print beginning_of_month()
+    if DEBUG: print(beginning_of_month())
     add_to_backups(
             monthly_backups,
             hourly_backups,
@@ -311,8 +311,8 @@ if __name__ == "__main__":
             "/home/lichess4545/backups/heltour-sql/monthly/",
         )
 
-    if DEBUG: print "weekly"
-    if DEBUG: print beginning_of_week()
+    if DEBUG: print("weekly")
+    if DEBUG: print(beginning_of_week())
     remove_backups(weekly_backups, weekly_cutoff(8))
     add_to_backups(
             weekly_backups,
@@ -321,8 +321,8 @@ if __name__ == "__main__":
             "/home/lichess4545/backups/heltour-sql/weekly/",
         )
 
-    if DEBUG: print "daily"
-    if DEBUG: print beginning_of_day()
+    if DEBUG: print("daily")
+    if DEBUG: print(beginning_of_day())
     remove_backups(daily_backups, daily_cutoff(14))
     add_to_backups(
             daily_backups,
@@ -331,7 +331,7 @@ if __name__ == "__main__":
             "/home/lichess4545/backups/heltour-sql/daily/"
         )
 
-    if DEBUG: print "hourly"
+    if DEBUG: print("hourly")
     remove_backups(hourly_backups, hourly_cutoff(5*24))
 
     #print parse_backups(test_hourly_backups, date_format=hourly_format)

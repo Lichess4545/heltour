@@ -1,6 +1,6 @@
 import requests
 import time
-import worker
+from . import worker
 from django.core.cache import cache
 from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string

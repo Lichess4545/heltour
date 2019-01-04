@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+
 
 from django.db import models, transaction
 from django.utils.crypto import get_random_string
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Helper function to find an item in a list by its properties
 def find(lst, **prop_values):
-    for k, v in prop_values.items():
+    for k, v in list(prop_values.items()):
         lst = [obj for obj in lst if getnestedattr(obj, k) == v]
     return next(iter(lst), None)
 
@@ -140,7 +140,7 @@ class League(_BaseModel):
         except LeagueSetting.DoesNotExist:
             return LeagueSetting.objects.create(league=self)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 class LeagueSetting(_BaseModel):
@@ -157,7 +157,7 @@ class LeagueSetting(_BaseModel):
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s Settings' % self.league
 
 PLAYOFF_OPTIONS = (
@@ -464,7 +464,7 @@ class Season(_BaseModel):
         return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self)
               | PlayerPairing.objects.filter(loneplayerpairing__round__season=self)).nocache()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 _TeamScoreState = namedtuple('_TeamScoreState', 'playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
@@ -548,7 +548,7 @@ class Round(_BaseModel):
         pairings = self.pairings
         return (pairings.filter(white=player) | pairings.filter(black=player)).first()
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
 
 #-------------------------------------------------------------------------------
@@ -556,7 +556,7 @@ class SectionGroup(_BaseModel):
     league = models.ForeignKey(League)
     name = models.CharField(max_length=255)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 #-------------------------------------------------------------------------------
@@ -580,7 +580,7 @@ class Section(_BaseModel):
             return False
         return True
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.name, self.section_group.name)
 
 username_validator = RegexValidator('^[\w-]+$')
@@ -699,14 +699,14 @@ class Player(_BaseModel):
         minutes = (abs(seconds) % 3600) / 60
         return 'UTC%s%02d:%02d' % (sign, hours, minutes)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.rating is None:
             return self.lichess_username
         else:
             return "%s (%d)" % (self.lichess_username, self.rating)
 
-    def __cmp__(self, other):
-        return cmp(self.lichess_username.lower(), other.lichess_username.lower())
+    def __lt__(self, other):
+        return self.lichess_username.lower() < other.lichess_username.lower()
 
 #-------------------------------------------------------------------------------
 class LeagueModerator(_BaseModel):
@@ -719,7 +719,7 @@ class LeagueModerator(_BaseModel):
     class Meta:
         unique_together = ('league', 'player')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.league, self.player.lichess_username)
 
 ROUND_CHANGE_OPTIONS = (
@@ -771,7 +771,7 @@ class PlayerLateRegistration(_BaseModel):
         if self.round_id and self.round.season.league.competitor_type == 'team':
             raise ValidationError('Player late registrations can only be created for lone leagues')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.round, self.player)
 
 #-------------------------------------------------------------------------------
@@ -806,7 +806,7 @@ class PlayerWithdrawal(_BaseModel):
         if self.round_id and self.round.season.league.competitor_type == 'team':
             raise ValidationError('Player withdrawals can only be created for lone leagues')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.round, self.player)
 
 BYE_TYPE_OPTIONS = (
@@ -854,7 +854,7 @@ class PlayerBye(_BaseModel):
         else:
             return 0
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.player, self.get_type_display())
 
     def save(self, *args, **kwargs):
@@ -936,7 +936,7 @@ class Team(_BaseModel):
     def pairings(self):
         return self.pairings_as_white.all() | self.pairings_as_black.all()
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.season, self.name)
 
 BOARD_NUMBER_OPTIONS = (
@@ -990,7 +990,7 @@ class TeamMember(_BaseModel):
         if self.team_id and self.player_id and not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
             raise ValidationError('Team member must be a player in the season')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s%s" % (self.player, ' (C)' if self.is_captain else ' (V)' if self.is_vice_captain else '')
 
 #-------------------------------------------------------------------------------
@@ -1054,12 +1054,12 @@ class TeamScore(_BaseModel):
                 round_num = black_pairing.round.number
             yield other_team.number, points, opp_points, round_num
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % (self.team)
 
-    def __cmp__(self, other):
-        return cmp((self.playoff_score, self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score),
-                   (other.playoff_score, other.match_points, other.game_points, other.head_to_head, other.games_won, other.sb_score))
+    def __lt__(self, other):
+        return (self.playoff_score, self.match_points, self.game_points, self.head_to_head, self.games_won, self.sb_score) < \
+                   (other.playoff_score, other.match_points, other.game_points, other.head_to_head, other.games_won, other.sb_score)
 
 #-------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
@@ -1130,7 +1130,7 @@ class TeamPairing(_BaseModel):
     def black_team_name(self):
         return "%s" % self.black_team.name
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s - %s" % (self.round, self.white_team.name, self.black_team.name)
 
 # Game link structure:
@@ -1164,10 +1164,10 @@ def normalize_gamelink(gamelink):
 
 RESULT_OPTIONS = (
     ('1-0', '1-0'),
-    ('1/2-1/2', u'\u00BD-\u00BD'),
+    ('1/2-1/2', '\u00BD-\u00BD'),
     ('0-1', '0-1'),
     ('1X-0F', '1X-0F'),
-    ('1/2Z-1/2Z', u'\u00BDZ-\u00BDZ'),
+    ('1/2Z-1/2Z', '\u00BDZ-\u00BDZ'),
     ('0F-1X', '0F-1X'),
     ('0F-0F', '0F-0F'),
 )
@@ -1260,7 +1260,7 @@ class PlayerPairing(_BaseModel):
     def result_display(self):
         if not self.result:
             return ''
-        result = self.result.replace('1/2', u'\u00BD')
+        result = self.result.replace('1/2', '\u00BD')
         if self.colors_reversed:
             result += '*'
         return result
@@ -1284,7 +1284,7 @@ class PlayerPairing(_BaseModel):
             presence = PlayerPresence.objects.create(pairing=self, player=player, round=self.get_round())
         return presence
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
 
     def save(self, *args, **kwargs):
@@ -1473,7 +1473,7 @@ class Registration(_BaseModel):
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
@@ -1561,7 +1561,7 @@ class SeasonPlayer(_BaseModel):
         except LonePlayerScore.DoesNotExist:
             return LonePlayerScore.objects.create(season_player=self)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s" % (self.season, self.player)
 
 #-------------------------------------------------------------------------------
@@ -1660,7 +1660,7 @@ class LonePlayerScore(_BaseModel):
     def final_standings_sort_key(self):
         return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4, self.season_player.player_rating_display())
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % (self.season_player)
 
 def lone_player_pairing_rank_dict(season):
@@ -1678,7 +1678,7 @@ class PlayerAvailability(_BaseModel):
     class Meta:
         verbose_name_plural = 'player availabilities'
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % self.player
 
 
@@ -1756,11 +1756,11 @@ class Alternate(_BaseModel):
 
         return (self.date_created, 'Made alternate')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % self.season_player
 
-    def __cmp__(self, other):
-        return cmp(self.priority_date(), other.priority_date())
+    def __lt__(self, other):
+        return self.priority_date() < other.priority_date()
 
 #-------------------------------------------------------------------------------
 class AlternateAssignment(_BaseModel):
@@ -1814,7 +1814,7 @@ class AlternateAssignment(_BaseModel):
                     pairing.white = self.player
                 pairing.save()
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
 
 #-------------------------------------------------------------------------------
@@ -1832,7 +1832,7 @@ class AlternateBucket(_BaseModel):
             return self.min_rating is None
         return (self.min_rating is None or rating > self.min_rating) and (self.max_rating is None or rating <= self.max_rating)
 
-    def __unicode__(self):
+    def __str__(self):
         return "Board %d (%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
 
 def create_api_token():
@@ -1882,7 +1882,7 @@ class AlternateSearch(_BaseModel):
                     player = team_member.player
             return player is not None and not player.is_available_for(self.round)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
 
 #-------------------------------------------------------------------------------
@@ -1901,7 +1901,7 @@ class AlternatesManagerSetting(_BaseModel):
         if self.league_id and self.league.competitor_type != 'team':
             raise ValidationError('Alternates manager settings can only be created for team leagues')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % (self.league)
 
 #-------------------------------------------------------------------------------
@@ -1913,7 +1913,7 @@ class SeasonPrize(_BaseModel):
     class Meta:
         unique_together = ('season', 'rank', 'max_rating')
 
-    def __unicode__(self):
+    def __str__(self):
         if self.max_rating is not None:
             return '%s - U%d #%d' % (self.season, self.max_rating, self.rank)
         else:
@@ -1927,7 +1927,7 @@ class SeasonPrizeWinner(_BaseModel):
     class Meta:
         unique_together = ('season_prize', 'player')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.season_prize, self.player)
 
 #-------------------------------------------------------------------------------
@@ -1937,7 +1937,7 @@ class GameNomination(_BaseModel):
     game_link = models.URLField(validators=[game_link_validator])
     pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.season, self.nominating_player)
 
 #-------------------------------------------------------------------------------
@@ -1949,7 +1949,7 @@ class GameSelection(_BaseModel):
     class Meta:
         unique_together = ('season', 'game_link')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.season, self.game_link)
 
 class AvailableTime(_BaseModel):
@@ -1968,7 +1968,7 @@ class NavItem(_BaseModel):
     season_relative = models.BooleanField(default=False)
     append_separator = models.BooleanField(default=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.league, self.text)
 
 #-------------------------------------------------------------------------------
@@ -1976,7 +1976,7 @@ class ApiKey(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 #-------------------------------------------------------------------------------
@@ -1990,7 +1990,7 @@ class PrivateUrlAuth(_BaseModel):
     def is_expired(self):
         return self.expires < timezone.now()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.authenticated_user
 
 #-------------------------------------------------------------------------------
@@ -2007,7 +2007,7 @@ class LoginToken(_BaseModel):
     def is_expired(self):
         return self.expires < timezone.now()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.lichess_username or self.slack_user_id
 
 #-------------------------------------------------------------------------------
@@ -2020,7 +2020,7 @@ class Document(_BaseModel):
     def owned_by(self, user):
         return self.owner == user
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 LEAGUE_DOCUMENT_TYPES = (
@@ -2044,7 +2044,7 @@ class LeagueDocument(_BaseModel):
         if SeasonDocument.objects.filter(document_id=self.document_id):
             raise ValidationError('Document already belongs to a season')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.document.name
 
 SEASON_DOCUMENT_TYPES = (
@@ -2065,7 +2065,7 @@ class SeasonDocument(_BaseModel):
         if LeagueDocument.objects.filter(document_id=self.document_id):
             raise ValidationError('Document already belongs to a league')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.document.name
 
 LEAGUE_CHANNEL_TYPES = (
@@ -2091,7 +2091,7 @@ class LeagueChannel(_BaseModel):
             return self.slack_channel
         return '<%s%s|%s>' % (self.slack_channel[0], self.slack_channel_id, self.slack_channel[1:])
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.league, self.get_type_display())
 
 SCHEDULED_EVENT_TYPES = (
@@ -2120,7 +2120,7 @@ class ScheduledEvent(_BaseModel):
     relative_to = models.CharField(max_length=255, choices=SCHEDULED_EVENT_RELATIVE_TO)
     last_run = models.DateTimeField(blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s' % (self.get_type_display())
 
     def run(self, obj):
@@ -2170,7 +2170,7 @@ class PlayerNotificationSetting(_BaseModel):
     class Meta:
         unique_together = ('player', 'type', 'league')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.player, self.get_type_display())
 
     def save(self, *args, **kwargs):
@@ -2224,7 +2224,7 @@ class PlayerPresence(_BaseModel):
     last_msg_time = models.DateTimeField(null=True, blank=True)
     online_for_game = models.BooleanField(default=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s' % (self.player)
 
 PLAYER_WARNING_TYPE_OPTIONS = (
@@ -2242,7 +2242,7 @@ class PlayerWarning(_BaseModel):
     class Meta:
         unique_together = ('round', 'player', 'type')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.player.lichess_username, self.get_type_display())
 
 #-------------------------------------------------------------------------------
@@ -2251,7 +2251,7 @@ class ScheduledNotification(_BaseModel):
     pairing = models.ForeignKey(PlayerPairing)
     notification_time = models.DateTimeField()
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s' % (self.setting)
 
     def save(self, *args, **kwargs):
@@ -2342,5 +2342,5 @@ class ModRequest(_BaseModel):
 #         if not self.screenshot and self.type in ('appeal_late_response', 'claim_win_noshow', 'claim_win_effort', 'claim_draw_scheduling'):
 #             raise ValidationError('Screenshot is required')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())

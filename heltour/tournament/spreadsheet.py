@@ -303,7 +303,7 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
             black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
             SeasonPlayer.objects.get_or_create(season=season, player=black_player)
             result = sheet[pairing_row][result_col]
-            if result == u'\u2694':
+            if result == '\u2694':
                 result = ''
             date = sheet[pairing_row][date_col]
             time = sheet[pairing_row][time_col]
@@ -472,7 +472,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     black_rank = None
 
                 result = sheet[row][result_col]
-                if result == u'\u2694':
+                if result == '\u2694':
                     result = ''
                 time_str = sheet[row][time_col] if time_col is not None else ''
                 scheduled_time = None

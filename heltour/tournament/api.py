@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import re
 import json
 import reversion
-from models import *
+from .models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST

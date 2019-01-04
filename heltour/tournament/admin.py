@@ -8,8 +8,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 import reversion
 
 import json
-import pairinggen
-import spreadsheet
+from . import pairinggen
+from . import spreadsheet
 from django.db.models.query import Prefetch
 from django.db import transaction
 from heltour import settings
@@ -293,13 +293,13 @@ class LeagueAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueSetting)
 class LeagueSettingAdmin(_BaseAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__str__',)
     league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
 @admin.register(SectionGroup)
 class SectionGroupAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'league')
+    list_display = ('__str__', 'league')
     search_fields = ('name',)
     list_filter = ('league',)
     league_id_field = 'league_id'
@@ -307,7 +307,7 @@ class SectionGroupAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Section)
 class SectionAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'season', 'min_rating', 'max_rating')
+    list_display = ('__str__', 'season', 'min_rating', 'max_rating')
     search_fields = ('name', 'season__name')
     list_filter = ('season__league',)
     league_id_field = 'season__league_id'
@@ -315,8 +315,8 @@ class SectionAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Season)
 class SeasonAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'league',)
-    list_display_links = ('__unicode__',)
+    list_display = ('__str__', 'league',)
+    list_display_links = ('__str__',)
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
@@ -834,7 +834,7 @@ class SeasonAdmin(_BaseAdmin):
                     else:
                         nonteam_changes.append(change)
 
-                for _, team_changes in changes_by_team_number.items():
+                for _, team_changes in list(changes_by_team_number.items()):
                     with reversion.create_revision():
                         reversion.set_user(request.user)
                         change_descriptions = []
@@ -1201,7 +1201,7 @@ class RoundAdmin(_BaseAdmin):
                 player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
             for b in byes:
                 player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
-            duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
+            duplicate_players = {k for k, v in list(player_refcounts.items()) if v > 1}
 
             active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=round_.season, is_active=True)}
 
@@ -1252,7 +1252,7 @@ class RoundAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerLateRegistration)
 class PlayerLateRegistrationAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'retroactive_byes', 'late_join_points')
+    list_display = ('__str__', 'retroactive_byes', 'late_join_points')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
@@ -1318,7 +1318,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawal)
 class PlayerWithdrawalAdmin(_BaseAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__str__',)
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
@@ -1328,7 +1328,7 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerBye)
 class PlayerByeAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'type')
+    list_display = ('__str__', 'type')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
@@ -1339,7 +1339,7 @@ class PlayerByeAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerWarning)
 class PlayerWarningAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'type')
+    list_display = ('__str__', 'type')
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
@@ -1387,7 +1387,7 @@ class PlayerAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'is_active', 'send_contact_emails')
+    list_display = ('__str__', 'is_active', 'send_contact_emails')
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)
@@ -1442,7 +1442,7 @@ class TeamAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(TeamMember)
 class TeamMemberAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'team')
+    list_display = ('__str__', 'team')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
@@ -1463,7 +1463,7 @@ class TeamScoreAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Alternate)
 class AlternateAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'board_number', 'status')
+    list_display = ('__str__', 'board_number', 'status')
     search_fields = ('season_player__player__lichess_username',)
     list_filter = ('season_player__season', 'board_number', 'status')
     raw_id_fields = ('season_player',)
@@ -1474,7 +1474,7 @@ class AlternateAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(AlternateAssignment)
 class AlternateAssignmentAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'player')
+    list_display = ('__str__', 'player')
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
@@ -1484,7 +1484,7 @@ class AlternateAssignmentAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(AlternateBucket)
 class AlternateBucketAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'season')
+    list_display = ('__str__', 'season')
     search_fields = ()
     list_filter = ('season', 'board_number')
     league_id_field = 'season__league_id'
@@ -1493,7 +1493,7 @@ class AlternateBucketAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(AlternateSearch)
 class AlternateSearchAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'status')
+    list_display = ('__str__', 'status')
     search_fields = ('team__name',)
     list_filter = ('round__season', 'round__number', 'board_number', 'status')
     league_id_field = 'round__season__league_id'
@@ -1502,7 +1502,7 @@ class AlternateSearchAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__str__',)
     league_id_field = 'league_id'
     league_competitor_type = 'team'
 
@@ -1528,7 +1528,7 @@ class PlayerPresenceInline(admin.TabularInline):
 #-------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'scheduled_time', 'game_link_url')
+    list_display = ('__str__', 'scheduled_time', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
     inlines = [PlayerPresenceInline]
@@ -1585,7 +1585,7 @@ class PlayerPairingAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'team_pairing', 'board_number', 'game_link_url')
+    list_display = ('__str__', 'team_pairing', 'board_number', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username',
                      'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
@@ -1604,7 +1604,7 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'round', 'game_link_url')
+    list_display = ('__str__', 'round', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
@@ -1967,7 +1967,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(GameNomination)
 class GameNominationAdmin(_BaseAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__str__',)
     search_fields = ('season__name', 'nominating_player__lichess_username')
     raw_id_fields = ('nominating_player', 'pairing')
     league_id_field = 'season__league_id'
@@ -1975,7 +1975,7 @@ class GameNominationAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(GameSelection)
 class GameSelectionAdmin(_BaseAdmin):
-    list_display = ('__unicode__',)
+    list_display = ('__str__',)
     search_fields = ('season__name',)
     raw_id_fields = ('pairing',)
     league_id_field = 'season__league_id'
@@ -1990,7 +1990,7 @@ class AvailableTimeAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(NavItem)
 class NavItemAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'parent')
+    list_display = ('__str__', 'parent')
     search_fields = ('text',)
     league_id_field = 'league_id'
 
@@ -2003,7 +2003,7 @@ class ApiKeyAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(PrivateUrlAuth)
 class PrivateUrlAuthAdmin(_BaseAdmin):
-    list_display = ('__unicode__', 'expires')
+    list_display = ('__str__', 'expires')
     search_fields = ('authenticated_user',)
 
 #-------------------------------------------------------------------------------

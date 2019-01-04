@@ -26,8 +26,8 @@ class RegistrationForm(forms.ModelForm):
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
-            'lichess_username': _(u'Your Lichess Username'),
-            'email': _(u'Your Email'),
+            'lichess_username': _('Your Lichess Username'),
+            'email': _('Your Email'),
         }
 
     def __init__(self, *args, **kwargs):
@@ -37,21 +37,21 @@ class RegistrationForm(forms.ModelForm):
 
         # Rating fields
         rating_type = league.get_rating_type_display()
-        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(u'Your Lichess %s Rating' % rating_type))
+        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_('Your Lichess %s Rating' % rating_type))
 
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                                                                    label=_(u'Is your %s rating established (not provisional)?' % rating_type.lower()),
-                                                                    help_text=_(u'If it is provisional, it must be established ASAP by playing more games.'),)
+                                                                    label=_('Is your %s rating established (not provisional)?' % rating_type.lower()),
+                                                                    help_text=_('If it is provisional, it must be established ASAP by playing more games.'),)
 
         # In slack
-        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(u'Are you on our Slack group?'), choices=YES_NO_OPTIONS,
+        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_('Are you on our Slack group?'), choices=YES_NO_OPTIONS,
                                                                        widget=forms.RadioSelect, coerce=lambda x: x == 'True')
 
         # Previous season status
         if league.competitor_type == 'team':
             self.fields['previous_season_alternate'] = forms.ChoiceField(required=True, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS, widget=forms.RadioSelect,
-                                                                         label=_(u'Were you an alternate for the previous season?'))
+                                                                         label=_('Were you an alternate for the previous season?'))
         else:
             del self.fields['previous_season_alternate']
 
@@ -59,19 +59,19 @@ class RegistrationForm(forms.ModelForm):
         time_control = league.time_control
         if league.rating_type != 'blitz':
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                   label=_(u'Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (time_control, league.rating_type)))
+                   label=_('Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (time_control, league.rating_type)))
         else:
             start_time = '' if self.season.start_date is None else \
                          ' on %s at %s UTC' % (self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))
             self.fields['can_commit'] = forms.TypedChoiceField(required=True, choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True',
-                   label=_(u'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
+                   label=_('Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
                            % (self.season.rounds, time_control, start_time)))
         # Friends and avoid
         if league.competitor_type == 'team':
-            self.fields['friends'] = forms.CharField(required=False, label=_(u'Are there any friends you would like to be paired with?'),
-                                                     help_text=_(u'Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
-            self.fields['avoid'] = forms.CharField(required=False, label=_(u'Are there any players you would like NOT to be paired with?'),
-                                                     help_text=_(u'Note: Please enter their exact lichess usernames.'))
+            self.fields['friends'] = forms.CharField(required=False, label=_('Are there any friends you would like to be paired with?'),
+                                                     help_text=_('Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
+            self.fields['avoid'] = forms.CharField(required=False, label=_('Are there any players you would like NOT to be paired with?'),
+                                                     help_text=_('Note: Please enter their exact lichess usernames.'))
         else:
             del self.fields['friends']
             del self.fields['avoid']
@@ -79,22 +79,22 @@ class RegistrationForm(forms.ModelForm):
         rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
         if rules_doc is not None:
             doc_url = reverse('by_league:document', args=[league.tag, rules_doc.tag])
-            rules_help_text = _(u'<a target="_blank" href="%s">Rules Document</a>' % doc_url)
+            rules_help_text = _('<a target="_blank" href="%s">Rules Document</a>' % doc_url)
         else:
             rules_help_text = ''
         league_name = league.name
         if not league_name.endswith('League'):
             league_name += ' League'
 
-        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(u'Do you agree to the rules of the %s?' % league_name),
+        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_('Do you agree to the rules of the %s?' % league_name),
                                                                 help_text=rules_help_text,
                                                                 choices=YES_NO_OPTIONS, widget=forms.RadioSelect, coerce=lambda x: x == 'True')
 
         # Alternate preference
         if league.competitor_type == 'team':
             self.fields['alternate_preference'] = forms.ChoiceField(required=True, choices=ALTERNATE_PREFERENCE_OPTIONS, widget=forms.RadioSelect,
-                                                                    label=_(u'Are you interested in being an alternate or a full time player?'),
-                                                                    help_text=_(u'If you register late, you may start as an alternate anyway.'))
+                                                                    label=_('Are you interested in being an alternate or a full time player?'),
+                                                                    help_text=_('If you register late, you may start as an alternate anyway.'))
         else:
             del self.fields['alternate_preference']
 
@@ -103,8 +103,8 @@ class RegistrationForm(forms.ModelForm):
             section_options = [('', 'No preference (use my rating)')]
             section_options += [(s.section.id, s.section.name) for s in section_list]
             self.fields['section_preference'] = forms.ChoiceField(required=False, choices=section_options, widget=forms.RadioSelect,
-                                                                    label=_(u'Which section would you prefer to play in?'),
-                                                                    help_text=_(u'You may be placed in a different section depending on eligibility.'))
+                                                                    label=_('Which section would you prefer to play in?'),
+                                                                    help_text=_('You may be placed in a different section depending on eligibility.'))
         else:
             del self.fields['section_preference']
 
@@ -121,7 +121,7 @@ class RegistrationForm(forms.ModelForm):
                                'data-offstyle': 'success',
                                'data-size': 'small',
                            }
-            self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_(u'Indicate any rounds you would not be able to play.'),
+            self.fields['weeks_unavailable'] = forms.MultipleChoiceField(required=False, label=_('Indicate any rounds you would not be able to play.'),
                                                                          choices=weeks, widget=forms.CheckboxSelectMultiple(attrs=toggle_attrs))
         else:
             del self.fields['weeks_unavailable']
@@ -192,8 +192,8 @@ class ModRequestForm(forms.ModelForm):
             'notes', 'screenshot'
         )
         labels = {
-            'notes': _(u'Notes'),
-            'screenshot': _(u'Screenshot (if applicable)'),
+            'notes': _('Notes'),
+            'screenshot': _('Screenshot (if applicable)'),
         }
 
 class ReviewModRequestForm(forms.Form):

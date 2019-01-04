@@ -190,7 +190,7 @@ def update_lichess_presence(self):
     for game in games_starting:
         users[game.white.lichess_username.lower()] = game.white
         users[game.black.lichess_username.lower()] = game.black
-    for status in lichessapi.enumerate_user_statuses(users.keys(), priority=1, timeout=60):
+    for status in lichessapi.enumerate_user_statuses(list(users.keys()), priority=1, timeout=60):
         if status.get('online'):
             user = users[status.get('id').lower()]
             for g in games_starting:

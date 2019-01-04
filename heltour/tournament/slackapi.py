@@ -52,7 +52,7 @@ def send_message(channel, text):
     if not url:
         # Not configured
         if settings.DEBUG:
-            print '[%s]: %s' % (channel, text)
+            print('[%s]: %s' % (channel, text))
         logger.error('Could not send slack message to %s' % channel)
         return
     r = requests.post(url, json={'text': 'forward to %s' % channel, 'attachments': [{'text': text}]})
@@ -68,7 +68,7 @@ def send_control_message(text):
     if not url:
         # Not configured
         if settings.DEBUG:
-            print '[control]: %s' % text
+            print('[control]: %s' % text)
         logger.error('Could not send slack control message')
         return
     r = requests.post(url, json={'text': text})

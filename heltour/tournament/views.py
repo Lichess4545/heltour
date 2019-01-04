@@ -8,7 +8,7 @@ import math
 import re
 import reversion
 
-from decorators import cached_as
+from .decorators import cached_as
 from django.core.mail.message import EmailMessage
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse
@@ -504,7 +504,7 @@ class PairingsView(SeasonView):
             player_refcounts[p.black] = player_refcounts.get(p.black, 0) + 1
         for b in byes:
             player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
-        duplicate_players = {k for k, v in player_refcounts.items() if v > 1}
+        duplicate_players = {k for k, v in list(player_refcounts.items()) if v > 1}
 
         active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=self.season, is_active=True)}
 
@@ -743,7 +743,7 @@ class RostersView(SeasonView):
                                                     .nocache(),
                                           key=lambda alt: alt.priority_date()
                                    ) for n in board_numbers]
-            alternate_rows = list(enumerate(itertools.izip_longest(*alternates_by_board), 1))
+            alternate_rows = list(enumerate(itertools.zip_longest(*alternates_by_board), 1))
             if len(alternate_rows) == 0:
                 alternate_rows.append((1, [None for _ in board_numbers]))
 
@@ -760,8 +760,8 @@ class RostersView(SeasonView):
             games_missed_by_player = {sp.player: sp.games_missed for sp in SeasonPlayer.objects.filter(season=self.season)
                                                                                                .select_related('player')
                                                                                                .nocache()}
-            yellow_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed == 1}
-            red_card_players = {player for player, games_missed in games_missed_by_player.items() if games_missed >= 2}
+            yellow_card_players = {player for player, games_missed in list(games_missed_by_player.items()) if games_missed == 1}
+            red_card_players = {player for player, games_missed in list(games_missed_by_player.items()) if games_missed >= 2}
 
             # Show the legend if we have any data that might need it
             show_legend = len(scheduled_alternates | unavailable_players | unresponsive_players | yellow_card_players | red_card_players) > 0
@@ -1120,7 +1120,7 @@ class BoardScoresView(SeasonView):
                     ps.eligible = False
                 return True
 
-            ps_list = [ps for ps in ps_dict.values() if process_playerscore(ps)]
+            ps_list = [ps for ps in list(ps_dict.values()) if process_playerscore(ps)]
             ps_list.sort(key=lambda ps: (ps.perf_rating, ps.score, -ps.score_total), reverse=True)
 
             context = {
@@ -1201,7 +1201,7 @@ class UserDashboardView(LeagueView):
 
         active_seasons = self.league.season_set.filter(is_completed=False).order_by('-start_date')
         active_seasons_with_sp = [(s, player.seasonplayer_set.filter(season=s).first()) for s in active_seasons]
-        active_seasons_with_sp = filter(lambda s:s[1], active_seasons_with_sp)
+        active_seasons_with_sp = [s for s in active_seasons_with_sp if s[1]]
         last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True, season__is_completed=True) \
                         .order_by('-season__start_date').first()
         last_season = last_sp.season if last_sp is not None else None
@@ -1221,7 +1221,7 @@ class UserDashboardView(LeagueView):
             # Unscheduled
             return (2, round_.end_date)
 
-        my_pairings.sort(key=lambda (r, p): sort_order(r, p))
+        my_pairings.sort(key=lambda r_p: sort_order(r_p[0], r_p[1]))
 
         context = {
             'player': player,
@@ -1457,7 +1457,7 @@ class TeamProfileView(LeagueView):
                         game_counts[p.black] += 1
                         display_ratings[p.black] = p.black_rating
 
-        prev_members = [(player, display_ratings.get(player, None) or player.rating_for(self.league), game_count) for player, game_count in sorted(game_counts.items(), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
+        prev_members = [(player, display_ratings.get(player, None) or player.rating_for(self.league), game_count) for player, game_count in sorted(list(game_counts.items()), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
 
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):

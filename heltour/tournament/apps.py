@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+
 
 from django.apps import AppConfig
 
@@ -6,8 +6,8 @@ class TournamentConfig(AppConfig):
     name = 'heltour.tournament'
 
     def ready(self):
-        import uptime # @UnusedImport
+        from . import uptime # @UnusedImport
         # Make sure signal handlers are registered
-        import notify # @UnusedImport
-        import automod # @UnusedImport
-        import tasks # @UnusedImport
+        from . import notify # @UnusedImport
+        from . import automod # @UnusedImport
+        from . import tasks # @UnusedImport

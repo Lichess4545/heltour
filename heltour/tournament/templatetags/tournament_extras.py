@@ -69,8 +69,8 @@ def highlightclass(highlights, player):
 @register.filter
 def formatscore(score):
     if str(score) == '0.5':
-        return u'\u00BD'
-    return str(score).replace('.0', '').replace('.5', u'\u00BD')
+        return '\u00BD'
+    return str(score).replace('.0', '').replace('.5', '\u00BD')
 
 @register.filter
 def forfeitchar(score):

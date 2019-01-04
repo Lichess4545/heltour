@@ -38,7 +38,7 @@ def simulate_round(round_):
 
 def simulate_season(season):
     # Reset all season data
-    print 'Clearing season data'
+    print('Clearing season data')
     for r in season.round_set.order_by('-number'):
         r.publish_pairings = False
         r.is_completed = False
@@ -57,7 +57,7 @@ def simulate_season(season):
 
     # Run each round
     for r in season.round_set.order_by('number'):
-        print 'Running round %d' % r.number
+        print('Running round %d' % r.number)
         pairinggen.generate_pairings(r)
         r.publish_pairings = True
         r.save()

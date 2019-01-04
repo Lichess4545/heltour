@@ -1,4 +1,4 @@
-import Queue
+import queue
 import threading
 import websocket
 import json
@@ -14,7 +14,7 @@ def _run_worker():
         except:
             pass
 
-_work_queue = Queue.PriorityQueue()
+_work_queue = queue.PriorityQueue()
 _worker_thread = threading.Thread(target=_run_worker)
 _worker_thread.daemon = True
 _worker_thread.start()
@@ -40,7 +40,7 @@ def _run_socket():
 
             _websocket = websocket.create_connection('wss://socket.lichess.org/api/socket')
             with _games_lock:
-                for game_id in _games.keys():
+                for game_id in list(_games.keys()):
                     _start_watching(game_id)
             while True:
                 msg = json.loads(_websocket.recv())

@@ -329,7 +329,7 @@ class JavafoInstance:
     Returns a list of JavafoPairingResult objects in the order they should be displayed.
     '''
     def run(self):
-        input_file = tempfile.NamedTemporaryFile(suffix='.trfx')
+        input_file = tempfile.NamedTemporaryFile(suffix='.trfx', mode='w+')
         output_file_name = input_file.name + ".out.txt"
         try:
             # Write to input file

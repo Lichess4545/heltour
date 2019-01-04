@@ -12,7 +12,7 @@ import os
 local_dir = os.path.join(os.path.dirname(__file__))
 activate_this = '/home/lichess4545/web/www.lichess4545.com/env/bin/activate_this.py'
 if os.path.exists(activate_this):
-    execfile(activate_this, dict(__file__=activate_this))
+    exec(compile(open(activate_this).read(), activate_this, 'exec'), dict(__file__=activate_this))
 
 
 from django.core.wsgi import get_wsgi_application

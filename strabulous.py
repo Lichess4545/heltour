@@ -6,7 +6,7 @@ TODO: yes, we could probably use gulp or some other fancy new fangled project,
 but I'm not familiar with any of them so I probalby won't set it up. Feel free to.
 """
 
-from commands import getoutput
+from subprocess import getoutput
 import datetime
 import os.path
 
@@ -30,17 +30,17 @@ def update(all_repos, python_repos, python_package_name, python_version):
     """
     Update all of the dependencies to their latest versions.
     """
-    for repo in all_repos.values():
+    for repo in list(all_repos.values()):
         repo.update()
 
-    for repo in python_repos.values():
+    for repo in list(python_repos.values()):
         python_dependency(repo.name, python_version)
     python_dependency(python_package_name, python_version)
 
 #-------------------------------------------------------------------------------
 def createdb(database_name, database_user, get_password):
     if confirm(colors.red("Show DB Password? You should only run this when others aren't looking over your shoulder. Run the command?")):
-        print(colors.blue("Password: ") + colors.yellow(get_password()))
+        print((colors.blue("Password: ") + colors.yellow(get_password())))
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         UbuntuPgCreateDbAndUser(database_name, database_user)()
 
@@ -68,6 +68,6 @@ def latest_live_db(live_backup_script_path, live_latest_sql_file_path, database_
             local_db = local_target
         with settings(warn_only=True):
             if confirm(colors.red("Show password? You should only run this when others aren't looking over your shoulder. Show database password?")):
-                print(colors.blue("Password: ") + colors.yellow(get_password()))
+                print((colors.blue("Password: ") + colors.yellow(get_password())))
             PgLoadPlain(local_db, database_name, database_user)()
 
