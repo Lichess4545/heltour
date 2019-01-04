@@ -1121,7 +1121,7 @@ class BoardScoresView(SeasonView):
                 return True
 
             ps_list = [ps for ps in list(ps_dict.values()) if process_playerscore(ps)]
-            ps_list.sort(key=lambda ps: (ps.perf_rating, ps.score, -ps.score_total), reverse=True)
+            ps_list.sort(key=lambda ps: (ps.perf_rating or 0, ps.score, -ps.score_total), reverse=True)
 
             context = {
                 'board_number': board_number,

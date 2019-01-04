@@ -148,8 +148,8 @@ def median(lst):
     if c == 0:
         return ''
     if c % 2 == 0:
-        return (lst[c / 2 - 1] + lst[c / 2]) / 2
-    return lst[int(c / 2)]
+        return (lst[c // 2 - 1] + lst[c // 2]) / 2
+    return lst[int(c // 2)]
 
 @register.filter
 def maximum(lst):
