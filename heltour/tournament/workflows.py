@@ -240,7 +240,7 @@ class UpdateBoardOrderWorkflow():
                 # Calculate the number of alternates in each bucket
                 bucket_counts = [0] * self.season.boards
                 for alt in alternates:
-                    r = alt.season_player.player.rating_for(self.season.league)
+                    r = alt.season_player.player.rating_for(self.season.league) or 0
                     for i in range(self.season.boards):
                         if r > boundaries[i + 1] or boundaries[i + 1] == None:
                             bucket_counts[i] += 1
