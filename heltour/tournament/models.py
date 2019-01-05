@@ -1534,7 +1534,7 @@ class SeasonPlayer(_BaseModel):
         if rating is None:
             return None
         if self.registration is not None:
-            peak = max(self.registration.peak_classical_rating, rating)
+            peak = max(self.registration.peak_classical_rating or 0, rating)
             return (rating + peak) / 2
         return rating
 
