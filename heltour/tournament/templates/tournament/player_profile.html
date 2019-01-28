@@ -209,9 +209,8 @@
 							{% endwith %}
 						</div>
 						<div style="text-align:center">
-							{{ rank|ordinal }} in
 							<a href="{% leagueurl 'player_profile' league.tag prize.season.tag player.lichess_username %}">
-								{{ prize.season.name }}
+								{{ prize }}
 							</a>
 						</div>
 					</span>
