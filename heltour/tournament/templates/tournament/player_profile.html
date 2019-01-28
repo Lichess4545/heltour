@@ -204,9 +204,13 @@
 					{% for prize in trophies %}
 					<span style="display:inline-block;margin:10px">
 						<div style="text-align:center">
-							{% with 'tournament/img/trophy-'|concat:prize.rank|concat:'.min.svg' as img_src %}
-							<img src="{% static img_src %}" style="width:100px;height:80px"/>
-							{% endwith %}
+                            {% if prize.max_rating %}
+                            <img src="{% static 'tournament/img/blue-ribbon.png' %}" style="width:50px;height:80px"/>
+                            {% else %}
+                            {% with 'tournament/img/trophy-'|concat:prize.rank|concat:'.min.svg' as img_src %}
+                            <img src="{% static img_src %}" style="width:100px;height:80px"/>
+                            {% endwith %}
+							{% endif %}
 						</div>
 						<div style="text-align:center">
 							<a href="{% leagueurl 'player_profile' league.tag prize.season.tag player.lichess_username %}">
