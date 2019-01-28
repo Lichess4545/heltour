@@ -203,7 +203,7 @@
 					{% for rank, season, league in trophies %}
 					<span style="display:inline-block;margin:10px">
 						<div style="text-align:center">
-							{% with img_src='tournament/img/trophy-'|add:rank|add:'.min.svg' %}
+							{% with 'tournament/img/trophy-'|concat:rank|concat:'.min.svg' as img_src %}
 							<img src="{% static img_src %}" style="width:100px;height:80px"/>
 							{% endwith %}
 						</div>

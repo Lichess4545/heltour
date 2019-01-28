@@ -162,3 +162,7 @@ def minimum(lst):
     if len(lst) == 0:
         return ''
     return min(lst)
+
+@register.filter
+def concat(str1, str2):
+    return str(str1) + str(str2)
