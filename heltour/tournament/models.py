@@ -699,6 +699,12 @@ class Player(_BaseModel):
         minutes = (abs(seconds) % 3600) / 60
         return 'UTC%s%02d:%02d' % (sign, hours, minutes)
 
+    def get_season_prizes(self, league):
+        return SeasonPrize.objects \
+            .filter(season__league=league, seasonprizewinner__player=self) \
+            .order_by('rank', '-season') \
+            .select_related('season__league')
+
     def __str__(self):
         if self.rating is None:
             return self.lichess_username

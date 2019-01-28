@@ -1421,10 +1421,7 @@ class PlayerProfileView(LeagueView):
 
 
         # Trophy Case stuff
-        prizes = SeasonPrizeWinner.objects.filter(season_prize__season__league=self.league,
-                                           player=player)
-        trophies = [(p.season_prize.rank, p.season_prize.season, p.season_prize.season.league) for p in prizes]
-        trophies = sorted(trophies, key=lambda i: i[0])
+        trophies = player.get_season_prizes(self.league)
         context = {
             'player': player,
             'has_other_seasons': has_other_seasons,

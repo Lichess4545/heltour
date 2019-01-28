@@ -201,17 +201,17 @@
 			</div>
 			<div class="well-body">
 				<div class="player-profile-section">
-					{% for rank, season, league in trophies %}
+					{% for prize in trophies %}
 					<span style="display:inline-block;margin:10px">
 						<div style="text-align:center">
-							{% with 'tournament/img/trophy-'|concat:rank|concat:'.min.svg' as img_src %}
+							{% with 'tournament/img/trophy-'|concat:prize.rank|concat:'.min.svg' as img_src %}
 							<img src="{% static img_src %}" style="width:100px;height:80px"/>
 							{% endwith %}
 						</div>
 						<div style="text-align:center">
 							{{ rank|ordinal }} in
-							<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-								{{ season.name }}
+							<a href="{% leagueurl 'player_profile' league.tag prize.season.tag player.lichess_username %}">
+								{{ prize.season.name }}
 							</a>
 						</div>
 					</span>
