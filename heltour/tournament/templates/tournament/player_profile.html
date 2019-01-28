@@ -200,25 +200,21 @@
 			</div>
 			<div class="well-body">
 				<div class="player-profile-section">
-                    {% for rank, season, league in trophies %}
-                    <span style="display:inline-block;margin:10px">
-                        <div>
-                            {% if rank == 1 %}
-                            <img src="{% static 'tournament/img/trophy-1.png' %}" style="width:100px;height:80px"/>
-                            {% elif rank == 2 %}
-                            <img src="{% static 'tournament/img/trophy-2.min.svg' %}" style="width:100px;height:80px"/>
-                            {% elif rank == 3 %}
-                            <img src="{% static 'tournament/img/trophy-3.min.svg' %}" style="width:100px;height:80px"/>
-							{% endif %}
-                        </div>
-                        <div style="text-align:center">
+					{% for rank, season, league in trophies %}
+					<span style="display:inline-block;margin:10px">
+						<div style="text-align:center">
+							{% with img_src='tournament/img/trophy-'|add:rank|add:'.min.svg' %}
+							<img src="{% static img_src %}" style="width:100px;height:80px"/>
+							{% endwith %}
+						</div>
+						<div style="text-align:center">
 							{{ rank|ordinal }} in
-                            <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
+							<a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
 								{{ season.name }}
 							</a>
-                        </div>
-                    </span>
-                    {% endfor %}
+						</div>
+					</span>
+					{% endfor %}
 				</div>
 			</div>
 		</div>
