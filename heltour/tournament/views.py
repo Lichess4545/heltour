@@ -23,8 +23,8 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from ipware import get_client_ip
 
-from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
-from heltour.tournament.templatetags.tournament_extras import leagueurl
+from . import slackapi, alternates_manager, uptime, lichessapi
+from .templatetags.tournament_extras import leagueurl
 from .forms import *
 from .models import *
 from heltour.tournament.forms import DeleteNominationForm
@@ -1419,6 +1419,12 @@ class PlayerProfileView(LeagueView):
                     continue
                 schedule.append((round_, None, 'Scheduled', None))
 
+
+        # Trophy Case stuff
+        prizes = SeasonPrizeWinner.objects.filter(season_prize__season__league=self.league,
+                                           player=player)
+        trophies = [(p.season_prize.rank, p.season_prize.season, p.season_prize.season.league) for p in prizes]
+        trophies = sorted(trophies, key=lambda i: i[0])
         context = {
             'player': player,
             'has_other_seasons': has_other_seasons,
@@ -1436,6 +1442,7 @@ class PlayerProfileView(LeagueView):
             'career_score': career_score,
             'career_score_total': career_score_total,
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
+            'trophies': trophies
         }
         return self.render('tournament/player_profile.html', context)
 
