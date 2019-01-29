@@ -616,7 +616,8 @@ class ICalPlayerView(BaseView, ICalMixin):
         pairings = player.pairings.exclude(scheduled_time=None)
         return self.ical_from_pairings_list(pairings, calendar_title, uid_component)
 
-class RegisterView(LeagueView):
+class RegisterView(LoginRequiredMixin, LeagueView):
+
     def view(self, post=False):
         if self.season is not None and self.season.registration_open:
             reg_season = self.season
