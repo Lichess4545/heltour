@@ -23,6 +23,8 @@ These install instructions have been test on Arch and Ubuntu linux. Other OSes s
 # development
 Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
 
+Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled.
+
 # create admin account
 Run `python manage.py createsuperuser` to create a new admin account.
 
