@@ -86,15 +86,29 @@
 	        {% endfor %}
 	      </ul>
 	      <ul class="nav navbar-nav navbar-right">
-	        {% if user.is_staff %}<li><a href="{% leagueurl 'league_dashboard' league.tag season.tag %}">Dashboard</a></li>{% endif %}
-	        <li><a href="{% leagueurl 'register' league.tag None %}">Register</a></li>
-	        {% if user.is_authenticated %}
-	        <li><a href="{% leagueurl 'user_dashboard' league.tag None %}">{{ user.username }}</a></li>
-	        {% else %}
-{#	        <li><a href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=12900737025.79266279223&redirect_uri={{ request.scheme }}://{{ request.get_host }}{% url 'slack_auth' %}">Login</a></li>#}
-			<li><a href="{% leagueurl 'login' league.tag None %}">Login</a></li>
-	        {% endif %}
-	      </ul>
+				{% if user.is_staff %}
+				<li><a href="{% leagueurl 'league_dashboard' league.tag season.tag %}">
+						Dashboard
+				</a></li>
+				{% endif %}
+
+				{% if user|can_register:season %}
+				<li><a href="{% leagueurl 'register' league.tag None %}">
+				{% if user|is_registered:season %}
+				Change Registration
+				{% else %}
+				Register
+				{% endif %}
+				</a></li>
+				{% endif %}
+
+				{% if user.is_authenticated %}
+				<li><a href="{% leagueurl 'user_dashboard' league.tag None %}">{{ user.username }}</a></li>
+				{% else %}
+				{#<li><a href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=12900737025.79266279223&redirect_uri={{ request.scheme }}://{{ request.get_host }}{% url 'slack_auth' %}">Login</a></li>#}
+				<li><a href="{% leagueurl 'login' league.tag None %}">Login</a></li>
+				{% endif %}
+		  </ul>
 	    </div><!-- /.navbar-collapse -->
 	  </div><!-- /.container-fluid -->
 	</nav>

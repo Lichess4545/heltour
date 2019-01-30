@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
+from heltour.tournament.models import Player, Registration
 
 register = template.Library()
 
@@ -162,3 +163,15 @@ def minimum(lst):
     if len(lst) == 0:
         return ''
     return min(lst)
+
+@register.filter
+def can_register(user, season):
+    return Registration.can_register(user, season)
+
+@register.filter
+def is_registered(user, season):
+    try:
+        player = Player.get_player_from_user(user)
+    except Player.DoesNotExist:
+        return False
+    return player.is_registered(season)

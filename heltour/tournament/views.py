@@ -625,12 +625,15 @@ class RegisterView(LoginRequiredMixin, LeagueView):
             reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
+
+        instance = Registration.get_registration(self.request.user, reg_season)
         if post:
-            form = RegistrationForm(self.request.POST, season=reg_season)
+            form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
             if form.is_valid():
                 with reversion.create_revision():
                     reversion.set_comment('Submitted registration.')
                     form.save()
+
                 # send registration received email
                 subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
                 msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
@@ -645,11 +648,11 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     )
                 except SMTPException:
                     logger.exception('A confirmation email could not be sent.')
-
                 self.request.session['reg_email'] = form.cleaned_data['email']
+
                 return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
         else:
-            form = RegistrationForm(season=reg_season)
+            form = RegistrationForm(instance=instance, season=reg_season)
             if self.request.user.is_authenticated():
                 player = Player.get_or_create(self.request.user.username)
                 form.fields['lichess_username'].initial = player.lichess_username

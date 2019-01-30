@@ -663,6 +663,22 @@ class Player(_BaseModel):
             signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username, slack_user_id=slack_user_id)
             return True
 
+    @classmethod
+    def get_player_from_user(cls, user):
+        return cls.objects.get(lichess_username=user.username)
+
+    def can_register(self, season):
+        return season.registration_open and not self.was_rejected(season)
+
+    def is_registered(self, season):
+        return Registration.is_registered(self, season)
+
+    def was_rejected(self, season):
+        registration = Registration.objects.get(lichess_username=self.lichess_username, season=season)
+        if registration:
+            return registration.status == 'rejected'
+        return False
+
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
 
@@ -1484,6 +1500,28 @@ class Registration(_BaseModel):
 
     def player(self):
         return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+
+    @classmethod
+    def can_register(cls, user, season):
+        if not season.registration_open:
+            return False
+        try:
+            return cls.objects.get(lichess_username=user.username, season=season).status != 'rejected'
+        except cls.DoesNotExist:
+            return True
+
+
+    @classmethod
+    def get_registration(cls, user, season):
+        try:
+            r = cls.objects.get(lichess_username=user.username, season=season)
+        except cls.DoesNotExist:
+            r = None
+        return r
+
+    @classmethod
+    def is_registered(cls, player, season):
+        return cls.objects.filter(lichess_username=player.lichess_username, season=season).exists()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
