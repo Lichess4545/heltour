@@ -194,7 +194,7 @@
 			</div>
 		</div>
 		{% endif %}
-        {% if trophies %}
+		{% if trophies %}
 		<div class="well">
 			<div class="well-head">
 				<h3>Trophy Case</h3>
@@ -202,21 +202,19 @@
 			<div class="well-body">
 				<div class="player-profile-section">
 					{% for prize in trophies %}
-					<span style="display:inline-block;margin:10px">
-						<div style="text-align:center">
-							{% if prize.max_rating %}
-							<img src="{% static 'tournament/img/blue-ribbon.png' %}" style="width:50px;height:80px"/>
-							{% else %}
-							{% with 'tournament/img/trophy-'|concat:prize.rank|concat:'.min.svg' as img_src %}
-							<img src="{% static img_src %}" style="width:100px;height:80px"/>
-							{% endwith %}
-							{% endif %}
-						</div>
-						<div style="text-align:center">
-							<a href="{% leagueurl 'player_profile' league.tag prize.season.tag player.lichess_username %}">
+					<span class="trophy">
+						<a href="{% leagueurl 'season_landing' league.tag prize.season.tag %}">
+							<div class="trophy-image
+										{% if prize.max_rating %}
+											blue-ribbon
+										{% else %}
+											rank-{{prize.rank}}
+										{% endif %}">
+							</div>
+							<div>
 								{{ prize }}
-							</a>
-						</div>
+							</div>
+						</a>
 					</span>
 					{% endfor %}
 				</div>
