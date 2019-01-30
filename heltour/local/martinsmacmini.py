@@ -10,4 +10,4 @@ SITE_ID = 2
 # JAVAFO_COMMAND = 'java -jar /home/vagrant/heltour/javafo.jar'
 # STATIC_ROOT = '/home/vagrant/heltour/static'
 
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
