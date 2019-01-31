@@ -138,7 +138,7 @@ class RegisterTestCase(TestCase):
         response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_closed.html')
 
-        season = Season.objects.all()[0]
+        season = Season.objects.get(tag='team')
         season.registration_open = True
         season.save()
 
