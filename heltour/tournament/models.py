@@ -702,8 +702,7 @@ class Player(_BaseModel):
     def get_season_prizes(self, league):
         return SeasonPrize.objects \
             .filter(season__league=league, seasonprizewinner__player=self) \
-            .order_by('rank', '-season') \
-            .select_related('season__league')
+            .order_by('rank', '-season')
 
     def __str__(self):
         if self.rating is None:
