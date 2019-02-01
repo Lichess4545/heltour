@@ -58,7 +58,7 @@ def registration_saved(instance, created, **kwargs):
     pending_count = instance.season.registration_set.filter(status='pending', season=instance.season).count()
     message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url, pending_count)
 
-    pre_season = timezone.now() < instance.season.start_date
+    pre_season = instance.season.start_date and timezone.now() < instance.season.start_date
     setting = league.get_leaguesetting()
     if not pre_season and setting.notify_for_registrations or pre_season and setting.notify_for_pre_season_registrations:
         _send_notification('mod', league, message)

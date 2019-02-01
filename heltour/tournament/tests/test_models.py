@@ -8,9 +8,9 @@ def createCommonLeagueData():
     round_count = 3
     board_count = 2
 
-    league = League.objects.create(name='Team League', tag='teamleague', competitor_type='team')
+    league = League.objects.create(name='Team League', tag='teamleague', competitor_type='team', rating_type='classical')
     season = Season.objects.create(league=league, name='Test Season', tag='teamseason', rounds=round_count, boards=board_count)
-    league2 = League.objects.create(name='Lone League', tag='loneleague', competitor_type='lone')
+    league2 = League.objects.create(name='Lone League', tag='loneleague', competitor_type='lone', rating_type='classical')
     season2 = Season.objects.create(league=league2, name='Test Season', tag='loneseason', rounds=round_count)
 
     player_num = 1
@@ -23,6 +23,9 @@ def createCommonLeagueData():
             LonePlayerScore.objects.create(season_player=sp)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
+
+def set_rating(player, rating, rating_type='classical'):
+    player.profile = {'perfs': {rating_type: {'rating': rating}}}
 
 def create_reg(season, name):
     return Registration.objects.create(season=season, status='pending', lichess_username=name, slack_username=name,
@@ -79,7 +82,7 @@ class SeasonTestCase(TestCase):
     def test_season_board_number_list(self):
         season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=2, boards=4)
 
-        self.assertItemsEqual([1, 2, 3, 4], season.board_number_list())
+        self.assertEqual([1, 2, 3, 4], season.board_number_list())
 
     def test_season_calculate_team_scores(self):
         season = Season.objects.get(tag='teamseason')
@@ -90,15 +93,15 @@ class SeasonTestCase(TestCase):
             scores = list(TeamScore.objects.order_by('team__number'))
             return [(s.match_count, s.match_points, s.game_points, s.head_to_head, s.games_won, s.sb_score) for s in scores]
 
-        self.assertItemsEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
+        self.assertEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
 
         TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[0], black_team=teams[1], white_points=2.0, white_wins=2, black_points=1.0, black_wins=1)
         TeamPairing.objects.create(round=rounds[0], pairing_order=0, white_team=teams[2], black_team=teams[3], white_points=1.5, white_wins=1, black_points=1.5, black_wins=1)
-        self.assertItemsEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
+        self.assertEqual([(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 0, 0)], score_matrix())
 
         rounds[0].is_completed = True
         rounds[0].save()
-        self.assertItemsEqual([(1, 2, 2, 0, 2, 0), (1, 0, 1, 0, 1, 0), (1, 1, 1.5, 1, 1, 0.5), (1, 1, 1.5, 1, 1, 0.5)], score_matrix())
+        self.assertEqual([(1, 2, 2, 0, 2, 0), (1, 0, 1, 0, 1, 0), (1, 1, 1.5, 1, 1, 0.5), (1, 1, 1.5, 1, 1, 0.5)], score_matrix())
 
     def test_season_calculate_lone_scores(self):
         season = Season.objects.get(tag='loneseason')
@@ -112,26 +115,26 @@ class SeasonTestCase(TestCase):
                 s.refresh_from_db()
             return [(s.points, s.tiebreak1, s.tiebreak2, s.tiebreak3, s.tiebreak4) for s in scores]
 
-        self.assertItemsEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
+        self.assertEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
 
         LonePlayerPairing.objects.create(round=rounds[0], pairing_order=0, white=players[0], black=players[1], result='1-0')
         LonePlayerPairing.objects.create(round=rounds[0], pairing_order=0, white=players[2], black=players[3], result='1/2-1/2')
-        self.assertItemsEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
+        self.assertEqual([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], score_matrix())
 
         rounds[0].is_completed = True
         rounds[0].save()
-        self.assertItemsEqual([(1, 0, 0, 1, 0), (0, 0, 1, 0, 1), (0.5, 0, 0.5, 0.5, 0.5), (0.5, 0, 0.5, 0.5, 0.5)], score_matrix())
+        self.assertEqual([(1, 0, 0, 1, 0), (0, 0, 1, 0, 1), (0.5, 0, 0.5, 0.5, 0.5), (0.5, 0, 0.5, 0.5, 0.5)], score_matrix())
 
         LonePlayerPairing.objects.create(round=rounds[1], pairing_order=0, white=players[2], black=players[0], result='0-1')
         LonePlayerPairing.objects.create(round=rounds[1], pairing_order=0, white=players[3], black=players[1], result='1/2-1/2')
 
         rounds[1].is_completed = True
         rounds[1].save()
-        self.assertItemsEqual([(2, 0.5, 1, 3, 1.5), (0.5, 1, 3, 0.5, 4.5), (0.5, 1, 3, 1, 4.5), (1, 0, 1, 1.5, 1.5)], score_matrix())
+        self.assertEqual([(2, 0.5, 1, 3, 1.5), (0.5, 1, 3, 0.5, 4.5), (0.5, 1, 3, 1, 4.5), (1, 0, 1, 1.5, 1.5)], score_matrix())
 
         rounds[2].is_completed = True
         rounds[2].save()
-        self.assertItemsEqual([(2, 2, 2, 5, 2.5), (0.5, 1.5, 4, 1, 7.5), (0.5, 1.5, 4, 1.5, 7.5), (1, 1, 2, 2.5, 2.5)], score_matrix())
+        self.assertEqual([(2, 2, 2, 5, 2.5), (0.5, 1.5, 4, 1, 7.5), (0.5, 1.5, 4, 1.5, 7.5), (1, 1, 2, 2.5, 2.5)], score_matrix())
 
 class TeamTestCase(TestCase):
     def setUp(self):
@@ -142,10 +145,10 @@ class TeamTestCase(TestCase):
         bd1 = team.teammember_set.get(board_number=1)
         bd2 = team.teammember_set.get(board_number=2)
 
-        self.assertItemsEqual([(1, bd1), (2, bd2)], team.boards())
+        self.assertEqual([(1, bd1), (2, bd2)], team.boards())
 
         bd1.delete()
-        self.assertItemsEqual([(1, None), (2, bd2)], team.boards())
+        self.assertEqual([(1, None), (2, bd2)], team.boards())
 
     def test_team_average_rating(self):
         team = Team.objects.get(number=1)
@@ -154,11 +157,11 @@ class TeamTestCase(TestCase):
 
         self.assertEqual(None, team.average_rating())
 
-        bd1.player.rating = 1800
+        set_rating(bd1.player, 1800)
         bd1.player.save()
         self.assertEqual(1800, team.average_rating())
 
-        bd2.player.rating = 1600
+        set_rating(bd2.player, 1600)
         bd2.player.save()
         self.assertEqual(1700, team.average_rating())
 
@@ -187,24 +190,25 @@ class TeamScoreTestCase(TestCase):
         pairing1 = TeamPairing.objects.get(round__number=1)
         pairing2 = TeamPairing.objects.get(round__number=2)
 
-        self.assertItemsEqual([(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)], teamscore.round_scores())
+        self.assertEqual([(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)], list(teamscore.round_scores()))
 
     def test_teamscore_cross_scores(self):
         teamscore = TeamScore.objects.get(team__number=1)
         pairing1 = TeamPairing.objects.get(round__number=1)
         pairing2 = TeamPairing.objects.get(round__number=2)
 
-        self.assertItemsEqual([(1, None, None, None), (2, 1.5, 0.5, 1), (3, 1.0, 1.0, 2), (4, None, None, None)], teamscore.cross_scores())
+        self.assertEqual([(1, None, None, None), (2, 1.5, 0.5, 1), (3, 1.0, 1.0, 2), (4, None, None, None)], list(teamscore.cross_scores()))
 
     def test_teamscore_cmp(self):
         ts1 = TeamScore()
         ts2 = TeamScore()
 
-        self.assertGreaterEqual(ts1, ts2)
-        self.assertLessEqual(ts1, ts2)
+        # Only the lt operator is implemented so we have to manually work around that
+        self.assert_(not (ts1 < ts2))
+        self.assert_(not (ts2 < ts1))
 
         ts1.match_points = 2
-        self.assertGreater(ts1, ts2)
+        self.assertLess(ts2, ts1)
 
         ts2.match_points = 2
         ts2.game_points = 1.0
@@ -220,8 +224,8 @@ class TeamPairingTestCase(TestCase):
 
         tp = TeamPairing.objects.create(white_team=team1, black_team=team2, round=Round.objects.all()[0], pairing_order=0)
 
-        pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
-        pp2 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=2, white=team2.teammember_set.all()[1].player, black=team1.teammember_set.all()[1].player)
+        pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.get(board_number=1).player, black=team2.teammember_set.get(board_number=1).player)
+        pp2 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=2, white=team2.teammember_set.get(board_number=2).player, black=team1.teammember_set.get(board_number=2).player)
 
         tp.refresh_points()
         self.assertEqual(0, tp.white_points)
@@ -352,11 +356,11 @@ class RegistrationTestCase(TestCase):
         season = Season.objects.all()[0]
         reg = create_reg(season, 'testuser')
 
-        self.assertItemsEqual([], reg.previous_registrations())
+        self.assertEqual([], list(reg.previous_registrations()))
 
         reg2 = create_reg(season, 'testuser')
-        self.assertItemsEqual([], reg.previous_registrations())
-        self.assertItemsEqual([reg], reg2.previous_registrations())
+        self.assertEqual([], list(reg.previous_registrations()))
+        self.assertEqual([reg], list(reg2.previous_registrations()))
 
     def test_registration_other_seasons(self):
         season = Season.objects.all()[0]
@@ -366,14 +370,14 @@ class RegistrationTestCase(TestCase):
         sp = SeasonPlayer.objects.create(season=season, player=player)
         reg = create_reg(season2, 'testuser')
 
-        self.assertItemsEqual([sp], reg.other_seasons())
+        self.assertEqual([sp], list(reg.other_seasons()))
 
 class AlternateTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
 
     def test_alternate_update_board_number(self):
-        season = Season.objects.all()[0]
+        season = Season.objects.get(tag='teamseason')
         season.boards = 3
         season.save()
 
@@ -388,28 +392,28 @@ class AlternateTestCase(TestCase):
         AlternateBucket.objects.create(season=season, board_number=2, max_rating=2000, min_rating=1800)
         AlternateBucket.objects.create(season=season, board_number=3, max_rating=1800, min_rating=None)
 
-        player.rating = None
+        set_rating(player, None)
         alt.update_board_number()
         self.assertEqual(2, alt.board_number)
 
-        player.rating = 2100
+        set_rating(player, 2100)
         alt.update_board_number()
         self.assertEqual(1, alt.board_number)
 
-        player.rating = 1900
+        set_rating(player, 1900)
         alt.update_board_number()
         self.assertEqual(2, alt.board_number)
 
-        player.rating = 1800
+        set_rating(player, 1800)
         alt.update_board_number()
         self.assertEqual(3, alt.board_number)
 
-        player.rating = 1700
+        set_rating(player, 1700)
         alt.update_board_number()
         self.assertEqual(3, alt.board_number)
 
     def test_priority_date(self):
-        season = Season.objects.all()[0]
+        season = Season.objects.get(tag='teamseason')
         player = Player.objects.all()[0]
         sp = SeasonPlayer.objects.create(season=season, player=player)
         alt = Alternate.objects.create(season_player=sp, board_number=1)
