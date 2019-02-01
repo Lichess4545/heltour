@@ -91,10 +91,9 @@
 						Dashboard
 				</a></li>
 				{% endif %}
-
-				{% if user|can_register:season %}
+				{% if user|can_register:registration_season %}
 				<li><a href="{% leagueurl 'register' league.tag None %}">
-				{% if user|is_registered:season %}
+				{% if user|is_registered:registration_season %}
 				Change Registration
 				{% else %}
 				Register

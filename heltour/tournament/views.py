@@ -72,9 +72,11 @@ class LeagueView(BaseView):
         self.extra_context = {}
 
     def render(self, template, context):
+        registration_season = Season.get_registration_season(self.league, self.season)
         context.update({
             'league': self.league,
             'season': self.season,
+            'registration_season': registration_season,
             'nav_tree': _get_nav_tree(self.league.tag, self.season.tag if self.season is not None else None),
             'other_leagues': League.objects.filter(is_active=True).order_by('display_order').exclude(pk=self.league.pk)
         })
@@ -190,7 +192,6 @@ class LeagueHomeView(LeagueView):
             return self.render('tournament/team_league_home.html', context)
 
         _, completed_seasons = _get_season_lists(self.league)
-        registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True)[:5], 1))
 
@@ -200,7 +201,6 @@ class LeagueHomeView(LeagueView):
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
-            'registration_season': registration_season,
             'other_leagues': other_leagues,
         }
         return self.render('tournament/team_league_home.html', context)
@@ -222,7 +222,6 @@ class LeagueHomeView(LeagueView):
             return self.render('tournament/lone_league_home.html', context)
 
         _, completed_seasons = _get_season_lists(self.league)
-        registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         current_seasons = self.season.section_list()
         current_seasons_with_more = []
@@ -242,7 +241,6 @@ class LeagueHomeView(LeagueView):
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
-            'registration_season': registration_season,
             'other_leagues': other_leagues,
         }
         return self.render('tournament/lone_league_home.html', context)
@@ -619,10 +617,7 @@ class ICalPlayerView(BaseView, ICalMixin):
 class RegisterView(LoginRequiredMixin, LeagueView):
 
     def view(self, post=False):
-        if self.season is not None and self.season.registration_open:
-            reg_season = self.season
-        else:
-            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
+        reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
@@ -672,10 +667,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
 class RegistrationSuccessView(SeasonView):
     def view(self):
-        if self.season is not None and self.season.registration_open:
-            reg_season = self.season
-        else:
-            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
+        reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
@@ -1144,12 +1136,7 @@ class LeagueDashboardView(LeagueView):
     def _common_context(self):
         current_season_list, completed_season_list = _get_season_lists(self.league, active_only=False)
 
-        reg_season = self.season
-        if not self.season.registration_open:
-            for s in self.season.section_list():
-                if s.is_active and s.registration_open:
-                    reg_season = s
-                    break
+        reg_season = Season.get_registration_season(self.league, self.season)
 
         pending_reg_count = len(Registration.objects.filter(season=reg_season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))

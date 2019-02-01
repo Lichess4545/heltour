@@ -459,6 +459,13 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
+    @classmethod
+    def get_registration_season(cls, league, season=None):
+        if season is not None and season.registration_open:
+            return season
+        else:
+            return cls.objects.filter(league=league, registration_open=True).order_by('-start_date').first()
+
     @property
     def pairings(self):
         return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self)
@@ -1503,7 +1510,7 @@ class Registration(_BaseModel):
 
     @classmethod
     def can_register(cls, user, season):
-        if not season.registration_open:
+        if not season or not season.registration_open:
             return False
         try:
             return cls.objects.get(lichess_username=user.username, season=season).status != 'rejected'

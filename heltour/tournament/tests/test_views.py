@@ -1,6 +1,7 @@
 from django.test import TestCase
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
 
 # For now we just have sanity checks for the templates used
 # This could be enhanced by verifying the context data
@@ -133,8 +134,10 @@ class StatsTestCase(TestCase):
 class RegisterTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
+        User.objects.create_user('test', password='test')
 
     def test_template(self):
+        self.client.login(username='test', password='test')
         response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_closed.html')
 
