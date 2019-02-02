@@ -674,18 +674,6 @@ class Player(_BaseModel):
     def get_player_from_user(cls, user):
         return cls.objects.get(lichess_username=user.username)
 
-    def can_register(self, season):
-        return season.registration_open and not self.was_rejected(season)
-
-    def is_registered(self, season):
-        return Registration.is_registered(self, season)
-
-    def was_rejected(self, season):
-        registration = Registration.objects.get(lichess_username=self.lichess_username, season=season)
-        if registration:
-            return registration.status == 'rejected'
-        return False
-
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
 
@@ -1527,8 +1515,8 @@ class Registration(_BaseModel):
         return r
 
     @classmethod
-    def is_registered(cls, player, season):
-        return cls.objects.filter(lichess_username=player.lichess_username, season=season).exists()
+    def is_registered(cls, user, season):
+        return cls.objects.filter(lichess_username=user.username, season=season).exists()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):

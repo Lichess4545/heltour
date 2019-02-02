@@ -170,8 +170,4 @@ def can_register(user, season):
 
 @register.filter
 def is_registered(user, season):
-    try:
-        player = Player.get_player_from_user(user)
-    except Player.DoesNotExist:
-        return False
-    return player.is_registered(season)
+    return Registration.is_registered(user, season)
