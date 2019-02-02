@@ -18,6 +18,7 @@ from django.views.generic import View
 from django.utils.text import slugify
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
@@ -621,46 +622,47 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
-        instance = Registration.get_registration(self.request.user, reg_season)
-        if post:
-            form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
-            if form.is_valid():
-                with reversion.create_revision():
-                    reversion.set_comment('Submitted registration.')
-                    form.save()
+        with cache.lock('update_create_registration'):
+            instance = Registration.get_registration(self.request.user, reg_season)
+            if post:
+                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
+                if form.is_valid():
+                    with reversion.create_revision():
+                        reversion.set_comment('Submitted registration.')
+                        form.save()
 
-                # send registration received email
-                subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
-                msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
-                msg_html = render_to_string('tournament/emails/registration_received.html', {'reg': form.instance})
-                try:
-                    send_mail(
-                        subject,
-                        msg_plain,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [form.cleaned_data['email']],
-                        html_message=msg_html,
-                    )
-                except SMTPException:
-                    logger.exception('A confirmation email could not be sent.')
-                self.request.session['reg_email'] = form.cleaned_data['email']
+                    # send registration received email
+                    subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
+                    msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
+                    msg_html = render_to_string('tournament/emails/registration_received.html', {'reg': form.instance})
+                    try:
+                        send_mail(
+                            subject,
+                            msg_plain,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [form.cleaned_data['email']],
+                            html_message=msg_html,
+                        )
+                    except SMTPException:
+                        logger.exception('A confirmation email could not be sent.')
+                    self.request.session['reg_email'] = form.cleaned_data['email']
 
-                return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
-        else:
-            form = RegistrationForm(instance=instance, season=reg_season)
-            if self.request.user.is_authenticated():
-                player = Player.get_or_create(self.request.user.username)
-                form.fields['lichess_username'].initial = player.lichess_username
-                form.fields['email'].initial = player.email
-                form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
-                form.fields['has_played_20_games'].initial = not player.provisional_for(reg_season.league)
-                form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
+                    return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
+            else:
+                form = RegistrationForm(instance=instance, season=reg_season)
+                if self.request.user.is_authenticated():
+                    player = Player.get_or_create(self.request.user.username)
+                    form.fields['lichess_username'].initial = player.lichess_username
+                    form.fields['email'].initial = player.email
+                    form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
+                    form.fields['has_played_20_games'].initial = not player.provisional_for(reg_season.league)
+                    form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
-        context = {
-            'form': form,
-            'registration_season': reg_season
-        }
-        return self.render('tournament/register.html', context)
+            context = {
+                'form': form,
+                'registration_season': reg_season
+            }
+            return self.render('tournament/register.html', context)
 
     def view_post(self):
         return self.view(post=True)
