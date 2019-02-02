@@ -955,7 +955,7 @@ class SeasonAdmin(_BaseAdmin):
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:
-                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) / season.boards].rating_for(league)) for n in board_numbers]
+                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) // season.boards].rating_for(league)) for n in board_numbers]
                 for p in unassigned_players:
                     board_num = 1
                     for n, max_rating in max_ratings:
