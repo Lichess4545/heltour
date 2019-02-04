@@ -30,6 +30,7 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+from heltour.tournament.create_teams import make_league
 import time
 
 # Customize which sections are visible
@@ -327,6 +328,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/manage_players/$',
                 self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
+            url(r'^(?P<object_id>[0-9]+)/create_teams/$',
+                self.admin_site.admin_view(self.create_teams_view),
+                name='create_teams'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
                 self.admin_site.admin_view(self.player_info_view),
                 name='edit_rosters_player_info'),
@@ -804,6 +808,22 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
+
+    def create_teams_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if request.method == 'POST':
+            form = forms.CreateTeamsForm(request.POST)
+            if form.is_valid():
+                return redirect('admin:manage_players', object_id)
+
+        else:
+            form = forms.CreateTeamsForm()
+
+        context = {
+            'opts': self.model._meta,
+            'form': form
+        }
+        return render(request, 'tournament/admin/create_teams.html', context)
 
     def manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)

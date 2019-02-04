@@ -3,7 +3,7 @@ import random
 import json
 import re
 import math
-import terminal
+import heltour.tournament.terminal
 
 from itertools import combinations
 from functools import partial

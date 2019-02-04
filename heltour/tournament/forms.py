@@ -354,3 +354,6 @@ class MoveLateRegForm(forms.Form):
         reg = kwargs.pop('reg')
         super(MoveLateRegForm, self).__init__(*args, **kwargs)
         self.fields['prev_round'].initial = reg.round.number
+
+class CreateTeamsForm(forms.Form):
+    pass
