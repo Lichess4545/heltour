@@ -228,17 +228,27 @@ class RoundTransitionForm(forms.Form):
         super(RoundTransitionForm, self).__init__(*args, **kwargs)
 
         if round_to_close is not None:
-            self.fields['complete_round'] = forms.BooleanField(initial=True, required=False, label='Set round %d as completed' % round_to_close.number)
-            self.fields['round_to_close'] = forms.IntegerField(initial=round_to_close.number, widget=forms.HiddenInput)
+            self.fields['complete_round'] = forms.BooleanField(initial=True,
+                                                               required=False,
+                                                               label='Set round %d as completed' % round_to_close.number)
+            self.fields['round_to_close'] = forms.IntegerField(initial=round_to_close.number,
+                                                               widget=forms.HiddenInput)
 
         if season_to_close is not None:
-            self.fields['complete_season'] = forms.BooleanField(initial=True, required=False, label='Set %s as completed' % season_to_close.name)
+            self.fields['complete_season'] = forms.BooleanField(initial=True,
+                                                                required=False,
+                                                                label='Set %s as completed' % season_to_close.name)
 
         if round_to_open is not None:
             if is_team_league:
-                self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
-            self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)
-            self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number, widget=forms.HiddenInput)
+                self.fields['update_board_order'] = forms.BooleanField(initial=True,
+                                                                       required=False,
+                                                                       label='Update board order')
+            self.fields['generate_pairings'] = forms.BooleanField(initial=True,
+                                                                  required=False,
+                                                                  label='Generate pairings for round %d' % round_to_open.number)
+            self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number,
+                                                              widget=forms.HiddenInput)
 
 class NominateForm(forms.Form):
     game_link = forms.URLField(required=False)
