@@ -23,6 +23,9 @@
 		<span style="color: #c0f">Purple</span> = alternate last season.
 		<a href="{% url 'admin:export_players' original.pk %}">Export Players</a>
 	</p>
+    <p>
+        To completely build/rebuild teams go here <a href="{% url 'admin:create_teams' original.pk %}">Create teams</a>
+    </p>
 	<p>Show: {{ form.rating_type }}</p>
 	<h2>Teams</h2>
 	<table id="table-edit-rosters" data-boards="{{ board_count }}">

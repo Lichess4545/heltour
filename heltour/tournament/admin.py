@@ -30,7 +30,8 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-from heltour.tournament.create_teams import make_league
+from heltour.tournament.create_teams import make_league, total_happiness, team_rating_range,\
+    reduce_variance
 import time
 
 # Customize which sections are visible
@@ -790,38 +791,56 @@ class SeasonAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
     def create_teams_view(self, request, object_id):
+        def get_best_league(player_data, boards, balance, count):
+            leagues = [make_league(player_data, boards, balance) for _ in range(count)]
+            max_happiness = max([total_happiness(l['teams']) for l in leagues])
+            happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
+
+            for league in happy_leagues:
+                league['teams'] = reduce_variance(league['teams'])
+
+            min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
+            return min_range_league
+
+        def insert_teams(teams):
+            for team_number, team in enumerate(teams, 1):
+                team_instance = Team.objects.create(season=season,
+                                                    number=team_number,
+                                                    name=f'Team {team_number}')
+                for board_number, board in enumerate(team.boards, 1):
+                    player = Player.objects.get(lichess_username=board.name)
+                    TeamMember.objects.create(team=team_instance,
+                                              player=player,
+                                              board_number=board_number)
+
+        def insert_alternates(alts_split):
+            for board_number, board in enumerate(alts_split, 1):
+                for player in board:
+                    season_player = (SeasonPlayer.objects
+                                     .get(season=season,
+                                          player__lichess_username__iexact=player.name))
+                    Alternate.objects.create(season_player=season_player,
+                                             board_number=board_number)
+
         season = get_object_or_404(Season, pk=object_id)
         if request.method == 'POST':
             form = forms.CreateTeamsForm(request.POST)
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
-                league = make_league(player_data,
-                                     form.cleaned_data['boards'],
-                                     form.cleaned_data['balance'])
+                league = get_best_league(player_data,
+                                         form.cleaned_data['boards'],
+                                         form.cleaned_data['balance'],
+                                         form.cleaned_data['count'])
 
                 with reversion.create_revision():
                     reversion.set_user(request.user)
                     reversion.set_comment('Create teams')
 
                     Team.objects.filter(season=season).delete()
-                    for team_number, team in enumerate(league['teams'], 1):
-                        team_instance = Team.objects.create(season=season,
-                                                            number=team_number,
-                                                            name=str(team_number))
-                        for board_number, board in enumerate(team.boards, 1):
-                            player = Player.objects.get(lichess_username=board.name)
-                            TeamMember.objects.create(team=team_instance,
-                                                      player=player,
-                                                      board_number=board_number)
+                    insert_teams(league['teams'])
 
                     Alternate.objects.filter(season_player__season=season).delete()
-                    for board_number, board in enumerate(league['alts_split'], 1):
-                        for player in board:
-                            season_player = (SeasonPlayer.objects
-                                             .get(season=season,
-                                                  player__lichess_username__iexact=player.name))
-                            Alternate.objects.create(season_player=season_player,
-                                                     board_number=board_number)
+                    insert_alternates(league['alts_split'])
 
                 return redirect('admin:manage_players', object_id)
 

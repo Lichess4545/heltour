@@ -1,7 +1,8 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
-Create Teams for season {{ season }}
+Create new teams for season {{ season }}.  This will completely delete all teams and alternates and recreate them
+according to the algorithm in `create_teams.py`.
 <form action="" method="post">
     {% csrf_token %}
     <div class="aligned">
