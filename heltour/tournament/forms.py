@@ -356,4 +356,6 @@ class MoveLateRegForm(forms.Form):
         self.fields['prev_round'].initial = reg.round.number
 
 class CreateTeamsForm(forms.Form):
-    pass
+    boards = forms.IntegerField(min_value=1, initial=6)
+    count = forms.IntegerField(min_value=1, initial=20)
+    balance = forms.FloatField(min_value=0, max_value=1, initial=0.8)

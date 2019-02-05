@@ -728,27 +728,7 @@ class SeasonAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.change_season', season.league):
             raise PermissionDenied
 
-        season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'registration').nocache()
-        players = []
-        for sp in season_players:
-            info = {
-                'name': sp.player.lichess_username,
-                'rating': sp.player.rating_for(season.league),
-                'has_20_games': not sp.player.provisional_for(season.league),
-                'in_slack': bool(sp.player.slack_user_id),
-                'account_status': sp.player.account_status,
-                'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
-                'friends': sp.registration.friends if sp.registration else None,
-                'avoid': sp.registration.avoid if sp.registration else None
-            }
-            reg = sp.registration
-            if reg is not None:
-                info.update({
-                    'prefers_alt': reg.alternate_preference == 'alternate',
-                    'previous_season_alternate': reg.previous_season_alternate,
-                })
-            players.append(info)
-
+        players = season.export_players()
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -814,6 +794,35 @@ class SeasonAdmin(_BaseAdmin):
         if request.method == 'POST':
             form = forms.CreateTeamsForm(request.POST)
             if form.is_valid():
+                player_data = [p for p in season.export_players() if p['date_created']]
+                league = make_league(player_data,
+                                     form.cleaned_data['boards'],
+                                     form.cleaned_data['balance'])
+
+                with reversion.create_revision():
+                    reversion.set_user(request.user)
+                    reversion.set_comment('Create teams')
+
+                    Team.objects.filter(season=season).delete()
+                    for team_number, team in enumerate(league['teams'], 1):
+                        team_instance = Team.objects.create(season=season,
+                                                            number=team_number,
+                                                            name=str(team_number))
+                        for board_number, board in enumerate(team.boards, 1):
+                            player = Player.objects.get(lichess_username=board.name)
+                            TeamMember.objects.create(team=team_instance,
+                                                      player=player,
+                                                      board_number=board_number)
+
+                    Alternate.objects.filter(season_player__season=season).delete()
+                    for board_number, board in enumerate(league['alts_split'], 1):
+                        for player in board:
+                            season_player = (SeasonPlayer.objects
+                                             .get(season=season,
+                                                  player__lichess_username__iexact=player.name))
+                            Alternate.objects.create(season_player=season_player,
+                                                     board_number=board_number)
+
                 return redirect('admin:manage_players', object_id)
 
         else:
@@ -821,6 +830,7 @@ class SeasonAdmin(_BaseAdmin):
 
         context = {
             'opts': self.model._meta,
+            'season': season,
             'form': form
         }
         return render(request, 'tournament/admin/create_teams.html', context)
@@ -916,8 +926,12 @@ class SeasonAdmin(_BaseAdmin):
                                 reversion.set_comment('Edit rosters - created alternate.')
 
                                 board_num = change['board_number']
-                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                                Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
+                                season_player = (SeasonPlayer.objects
+                                                 .get(season=season,
+                                                      player__lichess_username__iexact=change['player_name']))
+                                (Alternate.objects
+                                 .update_or_create(season_player=season_player,
+                                                   defaults={ 'board_number': board_num }))
 
                         if change['action'] == 'delete-alternate':
                             with reversion.create_revision():
@@ -925,8 +939,12 @@ class SeasonAdmin(_BaseAdmin):
                                 reversion.set_comment('Edit rosters - deleted alternate.')
 
                                 board_num = change['board_number']
-                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                                alt = Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
+                                season_player = (SeasonPlayer.objects
+                                                 .get(season=season,
+                                                      player__lichess_username__iexact=change['player_name']))
+                                alt = (Alternate.objects
+                                       .filter(season_player=season_player, board_number=board_num)
+                                       .first())
                                 if alt is not None:
                                     alt.delete()
 

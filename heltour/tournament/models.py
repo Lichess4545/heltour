@@ -198,6 +198,37 @@ class Season(_BaseModel):
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
+    def export_players(self):
+        def extract(sp):
+            info = {
+                'name': sp.player.lichess_username,
+                'rating': sp.player.rating_for(self.league),
+                'has_20_games': not sp.player.provisional_for(self.league),
+                'in_slack': bool(sp.player.slack_user_id),
+                'account_status': sp.player.account_status,
+                'date_created': None,
+                'friends': None,
+                'avoid': None,
+                'prefers_alt': False,
+                'previous_season_alternate': False
+            }
+            reg = sp.registration
+            if reg is not None:
+                info.update({
+                    'date_created': reg.date_created.isoformat(),
+                    'friends': reg.friends,
+                    'avoid': reg.avoid,
+                    'prefers_alt': reg.alternate_preference == 'alternate',
+                    'previous_season_alternate': reg.previous_season_alternate,
+                })
+            return info
+
+        season_players = (self.seasonplayer_set
+                          .filter(is_active=True)
+                          .select_related('player', 'registration')
+                          .nocache())
+        return [extract(sp) for sp in season_players]
+
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
             raise ValidationError('Boards must be specified for a team season')

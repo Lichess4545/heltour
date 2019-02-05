@@ -1,0 +1,25 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+
+{% block content %}
+Create Teams for season {{ season }}
+<form action="" method="post">
+    {% csrf_token %}
+    <div class="aligned">
+        <div class="form-row">
+            {{ form.boards.label_tag }}
+            {{ form.boards }}
+        </div>
+        <div class="form-row">
+            {{ form.balance.label_tag }}
+            {{ form.balance }}
+        </div>
+        <div class="form-row">
+            {{ form.count.label_tag }}
+            {{ form.count }}
+        </div>
+    </div>
+    <div class="submit-row">
+        <input class="default" value="Create Teams" name="confirm" type="submit">
+    </div>
+</form>
+{% endblock %}
