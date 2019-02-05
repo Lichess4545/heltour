@@ -622,7 +622,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
-        with cache.lock('update_create_registration'):
+        with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_registration(self.request.user, reg_season)
             if post:
                 form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
