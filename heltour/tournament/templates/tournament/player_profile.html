@@ -193,6 +193,33 @@
 			</div>
 		</div>
 		{% endif %}
+		{% if trophies %}
+		<div class="well">
+			<div class="well-head">
+				<h3>{{league.name|title}} Trophy Case</h3>
+			</div>
+			<div class="well-body">
+				<div class="player-profile-section">
+					{% for prize in trophies %}
+					<span class="trophy">
+						<a href="{% leagueurl 'season_landing' league.tag prize.season.tag %}">
+							<div class="trophy-image
+										{% if prize.max_rating %}
+											blue-ribbon
+										{% else %}
+											rank-{{prize.rank}}
+										{% endif %}">
+							</div>
+							<div>
+								{{ prize }}
+							</div>
+						</a>
+					</span>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+		{% endif %}
 	</div>
 </div>
 {% endblock %}
