@@ -171,3 +171,7 @@ def can_register(user, season):
 @register.filter
 def is_registered(user, season):
     return Registration.is_registered(user, season)
+
+def concat(str1, str2):
+    return str(str1) + str(str2)
+
