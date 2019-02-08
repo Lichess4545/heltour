@@ -670,10 +670,6 @@ class Player(_BaseModel):
             signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username, slack_user_id=slack_user_id)
             return True
 
-    @classmethod
-    def get_player_from_user(cls, user):
-        return cls.objects.get(lichess_username=user.username)
-
     def is_available_for(self, round_):
         return not PlayerAvailability.objects.filter(round=round_, player=self, is_available=False).exists()
 
