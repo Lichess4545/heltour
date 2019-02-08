@@ -620,14 +620,17 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
+        if not Registration.can_register(self.request.user, reg_season):
+            return redirect('by_league:league_home', self.league.tag)
 
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
-            instance = Registration.get_registration(self.request.user, reg_season)
+            instance = Registration.get_latest_registration(self.request.user, reg_season)
             if post:
                 form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
+
                         form.save()
 
                     # send registration received email

@@ -1505,19 +1505,19 @@ class Registration(_BaseModel):
     def can_register(cls, user, season):
         if not season or not season.registration_open:
             return False
-        try:
-            return cls.objects.get(lichess_username=user.username, season=season).status != 'rejected'
-        except cls.DoesNotExist:
-            return True
-
+        return not cls.was_rejected(user, season)
 
     @classmethod
-    def get_registration(cls, user, season):
-        try:
-            r = cls.objects.get(lichess_username=user.username, season=season)
-        except cls.DoesNotExist:
-            r = None
-        return r
+    def was_rejected(cls, user, season):
+        reg = cls.get_latest_registration(user, season)
+        return reg and reg.status == 'rejected'
+
+    @classmethod
+    def get_latest_registration(cls, user, season):
+        return (cls.objects
+                .filter(lichess_username=user.username, season=season)
+                .order_by('-date_created')
+                .first())
 
     @classmethod
     def is_registered(cls, user, season):
