@@ -1139,7 +1139,12 @@ class LeagueDashboardView(LeagueView):
     def _common_context(self):
         current_season_list, completed_season_list = _get_season_lists(self.league, active_only=False)
 
-        reg_season = Season.get_registration_season(self.league, self.season)
+        reg_season = self.season
+        if not self.season.registration_open:
+            for s in self.season.section_list():
+                if s.is_active and s.registration_open:
+                    reg_season = s
+                    break
 
         pending_reg_count = len(Registration.objects.filter(season=reg_season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
