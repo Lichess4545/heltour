@@ -24,7 +24,8 @@
 		<a href="{% url 'admin:export_players' original.pk %}">Export Players</a>
 	</p>
     <p>
-        To completely build/rebuild teams go here <a href="{% url 'admin:create_teams' original.pk %}">Create teams</a>
+        Use the <a href="{% url 'admin:create_teams' original.pk %}">Create teams</a> tool to completely build/rebuild
+        all teams.
     </p>
 	<p>Show: {{ form.rating_type }}</p>
 	<h2>Teams</h2>
