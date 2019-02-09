@@ -4,6 +4,8 @@ import json
 import re
 import math
 import heltour.tournament.terminal
+from heltour.tournament.team_rating_utils import variance, \
+        team_rating_variance, team_rating_range
 
 from itertools import combinations
 from functools import partial
@@ -74,8 +76,9 @@ class Team:
         if new_player.team:
             new_player.team.boards[board] = None
         new_player.team = self
-    def get_mean(self, expected_rating=True):
-        # We ignore the expected rating parameter, the real team object uses it.
+    def get_mean(self, expected_rating=False):
+        # expected_rating is an unused parameter in this version.
+        # it is used by the tournament.models.Team.get_mean method.
         ratings = [board.rating for board in self.boards]
         mean = sum(ratings) / len(ratings)
         return mean
@@ -117,25 +120,6 @@ def get_rating_bounds_of_split(split):
 
 def total_happiness(teams):
     return sum([team.team_pref_score for team in teams])
-
-
-def team_rating_range(teams, expected_rating=False):
-    means = [team.get_mean(expected_rating) for team in teams]
-    return max(means) - min(means)
-
-
-def squared_diff(a, b):
-    return (a - b)**2
-
-
-def variance(mean, xs):
-    return sum([squared_diff(mean, x) for x in xs]) / len(xs)
-
-
-def team_rating_variance(teams, league_mean=None, expected_rating=False):
-    if not league_mean:
-        league_mean = sum([team.get_mean(expected_rating) for team in teams]) / len(teams)
-    return variance(league_mean, [team.get_mean(expected_rating) for team in teams])
 
 
 def flatten(lst):

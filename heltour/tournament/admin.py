@@ -30,8 +30,8 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-from heltour.tournament.create_teams import make_league, total_happiness, team_rating_range,\
-    reduce_variance, team_rating_range, team_rating_variance
+from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
+from heltour.tournament.create_teams import make_league, total_happiness, reduce_variance
 import time
 
 # Customize which sections are visible
@@ -1062,10 +1062,10 @@ class SeasonAdmin(_BaseAdmin):
             'form': form,
             'teams': teams,
             'teams_locked': teams_locked,
-            'team_rating_variance': team_rating_variance(teams),
-            'team_rating_range': team_rating_range(teams),
-            'team_expected_rating_variance': team_rating_variance(teams, expected_rating=True),
-            'team_expected_rating_range': team_rating_range(teams, expected_rating=True),
+            'team_rating_variance': team_rating_variance(teams, False),
+            'team_rating_range': team_rating_range(teams, False),
+            'team_expected_rating_variance': team_rating_variance(teams, True),
+            'team_expected_rating_range': team_rating_range(teams, True),
             'new_team_number': new_team_number,
             'alternates_by_board': alternates_by_board,
             'unassigned_by_board': unassigned_by_board,
