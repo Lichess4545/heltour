@@ -216,6 +216,7 @@ class Season(_BaseModel):
             if reg is not None:
                 info.update({
                     'date_created': reg.date_created.isoformat(),
+                    'peak_classical_rating': reg.peak_classical_rating or 0,
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
