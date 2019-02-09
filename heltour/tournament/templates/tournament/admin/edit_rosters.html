@@ -28,25 +28,27 @@
 		<a class="button" href="{% url 'admin:create_teams' original.pk %}">(re)Build teams</a>
 		<a class="button" href="{% url 'admin:export_players' original.pk %}">Export Players</a>
 	</p>
-	<h2>Stats</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>Team Rating Variance</th>
-				<th>Team Rating Range</th>
-				<th>Team Expected Rating Variance</th>
-				<th>Team Expected Rating Range</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td>{{ team_rating_variance|floatformat:2 }}</td>
-				<td>{{ team_rating_range|floatformat:2 }}</td>
-				<td>{{ team_expected_rating_variance|floatformat:2 }}</td>
-				<td>{{ team_expected_rating_range|floatformat:2 }}</td>
-			</tr>
-		</tbody>
-	</table>
+    {% if team_rating_variance and team_rating_range and team_expected_rating_variance and team_expected_rating_range %}
+        <h2>Stats</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Team Rating Variance</th>
+                    <th>Team Rating Range</th>
+                    <th>Team Expected Rating Variance</th>
+                    <th>Team Expected Rating Range</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ team_rating_variance|floatformat:2 }}</td>
+                    <td>{{ team_rating_range|floatformat:2 }}</td>
+                    <td>{{ team_expected_rating_variance|floatformat:2 }}</td>
+                    <td>{{ team_expected_rating_range|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
 	<h2>Teams</h2>
 	<table id="table-edit-rosters" data-boards="{{ board_count }}">
 		<thead>
