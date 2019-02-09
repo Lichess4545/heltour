@@ -1,26 +1,41 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
+<p>
 Create new teams for season {{ season }}.  This will completely delete all teams and alternates and recreate them
 according to the algorithm in `create_teams.py`.
+</p>
+
+{% if season_started %}
+<p>
+    <b>The season has started.  Continuing with this is almost certainly a terrible idea</b>
+</p>
+{% endif %}
+
 <form action="" method="post">
     {% csrf_token %}
     <div class="aligned">
         <div class="form-row">
-            {{ form.boards.label_tag }}
-            {{ form.boards }}
-        </div>
-        <div class="form-row">
             {{ form.balance.label_tag }}
             {{ form.balance }}
+            <p class="help">
+                {{ form.balance.help_text }}
+            </p>
         </div>
         <div class="form-row">
+
             {{ form.count.label_tag }}
             {{ form.count }}
+            <p class="help">
+                {{ form.count.help_text }}
+            </p>
         </div>
     </div>
     <div class="submit-row">
-        <input class="default" value="Create Teams" name="confirm" type="submit">
+        <input class="default"
+               value="Create Teams {% if season_started %}(Warning: Season has started) {% endif %}"
+               name="confirm"
+               type="submit">
     </div>
 </form>
 {% endblock %}

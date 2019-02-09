@@ -828,7 +828,7 @@ class SeasonAdmin(_BaseAdmin):
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
                 league = get_best_league(player_data,
-                                         form.cleaned_data['boards'],
+                                         season.boards,
                                          form.cleaned_data['balance'],
                                          form.cleaned_data['count'])
 
@@ -847,10 +847,12 @@ class SeasonAdmin(_BaseAdmin):
         else:
             form = forms.CreateTeamsForm()
 
+        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
         context = {
             'opts': self.model._meta,
             'season': season,
-            'form': form
+            'form': form,
+            'season_started': season_started
         }
         return render(request, 'tournament/admin/create_teams.html', context)
 

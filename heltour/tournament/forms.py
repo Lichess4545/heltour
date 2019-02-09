@@ -356,6 +356,16 @@ class MoveLateRegForm(forms.Form):
         self.fields['prev_round'].initial = reg.round.number
 
 class CreateTeamsForm(forms.Form):
-    boards = forms.IntegerField(min_value=1, initial=6)
-    count = forms.IntegerField(min_value=1, initial=20)
-    balance = forms.FloatField(min_value=0, max_value=1, initial=0.8)
+    count = forms.IntegerField(min_value=1,
+                               initial=100,
+                               label="Count",
+                               help_text='Number of iterations to run the algorithm looking '
+                                         'for the "happiest" league')
+
+    balance = forms.FloatField(min_value=0,
+                               max_value=1,
+                               initial=0.8,
+                               label="Balance",
+                               help_text="Ratio of team members to alternates.  A value of 0.8 "
+                                         "means 20% will be made alternates")
+
