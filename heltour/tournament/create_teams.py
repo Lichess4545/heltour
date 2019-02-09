@@ -24,14 +24,9 @@ class Player:
 
     @classmethod
     def player_from_json(cls, player):
-        if player.get('peak_classical_rating'):
-            rating = (player['peak_classical_rating'] + player['rating'])/2
-        else:
-            rating = player['rating']
-
         return cls(
             player['name'],
-            rating,
+            player['rating'],
             player['friends'],
             player['avoid'],
             player['date_created'],

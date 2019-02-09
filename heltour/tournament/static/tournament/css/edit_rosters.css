@@ -46,11 +46,10 @@
 }
 .player .name {
 	text-overflow: ellipsis;
-	width: 75%;
+	width: 65%;
 	overflow-x: hidden;
 }
 .player .rating-container {
-	width: 25%;
 	margin-right: 2px;
 }
 
