@@ -36,12 +36,22 @@
 }
 
 .player {
-	display: inline-block;
+	display: flex;
 	vertical-align: top;
 	padding: 6px;
 	width: calc(100% - 16px);
 	background-color: white;
 	border: 1px solid #ccc;
+	white-space: nowrap;
+}
+.player .name {
+	text-overflow: ellipsis;
+	width: 75%;
+	overflow-x: hidden;
+}
+.player .rating-container {
+	width: 25%;
+	margin-right: 2px;
 }
 
 .player.ui-draggable {

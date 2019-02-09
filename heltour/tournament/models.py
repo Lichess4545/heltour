@@ -941,16 +941,22 @@ class Team(_BaseModel):
         team_members = self.teammember_set.all()
         return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
 
-    def average_rating(self):
+    def average_rating(self, expected_rating=False):
         n = 0
         total = 0.0
         for _, board in self.boards():
             if board is not None:
-                rating = board.player.rating_for(self.season.league)
+                if expected_rating:
+                    rating = board.expected_rating()
+                else:
+                    rating = board.player.rating_for(self.season.league)
                 if rating is not None:
                     n += 1
                     total += rating
         return total / n if n > 0 else None
+
+    def get_mean(self, expected_rating=False):
+        return self.average_rating(expected_rating)
 
     def captain(self):
         return self.teammember_set.filter(is_captain=True).first()
@@ -1008,6 +1014,13 @@ class TeamMember(_BaseModel):
             if league is None:
                 league = self.team.season.league
             return self.player.rating_for(league)
+
+    def expected_rating(self):
+        try:
+            sp = SeasonPlayer.objects.get(season=self.team.season, player=self.player)
+            return sp.expected_rating(self.team.season.league)
+        except SeasonPlayer.DoesNotExist:
+            return None
 
     def save(self, *args, **kwargs):
         player_changed = self.pk is None or self.player_id != self.initial_player_id

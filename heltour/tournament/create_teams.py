@@ -38,30 +38,30 @@ class Player:
         return str((self.name, self.board, self.rating, self.req_met))
     def __lt__(self, other):
         return True
-    def setPrefScore(self):
+    def set_pref_score(self):
         self.pref_score = 0
         for friend in self.friends:
-            if friend in self.team.getBoards():
+            if friend in self.team.get_boards():
                 self.pref_score += 1
             else:
                 self.pref_score -= 1
         for avoid in self.avoid:
-            if avoid in self.team.getBoards():
+            if avoid in self.team.get_boards():
                 self.pref_score -= 1
         #player with more than 5 choices can be <5 preference even if all teammates are preferred
-    def setReqMet(self):
+    def set_req_met(self):
         self.req_met = False
         if not self.friends:
             self.req_met = None
         for friend in self.friends:
-            if friend in self.team.getBoards():
+            if friend in self.team.get_boards():
                 self.req_met = True
 
 class Team:
     def __init__(self, boards):
         self.boards = [None for x in range(boards)]
     def __str__(self):
-        return str((self.boards, self.team_pref_score, self.getMean()))
+        return str((self.boards, self.team_pref_score, self.get_mean()))
     def __repr__(self):
         return "Team:{0}".format(id(self))
     def __lt__(self, other):
@@ -74,24 +74,25 @@ class Team:
         if new_player.team:
             new_player.team.boards[board] = None
         new_player.team = self
-    def getMean(self):
+    def get_mean(self, expected_rating=True):
+        # We ignore the expected rating parameter, the real team object uses it.
         ratings = [board.rating for board in self.boards]
         mean = sum(ratings) / len(ratings)
         return mean
-    def getBoards(self):
+    def get_boards(self):
         return self.boards
-    def getPlayer(self, board):
+    def get_player(self, board):
         return self.boards[board]
-    def setTeamPrefScore(self):
+    def set_team_pref_score(self):
         self.team_pref_score = sum([x.pref_score for x in self.boards])
 
-def updatePref(players, teams): #update preference scores
+def update_pref(players, teams): #update preference scores
     for player in players:
-        player.setPrefScore()
+        player.set_pref_score()
     for team in teams:
-        team.setTeamPrefScore()
+        team.set_team_pref_score()
 
-def updateSort(players, teams): #based on preference score high to low
+def update_sort(players, teams): #based on preference score high to low
     players.sort(key=lambda player: (player.team.team_pref_score, player.pref_score), reverse = False)
     teams.sort(key=lambda team: team.team_pref_score, reverse = False)
 
@@ -118,8 +119,8 @@ def total_happiness(teams):
     return sum([team.team_pref_score for team in teams])
 
 
-def team_rating_range(teams):
-    means = [team.getMean() for team in teams]
+def team_rating_range(teams, expected_rating=False):
+    means = [team.get_mean(expected_rating) for team in teams]
     return max(means) - min(means)
 
 
@@ -131,10 +132,10 @@ def variance(mean, xs):
     return sum([squared_diff(mean, x) for x in xs]) / len(xs)
 
 
-def team_rating_variance(teams, league_mean=None):
+def team_rating_variance(teams, league_mean=None, expected_rating=False):
     if not league_mean:
-        league_mean = sum([team.getMean() for team in teams]) / len(teams)
-    return variance(league_mean, [team.getMean() for team in teams])
+        league_mean = sum([team.get_mean(expected_rating) for team in teams]) / len(teams)
+    return variance(league_mean, [team.get_mean(expected_rating) for team in teams])
 
 
 def flatten(lst):
@@ -248,8 +249,8 @@ def make_league(playerdata, boards, balance):
         for team, player in enumerate(board):
             teams[team].changeBoard(n, player)
 
-    updatePref(players, teams)
-    updateSort(players, teams)
+    update_pref(players, teams)
+    update_sort(players, teams)
 
     def swapPlayers(teama, playera, teamb, playerb, board):
         #swap players between teams - ensure players are same board for input
@@ -260,10 +261,10 @@ def make_league(playerdata, boards, balance):
         #try a swap and return the preference change if this swap was made
         prior_pref = teama.team_pref_score + teamb.team_pref_score
         swapPlayers(teama, playera, teamb, playerb, board) #swap players forwards
-        updatePref(players, teams)
+        update_pref(players, teams)
         post_pref = teama.team_pref_score + teamb.team_pref_score
         swapPlayers(teama, playerb, teamb, playera, board) #swap players back
-        updatePref(players, teams)
+        update_pref(players, teams)
         return post_pref - prior_pref #more positive = better swap
 
     # take player from least happy team
@@ -284,31 +285,31 @@ def make_league(playerdata, boards, balance):
             # board check is redundant due to earlier removal of same board requests
             if friend.board != player.board and friend.team != player.team:
                 #test swap friend to player team (swap1)
-                swap1_ID = (friend.team, friend, player.team, player.team.getPlayer(friend.board), friend.board)
+                swap1_ID = (friend.team, friend, player.team, player.team.get_player(friend.board), friend.board)
                 swap1_score = testSwap(*swap1_ID)
                 #test swap player to friend team (swap2)
-                swap2_ID = (player.team, player, friend.team, friend.team.getPlayer(player.board), player.board)
+                swap2_ID = (player.team, player, friend.team, friend.team.get_player(player.board), player.board)
                 swap2_score = testSwap(*swap2_ID)
                 swaps.append(max((swap1_score, swap1_ID),(swap2_score, swap2_ID)))
         for avoid in player.avoid:
             #test moving player to be avoided to the best preferred team
             if player.team == avoid.team: #otherwise irrelevant
                 for swap_team in teams:
-                    swap_ID = (avoid.team, avoid, swap_team, swap_team.getPlayer(avoid.board), avoid.board)
+                    swap_ID = (avoid.team, avoid, swap_team, swap_team.get_player(avoid.board), avoid.board)
                     swap_score = testSwap(*swap_ID)
                     swaps.append((swap_score,swap_ID))
         swaps.sort()
         if swaps and swaps[-1][0] > 0: # there is a swap to make and it improves the preference score
             swapPlayers(*(swaps[-1][1]))
             # print(swaps[-1])
-            updatePref(players, teams)
-            updateSort(players, teams)
+            update_pref(players, teams)
+            update_sort(players, teams)
             p = 0
         else: # go to the next player in the list
             p += 1
 
     for player in players:
-        player.setReqMet()
+        player.set_req_met()
 
     return {'teams': teams,
             'players': players,
@@ -362,8 +363,8 @@ def rating_variance_improvement(league_mean, n_boards, swap):
         return variance(league_mean, [a, b])
 
     pa, pb = swap
-    a_mean = pa.team.getMean()
-    b_mean = pb.team.getMean()
+    a_mean = pa.team.get_mean()
+    b_mean = pb.team.get_mean()
     initial_score = score(a_mean, b_mean)
 
     # calculating change in mean if we swapped the players.
@@ -414,7 +415,7 @@ def update_swaps(swaps, swap_performed, teams):
 def reduce_variance(teams):
     # players = flatten([team.boards for team in teams])
 
-    league_mean = sum([team.getMean() for team in teams]) / len(teams)
+    league_mean = sum([team.get_mean() for team in teams]) / len(teams)
     n_boards = len(teams[0].boards)
 
     swaps = get_swaps(teams)
@@ -428,7 +429,7 @@ def reduce_variance(teams):
     epsilon = 0.0000001
     while swap_value <= -epsilon and i < max_iterations:
         # variance = team_rating_variance(teams, league_mean)
-        # updatePref(players, teams)
+        # update_pref(players, teams)
         # score = total_happiness(teams)
         # print()
         # print("i: ", i)
@@ -441,7 +442,7 @@ def reduce_variance(teams):
         swaps = update_swaps(swaps, best_swap, teams)
         best_swap, swap_value = get_best_swap(swaps, eval_fun)
 
-    # means = [team.getMean() for team in teams]
+    # means = [team.get_mean() for team in teams]
     # print("means: ", sorted(means))
     return teams
 
@@ -477,7 +478,7 @@ def generate_print_output(league):
             short_name = player.name[:20]
             player_name = f"{short_name} ({player.rating})"
             terminal.largecol(player_name, terminal.green if player.previous_season_alt else None)
-        terminal.largecol("{0:.2f}".format(team.getMean()))
+        terminal.largecol("{0:.2f}".format(team.get_mean()))
         print()
     print()
     print("ALTERNATES")
