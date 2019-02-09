@@ -1062,10 +1062,6 @@ class SeasonAdmin(_BaseAdmin):
             'form': form,
             'teams': teams,
             'teams_locked': teams_locked,
-            'team_rating_variance': team_rating_variance(teams, False),
-            'team_rating_range': team_rating_range(teams, False),
-            'team_expected_rating_variance': team_rating_variance(teams, True),
-            'team_expected_rating_range': team_rating_range(teams, True),
             'new_team_number': new_team_number,
             'alternates_by_board': alternates_by_board,
             'unassigned_by_board': unassigned_by_board,
@@ -1076,7 +1072,13 @@ class SeasonAdmin(_BaseAdmin):
             'purple_players': purple_players,
             'expected_ratings': expected_ratings,
         }
-
+        if teams:
+            context.update({
+                'team_rating_variance': team_rating_variance(teams, False),
+                'team_rating_range': team_rating_range(teams, False),
+                'team_expected_rating_variance': team_rating_variance(teams, True),
+                'team_expected_rating_range': team_rating_range(teams, True),
+            })
         return render(request, 'tournament/admin/edit_rosters.html', context)
 
     def lone_manage_players_view(self, request, object_id):
