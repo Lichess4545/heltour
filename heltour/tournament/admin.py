@@ -31,7 +31,7 @@ from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament.teamgen import get_best_league
+from heltour.tournament import teamgen
 import time
 
 # Customize which sections are visible
@@ -812,11 +812,15 @@ class SeasonAdmin(_BaseAdmin):
                                              board_number=board_number)
 
         season = get_object_or_404(Season, pk=object_id)
+        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        team_count = Team.objects.filter(season=season).count()
         if request.method == 'POST':
-            form = forms.CreateTeamsForm(request.POST)
+            if season_started:
+                return HttpResponse(status=400)
+            form = forms.CreateTeamsForm(team_count, request.POST)
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
-                league = get_best_league(player_data,
+                league = teamgen.get_best_league(player_data,
                                          season.boards,
                                          form.cleaned_data['balance'],
                                          form.cleaned_data['count'])
@@ -834,9 +838,8 @@ class SeasonAdmin(_BaseAdmin):
                 return redirect('admin:manage_players', object_id)
 
         else:
-            form = forms.CreateTeamsForm()
+            form = forms.CreateTeamsForm(team_count)
 
-        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
         context = {
             'opts': self.model._meta,
             'season': season,
@@ -1040,8 +1043,10 @@ class SeasonAdmin(_BaseAdmin):
                 purple_players.add(sp.player)
 
         expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
+        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         context = {
+            'season_started': season_started,
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',

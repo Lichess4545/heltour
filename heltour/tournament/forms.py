@@ -368,4 +368,11 @@ class CreateTeamsForm(forms.Form):
                                label="Balance",
                                help_text="Ratio of team members to alternates.  A value of 0.8 "
                                          "means 20% will be made alternates")
+    confirm_create = forms.BooleanField()
 
+
+
+    def __init__(self, team_count, *args, **kwargs):
+        super(CreateTeamsForm, self).__init__(*args, **kwargs)
+
+        self.fields['confirm_create'].label = f'Yes, I\'m sure - {team_count} teams and and regenerate'

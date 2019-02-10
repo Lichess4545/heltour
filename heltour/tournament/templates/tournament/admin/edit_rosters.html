@@ -25,7 +25,9 @@
 	<h2>Actions</h2>
 	<p>
 		Show: {{ form.rating_type }}
-		<a class="button" href="{% url 'admin:create_teams' original.pk %}">(re)Build teams</a>
+		{% if not season_started %}
+			<a class="button" href="{% url 'admin:create_teams' original.pk %}">(re)Build teams</a>
+		{% endif %}
 		<a class="button" href="{% url 'admin:export_players' original.pk %}">Export Players</a>
 	</p>
 	{% if team_rating_variance and team_rating_range and team_expected_rating_variance and team_expected_rating_range %}
