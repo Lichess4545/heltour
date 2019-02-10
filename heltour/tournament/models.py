@@ -206,7 +206,8 @@ class Season(_BaseModel):
         return {alt.season_player.player for alt in last_season_alts}
 
     def export_players(self):
-        def extract(sp, last_season_alts):
+        last_season_alts = self.last_season_alternates()
+        def extract(sp):
             info = {
                 'name': sp.player.lichess_username,
                 'rating': sp.player.rating_for(self.league),
@@ -234,8 +235,7 @@ class Season(_BaseModel):
                           .filter(is_active=True)
                           .select_related('player', 'registration')
                           .nocache())
-        last_season_alts = self.last_season_alternates()
-        return [extract(sp, last_season_alts) for sp in season_players]
+        return [extract(sp) for sp in season_players]
 
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
