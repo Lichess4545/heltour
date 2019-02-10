@@ -991,9 +991,7 @@ class SeasonAdmin(_BaseAdmin):
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
-        last_season = Season.objects.filter(league=league, start_date__lt=season.start_date).order_by('-start_date').first()
-        old_alternates = {alt.season_player.player for alt in Alternate.objects.filter(season_player__season=last_season) \
-                                                                               .select_related('season_player__player').nocache()}
+        old_alternates = season.last_season_alternates()
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
         unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating_for(league), reverse=True))

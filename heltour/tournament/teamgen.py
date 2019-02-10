@@ -33,7 +33,7 @@ class Player:
             player['avoid'],
             player['date_created'],
             player['prefers_alt'],
-            player.get('previous_season_alternate') == 'alternate'
+            player.get('previous_season_alternate', False)
         )
 
     def __repr__(self):
