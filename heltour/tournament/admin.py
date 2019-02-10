@@ -1043,7 +1043,7 @@ class SeasonAdmin(_BaseAdmin):
                 purple_players.add(sp.player)
 
         expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
-        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         context = {
             'season_started': season_started,
