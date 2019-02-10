@@ -30,6 +30,14 @@ according to the algorithm in `create_teams.py`.
                 {{ form.count.help_text }}
             </p>
         </div>
+        <div class="form-row">
+            <div class="checkbox-row">
+                {{ form.confirm_create }}
+                <label for="{{ form.confirm_create.id_for_label }}" class="vCheckboxLabel">
+                    {{ form.confirm_create.label }}
+                </label>
+            </div>
+        </div>
     </div>
     <div class="submit-row">
         <input class="default"

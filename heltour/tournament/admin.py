@@ -31,7 +31,7 @@ from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament.create_teams import make_league, total_happiness, reduce_variance
+from heltour.tournament import teamgen
 import time
 
 # Customize which sections are visible
@@ -791,17 +791,6 @@ class SeasonAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
     def create_teams_view(self, request, object_id):
-        def get_best_league(player_data, boards, balance, count):
-            leagues = [make_league(player_data, boards, balance) for _ in range(count)]
-            max_happiness = max([total_happiness(l['teams']) for l in leagues])
-            happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
-
-            for league in happy_leagues:
-                league['teams'] = reduce_variance(league['teams'])
-
-            min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
-            return min_range_league
-
         def insert_teams(teams):
             for team_number, team in enumerate(teams, 1):
                 team_instance = Team.objects.create(season=season,
@@ -823,11 +812,15 @@ class SeasonAdmin(_BaseAdmin):
                                              board_number=board_number)
 
         season = get_object_or_404(Season, pk=object_id)
+        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
+        if season_started:
+            return HttpResponse(status=400)
+        team_count = Team.objects.filter(season=season).count()
         if request.method == 'POST':
-            form = forms.CreateTeamsForm(request.POST)
+            form = forms.CreateTeamsForm(team_count, request.POST)
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
-                league = get_best_league(player_data,
+                league = teamgen.get_best_league(player_data,
                                          season.boards,
                                          form.cleaned_data['balance'],
                                          form.cleaned_data['count'])
@@ -845,9 +838,8 @@ class SeasonAdmin(_BaseAdmin):
                 return redirect('admin:manage_players', object_id)
 
         else:
-            form = forms.CreateTeamsForm()
+            form = forms.CreateTeamsForm(team_count)
 
-        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
         context = {
             'opts': self.model._meta,
             'season': season,
@@ -868,7 +860,7 @@ class SeasonAdmin(_BaseAdmin):
     def team_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         league = season.league
-        teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        teams_locked = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         if request.method == 'POST':
             form = forms.EditRostersForm(request.POST)
@@ -1051,8 +1043,10 @@ class SeasonAdmin(_BaseAdmin):
                 purple_players.add(sp.player)
 
         expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
+        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
 
         context = {
+            'season_started': season_started,
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',

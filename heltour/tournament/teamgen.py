@@ -6,6 +6,9 @@ from heltour.tournament.team_rating_utils import variance, \
 
 from itertools import combinations
 from functools import partial
+from multiprocessing import Pool
+
+from django.conf import settings
 
 class Player:
     pref_score = 0
@@ -382,5 +385,22 @@ def reduce_variance(teams):
     # means = [team.get_mean() for team in teams]
     # print("means: ", sorted(means))
     return teams
+
+def make_league_map(args):
+    return make_league(*args)
+def reduce_variance_map(league):
+    league['teams'] = reduce_variance(league['teams'])
+
+def get_best_league(player_data, boards, balance, count):
+    pool = Pool(getattr(settings, 'TEAMGEN_PROCESSES_NUMBER', 1))
+    args = [(player_data, boards, balance) for _ in range(count)]
+    leagues = pool.map(make_league_map, args)
+    max_happiness = max([total_happiness(l['teams']) for l in leagues])
+    happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
+
+    pool.map(reduce_variance_map, happy_leagues)
+
+    min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
+    return min_range_league
 
 

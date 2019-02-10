@@ -1,14 +1,17 @@
-# NOTE: click is not a dependency of this project, you'll have to manually
-#       install it to run this file.
-import click
+import sys
+try:
+    import click
+except ImportError:
+    sys.exit("You have to manually install the 'click' package to run this file.")
+
 import json
-from heltour.tournament.create_teams import make_league, \
+from heltour.tournament.teamgen import make_league, \
         total_happiness, team_rating_range, team_rating_variance, reduce_variance
 
 from itertools import combinations
 from functools import partial
 
-class terminal:
+class Terminal:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -18,27 +21,27 @@ class terminal:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     def bold(txt):
-        return terminal.BOLD + txt + terminal.ENDC
+        return Terminal.BOLD + txt + Terminal.ENDC
     def green(txt):
-        return terminal.OKGREEN + txt + terminal.ENDC
+        return Terminal.OKGREEN + txt + Terminal.ENDC
     def blue(txt):
-        return terminal.OKBLUE + txt + terminal.ENDC
+        return Terminal.OKBLUE + txt + Terminal.ENDC
     def header(txt):
-        return terminal.HEADER + txt + terminal.ENDC
+        return Terminal.HEADER + txt + Terminal.ENDC
     def underline(txt):
-        return terminal.UNDERLINE + txt + terminal.ENDC
+        return Terminal.UNDERLINE + txt + Terminal.ENDC
     def smallheader(txt, wrap=None):
         if wrap:
-            wrap = lambda x: terminal.underline(wrap(x))
+            wrap = lambda x: Terminal.underline(wrap(x))
         else:
-            wrap = lambda x: terminal.underline(x)
-        terminal.smallcol(txt, wrap)
+            wrap = lambda x: Terminal.underline(x)
+        Terminal.smallcol(txt, wrap)
     def largeheader(txt, wrap=None):
         if wrap:
-            wrap = lambda x: terminal.underline(wrap(x))
+            wrap = lambda x: Terminal.underline(wrap(x))
         else:
-            wrap = lambda x: terminal.underline(x)
-        terminal.largecol(txt, wrap)
+            wrap = lambda x: Terminal.underline(x)
+        Terminal.largecol(txt, wrap)
     def smallcol(txt, wrap=None):
         if not wrap:
             wrap = lambda x: x
@@ -101,40 +104,40 @@ def generate_print_output(league):
         league['team_rating_bounds'], league['alt_rating_bounds'], league['alts_split']
     boards = len(teams[0].boards)
     num_teams = len(teams)
-    terminal.separator()
+    Terminal.separator()
 
     print("Team rating range: ", team_rating_range(teams))
     print("Team rating variance: ", team_rating_variance(teams))
     print("Total happiness: ", total_happiness(teams))
     print(f"Using: {len(players)} players and {len(alternates)} alternates")
-    print(terminal.green(f"Previous Season Alternates"))
-    print(terminal.blue(f"Requested Alternate"))
+    print(Terminal.green(f"Previous Season Alternates"))
+    print(Terminal.blue(f"Requested Alternate"))
     print("TEAMS")
-    terminal.smallheader("Team #")
+    Terminal.smallheader("Team #")
     for i in range(boards):
         n,x = team_rating_bounds[i]
-        terminal.largeheader(f"Board #{i+1} [{n},{x})")
-    terminal.largeheader("Mean rating")
+        Terminal.largeheader(f"Board #{i+1} [{n},{x})")
+    Terminal.largeheader("Mean rating")
     print()
     for team_i in range(num_teams):
-        terminal.smallcol(f"#{team_i+1}")
+        Terminal.smallcol(f"#{team_i+1}")
         for board_i in range(boards):
             team = teams[team_i]
             player = team.boards[board_i]
             short_name = player.name[:20]
             player_name = f"{short_name} ({player.rating})"
-            terminal.largecol(player_name, terminal.green if player.previous_season_alt else None)
-        terminal.largecol("{0:.2f}".format(team.get_mean()))
+            Terminal.largecol(player_name, Terminal.green if player.previous_season_alt else None)
+        Terminal.largecol("{0:.2f}".format(team.get_mean()))
         print()
     print()
     print("ALTERNATES")
-    terminal.smallheader(" ")
+    Terminal.smallheader(" ")
     for i in range(boards):
         n,x = alt_rating_bounds[i]
-        terminal.largeheader(f"Board #{i+1} [{n},{x})")
+        Terminal.largeheader(f"Board #{i+1} [{n},{x})")
     print()
     for player_i in range(max([len(a) for a in alts_split])):
-        terminal.smallcol(" ")
+        Terminal.smallcol(" ")
         for board_i in range(boards):
             board = alts_split[board_i]
             player_name = ""
@@ -143,7 +146,7 @@ def generate_print_output(league):
                 short_name = player.name
                 short_name = player.name[:20]
                 player_name = f"{short_name} ({player.rating})"
-            terminal.largecol(player_name, terminal.blue if player.alt else None)
+            Terminal.largecol(player_name, Terminal.blue if player.alt else None)
         print()
 
 if __name__ == "__main__":
