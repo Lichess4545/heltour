@@ -1,8 +1,11 @@
-# NOTE: click is not a dependency of this project, you'll have to manually
-#       install it to run this file.
-import click
+import sys
+try:
+    import click2
+except ImportError:
+    sys.exit("""You have to manually click to run this file.""")
+
 import json
-from heltour.tournament.create_teams import make_league, \
+from heltour.tournament.teamgen import make_league, \
         total_happiness, team_rating_range, team_rating_variance, reduce_variance
 
 from itertools import combinations

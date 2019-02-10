@@ -31,7 +31,7 @@ from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament.create_teams import make_league, total_happiness, reduce_variance
+from heltour.tournament.teamgen import make_league, total_happiness, reduce_variance
 import time
 
 # Customize which sections are visible
