@@ -991,7 +991,6 @@ class SeasonAdmin(_BaseAdmin):
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
-        last_season = Season.objects.filter(league=league, start_date__lt=season.start_date).order_by('-start_date').first()
         old_alternates = season.last_season_alternates()
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
