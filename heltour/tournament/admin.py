@@ -812,11 +812,11 @@ class SeasonAdmin(_BaseAdmin):
                                              board_number=board_number)
 
         season = get_object_or_404(Season, pk=object_id)
-        season_started = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
+        if season_started:
+            return HttpResponse(status=400)
         team_count = Team.objects.filter(season=season).count()
         if request.method == 'POST':
-            if season_started:
-                return HttpResponse(status=400)
             form = forms.CreateTeamsForm(team_count, request.POST)
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
@@ -860,7 +860,7 @@ class SeasonAdmin(_BaseAdmin):
     def team_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         league = season.league
-        teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        teams_locked = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         if request.method == 'POST':
             form = forms.EditRostersForm(request.POST)

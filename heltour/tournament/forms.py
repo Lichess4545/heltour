@@ -375,4 +375,4 @@ class CreateTeamsForm(forms.Form):
     def __init__(self, team_count, *args, **kwargs):
         super(CreateTeamsForm, self).__init__(*args, **kwargs)
 
-        self.fields['confirm_create'].label = f'Yes, I\'m sure - {team_count} teams and and regenerate'
+        self.fields['confirm_create'].label = f"Yes, I'm sure. Delete {team_count} teams and regenerate"
