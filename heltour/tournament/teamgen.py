@@ -383,4 +383,15 @@ def reduce_variance(teams):
     # print("means: ", sorted(means))
     return teams
 
+def get_best_league(player_data, boards, balance, count):
+    leagues = [make_league(player_data, boards, balance) for _ in range(count)]
+    max_happiness = max([total_happiness(l['teams']) for l in leagues])
+    happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
+
+    for league in happy_leagues:
+        league['teams'] = reduce_variance(league['teams'])
+
+    min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
+    return min_range_league
+
 

@@ -31,7 +31,7 @@ from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament.teamgen import make_league, total_happiness, reduce_variance
+from heltour.tournament.teamgen import get_best_league
 import time
 
 # Customize which sections are visible
@@ -791,17 +791,6 @@ class SeasonAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
     def create_teams_view(self, request, object_id):
-        def get_best_league(player_data, boards, balance, count):
-            leagues = [make_league(player_data, boards, balance) for _ in range(count)]
-            max_happiness = max([total_happiness(l['teams']) for l in leagues])
-            happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
-
-            for league in happy_leagues:
-                league['teams'] = reduce_variance(league['teams'])
-
-            min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
-            return min_range_league
-
         def insert_teams(teams):
             for team_number, team in enumerate(teams, 1):
                 team_instance = Team.objects.create(season=season,
