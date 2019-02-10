@@ -273,6 +273,8 @@ CACHEOPS = {
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
 
+TEAMGEN_PROCESSES_NUMBER = 8
+
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
 SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
