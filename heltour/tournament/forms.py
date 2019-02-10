@@ -357,7 +357,7 @@ class MoveLateRegForm(forms.Form):
 
 class CreateTeamsForm(forms.Form):
     count = forms.IntegerField(min_value=1,
-                               initial=100,
+                               initial=20,
                                label="Count",
                                help_text='Number of iterations to run the algorithm looking '
                                          'for the "happiest" league')
