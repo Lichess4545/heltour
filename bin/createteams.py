@@ -2,7 +2,7 @@ import sys
 try:
     import click
 except ImportError:
-    sys.exit("You have to manually install click to run this file.")
+    sys.exit("You have to manually install the 'click' package to run this file.")
 
 import json
 from heltour.tournament.teamgen import make_league, \
