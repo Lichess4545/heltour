@@ -30,6 +30,8 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
+from heltour.tournament import teamgen
 import time
 
 # Customize which sections are visible
@@ -327,6 +329,9 @@ class SeasonAdmin(_BaseAdmin):
             url(r'^(?P<object_id>[0-9]+)/manage_players/$',
                 self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
+            url(r'^(?P<object_id>[0-9]+)/create_teams/$',
+                self.admin_site.admin_view(self.create_teams_view),
+                name='create_teams'),
             url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
                 self.admin_site.admin_view(self.player_info_view),
                 name='edit_rosters_player_info'),
@@ -724,27 +729,7 @@ class SeasonAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.change_season', season.league):
             raise PermissionDenied
 
-        season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'registration').nocache()
-        players = []
-        for sp in season_players:
-            info = {
-                'name': sp.player.lichess_username,
-                'rating': sp.player.rating_for(season.league),
-                'has_20_games': not sp.player.provisional_for(season.league),
-                'in_slack': bool(sp.player.slack_user_id),
-                'account_status': sp.player.account_status,
-                'date_created': (sp.registration.date_created if sp.registration else sp.date_created).isoformat(),
-                'friends': sp.registration.friends if sp.registration else None,
-                'avoid': sp.registration.avoid if sp.registration else None
-            }
-            reg = sp.registration
-            if reg is not None:
-                info.update({
-                    'prefers_alt': reg.alternate_preference == 'alternate',
-                    'previous_season_alternate': reg.previous_season_alternate,
-                })
-            players.append(info)
-
+        players = season.export_players()
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -805,6 +790,64 @@ class SeasonAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
+    def create_teams_view(self, request, object_id):
+        def insert_teams(teams):
+            for team_number, team in enumerate(teams, 1):
+                team_instance = Team.objects.create(season=season,
+                                                    number=team_number,
+                                                    name=f'Team {team_number}')
+                for board_number, board in enumerate(team.boards, 1):
+                    player = Player.objects.get(lichess_username=board.name)
+                    TeamMember.objects.create(team=team_instance,
+                                              player=player,
+                                              board_number=board_number)
+
+        def insert_alternates(alts_split):
+            for board_number, board in enumerate(alts_split, 1):
+                for player in board:
+                    season_player = (SeasonPlayer.objects
+                                     .get(season=season,
+                                          player__lichess_username__iexact=player.name))
+                    Alternate.objects.create(season_player=season_player,
+                                             board_number=board_number)
+
+        season = get_object_or_404(Season, pk=object_id)
+        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
+        if season_started:
+            return HttpResponse(status=400)
+        team_count = Team.objects.filter(season=season).count()
+        if request.method == 'POST':
+            form = forms.CreateTeamsForm(team_count, request.POST)
+            if form.is_valid():
+                player_data = [p for p in season.export_players() if p['date_created']]
+                league = teamgen.get_best_league(player_data,
+                                         season.boards,
+                                         form.cleaned_data['balance'],
+                                         form.cleaned_data['count'])
+
+                with reversion.create_revision():
+                    reversion.set_user(request.user)
+                    reversion.set_comment('Create teams')
+
+                    Team.objects.filter(season=season).delete()
+                    insert_teams(league['teams'])
+
+                    Alternate.objects.filter(season_player__season=season).delete()
+                    insert_alternates(league['alts_split'])
+
+                return redirect('admin:manage_players', object_id)
+
+        else:
+            form = forms.CreateTeamsForm(team_count)
+
+        context = {
+            'opts': self.model._meta,
+            'season': season,
+            'form': form,
+            'season_started': season_started
+        }
+        return render(request, 'tournament/admin/create_teams.html', context)
+
     def manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         if not request.user.has_perm('tournament.manage_players', season.league):
@@ -817,7 +860,7 @@ class SeasonAdmin(_BaseAdmin):
     def team_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         league = season.league
-        teams_locked = bool(Round.objects.filter(season=season, publish_pairings=True).count())
+        teams_locked = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         if request.method == 'POST':
             form = forms.EditRostersForm(request.POST)
@@ -896,8 +939,12 @@ class SeasonAdmin(_BaseAdmin):
                                 reversion.set_comment('Edit rosters - created alternate.')
 
                                 board_num = change['board_number']
-                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                                Alternate.objects.update_or_create(season_player=season_player, defaults={ 'board_number': board_num })
+                                season_player = (SeasonPlayer.objects
+                                                 .get(season=season,
+                                                      player__lichess_username__iexact=change['player_name']))
+                                (Alternate.objects
+                                 .update_or_create(season_player=season_player,
+                                                   defaults={ 'board_number': board_num }))
 
                         if change['action'] == 'delete-alternate':
                             with reversion.create_revision():
@@ -905,8 +952,12 @@ class SeasonAdmin(_BaseAdmin):
                                 reversion.set_comment('Edit rosters - deleted alternate.')
 
                                 board_num = change['board_number']
-                                season_player = SeasonPlayer.objects.get(season=season, player__lichess_username__iexact=change['player_name'])
-                                alt = Alternate.objects.filter(season_player=season_player, board_number=board_num).first()
+                                season_player = (SeasonPlayer.objects
+                                                 .get(season=season,
+                                                      player__lichess_username__iexact=change['player_name']))
+                                alt = (Alternate.objects
+                                       .filter(season_player=season_player, board_number=board_num)
+                                       .first())
                                 if alt is not None:
                                     alt.delete()
 
@@ -992,8 +1043,10 @@ class SeasonAdmin(_BaseAdmin):
                 purple_players.add(sp.player)
 
         expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
+        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         context = {
+            'season_started': season_started,
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
@@ -1013,7 +1066,13 @@ class SeasonAdmin(_BaseAdmin):
             'purple_players': purple_players,
             'expected_ratings': expected_ratings,
         }
-
+        if teams:
+            context.update({
+                'team_rating_variance': team_rating_variance(teams, False),
+                'team_rating_range': team_rating_range(teams, False),
+                'team_expected_rating_variance': team_rating_variance(teams, True),
+                'team_expected_rating_range': team_rating_range(teams, True),
+            })
         return render(request, 'tournament/admin/edit_rosters.html', context)
 
     def lone_manage_players_view(self, request, object_id):

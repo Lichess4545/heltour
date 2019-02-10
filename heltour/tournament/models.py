@@ -198,6 +198,38 @@ class Season(_BaseModel):
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
+    def export_players(self):
+        def extract(sp):
+            info = {
+                'name': sp.player.lichess_username,
+                'rating': sp.player.rating_for(self.league),
+                'has_20_games': not sp.player.provisional_for(self.league),
+                'in_slack': bool(sp.player.slack_user_id),
+                'account_status': sp.player.account_status,
+                'date_created': None,
+                'friends': None,
+                'avoid': None,
+                'prefers_alt': False,
+                'previous_season_alternate': False
+            }
+            reg = sp.registration
+            if reg is not None:
+                info.update({
+                    'date_created': reg.date_created.isoformat(),
+                    'peak_classical_rating': reg.peak_classical_rating,
+                    'friends': reg.friends,
+                    'avoid': reg.avoid,
+                    'prefers_alt': reg.alternate_preference == 'alternate',
+                    'previous_season_alternate': reg.previous_season_alternate,
+                })
+            return info
+
+        season_players = (self.seasonplayer_set
+                          .filter(is_active=True)
+                          .select_related('player', 'registration')
+                          .nocache())
+        return [extract(sp) for sp in season_players]
+
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
             raise ValidationError('Boards must be specified for a team season')
@@ -910,16 +942,22 @@ class Team(_BaseModel):
         team_members = self.teammember_set.all()
         return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
 
-    def average_rating(self):
+    def average_rating(self, expected_rating=False):
         n = 0
         total = 0.0
         for _, board in self.boards():
             if board is not None:
-                rating = board.player.rating_for(self.season.league)
+                if expected_rating:
+                    rating = board.expected_rating()
+                else:
+                    rating = board.player.rating_for(self.season.league)
                 if rating is not None:
                     n += 1
                     total += rating
         return total / n if n > 0 else None
+
+    def get_mean(self, expected_rating=False):
+        return self.average_rating(expected_rating)
 
     def captain(self):
         return self.teammember_set.filter(is_captain=True).first()
@@ -977,6 +1015,13 @@ class TeamMember(_BaseModel):
             if league is None:
                 league = self.team.season.league
             return self.player.rating_for(league)
+
+    def expected_rating(self):
+        try:
+            sp = SeasonPlayer.objects.get(season=self.team.season, player=self.player)
+            return sp.expected_rating(self.team.season.league)
+        except SeasonPlayer.DoesNotExist:
+            return None
 
     def save(self, *args, **kwargs):
         player_changed = self.pk is None or self.player_id != self.initial_player_id

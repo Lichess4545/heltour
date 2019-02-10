@@ -13,10 +13,12 @@ insert_final_newline = true
 [*.py]
 indent_style = space
 indent_size = 4
+max_line_length = 100
 
 # Tab indentation for html templates
 [*.html]
-indent_style = tab
+indent_style = space
+indent_size = 4
 
 # Indentation override for all JS under lib directory
 [lib/**.js]

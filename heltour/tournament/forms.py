@@ -228,17 +228,27 @@ class RoundTransitionForm(forms.Form):
         super(RoundTransitionForm, self).__init__(*args, **kwargs)
 
         if round_to_close is not None:
-            self.fields['complete_round'] = forms.BooleanField(initial=True, required=False, label='Set round %d as completed' % round_to_close.number)
-            self.fields['round_to_close'] = forms.IntegerField(initial=round_to_close.number, widget=forms.HiddenInput)
+            self.fields['complete_round'] = forms.BooleanField(initial=True,
+                                                               required=False,
+                                                               label='Set round %d as completed' % round_to_close.number)
+            self.fields['round_to_close'] = forms.IntegerField(initial=round_to_close.number,
+                                                               widget=forms.HiddenInput)
 
         if season_to_close is not None:
-            self.fields['complete_season'] = forms.BooleanField(initial=True, required=False, label='Set %s as completed' % season_to_close.name)
+            self.fields['complete_season'] = forms.BooleanField(initial=True,
+                                                                required=False,
+                                                                label='Set %s as completed' % season_to_close.name)
 
         if round_to_open is not None:
             if is_team_league:
-                self.fields['update_board_order'] = forms.BooleanField(initial=True, required=False, label='Update board order')
-            self.fields['generate_pairings'] = forms.BooleanField(initial=True, required=False, label='Generate pairings for round %d' % round_to_open.number)
-            self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number, widget=forms.HiddenInput)
+                self.fields['update_board_order'] = forms.BooleanField(initial=True,
+                                                                       required=False,
+                                                                       label='Update board order')
+            self.fields['generate_pairings'] = forms.BooleanField(initial=True,
+                                                                  required=False,
+                                                                  label='Generate pairings for round %d' % round_to_open.number)
+            self.fields['round_to_open'] = forms.IntegerField(initial=round_to_open.number,
+                                                              widget=forms.HiddenInput)
 
 class NominateForm(forms.Form):
     game_link = forms.URLField(required=False)
@@ -344,3 +354,25 @@ class MoveLateRegForm(forms.Form):
         reg = kwargs.pop('reg')
         super(MoveLateRegForm, self).__init__(*args, **kwargs)
         self.fields['prev_round'].initial = reg.round.number
+
+class CreateTeamsForm(forms.Form):
+    count = forms.IntegerField(min_value=1,
+                               initial=20,
+                               label="Count",
+                               help_text='Number of iterations to run the algorithm looking '
+                                         'for the "happiest" league')
+
+    balance = forms.FloatField(min_value=0,
+                               max_value=1,
+                               initial=0.8,
+                               label="Balance",
+                               help_text="Ratio of team members to alternates.  A value of 0.8 "
+                                         "means 20% will be made alternates")
+    confirm_create = forms.BooleanField()
+
+
+
+    def __init__(self, team_count, *args, **kwargs):
+        super(CreateTeamsForm, self).__init__(*args, **kwargs)
+
+        self.fields['confirm_create'].label = f"Yes, I'm sure. Delete {team_count} teams and regenerate"
