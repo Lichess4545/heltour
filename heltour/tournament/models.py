@@ -198,8 +198,15 @@ class Season(_BaseModel):
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
+    def last_season_alternates(self):
+        last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
+                                    .order_by('-start_date').first()
+        last_season_alts = Alternate.objects.filter(season_player__season=last_season) \
+                                            .select_related('season_player__player').nocache()
+        return {alt.season_player.player for alt in last_season_alts}
+
     def export_players(self):
-        def extract(sp):
+        def extract(sp, last_season_alts):
             info = {
                 'name': sp.player.lichess_username,
                 'rating': sp.player.rating_for(self.league),
@@ -210,7 +217,7 @@ class Season(_BaseModel):
                 'friends': None,
                 'avoid': None,
                 'prefers_alt': False,
-                'previous_season_alternate': False
+                'previous_season_alternate': sp.player in last_season_alts
             }
             reg = sp.registration
             if reg is not None:
@@ -220,7 +227,6 @@ class Season(_BaseModel):
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
-                    'previous_season_alternate': reg.previous_season_alternate,
                 })
             return info
 
@@ -228,7 +234,8 @@ class Season(_BaseModel):
                           .filter(is_active=True)
                           .select_related('player', 'registration')
                           .nocache())
-        return [extract(sp) for sp in season_players]
+        last_season_alts = self.last_season_alternates()
+        return [extract(sp, last_season_alts) for sp in season_players]
 
     def clean(self):
         if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
