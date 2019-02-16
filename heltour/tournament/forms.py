@@ -94,7 +94,7 @@ class RegistrationForm(forms.ModelForm):
         if league.competitor_type == 'team':
             self.fields['alternate_preference'] = forms.ChoiceField(required=True, choices=ALTERNATE_PREFERENCE_OPTIONS, widget=forms.RadioSelect,
                                                                     label=_('Are you interested in being an alternate or a full time player?'),
-                                                                    help_text=_('If you register late, you may start as an alternate anyway.'))
+                                                                    help_text=_('Players are put into teams on a first come first served basis, you may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 
