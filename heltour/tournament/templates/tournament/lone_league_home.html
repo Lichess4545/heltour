@@ -35,7 +35,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 		{% if intro_doc %}
 		{% include 'tournament/document_inline.html' with document=intro_doc.document %}
 		{% endif %}
-		{% if registration_season %}
+		{% if user|can_register:registration_season %}
 		<div class="well">
 			<div class="well-head">
 				<h3>Registration is open!</h3>
@@ -46,7 +46,13 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 		    	{% else %}
 				<p>{{ registration_season.section_group_name }} starts on {{ registration_season.start_date|date_or_q }}.</p>
 				{% endif %}
-				<a href="{% leagueurl 'register' league.tag None %}" class="btn btn-default">Register Now</a>
+				<a href="{% leagueurl 'register' league.tag None %}" class="btn btn-default">
+					{% if user|is_registered:registration_season %}
+					Change Registration
+					{% else %}
+					Register Now
+					{% endif %}
+				</a>
 			</div>
 		</div>
 		{% endif %}

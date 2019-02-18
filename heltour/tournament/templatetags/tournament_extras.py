@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
+from heltour.tournament.models import Player, Registration
 
 register = template.Library()
 
@@ -164,5 +165,13 @@ def minimum(lst):
     return min(lst)
 
 @register.filter
+def can_register(user, season):
+    return Registration.can_register(user, season)
+
+@register.filter
+def is_registered(user, season):
+    return Registration.is_registered(user, season)
+
 def concat(str1, str2):
     return str(str1) + str(str2)
+

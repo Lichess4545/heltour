@@ -1,6 +1,8 @@
 from django.test import TestCase
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
+from .test_models import create_reg
 
 # For now we just have sanity checks for the templates used
 # This could be enhanced by verifying the context data
@@ -133,8 +135,14 @@ class StatsTestCase(TestCase):
 class RegisterTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
+        User.objects.create_user('Player1', password='test')
+
+    def test_require_login(self):
+        response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
+        self.assertRedirects(response, reverse('by_league:login', args=['team']))
 
     def test_template(self):
+        self.client.login(username='Player1', password='test')
         response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_closed.html')
 
@@ -147,3 +155,35 @@ class RegisterTestCase(TestCase):
 
         response = self.client.get(reverse('by_league:by_season:registration_success', args=['team', 'team']))
         self.assertTemplateUsed(response, 'tournament/registration_success.html')
+
+    def test_register_text(self):
+        user = User.objects.first()
+        self.client.login(username='Player1', password='test')
+
+        for league in ['team', 'lone']:
+            response = self.client.get(reverse('by_league:league_home', args=[league]))
+            self.assertNotContains(response, 'Register')
+            self.assertNotContains(response, 'Change Registration')
+
+            season = Season.objects.get(tag=league)
+            season.registration_open = True
+            season.save()
+
+            response = self.client.get(reverse('by_league:league_home', args=[league]))
+            self.assertContains(response, 'Register')
+            self.assertNotContains(response, 'Change Registration')
+
+            registration = create_reg(season, user.username)
+            registration.classical_rating = 1600
+            registration.save()
+
+            response = self.client.get(reverse('by_league:league_home', args=[league]))
+            self.assertContains(response, 'Change Registration')
+            self.assertNotContains(response, 'Register')
+
+            registration.status = 'rejected'
+            registration.save()
+
+            response = self.client.get(reverse('by_league:league_home', args=[league]))
+            self.assertNotContains(response, 'Register')
+            self.assertNotContains(response, 'Change Registration')

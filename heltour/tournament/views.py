@@ -18,6 +18,7 @@ from django.views.generic import View
 from django.utils.text import slugify
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
@@ -71,9 +72,11 @@ class LeagueView(BaseView):
         self.extra_context = {}
 
     def render(self, template, context):
+        registration_season = Season.get_registration_season(self.league, self.season)
         context.update({
             'league': self.league,
             'season': self.season,
+            'registration_season': registration_season,
             'nav_tree': _get_nav_tree(self.league.tag, self.season.tag if self.season is not None else None),
             'other_leagues': League.objects.filter(is_active=True).order_by('display_order').exclude(pk=self.league.pk)
         })
@@ -189,7 +192,6 @@ class LeagueHomeView(LeagueView):
             return self.render('tournament/team_league_home.html', context)
 
         _, completed_seasons = _get_season_lists(self.league)
-        registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True)[:5], 1))
 
@@ -199,7 +201,6 @@ class LeagueHomeView(LeagueView):
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
-            'registration_season': registration_season,
             'other_leagues': other_leagues,
         }
         return self.render('tournament/team_league_home.html', context)
@@ -221,7 +222,6 @@ class LeagueHomeView(LeagueView):
             return self.render('tournament/lone_league_home.html', context)
 
         _, completed_seasons = _get_season_lists(self.league)
-        registration_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
 
         current_seasons = self.season.section_list()
         current_seasons_with_more = []
@@ -241,7 +241,6 @@ class LeagueHomeView(LeagueView):
             'rules_doc_tag': rules_doc_tag,
             'intro_doc': intro_doc,
             'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
-            'registration_season': registration_season,
             'other_leagues': other_leagues,
         }
         return self.render('tournament/lone_league_home.html', context)
@@ -615,40 +614,44 @@ class ICalPlayerView(BaseView, ICalMixin):
         pairings = player.pairings.exclude(scheduled_time=None)
         return self.ical_from_pairings_list(pairings, calendar_title, uid_component)
 
-class RegisterView(LeagueView):
+class RegisterView(LoginRequiredMixin, LeagueView):
+
     def view(self, post=False):
-        if self.season is not None and self.season.registration_open:
-            reg_season = self.season
-        else:
-            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
+        reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
-        if post:
-            form = RegistrationForm(self.request.POST, season=reg_season)
-            if form.is_valid():
-                with reversion.create_revision():
-                    reversion.set_comment('Submitted registration.')
-                    form.save()
-                # send registration received email
-                subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
-                msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
-                msg_html = render_to_string('tournament/emails/registration_received.html', {'reg': form.instance})
-                try:
-                    send_mail(
-                        subject,
-                        msg_plain,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [form.cleaned_data['email']],
-                        html_message=msg_html,
-                    )
-                except SMTPException:
-                    logger.exception('A confirmation email could not be sent.')
+        if not Registration.can_register(self.request.user, reg_season):
+            return redirect('by_league:league_home', self.league.tag)
 
-                self.request.session['reg_email'] = form.cleaned_data['email']
-                return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
-        else:
-            form = RegistrationForm(season=reg_season)
-            if self.request.user.is_authenticated():
+        with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
+            instance = Registration.get_latest_registration(self.request.user, reg_season)
+            if post:
+                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
+                if form.is_valid():
+                    with reversion.create_revision():
+                        reversion.set_comment('Submitted registration.')
+
+                        form.save()
+
+                    # send registration received email
+                    subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
+                    msg_plain = render_to_string('tournament/emails/registration_received.txt', {'reg': form.instance})
+                    msg_html = render_to_string('tournament/emails/registration_received.html', {'reg': form.instance})
+                    try:
+                        send_mail(
+                            subject,
+                            msg_plain,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [form.cleaned_data['email']],
+                            html_message=msg_html,
+                        )
+                    except SMTPException:
+                        logger.exception('A confirmation email could not be sent.')
+                    self.request.session['reg_email'] = form.cleaned_data['email']
+
+                    return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
+            else:
+                form = RegistrationForm(instance=instance, season=reg_season)
                 player = Player.get_or_create(self.request.user.username)
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
@@ -656,21 +659,18 @@ class RegisterView(LeagueView):
                 form.fields['has_played_20_games'].initial = not player.provisional_for(reg_season.league)
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
-        context = {
-            'form': form,
-            'registration_season': reg_season
-        }
-        return self.render('tournament/register.html', context)
+            context = {
+                'form': form,
+                'registration_season': reg_season
+            }
+            return self.render('tournament/register.html', context)
 
     def view_post(self):
         return self.view(post=True)
 
 class RegistrationSuccessView(SeasonView):
     def view(self):
-        if self.season is not None and self.season.registration_open:
-            reg_season = self.season
-        else:
-            reg_season = Season.objects.filter(league=self.league, registration_open=True).order_by('-start_date').first()
+        reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
