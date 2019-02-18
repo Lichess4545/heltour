@@ -1316,7 +1316,7 @@ class PlayerProfileView(LeagueView):
         other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
 
         season_player = SeasonPlayer.objects.filter(season=self.season, player=player).first()
-        
+
         def season_performance(season, isCurrentSeason=False):
             season_score = 0
             season_score_total = 0
@@ -1589,7 +1589,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
 
             # Add team members if the user is a captain
             team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
-            if team_member is not None and team_member.is_captain:
+            if team_member is not None and (team_member.is_captain or team_member.is_vice_captain):
                 team = team_member.team
                 for tm in team.teammember_set.order_by('board_number').select_related('player').nocache():
                     if tm.player not in player_list:
