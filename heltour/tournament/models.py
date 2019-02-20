@@ -84,6 +84,7 @@ RATING_TYPE_OPTIONS = (
     ('rapid', 'Rapid'),
     ('chess960', 'Chess 960'),
     ('blitz', 'Blitz'),
+    ('crazyhouse', 'Crazyhouse'),
 )
 COMPETITOR_TYPE_OPTIONS = (
     ('team', 'Team'),
@@ -102,6 +103,7 @@ class League(_BaseModel):
     theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
     display_order = models.PositiveIntegerField(default=0)
     time_control = models.CharField(max_length=32, blank=True)
+    games_per_round = models.PositiveIntegerField(default=1)
     rating_type = models.CharField(max_length=32, choices=RATING_TYPE_OPTIONS)
     competitor_type = models.CharField(max_length=32, choices=COMPETITOR_TYPE_OPTIONS)
     pairing_type = models.CharField(max_length=32, choices=PAIRING_TYPE_OPTIONS)
