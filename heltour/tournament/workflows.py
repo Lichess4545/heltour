@@ -73,7 +73,7 @@ class RoundTransitionWorkflow():
                     except pairinggen.PairingHasResultException:
                         msg_list.append(('Pairings with results can\'t be overwritten.', messages.ERROR))
                     except pairinggen.PairingGenerationException as e:
-                        msg_list.append(('Error generating pairings. %s' % e.message, messages.ERROR))
+                        msg_list.append(('Error generating pairings. %s' % e, messages.ERROR))
         return msg_list
 
     @property
