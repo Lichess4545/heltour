@@ -426,21 +426,21 @@ class ApproveRegistrationWorkflow():
                         reversion.set_comment('Approved registration.')
                         PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
 
-        if season.league.competitor_type == 'team':
-            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
-        elif season.league.rating_type == 'blitz':
-            # TODO: Make the email template a league setting
-            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html', {'reg': reg})
-        else:
-            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
 
         if send_confirm_email:
+            if season.league.competitor_type == 'team':
+                subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
+                msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
+                msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+            elif season.league.rating_type == 'blitz':
+                # TODO: Make the email template a league setting
+                subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt', {'reg': reg})
+                msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt', {'reg': reg})
+                msg_html = render_to_string('tournament/emails/blitz_registration_approved.html', {'reg': reg})
+            else:
+                subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
+                msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
+                msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
             try:
                 send_mail(
                     subject,
