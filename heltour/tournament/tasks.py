@@ -455,7 +455,7 @@ def create_team_channel(self, team_ids):
                 except slackapi.SlackError:
                     logger.exception('Could not invite %s to slack' % user_id)
                 time.sleep(1)
-        slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
+        slackapi.invite_to_group(group.id, settings.BOT_USER_ID)
         time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')

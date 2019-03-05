@@ -1225,6 +1225,7 @@ class UserDashboardView(LeagueView):
         context = {
             'player': player,
             'slack_linked': slack_linked,
+            'bot_name': settings.BOT_NAME,
             'slack_linked_just_now': slack_linked_just_now,
             'active_seasons_with_sp': active_seasons_with_sp,
             'last_season': last_season,

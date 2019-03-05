@@ -359,7 +359,7 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
         # Send a lichess message
         li_subject = 'Round %d - %s' % (round_.number, league.name)
         li_msg = 'A team needs an alternate for %s. Please check Slack for more information.\n' % round_str \
-               + 'https://lichess4545.slack.com/messages/@chesster/'
+               + f'https://lichess4545.slack.com/messages/@{settings.BOT_NAME}/'
         _lichess_message(league, _slack_user(player), li_subject, li_msg)
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
@@ -418,14 +418,14 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'self': white,
         'opponent': black,
         'color': 'white',
-        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % ('@chesster,' if use_mpim else '@', black)
+        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (f'@{settings.BOT_NAME},' if use_mpim else '@', black)
     }
     white_params.update(common_params)
     black_params = {
         'self': black,
         'opponent': white,
         'color': 'black',
-        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % ('@chesster,' if use_mpim else '@', white)
+        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (f'@{settings.BOT_NAME},' if use_mpim else '@', white)
     }
     black_params.update(common_params)
 
