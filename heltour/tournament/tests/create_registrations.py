@@ -1,25 +1,3 @@
-import os, sys
-
-proj_path = "/home/vagrant/heltour/heltour"
-# This is so Django knows where to find stuff.
-sys.path.append(proj_path)
-
-# This is so my local_settings.py gets loaded.
-os.chdir(proj_path)
-
-# This is so models get loaded.
-from django.core.wsgi import get_wsgi_application
-
-os.environ.setdefault("HELTOUR_ENV", "LIVE")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.settings")
-
-application = get_wsgi_application()
-
-
-from heltour.tournament.models import *
-from django.contrib.auth.models import User
-from heltour.tournament.tests.test_models import create_reg
-from heltour.tournament.workflows import ApproveRegistrationWorkflow
 from argparse import ArgumentParser
 from types import SimpleNamespace
 
@@ -63,6 +41,30 @@ if __name__ == '__main__':
 
     parser.add_argument('count', type=int, help='number of registrations to create')
     args = parser.parse_args()
+
+    # Now that cl args are validated we load the environment
+    import os, sys
+
+    proj_path = "/home/vagrant/heltour/heltour"
+    # This is so Django knows where to find stuff.
+    sys.path.append(proj_path)
+
+    # This is so my local_settings.py gets loaded.
+    os.chdir(proj_path)
+
+    # This is so models get loaded.
+    from django.core.wsgi import get_wsgi_application
+
+    os.environ.setdefault("HELTOUR_ENV", "LIVE")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.settings")
+
+    application = get_wsgi_application()
+
+
+    from heltour.tournament.models import *
+    from django.contrib.auth.models import User
+    from heltour.tournament.tests.test_models import create_reg
+    from heltour.tournament.workflows import ApproveRegistrationWorkflow
 
     if args.season_id:
         season = Season.objects.get(pk=args.season_id)
