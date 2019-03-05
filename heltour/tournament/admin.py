@@ -517,7 +517,10 @@ class SeasonAdmin(_BaseAdmin):
                 generate_pairings = 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number \
                                     and form.cleaned_data['generate_pairings']
 
-                msg_list = workflow.run(complete_round=complete_round, complete_season=complete_season, update_board_order=update_board_order, generate_pairings=generate_pairings)
+                msg_list = workflow.run(complete_round=complete_round,
+                        complete_season=complete_season,
+                        update_board_order=update_board_order,
+                        generate_pairings=generate_pairings)
 
                 for text, level in msg_list:
                     self.message_user(request, text, level)
