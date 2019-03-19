@@ -1991,6 +1991,11 @@ class SeasonPlayerAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/bulk_email.html', context)
 
 #-------------------------------------------------------------------------------
+@admin.register(Board)
+class BoardAdmin(admin.ModelAdmin):
+    list_filter = ('season__league', 'season__name')
+
+#-------------------------------------------------------------------------------
 @admin.register(LonePlayerScore)
 class LonePlayerScoreAdmin(_BaseAdmin):
     list_display = ('season_player', 'points', 'late_join_points')

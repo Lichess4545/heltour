@@ -208,6 +208,21 @@ class Season(_BaseModel):
         )
         ordering = ['league__name', '-name']
 
+    def games_on_board(self, board):
+        if self.board_set.exists():
+            board = self.board_set.get(board_number=board)
+            if board.games_per_round:
+                return board.games_per_round
+        else:
+            return self.league.games_per_round
+
+    def time_control(self, board):
+        if self.board_set.exists():
+            board = self.board_set.get(board_number=board)
+            if board.time_control:
+                return board.time_control
+        else:
+            return self.league.time_control
 
     def last_season_alternates(self):
         last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
@@ -571,6 +586,13 @@ class PerfRatingCalc():
 
     def debug(self):
         return '%.1f / %d [%s]' % (self._score, self._game_count, ', '.join((str(r) for r in self._opponent_ratings)))
+
+#-------------------------------------------------------------------------------
+class Board(_BaseModel):
+    season = models.ForeignKey(Season)
+    board_number = models.PositiveIntegerField()
+    games_per_round = models.PositiveIntegerField(blank=True, null=True)
+    time_control = models.CharField(max_length=255, blank=True)
 
 #-------------------------------------------------------------------------------
 class Round(_BaseModel):
@@ -1352,6 +1374,12 @@ class PlayerPairing(_BaseModel):
             return self.loneplayerpairing.round
         return None
 
+    def time_control(self):
+        return self.get_round().season.time_control(self.board_number)
+
+    def variant(self):
+        return self.get_round().season.league.rating_type
+
     def get_player_presence(self, player):
         presence = self.playerpresence_set.filter(player=player).first()
         if not presence:
@@ -1437,9 +1465,6 @@ def result_is_forfeit(result):
 class TeamPlayerPairing(PlayerPairing):
     team_pairing = models.ForeignKey(TeamPairing)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-
-    class Meta:
-        unique_together = ('team_pairing', 'board_number')
 
     def white_team(self):
         return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
@@ -2440,3 +2465,4 @@ class ModRequest(_BaseModel):
 
     def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
+
