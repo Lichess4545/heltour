@@ -70,8 +70,21 @@ class ScoreField(models.PositiveIntegerField):
 class _BaseModel(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    watch_fields = []
     class Meta:
         abstract = True
+
+    def __init__(self, *args, **kwargs):
+        super(_BaseModel, self).__init__(*args, **kwargs)
+        self.initials = {}
+        for field in self.watch_fields:
+            self.initials[field] = getattr(self, field)
+
+    def changed(self, field):
+        if self.initials[field] == getattr(self, field):
+            return False
+        return True
 
 THEME_OPTIONS = (
     ('blue', 'Blue'),
@@ -185,6 +198,8 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
 
+    watch_fields = ['rounds', 'round_duration', 'start_date', 'is_completed']
+
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
@@ -193,12 +208,6 @@ class Season(_BaseModel):
         )
         ordering = ['league__name', '-name']
 
-    def __init__(self, *args, **kwargs):
-        super(Season, self).__init__(*args, **kwargs)
-        self.initial_rounds = self.rounds
-        self.initial_round_duration = self.round_duration
-        self.initial_start_date = self.start_date
-        self.initial_is_completed = self.is_completed
 
     def last_season_alternates(self):
         last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
@@ -246,10 +255,11 @@ class Season(_BaseModel):
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
         new_obj = self.pk is None
-        rounds_changed = self.pk is None or self.rounds != self.initial_rounds
-        round_duration_changed = self.pk is None or self.round_duration != self.initial_round_duration
-        start_date_changed = self.pk is None or self.start_date != self.initial_start_date
-        is_completed_changed = self.pk is None or self.is_completed != self.initial_is_completed
+        print('rounds changed: ', self.changed('rounds'))
+        rounds_changed = self.pk is None or self.changed('rounds')
+        round_duration_changed = self.pk is None or self.changed('round_duration')
+        start_date_changed = self.pk is None or self.changed('start_date')
+        is_completed_changed = self.pk is None or self.changed('is_completed')
 
         if self.is_completed and self.registration_open:
             self.registration_open = False
@@ -1261,13 +1271,7 @@ class PlayerPairing(_BaseModel):
 
     tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
 
-    def __init__(self, *args, **kwargs):
-        super(PlayerPairing, self).__init__(*args, **kwargs)
-        self.initial_result = '' if self.pk is None else self.result
-        self.initial_white_id = None if self.pk is None else self.white_id
-        self.initial_black_id = None if self.pk is None else self.black_id
-        self.initial_game_link = '' if self.pk is None else self.game_link
-        self.initial_scheduled_time = None if self.pk is None else self.scheduled_time
+    watch_fields = ['game_link', 'result', 'white_id', 'black_id', 'scheduled_time']
 
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
@@ -1358,11 +1362,11 @@ class PlayerPairing(_BaseModel):
         return "%s - %s" % (self.white_display(), self.black_display())
 
     def save(self, *args, **kwargs):
-        result_changed = self.result != self.initial_result
-        white_changed = self.white_id != self.initial_white_id
-        black_changed = self.black_id != self.initial_black_id
-        game_link_changed = self.game_link != self.initial_game_link
-        scheduled_time_changed = self.scheduled_time != self.initial_scheduled_time
+        result_changed = self.changed('result')
+        white_changed = self.changed('white_id')
+        black_changed = self.changed('black_id')
+        game_link_changed = self.changed('game_link')
+        scheduled_time_changed = self.changed('scheduled_time')
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
