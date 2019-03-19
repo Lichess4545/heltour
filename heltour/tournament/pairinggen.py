@@ -40,6 +40,11 @@ def _generate_team_pairings(round_, overwrite=False):
 
         # Save the team pairings and create the individual pairings based on the team pairings
         board_count = round_.season.boards
+        def player_colors(board, game):
+            if (board + game) % 2 == 0:
+                return lambda p: (p[1], p[0])
+            return lambda p: p
+
         for team_pairing in team_pairings:
             with reversion.create_revision():
                 reversion.set_comment('Generated pairings.')
@@ -47,14 +52,17 @@ def _generate_team_pairings(round_, overwrite=False):
 
             white_player_list = _get_player_list(team_pairing.white_team, round_, board_count)
             black_player_list = _get_player_list(team_pairing.black_team, round_, board_count)
-            for board_number in range(1, board_count + 1):
-                white_player = white_player_list[board_number - 1]
-                black_player = black_player_list[board_number - 1]
-                if board_number % 2 == 0:
-                    white_player, black_player = black_player, white_player
+
+            for board_number, pair in enumerate(zip(white_player_list, black_player_list), 1):
                 with reversion.create_revision():
                     reversion.set_comment('Generated pairings.')
-                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player)
+                    for game in range(round_.season.games_on_board(board_number)):
+                        white, black = player_colors(board_number, game)(pair)
+                        TeamPlayerPairing.objects.create(
+                                team_pairing=team_pairing,
+                                board_number=board_number,
+                                white=white,
+                                black=black)
 
 
 # Create a list of players playing for the team this round
