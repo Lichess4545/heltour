@@ -1,6 +1,9 @@
 DEBUG = True
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/vagrant/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/home/vagrant/heltour/slack-token.conf'
+LICHESS_CREDS_FILE_PATH = '/home/vagrant/heltour/.ignore/lichess.conf'
+LINK_PROTOCOL = 'http'
+SITE_ID = 1
 
 INTERNAL_IPS = ['127.0.0.1', '10.0.2.2']
 JAVAFO_COMMAND = 'java -jar /home/vagrant/heltour/javafo.jar'
