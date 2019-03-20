@@ -1027,6 +1027,9 @@ class Team(_BaseModel):
             return team_pairing.black_team
         return None
 
+    def has_member(self, player):
+        return self.teammember_set.filter(player=player).exists()
+
     @property
     def pairings(self):
         return self.pairings_as_white.all() | self.pairings_as_black.all()
@@ -1472,35 +1475,38 @@ class TeamPlayerPairing(PlayerPairing):
     def black_team(self):
         return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
 
+    def _reversed(self):
+        return self.team_pairing.white_team.has_member(self.black)
+
     def white_team_player(self):
-        return self.white if self.board_number % 2 == 1 else self.black
+        return self.white if not self._reversed() else self.black
 
     def black_team_player(self):
-        return self.black if self.board_number % 2 == 1 else self.white
+        return self.black if not self._reversed() else self.white
 
     def white_team_rating(self, league=None):
-        return self.white_rating_display(league) if self.board_number % 2 == 1 else self.black_rating_display(league)
+        return self.white_rating_display(league) if not self._reversed() else self.black_rating_display(league)
 
     def black_team_rating(self, league=None):
-        return self.black_rating_display(league) if self.board_number % 2 == 1 else self.white_rating_display(league)
+        return self.black_rating_display(league) if not self._reversed() else self.white_rating_display(league)
 
     def white_team_color(self):
-        return 'white' if self.board_number % 2 == 1 else 'black'
+        return 'white' if not self._reversed() else 'black'
 
     def black_team_color(self):
-        return 'black' if self.board_number % 2 == 1 else 'white'
+        return 'black' if not self._reversed() else 'white'
 
     def white_team_score(self):
-        return self.white_score() if self.board_number % 2 == 1 else self.black_score()
+        return self.white_score() if self._reversed() else self.black_score()
 
     def black_team_score(self):
-        return self.black_score() if self.board_number % 2 == 1 else self.white_score()
+        return self.black_score() if self._reversed() else self.white_score()
 
     def white_team_match_score(self):
-        return self.team_pairing.white_points if self.board_number % 2 == 1 else self.team_pairing.black_points
+        return self.team_pairing.white_points if not self._reversed() else self.team_pairing.black_points
 
     def black_team_match_score(self):
-        return self.team_pairing.black_points if self.board_number % 2 == 1 else self.team_pairing.white_points
+        return self.team_pairing.black_points if not self._reversed() else self.team_pairing.white_points
 
     def white_team_name(self):
         return "%s" % self.white_team().name
