@@ -753,7 +753,7 @@ class Player(_BaseModel):
     def rating_for(self, league):
         if league:
             if self.profile is None:
-                return None
+                return 1500
             return self.profile['perfs'].get(league.rating_type, {}).get('rating')
         return self.rating
 
@@ -2465,4 +2465,3 @@ class ModRequest(_BaseModel):
 
     def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
-
