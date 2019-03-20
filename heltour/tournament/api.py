@@ -47,11 +47,9 @@ def find_pairing(request):
     pairings = []
     for r in rounds:
         pairings += list(_get_pairings(r, player, white, black, scheduled))
+        pairings += list(_get_pairings(r, player, black, white, scheduled))
 
-    if len(pairings) == 0:
-        # Try alternate colors
-        for r in rounds:
-            pairings += list(_get_pairings(r, player, black, white, scheduled))
+    pairings = list(set(pairings))
 
     league = League.objects.filter(tag=league_tag).first()
     return JsonResponse({'pairings': [_export_pairing(p, league) for p in pairings]})
@@ -73,6 +71,9 @@ def _export_pairing(p, league):
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
+            'time_control': p.time_control(),
+            'variant': p.variant(),
+            'id': p.pk
         }
     else:
         return {
@@ -86,6 +87,9 @@ def _export_pairing(p, league):
             'game_link': p.game_link,
             'result': p.result,
             'datetime': p.scheduled_time,
+            'time_control': p.time_control(),
+            'variant': p.variant(),
+            'id': p.pk
         }
 
 @csrf_exempt
@@ -93,58 +97,37 @@ def _export_pairing(p, league):
 @require_api_token
 def update_pairing(request):
     try:
-        league_tag = request.POST.get('league', None)
-        season_tag = request.POST.get('season', None)
-        white = request.POST.get('white', None)
-        black = request.POST.get('black', None)
-        game_link = request.POST.get('game_link', None)
-        result = request.POST.get('result', None)
-        datetime = request.POST.get('datetime', None)
-        if datetime is not None:
-            datetime = parse_datetime(datetime)
+        body = json.loads(request.body)
     except ValueError:
         return HttpResponse('Bad request', status=400)
 
-    rounds = _get_active_rounds(league_tag, season_tag)
-    if len(rounds) == 0:
-        return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
-
-    pairings = []
-    for r in rounds:
-        pairings += _get_pairings(r, None, white, black)
-
-    reversed = False
-    if len(pairings) == 0:
-        # Try alternate colors
-        reversed = True
-        for r in rounds:
-            pairings += list(_get_pairings(r, None, black, white))
-
-    if len(pairings) == 0:
+    if body.get('date'):
+        body['scheduled_time'] = parse_datetime(body['date'])
+    try:
+        league = League.objects.get(tag=body['league'])
+    except League.DoesNotExist:
+        return JsonResponse({'updated': 0, 'error': 'league_not_found'})
+    if(league.competitor_type == 'team'):
+        pairingClass = TeamPlayerPairing
+    else:
+        pairingClass = LonePlayerPairing
+    pairings = pairingClass.objects.filter(pk__in=body['pairings'])
+    if not len(pairings):
         return JsonResponse({'updated': 0, 'error': 'not_found'})
-    if len(pairings) > 1:
-        return JsonResponse({'updated': 0, 'error': 'ambiguous'})
 
-    pairing = pairings[0]
-    initial_game_link = pairing.game_link
-    initial_result = pairing.result
-
-    if game_link is not None:
-        pairing.game_link = game_link
-    if result is not None:
-        pairing.result = result
-    if datetime is not None:
-        pairing.scheduled_time = datetime
-
+    updates = {k: v for k, v in body.items() if k in ['game_link', 'result', 'scheduled_time']}
     with reversion.create_revision():
         reversion.set_comment('API: update_pairing')
-        pairing.save()
+        pairings.update(**updates)
 
-    return JsonResponse({'updated': 1, 'reversed': reversed,
-                         'white': pairing.white.lichess_username,
-                         'black': pairing.black.lichess_username,
-                         'game_link_changed': initial_game_link != pairing.game_link,
-                         'result_changed': initial_result != pairing.result})
+    return JsonResponse(
+            {'updated': len(pairings),
+             'pairings': [{'white': {'id': pairing.white.slack_user_id, 'name': pairing.white.lichess_username},
+                           'black': {'id': pairing.black.slack_user_id, 'name': pairing.black.lichess_username},
+                           'time_control': pairing.time_control(),
+                           'game_link_changed': pairing.changed('game_link'),
+                           'result_changed': pairing.changed('result')}
+             for pairing in pairings]})
 
 def _get_active_rounds(league_tag, season_tag):
     rounds = Round.objects.filter(season__is_active=True, publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
