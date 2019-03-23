@@ -1,13 +1,3 @@
-html {
-	position: relative;
-	min-height: 100%;
-}
-
-body {
-	margin-bottom: 50px;
-	background-color: #f9f9f9;
-	font-family: 'Noto Sans', sans-serif;
-}
 
 #content {
 	max-width: 1600px;
@@ -616,102 +606,7 @@ div.inline {
 .u1600-winner .winners-name {
 	font-size: 15px;
 }
-
-#home-container {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	margin: 30px 0 80px 0;
-}
-
-#home-league-list {
-	max-width: 700px;
-}
-
-.league-home-container {
-	display: block;
-	border: 1px solid #666;
-	border-radius: 5px;
-	border-top: none;
-	margin: 10px 0 10px 0;
-	width: 321px;
-	color: #333;
-	background-color: white;
-}
-
-.league-home-container:hover,
-.league-home-container:active,
-.league-home-container:focus {
-	color: #333;
-	text-decoration: none;
-}
-
-.league-homelink {
-	display: block;
-	height: 50px;
-	width: 320px;
-	line-height: 50px;
-	color: white;
-	font-size: 18px;
-	margin: 0 0 10px 0;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-}
-
-.league-homelink:hover,
-.league-homelink:active,
-.league-homelink:focus {
-	color: white;
-}
-
-.league-homelink-blue {
-	padding-left: 59px;
-	background: url(/static/tournament/img/all-for-one.png);
-	background-position: 5px 0px;
-	background-repeat: no-repeat;
-	background-size: 50px 50px;
-	background-color: #245164;
-}
-
-.league-homelink-green {
-	padding-left: 59px;
-	background: url(/static/tournament/img/wolf-head.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #225622;
-}
-
-.league-homelink-red {
-	padding-left: 59px;
-	background: url(/static/tournament/img/power-lightning.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #562222;
-}
-
-.league-homelink-yellow {
-	padding-left: 59px;
-	background: url(/static/tournament/img/dice.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #c69501;
-	color: #FFFFFF;
-}
-
-.league-home-details {
-	text-align: center;
-	padding: 0 20px;
-}
-
-.league-link {
-	display: inline-block;
-}
-
+s
 .my-pairing {
 	height: 80px;
 	border: 1px solid #e3e3e3;

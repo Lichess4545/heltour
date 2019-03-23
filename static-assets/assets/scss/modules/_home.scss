@@ -1,0 +1,99 @@
+
+#home-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 30px 0 80px 0;
+}
+
+#home-league-list {
+    max-width: 700px;
+}
+
+.league-home-container {
+    display: block;
+    width: 321px;
+    margin: 15px 0;
+    color: #333;
+    background-color: white;
+    border: 1px solid #666;
+    border-top: none;
+    //border-radius: 5px;
+    transition: all .15s ease-in;
+    &:hover {
+        transform: scale(1.05);
+    }
+}
+
+.league-home-container:hover,
+.league-home-container:active,
+.league-home-container:focus {
+    color: #333;
+    text-decoration: none;
+}
+
+.league-homelink {
+    display: block;
+    width: 320px;
+    height: 50px;
+    margin: 0 0 10px 0;
+    font-size: $font-size-lg;
+    line-height: 50px;
+    color: white;
+    //border-top-left-radius: 5px;
+    //border-top-right-radius: 5px;
+}
+
+.league-homelink:hover,
+.league-homelink:active,
+.league-homelink:focus {
+    color: white;
+}
+
+.league-homelink-blue {
+    padding-left: 59px;
+    background: url(/static/tournament/img/all-for-one.png);
+    background-color: #245164;
+    background-repeat: no-repeat;
+    background-position: 5px 0;
+    background-size: 50px 50px;
+}
+
+.league-homelink-green {
+    padding-left: 59px;
+    background: url(/static/tournament/img/wolf-head.png);
+    background-color: #225622;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 48px 48px;
+}
+
+.league-homelink-red {
+    padding-left: 59px;
+    background: url(/static/tournament/img/power-lightning.png);
+    background-color: #562222;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 48px 48px;
+}
+
+.league-homelink-yellow {
+    padding-left: 59px;
+    color: #fff;
+    background: url(/static/tournament/img/dice.png);
+    background-color: #c69501;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 48px 48px;
+}
+
+.league-home-details {
+    padding: 0 20px;
+    text-align: center;
+}
+
+.league-link {
+    display: inline-block;
+}

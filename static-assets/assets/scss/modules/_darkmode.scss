@@ -1,0 +1,24 @@
+.dark {
+    background-color: $gray-800;
+    .league-home-container {
+        position: relative;
+        color: $gray-300;
+        background-color: $gray-900;
+        border-color: #222;
+        box-shadow: 0 1px 2px rgba(0,0,0,.3);
+        &::after {
+            position: absolute;
+            top: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+            content: '';
+            box-shadow: 0 5px 15px rgba(0,0,0,.4);
+            opacity: 0;
+            transition: opacity .3s ease-in-out;
+        }
+        &:hover::after {
+            opacity: 1;
+        }
+    }
+}

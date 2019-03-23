@@ -1,11 +1,10 @@
 //== Core CSS
 //## General
-body {
-    padding-top: 6rem;
+html {
+    position: relative;
+    min-height: 100%;
 }
-
-.video-fluid {
-    max-width: 100%;
-    height: auto;
-    margin: 5rem 0;
+body {
+    margin-bottom: 50px;
+    background-color: #f9f9f9;
 }
