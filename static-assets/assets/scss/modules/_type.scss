@@ -1,0 +1,54 @@
+//== Core CSS
+//## Type/Typography
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+h1 {
+    margin-bottom: 5rem;
+    text-align: center;
+
+    @include media-breakpoint-down(md) {
+        margin-bottom: 2rem;
+    }
+}
+.lead {
+    margin-bottom: 5rem;
+}
+
+//Mobile Type
+$font-size-mobile: $font-size-sm !default;
+
+@include media-breakpoint-down(md) {
+    body,
+    h1 {
+        font-size: $font-size-mobile;
+    }
+    .lead {
+        font-size: $font-size-base;
+    }
+}
+.page-404 {
+    padding: 5rem 0 10rem;
+    text-align: center;
+    a {
+        color: $primary;
+    }
+}
+.sticky-container {
+    position: relative;
+}
+.sticky {
+    position: -webkit-sticky; /* Safari */
+    position:         sticky;
+    top: 0;
+}
+p a {
+    //color: $gray-500;
+    text-decoration: underline;
+    transition: color .2s ease-in;
+    &:hover {
+        color: $gray-600;
+    }
+}

@@ -1,0 +1,54 @@
+.current,
+.past {
+    p {
+        text-align: center;
+    }
+}
+.past {
+    color: $gray-500;
+}
+.embed-responsive {
+    margin-bottom: 5rem;
+}
+.disco-box {
+    margin-bottom: 2rem;
+    transition: all .2s ease-in;
+
+    &:hover {
+        transform: perspective(400px) rotateX(.5deg) rotateY(1deg);
+    }
+}
+.disco-description {
+    text-align: center;
+}
+.av-box {
+    position: relative;
+    display: block;
+    margin-bottom: 5rem;
+    transition: all .2s ease-in;
+
+    &:hover {
+        color: $black;
+        transform: perspective(400px) rotateX(.5deg) rotateY(1deg);
+        .av-description {
+            opacity: 1;
+        }
+    }
+    .av-description {
+        position: absolute;
+        bottom: -50px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        transition: all .3s ease-in;
+
+        @include media-breakpoint-up(md) {
+            opacity: 0;
+        }
+    }
+}
+@include media-breakpoint-down(md) {
+    .js-shift {
+        margin-bottom: 2rem;
+    }
+}

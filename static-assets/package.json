@@ -1,0 +1,28 @@
+{
+  "name": "frontend-starter-kit",
+  "version": "0.0.3",
+  "description": "Frontend Starter Kit",
+  "author": "Samuel Beatty <sb@pom-pom.ch>",
+  "private": true,
+  "devDependencies": {
+    "grunt": "^1.0.3",
+    "grunt-autoprefixer": "^3.0.4",
+    "grunt-bootlint": "^0.10.2",
+    "grunt-contrib-clean": "^1.1.0",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-connect": "^1.0.2",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-csslint": "^2.0.0",
+    "grunt-contrib-cssmin": "^2.2.1",
+    "grunt-contrib-jshint": "^1.1.0",
+    "grunt-contrib-uglify": "^3.3.0",
+    "grunt-contrib-watch": "^1.1.0",
+    "grunt-csscomb": "^3.1.1",
+    "grunt-include-replace": "^5.0.0",
+    "grunt-jscs": "^3.0.1",
+    "grunt-notify": "^0.4.5",
+    "grunt-open": "^0.2.3",
+    "grunt-sass": "^2.1.0",
+    "time-grunt": "^1.4.0"
+  }
+}
