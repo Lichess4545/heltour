@@ -1497,10 +1497,10 @@ class TeamPlayerPairing(PlayerPairing):
         return 'black' if not self._reversed() else 'white'
 
     def white_team_score(self):
-        return self.white_score() if self._reversed() else self.black_score()
+        return self.white_score() if not self._reversed() else self.black_score()
 
     def black_team_score(self):
-        return self.black_score() if self._reversed() else self.white_score()
+        return self.black_score() if not self._reversed() else self.white_score()
 
     def white_team_match_score(self):
         return self.team_pairing.white_points if not self._reversed() else self.team_pairing.black_points
