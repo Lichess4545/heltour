@@ -13,6 +13,34 @@
         background-color: $gray-800;
         border-color: $gray-700;
     }
+    .navbar {
+        @include media-breakpoint-down(md) {
+            .navbar-nav {
+                .dropdown-menu {
+                    background-color: transparent;
+                    border-color: transparent;
+                }
+                .dropdown-divider {
+                    border-color: #353535;
+                }
+                > li > a:hover,
+                > li > a:focus,
+                .dropdown-item:focus,
+                .dropdown-item:hover {
+                    color: $white;
+                    background-color: transparent;
+                }
+            }
+        }
+        .navbar-toggler {
+            color: $navbar-dark-color;
+            border-color: $navbar-dark-toggler-border-color;
+        }
+
+        .navbar-toggler-icon {
+            background-image: $navbar-dark-toggler-icon-bg;
+        }
+    }
     .league-home-container {
         position: relative;
         color: $gray-300;
