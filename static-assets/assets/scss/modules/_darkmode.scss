@@ -66,15 +66,19 @@
         background-color: $gray-900;
         border-color: $black;
     }
-    .dropdown-divider {
-        border-color: #353535;
-    }
     .table {
         color: $gray-400;
     }
     .table thead th,
     .table td,
-    .table th {
+    .table th,
+    #table-rosters tbody tr td.cell-rating,
+    #table-rosters tbody tr td.cell-player,
+    .table-round-results > tbody > tr > td:first-child,
+    .table-round-results > tbody > tr > td:last-child,
+    .table-round-results > tbody > tr:last-child > td,
+    .dropdown-divider,
+    .my-pairing {
         border-color: $gray-800;
     }
     .cell-win {
@@ -82,7 +86,10 @@
     }
     .cell-tie,
     .player-unavailable {
-        background-color: #675f4b   ;
+        background-color: #675f4b;
+    }
+    .cell-cross {
+        background-color: #424956;
     }
     .cell-loss,
     .player-red-card {
@@ -129,6 +136,11 @@
     .header-row {
         background-color: $gray-800;
     }
+    .download-games img {
+        filter: invert(.8);
+    }
+
+
     //Dark Theming
     &.theme-blue {
         .well-head,
@@ -162,6 +174,20 @@
         .well-head,
         .navbar {
             background-color: #562222;
+        }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
+            &:hover {
+                background-color: $gray-700;
+            }
+        }
+    }
+    &.theme-yellow {
+        .well-head,
+        .navbar {
+            background-color: #c69501;
         }
         .btn-default {
             color: $gray-300;

@@ -25,3 +25,17 @@
 .input-xxlarge {
     max-width: 530px;
 }
+.checkbox label .toggle,
+.checkbox-inline .toggle {
+    margin: 0;
+}
+.btn-group-sm > .toggle-off.btn,
+.toggle-off.btn-sm {
+    padding-left: 9px;
+    line-height: 20px;
+}
+.btn-group-sm > .toggle-on.btn,
+.toggle-on.btn-sm {
+    padding-right: 9px;
+    line-height: 20px;
+}

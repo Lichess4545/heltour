@@ -5,8 +5,9 @@
     padding-right: 5px;
 }
 .navbar {
-    margin-bottom: 2rem;
-
+    @include media-breakpoint-up(md) {
+        margin-bottom: 2rem;
+    }
     @include media-breakpoint-down(md) {
         .navbar-nav {
             .nav-link {

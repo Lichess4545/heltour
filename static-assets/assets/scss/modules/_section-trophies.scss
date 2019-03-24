@@ -1,5 +1,9 @@
 .podium {
     text-align: center;
+
+    @include media-breakpoint-down(md) {
+        margin: 0 auto;
+    }
 }
 
 .winners-name {

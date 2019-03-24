@@ -14,13 +14,12 @@
 				<div class="dropdown round-switcher">
 				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 				        {{ league.name }}
-				        <span class="caret"></span>
 				    </button>
-				    <ul class="dropdown-menu">
+				    <div class="dropdown-menu">
 					    {% for l in other_leagues %}
-					    <li><a href="{% leagueurl 'notifications' l.tag %}">{{ l.name }}</a></li>
+					       <a class="dropdown-item" href="{% leagueurl 'notifications' l.tag %}">{{ l.name }}</a>
 					    {% endfor %}
-				    </ul>
+				    </div>
 				</div>
 				<p>Welcome, {{ player.lichess_username }}! Edit your notification settings here.</p>
 				<form action="" method="post">

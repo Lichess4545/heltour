@@ -27,40 +27,32 @@ setTimeout(function () {
 				<div class="dropdown inline round-switcher">
 					<button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 						Round {{ round_number }}
-						<span class="caret"></span>
 					</button>
-					<ul class="dropdown-menu">
+					<div class="dropdown-menu">
 						{% for n in round_number_list %}
-							<li>
-								{% if specified_team %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag n current_team.number %}">Round {{ n }}</a>
-								{% else %}<a href="{% leagueurl 'pairings_by_round' league.tag season.tag n %}">Round {{ n }}</a>
-								{% endif %}
-							</li>
+							{% if specified_team %}<a class="dropdown-item" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag n current_team.number %}">Round {{ n }}</a>
+							{% else %}<a class="dropdown-item" href="{% leagueurl 'pairings_by_round' league.tag season.tag n %}">Round {{ n }}</a>
+							{% endif %}
 						{% endfor %}
-					</ul>
+					</div>
 				</div>
 				{% endif %}
 				{% if team_list %}
 				<div class="dropdown inline round-switcher">
 					<button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 						{% if current_team %}{{ current_team.name }}{% else %}All Teams{% endif %}
-						<span class="caret"></span>
 					</button>
-					<ul class="dropdown-menu">
-						<li>
-							{% if specified_round %}<a href="{% leagueurl 'pairings_by_round' league.tag season.tag round_number %}">All Teams</a>
-							{% else %}<a href="{% leagueurl 'pairings' league.tag season.tag %}">All Teams</a>
+					<div class="dropdown-menu">
+							{% if specified_round %}<a class="dropdown-item" href="{% leagueurl 'pairings_by_round' league.tag season.tag round_number %}">All Teams</a>
+							{% else %}<a class="dropdown-item" href="{% leagueurl 'pairings' league.tag season.tag %}">All Teams</a>
 							{% endif %}
-						</li>
-						<li role="separator" class="divider"></li>
+						<div role="separator" class="dropdown-divider"></div>
 						{% for team in team_list %}
-						<li>
-							{% if specified_round %}<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_number team.number %}">{{ team.name }}</a>
-							{% else %}<a href="{% leagueurl 'pairings_by_team' league.tag season.tag team.number %}">{{ team.name }}</a>
+							{% if specified_round %}<a class="dropdown-item" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_number team.number %}">{{ team.name }}</a>
+							{% else %}<a class="dropdown-item" href="{% leagueurl 'pairings_by_team' league.tag season.tag team.number %}">{{ team.name }}</a>
 							{% endif %}
-						</li>
 						{% endfor %}
-					</ul>
+					</div>
 				</div>
 				{% endif %}
 
@@ -92,15 +84,13 @@ setTimeout(function () {
 								<a class="dropdown-toggle" data-toggle="dropdown">
 									<span class="caret"></span>
 								</a>
-								<ul class="dropdown-menu dropdown-menu-right">
-									<li>
-										{% if current_team %}
-										<a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
-										{% else %}
-										<a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
-										{% endif %}
-									</li>
-								</ul>
+								<div class="dropdown-menu dropdown-menu-right">
+									{% if current_team %}
+									<a class="dropdown-item" href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
+									{% else %}
+									<a class="dropdown-item" href="webcal://{{ request.get_host }}{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
+									{% endif %}
+								</div>
 							</div>
 							{% endif %}
 						</th>{% if can_edit %}

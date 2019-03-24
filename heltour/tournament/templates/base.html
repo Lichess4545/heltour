@@ -49,7 +49,7 @@
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         {{ season.name }}
                     </a>
-                    <ul class="dropdown-menu">
+                    <div class="dropdown-menu">
                         <a class="dropdown-item" href="{% leagueurl 'season_landing' league.tag season.tag %}">Summary</a>
                         {% if league.competitor_type == 'team' %}
                         <a class="dropdown-item" href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a>
@@ -64,7 +64,7 @@
                         <a class="dropdown-item" href="{% leagueurl 'wallchart' league.tag season.tag %}">Wallchart</a>
                         <a class="dropdown-item" href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a>
                         {% endif %}
-                    </ul>
+                    </div>
                 </li>
                 {% endif %}
                 {% for item_text, item_url, item_children, append_separator in nav_tree %}
@@ -73,12 +73,12 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 {{ item_text }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <div class="dropdown-menu">
                                 {% for item_text, item_url, item_children, append_separator in item_children %}
                                     <a class="dropdown-item" href="{{ item_url }}">{{ item_text }}</a>
                                 {% if append_separator %}<div class="dropdown-divider"></div>{% endif %}
                                 {% endfor %}
-                            </ul>
+                            </div>
                         </li>
                     {% else %}
                         <li class="nav-item">
