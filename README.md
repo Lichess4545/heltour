@@ -23,10 +23,11 @@ These install instructions have been test on Arch and Ubuntu linux. Other OSes s
 # sass compilation / CSS
 The styles can be found in `/static-assets`
 Compilation works as follows:
-1. `cd static-assets`
-2. `npm install`
-3. `grunt`
-4. Optionally: Install https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en so the browser reloads automatically for each style change.
+1. `npm install -g grunt-cli` (only needed if grunt is not installed)
+2. `cd static-assets`
+3. `npm install` (only needed for the first time, to install the npm deps)
+4. `grunt`
+5. Optionally: Install https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en so the browser reloads automatically for each style change.
 
 # development
 Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
