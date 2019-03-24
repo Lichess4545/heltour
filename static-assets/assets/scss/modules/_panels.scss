@@ -21,10 +21,6 @@
 }
 .well-head h3 {
     font-size: $font-size-lg;
-
-    @include media-breakpoint-down(md) {
-        font-size: $font-size-base;
-    }
 }
 .well-body {
     padding: 15px;

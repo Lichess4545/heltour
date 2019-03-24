@@ -9217,6 +9217,156 @@ hr {
 .toggle-off.btn-xs {
   padding-left: 12px; }
 
+/*!
+ * Hamburgers
+ * @description Tasty CSS-animated hamburgers
+ * @author Jonathan Suh @jonsuh
+ * @site https://jonsuh.com/hamburgers
+ * @link https://github.com/jonsuh/hamburgers
+ */
+.hamburger {
+  padding: 5px 5px;
+  display: inline-block;
+  cursor: pointer;
+  -webkit-transition-property: opacity, -webkit-filter, opacity, filter;
+       -o-transition-property: opacity, filter;
+          transition-property: opacity, filter;
+  -webkit-transition-duration: 0.15s;
+       -o-transition-duration: 0.15s;
+          transition-duration: 0.15s;
+  -webkit-transition-timing-function: linear;
+       -o-transition-timing-function: linear;
+          transition-timing-function: linear;
+  font: inherit;
+  color: inherit;
+  text-transform: none;
+  background-color: transparent;
+  border: 0;
+  margin: 0;
+  overflow: visible; }
+  .hamburger:hover {
+    opacity: 0.7; }
+  .hamburger.is-active:hover {
+    opacity: 0.7; }
+  .hamburger.is-active .hamburger-inner,
+  .hamburger.is-active .hamburger-inner::before,
+  .hamburger.is-active .hamburger-inner::after {
+    background-color: #fff; }
+
+.hamburger-box {
+  width: 30px;
+  height: 20px;
+  display: inline-block;
+  position: relative; }
+
+.hamburger-inner {
+  display: block;
+  top: 50%;
+  margin-top: -1px; }
+  .hamburger-inner, .hamburger-inner::before, .hamburger-inner::after {
+    width: 30px;
+    height: 2px;
+    background-color: #fff;
+    border-radius: 0;
+    position: absolute;
+    -webkit-transition-property: -webkit-transform;
+         -o-transition-property: -o-transform;
+            transition-property: transform;
+    -webkit-transition-duration: 0.15s;
+         -o-transition-duration: 0.15s;
+            transition-duration: 0.15s;
+    -webkit-transition-timing-function: ease;
+         -o-transition-timing-function: ease;
+            transition-timing-function: ease; }
+  .hamburger-inner::before, .hamburger-inner::after {
+    content: "";
+    display: block; }
+  .hamburger-inner::before {
+    top: -9px; }
+  .hamburger-inner::after {
+    bottom: -9px; }
+
+/*@import "types/3dx";
+@import "types/3dx-r";
+@import "types/3dy";
+@import "types/3dy-r";
+@import "types/3dxy";
+@import "types/3dxy-r";
+@import "types/arrow";
+@import "types/arrow-r";
+@import "types/arrowalt";
+@import "types/arrowalt-r";
+@import "types/arrowturn";
+@import "types/arrowturn-r";
+@import "types/boring";*/
+/*
+   * Collapse
+   */
+.hamburger--collapse .hamburger-inner {
+  top: auto;
+  bottom: 0;
+  -webkit-transition-duration: 0.13s;
+       -o-transition-duration: 0.13s;
+          transition-duration: 0.13s;
+  -webkit-transition-delay: 0.13s;
+       -o-transition-delay: 0.13s;
+          transition-delay: 0.13s;
+  -webkit-transition-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+       -o-transition-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+          transition-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19); }
+  .hamburger--collapse .hamburger-inner::after {
+    top: -18px;
+    -webkit-transition: top 0.2s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), opacity 0.1s linear;
+         -o-transition: top 0.2s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), opacity 0.1s linear;
+            transition: top 0.2s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), opacity 0.1s linear; }
+  .hamburger--collapse .hamburger-inner::before {
+    -webkit-transition: top 0.12s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), -webkit-transform 0.13s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+         -o-transition: top 0.12s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), -o-transform 0.13s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+            transition: top 0.12s 0.2s cubic-bezier(0.33333, 0.66667, 0.66667, 1), transform 0.13s cubic-bezier(0.55, 0.055, 0.675, 0.19); }
+
+.hamburger--collapse.is-active .hamburger-inner {
+  -webkit-transform: translate3d(0, -9px, 0) rotate(-45deg);
+          transform: translate3d(0, -9px, 0) rotate(-45deg);
+  -webkit-transition-delay: 0.22s;
+       -o-transition-delay: 0.22s;
+          transition-delay: 0.22s;
+  -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+       -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+          transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1); }
+  .hamburger--collapse.is-active .hamburger-inner::after {
+    top: 0;
+    opacity: 0;
+    -webkit-transition: top 0.2s cubic-bezier(0.33333, 0, 0.66667, 0.33333), opacity 0.1s 0.22s linear;
+         -o-transition: top 0.2s cubic-bezier(0.33333, 0, 0.66667, 0.33333), opacity 0.1s 0.22s linear;
+            transition: top 0.2s cubic-bezier(0.33333, 0, 0.66667, 0.33333), opacity 0.1s 0.22s linear; }
+  .hamburger--collapse.is-active .hamburger-inner::before {
+    top: 0;
+    -webkit-transform: rotate(-90deg);
+        -ms-transform: rotate(-90deg);
+         -o-transform: rotate(-90deg);
+            transform: rotate(-90deg);
+    -webkit-transition: top 0.1s 0.16s cubic-bezier(0.33333, 0, 0.66667, 0.33333), -webkit-transform 0.13s 0.25s cubic-bezier(0.215, 0.61, 0.355, 1);
+         -o-transition: top 0.1s 0.16s cubic-bezier(0.33333, 0, 0.66667, 0.33333), -o-transform 0.13s 0.25s cubic-bezier(0.215, 0.61, 0.355, 1);
+            transition: top 0.1s 0.16s cubic-bezier(0.33333, 0, 0.66667, 0.33333), transform 0.13s 0.25s cubic-bezier(0.215, 0.61, 0.355, 1); }
+
+/*
+@import "types/collapse-r";
+@import "types/elastic";
+@import "types/elastic-r";
+@import "types/emphatic";
+@import "types/emphatic-r";
+@import "types/minus";
+@import "types/slider";
+@import "types/slider-r";
+@import "types/spin";
+@import "types/spin-r";
+@import "types/spring";
+@import "types/spring-r";
+@import "types/stand";
+@import "types/stand-r";
+@import "types/squeeze";
+@import "types/vortex";
+@import "types/vortex-r";*/
 html {
   position: relative;
   min-height: 100%; }
@@ -9789,33 +9939,35 @@ h2 {
 .navbar-brand {
   padding-right: 5px; }
 
-@media (min-width: 768px) {
-  .navbar {
-    margin-bottom: 2rem; } }
-
-@media (max-width: 991.98px) {
-  .navbar .navbar-nav .nav-link {
-    padding-left: 10px; }
-  .navbar .navbar-nav .dropdown-menu {
-    background-color: transparent;
-    border-color: transparent; }
-  .navbar .navbar-nav .dropdown-divider {
-    border-color: #353535; }
-  .navbar .navbar-nav > li > a:hover,
-  .navbar .navbar-nav > li > a:focus,
-  .navbar .navbar-nav .dropdown-item:focus,
-  .navbar .navbar-nav .dropdown-item:hover {
+.navbar {
+  margin-bottom: 2px; }
+  @media (min-width: 768px) {
+    .navbar {
+      margin-bottom: 2rem; } }
+  @media (max-width: 991.98px) {
+    .navbar .navbar-nav .nav-link {
+      padding-left: 10px; }
+    .navbar .navbar-nav .dropdown-menu {
+      background-color: transparent;
+      border-color: transparent; }
+    .navbar .navbar-nav .dropdown-divider {
+      border-color: #353535; }
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus,
+    .navbar .navbar-nav .dropdown-item:focus,
+    .navbar .navbar-nav .dropdown-item:hover {
+      color: #fff;
+      background-color: transparent; }
+    .navbar .navbar-nav .dropdown-item {
+      color: #fff; } }
+  .navbar .navbar-toggler {
     color: #fff;
-    background-color: transparent; }
-  .navbar .navbar-nav .dropdown-item {
-    color: #fff; } }
+    border-color: transparent; }
+  .navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
 
-.navbar .navbar-toggler {
-  color: #fff;
-  border-color: transparent; }
-
-.navbar .navbar-toggler-icon {
-  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
+.hamburger:focus {
+  outline: none; }
 
 .well-body > h1:first-child,
 .document-content > h1:first-child,
@@ -9838,9 +9990,6 @@ h2 {
 
 .well-head h3 {
   font-size: 1.09375rem; }
-  @media (max-width: 991.98px) {
-    .well-head h3 {
-      font-size: 0.875rem; } }
 
 .well-body {
   padding: 15px;
