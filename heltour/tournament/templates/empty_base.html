@@ -14,26 +14,23 @@
     {% block common_css %}
     <!--<link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">-->
     <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
-    {% if league %}{% with "tournament/css/theme-"|add:league.theme|add:".css" as theme_css %}
-    <link href="{% static theme_css %}?v={{ static_version }}" rel="stylesheet">
-    {% endwith %}{% endif %}
     <link href="{% static "tournament/assets/css/style.min.css" %}?v={{ static_version }}" rel="stylesheet">
     {% endblock %}
     {% block css %}{% endblock %}
     {% block head_js %}{% endblock %}
 </head>
 
-<body class="dark">
+<body class="{% if league %}theme-{{league.theme}}{% endif %} dark">
     {% if STAGING %}
     <header style="background-color: #c00; height: 30px; text-align: center;">
       <div class="container-fluid">
-        <p style="color: #fff; margin: 5px 0;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
+        <p style="color: #fff; margin: 0 0 5px;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
       </div>
     </header>
     {% elif DEBUG %}
     <header style="background-color: #00c; height: 30px; text-align: center;">
       <div class="container-fluid">
-        <p style="color: #fff; margin: 5px 0;">DEBUG</p>
+        <p style="color: #fff; margin: 0 0 5px; padding-top: 5px;">DEBUG</p>
       </div>
     </header>
     {% endif %}

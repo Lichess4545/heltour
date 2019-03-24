@@ -1,2 +1,26 @@
 //== Core CSS
 //## Buttons
+
+.btn-primary {
+    color: #fff;
+    background: linear-gradient(#557f97, #355f77);
+}
+
+.btn-default {
+    color: #000;
+    background: linear-gradient(#f9f9f9, #d9d9d9);
+}
+
+.btn-default:hover,
+.btn-default:focus {
+    color: #000;
+}
+
+.btn-default {
+    min-width: 80px;
+    background: none;
+    background-color: $gray-200;
+    &:hover {
+        background-color: $gray-400;
+    }
+}

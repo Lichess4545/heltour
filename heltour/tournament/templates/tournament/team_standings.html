@@ -20,11 +20,11 @@
 							<tr>
 								<th></th>
 								<th>Team</th>
-								<th class="text-center visible-sm visible-xs">Match Pts</th>
-								<th class="text-center visible-sm visible-xs">Game Pts</th>
-								<th class="text-center hidden-sm hidden-xs">Average Rating</th>
-								<th class="text-center hidden-sm hidden-xs">Match Points</th>
-								<th class="text-center hidden-sm hidden-xs">Game Points (Tbk 1)</th>
+								<th class="text-center d-none d-sm-table-cell d-md-none">Match Pts</th>
+								<th class="text-center d-none d-sm-table-cell d-md-none">Game Pts</th>
+								<th class="text-center d-none d-md-table-cell">Average Rating</th>
+								<th class="text-center d-none d-md-table-cell">Match Points</th>
+								<th class="text-center d-none d-md-table-cell">Game Points (Tbk 1)</th>
 								{% for round_number in round_numbers %}
 								<th class="text-center">Round {{ round_number }}</th>
 								{% endfor %}
@@ -37,7 +37,7 @@
 								<td>
 									<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
 								</td>
-								<td class="text-center hidden-sm hidden-xs">{{ team_score.team.average_rating|floatformat:2 }}</td>
+								<td class="text-center d-none d-md-table-cell">{{ team_score.team.average_rating|floatformat:2 }}</td>
 								<td class="text-center">{{ team_score.match_points_display }}</td>
 								<td class="text-center">{{ team_score.game_points_display }}</td>
 								{% for score, opp_score, round_num in team_score.round_scores %}

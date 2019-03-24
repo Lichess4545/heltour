@@ -1,5 +1,18 @@
 .dark {
+    color: $gray-500;
     background-color: $gray-800;
+
+    a {
+        color: $gray-400;
+    }
+    p {
+        color: $gray-500;
+    }
+    .form-control {
+        color: $gray-400;
+        background-color: $gray-800;
+        border-color: $gray-700;
+    }
     .league-home-container {
         position: relative;
         color: $gray-300;
@@ -19,6 +32,110 @@
         }
         &:hover::after {
             opacity: 1;
+        }
+    }
+    .dropdown-menu {
+        background-color: $gray-900;
+        border-color: $black;
+    }
+    .table {
+        color: $gray-400;
+    }
+    .table thead th,
+    .table td,
+    .table th {
+        border-color: $gray-800;
+    }
+    .cell-win {
+        background-color: #506b5e;
+    }
+    .cell-tie,
+    .player-unavailable {
+        background-color: #675f4b   ;
+    }
+    .cell-loss,
+    .player-red-card {
+        background-color: #5d231e;
+    }
+    .player-yellow-card {
+        background-color: #6f6d2b;
+    }
+    .player-scheduled {
+        background-color: #514d67;
+    }
+    .player-gold {
+        background-color: #82773c;
+    }
+    .player-silver {
+        background-color: #7b7b7b;
+    }
+    .player-bronze {
+        background-color: #8a5622;
+    }
+    .player-blue {
+        background-color: #34546f;
+    }
+    .legend-swatch {
+        border-color: $black;
+    }
+    .well-body {
+        //padding: 15px 0;
+        background-color: $gray-900;
+        .table {
+            background-color: $gray-900;
+        }
+    }
+    .btn-default {
+        color: $gray-300;
+        background-color: $gray-600;
+        &:hover {
+            background-color: $gray-700;
+        }
+    }
+    .footer {
+        background-color: $black;
+    }
+    //Dark Theming
+    &.theme-blue {
+        .well-head,
+        .navbar {
+            background-color: #132e3a;
+        }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
+            &:hover {
+                background-color: $gray-700;
+            }
+        }
+    }
+    &.theme-green {
+        .well-head,
+        .navbar {
+            background-color: #1c401c;
+        }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
+            &:hover {
+                background-color: $gray-700;
+            }
+        }
+    }
+    &.theme-red {
+        .well-head,
+        .navbar {
+            background-color: #562222;
+        }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
+            &:hover {
+                background-color: $gray-700;
+            }
         }
     }
 }

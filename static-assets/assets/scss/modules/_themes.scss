@@ -1,0 +1,284 @@
+//BLUE
+.theme-blue {
+    .navbar {
+        background-color: #245164;
+    }
+    .navbar .navbar-brand {
+        padding-left: 59px;
+        background: url(/static/tournament/img/all-for-one.png);
+        background-repeat: no-repeat;
+        background-position: 5px 0;
+        background-size: 36px 36px;
+    }
+    .navbar .navbar-brand,
+    .navbar .navbar-brand:hover,
+    .navbar .navbar-brand:focus,
+    .navbar .navbar-nav > li > a {
+        color: #fff;
+    }
+    .navbar .navbar-nav > li.active > a,
+    .navbar .navbar-nav > .active > a:hover,
+    .navbar .navbar-nav > .active > a:focus,
+    .navbar .navbar-nav > .open > a,
+    .navbar .navbar-nav > .open > a:hover,
+    .navbar .navbar-nav > .open > a:focus {
+        color: #fff;
+        background-color: #557f97;
+    }
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus {
+        color: #fff;
+        background-color: #3c687d;
+    }
+    .navbar .navbar-nav .dropdown-menu {
+        border-color: #245164;
+    }
+    .navbar .navbar-toggle .icon-bar {
+        background-color: white;
+    }
+    .navbar .navbar-toggle:hover,
+    .navbar .navbar-toggle:focus {
+        background-color: #3c687d;
+    }
+    .well-head {
+        color: #fff;
+        background-color: #557f97;
+    }
+    .btn-primary {
+        color: #fff;
+        background: linear-gradient(#557f97, #355f77);
+    }
+    .btn-default {
+        color: #000;
+        background: linear-gradient(#f9f9f9, #d9d9d9);
+    }
+    .btn-default:hover,
+    .btn-default:focus {
+        color: #000;
+    }
+    @media (max-width: 767px) {
+        .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+        .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
+            color: #fff;
+            background-color: #3c687d;
+        }
+        .navbar .navbar-nav .open .dropdown-menu > li > a {
+            color: #fff;
+        }
+    }
+}
+//GREEN
+.theme-green {
+    .navbar {
+        background-color: #225622;
+    }
+    .navbar .navbar-brand {
+        padding-left: 59px;
+        background: url(/static/tournament/img/wolf-head.png);
+        background-repeat: no-repeat;
+        background-position: 6px 1px;
+        background-size: 36px 36px;
+    }
+    .navbar .navbar-brand,
+    .navbar .navbar-brand:hover,
+    .navbar .navbar-brand:focus,
+    .navbar .navbar-nav > li > a {
+        color: #fff;
+    }
+    .navbar .navbar-nav > li.active > a,
+    .navbar .navbar-nav > .active > a:hover,
+    .navbar .navbar-nav > .active > a:focus,
+    .navbar .navbar-nav > .open > a,
+    .navbar .navbar-nav > .open > a:hover,
+    .navbar .navbar-nav > .open > a:focus {
+        color: #fff;
+        background-color: #699486;
+    }
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus {
+        color: #fff;
+        background-color: #4d8358;
+    }
+    .navbar .navbar-nav .dropdown-menu {
+        border-color: #225622;
+    }
+    .navbar .navbar-toggle .icon-bar {
+        background-color: white;
+    }
+    .navbar .navbar-toggle:hover,
+    .navbar .navbar-toggle:focus {
+        background-color: #3da35d;
+    }
+    .well-head {
+        color: #fff;
+        background-color: #699486;
+    }
+    .btn-primary {
+        color: #fff;
+        background: linear-gradient(#699486, #225622);
+        border-color: #225622;
+    }
+    .btn-primary:active,
+    .btn-primary:hover,
+    .btn-primary:active:focus,
+    .btn-primary:active:hover {
+        background-color: #225622;
+    }
+    .btn-default {
+        color: #000;
+        background: linear-gradient(#f9f9f9, #d9d9d9);
+    }
+    .btn-default:hover,
+    .btn-default:focus {
+        color: #000;
+    }
+    @media (max-width: 767px) {
+        .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+        .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
+            color: #fff;
+            background-color: #4d8358;
+        }
+        .navbar .navbar-nav .open .dropdown-menu > li > a {
+            color: #fff;
+        }
+    }
+}
+//RED
+.theme-red {
+    .navbar {
+        background-color: #562222;
+    }
+    .navbar .navbar-brand {
+        padding-left: 59px;
+        background: url(/static/tournament/img/power-lightning.png);
+        background-repeat: no-repeat;
+        background-position: 6px 1px;
+        background-size: 36px 36px;
+    }
+    .navbar .navbar-brand,
+    .navbar .navbar-brand:hover,
+    .navbar .navbar-brand:focus,
+    .navbar .navbar-nav > li > a {
+        color: #fff;
+    }
+    .navbar .navbar-nav > li.active > a,
+    .navbar .navbar-nav > .active > a:hover,
+    .navbar .navbar-nav > .active > a:focus,
+    .navbar .navbar-nav > .open > a,
+    .navbar .navbar-nav > .open > a:hover,
+    .navbar .navbar-nav > .open > a:focus {
+        color: #fff;
+        background-color: #946976;
+    }
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus {
+        color: #fff;
+        background-color: #834d58;
+    }
+    .navbar .navbar-nav .dropdown-menu {
+        border-color: #562222;
+    }
+    .navbar .navbar-toggle .icon-bar {
+        background-color: white;
+    }
+    .navbar .navbar-toggle:hover,
+    .navbar .navbar-toggle:focus {
+        background-color: #a33d5d;
+    }
+    .well-head {
+        color: #fff;
+        background-color: #946976;
+    }
+    .btn-primary {
+        color: #fff;
+        background: linear-gradient(#694966, #562222);
+        border-color: #562222;
+    }
+    .btn-primary:active,
+    .btn-primary:hover,
+    .btn-primary:active:focus,
+    .btn-primary:active:hover {
+        background-color: #562222;
+    }
+    .btn-default {
+        color: #000;
+        background: linear-gradient(#f9f9f9, #d9d9d9);
+    }
+    .btn-default:hover,
+    .btn-default:focus {
+        color: #000;
+    }
+    @media (max-width: 767px) {
+        .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+        .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
+            color: #fff;
+            background-color: #834d58;
+        }
+    }
+}
+//YELLOW
+.theme-yellow {
+    .navbar {
+        background-color: #c69501;
+    }
+    .navbar .navbar-brand {
+        padding-left: 59px;
+        background: url(/static/tournament/img/dice.png);
+        background-repeat: no-repeat;
+        background-position: 5px 0;
+        background-size: 36px 36px;
+    }
+    .navbar .navbar-brand,
+    .navbar .navbar-brand:hover,
+    .navbar .navbar-brand:focus,
+    .navbar .navbar-nav > li > a {
+        color: #fff;
+    }
+    .navbar .navbar-nav > li.active > a,
+    .navbar .navbar-nav > .active > a:hover,
+    .navbar .navbar-nav > .active > a:focus,
+    .navbar .navbar-nav > .open > a,
+    .navbar .navbar-nav > .open > a:hover,
+    .navbar .navbar-nav > .open > a:focus {
+        color: #fff;
+        background-color: #f4c842;
+    }
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus {
+        color: #fff;
+        background-color: #f4c842;
+    }
+    .navbar .navbar-nav .dropdown-menu {
+        border-color: #c69501;
+    }
+    .navbar .navbar-toggle .icon-bar {
+        background-color: white;
+    }
+    .navbar .navbar-toggle:hover,
+    .navbar .navbar-toggle:focus {
+        background-color: #f4c842;
+    }
+    .well-head {
+        color: #fff;
+        background-color: #c69501;
+    }
+    .btn-primary {
+        color: #000;
+        background: linear-gradient(#f4c842, #dbad23);
+    }
+    .btn-default {
+        color: #000;
+        background: linear-gradient(#f9f9f9, #d9d9d9);
+    }
+    .btn-default:hover,
+    .btn-default:focus {
+        color: #fff;
+    }
+    @media (max-width: 767px) {
+        .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+        .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
+            color: #fff;
+            background-color: #f4c842;
+        }
+    }
+}

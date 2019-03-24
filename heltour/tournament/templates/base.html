@@ -31,7 +31,6 @@
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item dropdown">
@@ -88,8 +87,6 @@
                     {% endif %}
                 {% endfor %}
             </ul>
-
-
             <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
                 {% if user.is_staff %}
                 <li class="nav-item"><a class="nav-link" href="{% leagueurl 'league_dashboard' league.tag season.tag %}">
@@ -113,98 +110,8 @@
                 <li class="nav-item"><a class="nav-link" href="{% leagueurl 'login' league.tag None %}">Login</a></li>
                 {% endif %}
             </ul>
-
-
         </div>
     </nav>
-
-
-    <nav class="navbar navbar-default" style="display:none">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{% leagueurl 'league_home' league.tag None %}">{% if league %}{{ league.name }}{% else %}Home{% endif %}</a>
-        </div>
-
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav">
-            <li class="dropdown league-dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="visible-xs">Change League <span class="caret"></span></span><span class="caret hidden-xs"></span></a>
-                <ul class="dropdown-menu dropdown-menu-right">
-                    {% for other_league in other_leagues %}
-                    <li><a href="{% leagueurl 'league_home' other_league.tag None %}">{{ other_league.name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </li>
-            {% if season %}
-            <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ season.name }} <span class="caret"></span></a>
-                <ul class="dropdown-menu">
-                    <li><a href="{% leagueurl 'season_landing' league.tag season.tag %}">Summary</a></li>
-                    {% if league.competitor_type == 'team' %}
-                    <li><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
-                    <li><a href="{% leagueurl 'rosters' league.tag season.tag %}">Rosters</a></li>
-                    <li><a href="{% leagueurl 'alternates' league.tag season.tag %}">Alternates</a></li>
-                    <li><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
-                    <li><a href="{% leagueurl 'crosstable' league.tag season.tag %}">Crosstable</a></li>
-                    <li><a href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a></li>
-                    {% else %}
-                    <li><a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a></li>
-                    <li><a href="{% leagueurl 'standings' league.tag season.tag %}">Standings</a></li>
-                    <li><a href="{% leagueurl 'wallchart' league.tag season.tag %}">Wallchart</a></li>
-                    <li><a href="{% leagueurl 'stats' league.tag season.tag %}">Stats</a></li>
-                    {% endif %}
-                </ul>
-            </li>
-            {% endif %}
-            {% for item_text, item_url, item_children, append_separator in nav_tree %}
-            {% if item_children %}
-            <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ item_text }} <span class="caret"></span></a>
-                <ul class="dropdown-menu">
-                    {% for item_text, item_url, item_children, append_separator in item_children %}
-                    <li><a href="{{ item_url }}">{{ item_text }}</a></li>
-                    {% if append_separator %}<li class="divider"></li>{% endif %}
-                    {% endfor %}
-                </ul>
-            </li>
-            {% else %}
-            <li><a href="{{ item_url }}">{{ item_text }}</a></li>
-            {% endif %}
-            {% endfor %}
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-                {% if user.is_staff %}
-                <li><a href="{% leagueurl 'league_dashboard' league.tag season.tag %}">
-                        Dashboard
-                </a></li>
-                {% endif %}
-                {% if user|can_register:registration_season %}
-                <li><a href="{% leagueurl 'register' league.tag None %}">
-                {% if user|is_registered:registration_season %}
-                Change Registration
-                {% else %}
-                Register
-                {% endif %}
-                </a></li>
-                {% endif %}
-
-                {% if user.is_authenticated %}
-                <li><a href="{% leagueurl 'user_dashboard' league.tag None %}">{{ user.username }}</a></li>
-                {% else %}
-                {#<li><a href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=12900737025.79266279223&redirect_uri={{ request.scheme }}://{{ request.get_host }}{% url 'slack_auth' %}">Login</a></li>#}
-                <li><a href="{% leagueurl 'login' league.tag None %}">Login</a></li>
-                {% endif %}
-          </ul>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
-    </nav>
-
     <div class="container-fluid" id="content">
         {% block content %}{% endblock %}
     </div>
