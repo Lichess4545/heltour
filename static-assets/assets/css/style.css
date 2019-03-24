@@ -9886,15 +9886,31 @@ h2 {
 
 .league-home-container {
   display: block;
+  position: relative;
   width: 321px;
   margin: 15px 0;
   color: #333;
   background-color: white;
-  border: 1px solid #666;
-  border-top: none;
+  -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   -webkit-transition: all .15s ease-in;
        -o-transition: all .15s ease-in;
           transition: all .15s ease-in; }
+  .league-home-container::after {
+    position: absolute;
+    top: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    content: '';
+    -webkit-box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    -webkit-transition: opacity .3s ease-in-out;
+         -o-transition: opacity .3s ease-in-out;
+            transition: opacity .3s ease-in-out; }
+  .league-home-container:hover::after {
+    opacity: 1; }
   .league-home-container:hover {
     -webkit-transform: scale(1.05);
         -ms-transform: scale(1.05);
@@ -9909,7 +9925,7 @@ h2 {
 
 .league-homelink {
   display: block;
-  width: 320px;
+  width: 100%;
   height: 50px;
   margin: 0 0 10px 0;
   font-size: 1.09375rem;
@@ -9959,7 +9975,7 @@ h2 {
           background-size: 48px 48px; }
 
 .league-home-details {
-  padding: 0 20px;
+  padding: 10px 20px;
   text-align: center; }
 
 .league-link {
