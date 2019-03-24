@@ -9944,6 +9944,9 @@ h2 {
   @media (min-width: 768px) {
     .navbar {
       margin-bottom: 2rem; } }
+  @media (min-width: 992px) {
+    .navbar .hamburger-container {
+      display: none; } }
   @media (max-width: 991.98px) {
     .navbar .navbar-nav .nav-link {
       padding-left: 10px; }
@@ -9960,11 +9963,6 @@ h2 {
       background-color: transparent; }
     .navbar .navbar-nav .dropdown-item {
       color: #fff; } }
-  .navbar .navbar-toggler {
-    color: #fff;
-    border-color: transparent; }
-  .navbar .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
 
 .hamburger:focus {
   outline: none; }
@@ -10678,11 +10676,6 @@ h2 {
     .dark .navbar .navbar-nav .dropdown-item:hover {
       color: #fff;
       background-color: transparent; } }
-  .dark .navbar .navbar-toggler {
-    color: #fff;
-    border-color: transparent; }
-  .dark .navbar .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
   .dark .league-home-container {
     position: relative;
     color: #dee2e6;

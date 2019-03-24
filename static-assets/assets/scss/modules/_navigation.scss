@@ -10,6 +10,11 @@
     @include media-breakpoint-up(md) {
         margin-bottom: 2rem;
     }
+    @include media-breakpoint-up(lg) {
+        .hamburger-container {
+            display: none;
+        }
+    }
     @include media-breakpoint-down(md) {
         .navbar-nav {
             .nav-link {
@@ -33,13 +38,6 @@
                 color: $white;
             }
         }
-    }
-    .navbar-toggler {
-        color: $navbar-dark-color;
-        border-color: $navbar-dark-toggler-border-color;
-    }
-    .navbar-toggler-icon {
-        background-image: $navbar-dark-toggler-icon-bg;
     }
 }
 .hamburger:focus {
