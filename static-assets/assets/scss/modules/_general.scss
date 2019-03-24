@@ -8,3 +8,24 @@ body {
     margin-bottom: 50px;
     background-color: #f9f9f9;
 }
+#content {
+    max-width: 1600px;
+    margin-left: 0;
+}
+.top-space {
+    margin-top: 15px;
+}
+.bottom-space {
+    margin-bottom: 10px;
+}
+div.inline {
+    display: inline-block;
+}
+
+.round-switcher {
+    position: relative;
+    top: -6px;
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}

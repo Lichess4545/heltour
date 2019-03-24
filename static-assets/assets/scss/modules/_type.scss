@@ -5,3 +5,20 @@ img {
     max-width: 100%;
     height: auto;
 }
+h2 {
+    font-size: $font-size-lg;
+}
+.team-link,
+.team-link:hover,
+.team-link:active,
+.team-link:focus,
+.player-link,
+.player-link:hover,
+.player-link:active,
+.player-link:focus,
+.board-link,
+.board-link:hover,
+.board-link:active,
+.board-link:focus {
+    color: inherit;
+}

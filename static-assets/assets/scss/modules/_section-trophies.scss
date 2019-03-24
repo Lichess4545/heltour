@@ -1,0 +1,144 @@
+.podium {
+    text-align: center;
+}
+
+.winners-name {
+    margin-top: 10px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #666;
+}
+
+.winners-team-members {
+    padding: 0;
+    margin: 10px 0 0 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #666;
+    list-style: none;
+}
+
+.podium .second-place,
+.podium .third-place,
+.podium .u1600-winner {
+    margin-top: 20px;
+}
+
+.second-place .winners-trophy img {
+    height: 85px;
+}
+
+.second-place .winners-name {
+    font-size: 16px;
+}
+
+.second-place .winners-team-members {
+    font-size: 14px;
+}
+
+.third-place .winners-trophy img {
+    height: 65px;
+}
+
+.third-place .winners-name {
+    font-size: 15px;
+}
+
+.third-place .winners-team-members {
+    font-size: 14px;
+}
+
+.u1600-winner .winners-trophy img {
+    height: 65px;
+}
+
+.u1600-winner .winners-name {
+    font-size: 15px;
+}
+
+.trophy {
+    display: inline-block;
+    margin: 5px;
+    text-align: center;
+}
+
+.trophy-image {
+    margin-right: auto;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: auto 100%;
+}
+
+.rank-1 {
+    width: 130px;
+    height: 100px;
+    background-image: url(/static/tournament/img/trophy-1.min.svg);
+}
+
+.rank-2 {
+    height: 70px;
+    background-image: url(/static/tournament/img/trophy-2.min.svg);
+}
+
+.rank-3 {
+    height: 50px;
+    background-image: url(/static/tournament/img/trophy-3.min.svg);
+}
+
+.blue-ribbon {
+    height: 50px;
+    background-image: url(/static/tournament/img/blue-ribbon.png);
+}
+
+@media (min-width: 768px) {
+    .podium {
+        display: flex;
+    }
+    .podium > div {
+        display: inline-block;
+        width: 33.33%;
+        margin: 0;
+    }
+    .podium .first-place {
+        margin-top: auto;
+
+        order: 2;
+    }
+    .lone-podium .first-place {
+        margin-bottom: -4px;
+    }
+    .podium .second-place {
+        margin-top: auto;
+
+        order: 1;
+    }
+    .podium .third-place {
+        margin-top: auto;
+
+        order: 3;
+    }
+    .podium .u1600-winner {
+        margin: auto -2% 0 -7%;
+
+        order: 4;
+    }
+    #home-container {
+        display: flex;
+
+        align-items: center;
+        justify-content: center;
+    }
+    .nav > .league-dropdown {
+        margin-right: 10px;
+        margin-left: 0;
+    }
+
+    .nav > .league-dropdown > a {
+        padding-right: 5px;
+        padding-left: 3px;
+    }
+
+    #table-team-pairings {
+        table-layout: fixed;
+    }
+}
