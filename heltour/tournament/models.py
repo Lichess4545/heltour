@@ -1202,20 +1202,12 @@ class TeamPairing(_BaseModel):
         self.white_wins = 0
         self.black_wins = 0
         for pairing in self.teamplayerpairing_set.all().nocache():
-            if pairing.board_number % 2 == 1:
-                self.white_points += pairing.white_score() or 0
-                self.black_points += pairing.black_score() or 0
-                if pairing.white_score() == 1:
-                    self.white_wins += 1
-                if pairing.black_score() == 1:
-                    self.black_wins += 1
-            else:
-                self.white_points += pairing.black_score() or 0
-                self.black_points += pairing.white_score() or 0
-                if pairing.black_score() == 1:
-                    self.white_wins += 1
-                if pairing.white_score() == 1:
-                    self.black_wins += 1
+            self.white_points += pairing.white_team_points()
+            self.black_points += pairing.black_team_points()
+            if pairing.white_team_score() == 1:
+                self.white_wins += 1
+            if pairing.black_team_score() == 1:
+                self.black_wins += 1
 
     def white_points_display(self):
         return "%g" % self.white_points
@@ -1501,6 +1493,12 @@ class TeamPlayerPairing(PlayerPairing):
 
     def black_team_score(self):
         return self.black_score() if not self._reversed() else self.white_score()
+
+    def white_team_points(self):
+        return self.white_team_score() or 0
+
+    def black_team_points(self):
+        return self.black_team_score() or 0
 
     def white_team_match_score(self):
         return self.team_pairing.white_points if not self._reversed() else self.team_pairing.black_points
