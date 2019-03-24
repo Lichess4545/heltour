@@ -9333,6 +9333,8 @@ img {
   .dark .dropdown-menu {
     background-color: #212529;
     border-color: #000; }
+  .dark .dropdown-divider {
+    border-color: #353535; }
   .dark .table {
     color: #ced4da; }
   .dark .table thead th,

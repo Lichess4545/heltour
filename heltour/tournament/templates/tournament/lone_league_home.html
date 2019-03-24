@@ -136,16 +136,15 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			</div>
 		    <div class="well-body">
 				<div class="dropdown">
-				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-				        Choose a Season
-				        <span class="caret"></span>
-				    </button>
-				    <ul class="dropdown-menu">
-					    {% for s in completed_seasons %}
-					    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
-					    {% endfor %}
-				    </ul>
-				</div>
+                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Choose a Season
+                    </button>
+                    <div class="dropdown-menu">
+                        {% for s in completed_seasons %}
+                            <a class="dropdown-item" href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
 			</div>
 		</div>
 		{% endif %}
