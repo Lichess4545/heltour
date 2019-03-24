@@ -9837,7 +9837,10 @@ h2 {
   background-color: #557f97; }
 
 .well-head h3 {
-  font-size: 18px; }
+  font-size: 1.09375rem; }
+  @media (max-width: 991.98px) {
+    .well-head h3 {
+      font-size: 0.875rem; } }
 
 .well-body {
   padding: 15px;
@@ -9885,8 +9888,8 @@ h2 {
   max-width: 700px; }
 
 .league-home-container {
-  display: block;
   position: relative;
+  display: block;
   width: 321px;
   margin: 15px 0;
   color: #333;
@@ -10503,6 +10506,9 @@ h2 {
 .dark {
   color: #adb5bd;
   background-color: #343a40; }
+  @media (max-width: 991.98px) {
+    .dark {
+      background-color: #212529; } }
   .dark a {
     color: #ced4da; }
   .dark p {
@@ -10553,6 +10559,9 @@ h2 {
   .dark .dropdown-menu {
     background-color: #212529;
     border-color: #000; }
+  .dark #table-team-pairings .captain,
+  .dark #table-team-pairings .color-dot {
+    color: inherit; }
   .dark .table {
     color: #ced4da; }
   .dark .table thead th,

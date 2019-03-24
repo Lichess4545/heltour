@@ -20,7 +20,11 @@
     background-color: #557f97;
 }
 .well-head h3 {
-    font-size: 18px;
+    font-size: $font-size-lg;
+
+    @include media-breakpoint-down(md) {
+        font-size: $font-size-base;
+    }
 }
 .well-body {
     padding: 15px;
