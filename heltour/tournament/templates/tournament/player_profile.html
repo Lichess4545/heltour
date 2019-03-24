@@ -91,15 +91,15 @@
 					<table>
 					{% for round_, pairing, status, team in history %}
 					<tr>
-						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
+						<td><span class="d-none d-sm-inline">Round {{ round_.number }}:</span><span class="d-inline d-sm-none">Rd {{ round_.number }}</span></td>
 						{% if pairing %}
 						<td>
 							{% if pairing.white == player %}
-							{{ pairing.white.lichess_username }} <span class="hidden-xs">({% white_rating pairing %})</span></span>
+							{{ pairing.white.lichess_username }} <span class="d-none d-sm-inline">({% white_rating pairing %})</span></span>
 							- {% if pairing.black %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }} ({% black_rating pairing %})</a>{% else %} ?{% endif %}
 							{% else %}
 							{% if pairing.white %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }} ({% white_rating pairing %})</a>{% else %} ?{% endif %}
-							- {{ pairing.black.lichess_username }} <span class="hidden-xs">({% black_rating pairing %})</span></span>
+							- {{ pairing.black.lichess_username }} <span class="d-none d-sm-inline">({% black_rating pairing %})</span></span>
 							{% endif %}
 						</td>
 						{% else %}
@@ -132,15 +132,15 @@
 					<table>
 					{% for round_, pairing, status, team in schedule %}
 					<tr>
-						<td><span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span></td>
+						<td><span class="d-none d-sm-inline">Round {{ round_.number }}:</span><span class="d-inline d-sm-none">Rd {{ round_.number }}</span></td>
 						{% if pairing %}
 						<td>
 							{% if pairing.white == player %}
-							{{ pairing.white.lichess_username }} <span class="hidden-xs">({% white_rating pairing %})</span></span>
+							{{ pairing.white.lichess_username }} <span class="d-none d-sm-inline">({% white_rating pairing %})</span></span>
 							- {% if pairing.black %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }} ({% black_rating pairing %})</a>{% else %} ?{% endif %}
 							{% else %}
 							{% if pairing.white %}<a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }} ({% white_rating pairing %})</a>{% else %} ?{% endif %}
-							- {{ pairing.black.lichess_username }} <span class="hidden-xs">({% black_rating pairing %})</span></span>
+							- {{ pairing.black.lichess_username }} <span class="d-none d-sm-inline">({% black_rating pairing %})</span></span>
 							{% endif %}
 						</td>
 						{% else %}

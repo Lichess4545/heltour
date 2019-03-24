@@ -113,9 +113,9 @@ setTimeout(function () {
 							<a class="download-games" href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}" target="_blank" rel="nofollow">
 								<img src="{% static "tournament/img/download-icon.svg" %}">
 							</a>
-							<span class="color-dot left hidden-xs"></span>
+							<span class="color-dot left d-none d-sm-inline"></span>
 							<a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
-								{{ pairing.white_team_player.lichess_username }}<span class="visible-xs"></span><span class="color-dot left visible-xs-inline"></span> ({% white_team_rating pairing %})
+								{{ pairing.white_team_player.lichess_username }}<span class="d-inline d-sm-none"></span><span class="color-dot left d-inline d-sm-none"></span> ({% white_team_rating pairing %})
 								{% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							{% if white_img %}
@@ -155,7 +155,7 @@ setTimeout(function () {
 							<img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg" title="{{ black_status }}" />
 							{% endif %}
 							<a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}" href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
-								{{ pairing.black_team_player.lichess_username }} <span class="visible-xs"></span> ({% black_team_rating pairing %})
+								{{ pairing.black_team_player.lichess_username }} <span class="d-inline d-sm-none"></span> ({% black_team_rating pairing %})
 								{% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
 							</a>
 							<span class="color-dot right"></span>
