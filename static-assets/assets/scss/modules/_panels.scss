@@ -1,0 +1,61 @@
+//== Components
+//## Panels
+.well-body > h1:first-child,
+.document-content > h1:first-child,
+.well-body > h2:first-child,
+.document-content > h2:first-child {
+    margin-top: 2px;
+}
+.well-body > :last-child,
+.well-body > :last-child > :last-child {
+    margin-bottom: 0;
+}
+.well {
+    padding: 0;
+    margin-bottom: 2rem;
+}
+.well-head {
+    padding: 3px 15px 3px 15px;
+    color: #fff;
+    background-color: #557f97;
+}
+.well-head h3 {
+    font-size: $font-size-lg;
+}
+.well-body {
+    padding: 15px;
+    background-color: #fff;
+}
+.well .table {
+    background-color: white;
+}
+.well h3 {
+    margin-top: 10px;
+}
+
+@media (max-width: 767px) {
+    .row-condensed-xs .well {
+        border-radius: 0;
+    }
+    .row-condensed-xs .well-body > .table-condensed-xs {
+        min-width: calc(100% + 30px);
+        margin-left: -15px;
+    }
+    .row-condensed-xs .well-body > .table-responsive {
+        min-width: calc(100% + 30px);
+        margin-left: -15px;
+    }
+}
+@media (max-width: 991px) {
+    .row-condensed-sm .well {
+        border-radius: 0;
+    }
+    .row-condensed-sm .well-body > .table-condensed-sm {
+        min-width: calc(100% + 30px);
+        margin-left: -15px;
+    }
+    .row-condensed-sm .well-body > .table-responsive {
+        min-width: calc(100% + 30px);
+        margin-left: -15px;
+    }
+}

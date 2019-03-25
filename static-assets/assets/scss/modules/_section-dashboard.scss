@@ -1,0 +1,68 @@
+.dashboard-season-action {
+    margin-bottom: 10px;
+}
+.dashboard-season-action a {
+    width: 170px;
+}
+.dashboard-note {
+    margin-left: 10px;
+    color: #666;
+}
+.my-pairing {
+    height: 80px;
+    border: 1px solid #e3e3e3;
+}
+
+.my-pairing .league-icon.blue {
+    width: 85px;
+    background: url(/static/tournament/img/all-for-one.png);
+    background-color: #245164;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 75px 75px;
+}
+
+.my-pairing .league-icon.green {
+    width: 85px;
+    background: url(/static/tournament/img/wolf-head.png);
+    background-color: #225622;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 75px 75px;
+}
+
+.my-pairing .league-icon.red {
+    width: 85px;
+    background: url(/static/tournament/img/power-lightning.png);
+    background-color: #562222;
+    background-repeat: no-repeat;
+    background-position: 6px 1px;
+    background-size: 75px 75px;
+}
+
+.my-pairing .league-icon.yellow {
+    width: 85px;
+    background: url(/static/tournament/img/dice.png);
+    background-color: #c69501;
+    background-repeat: no-repeat;
+    background-position: 5px 6px;
+    background-size: 75px 75px;
+}
+
+.my-pairing .details {
+    display: inline-block;
+    padding: 10px;
+}
+
+.my-pairing .round {
+    display: block;
+    font-weight: 600;
+}
+
+.my-pairing .players {
+    display: block;
+}
+
+.my-pairing .result {
+    float: right;
+}

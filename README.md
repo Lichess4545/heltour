@@ -20,6 +20,15 @@ These install instructions have been test on Arch and Ubuntu linux. Other OSes s
 6. `fab -R dev latestdb`
 8. `fab runserver`
 
+# sass compilation / CSS
+The styles can be found in `/static-assets`
+Compilation works as follows:
+1. `npm install -g grunt-cli` (only needed if grunt is not installed)
+2. `cd static-assets`
+3. `npm install` (only needed for the first time, to install the npm deps)
+4. `grunt`
+5. Optionally: Install https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en so the browser reloads automatically for each style change.
+
 # development
 Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
 

@@ -1,0 +1,59 @@
+//== Core CSS
+//## Buttons
+
+.btn-primary {
+    color: #fff;
+    background-color: #355f77;
+}
+.btn-default {
+    color: #000;
+    background-color: #d9d9d9;
+}
+.btn-default:hover,
+.btn-default:focus {
+    color: #000;
+}
+.btn-default {
+    min-width: 80px;
+    background: none;
+    background-color: $gray-200;
+    &:hover {
+        background-color: $gray-400;
+    }
+}
+.toggle-group .btn-default {
+    min-width: auto;
+}
+
+.btn-create {
+    min-width: 0;
+}
+.single-field-btn {
+    margin-top: -5px;
+}
+.delete-link {
+    width: 15px;
+    height: 15px;
+    margin-top: -3px;
+}
+.slack-icon-btn {
+    width: 18px;
+    height: 18px;
+    margin-top: -2px;
+    margin-left: -3px;
+}
+.slack-icon-plain {
+    width: 18px;
+    height: 18px;
+    margin-top: -3px;
+    margin-right: -4px;
+    margin-left: -3px;
+}
+.slack-icon-text {
+    width: 18px;
+    height: 18px;
+    margin-top: -2px;
+}
+.inline.show {
+    display: inline-block !important;
+}

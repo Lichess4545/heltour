@@ -1,0 +1,41 @@
+//== Core CSS
+//## Forms
+
+
+.input-mini {
+    max-width: 60px;
+}
+
+.input-small {
+    max-width: 90px;
+}
+
+.input-medium {
+    max-width: 150px;
+}
+
+.input-large {
+    max-width: 210px;
+}
+
+.input-xlarge {
+    max-width: 270px;
+}
+
+.input-xxlarge {
+    max-width: 530px;
+}
+.checkbox label .toggle,
+.checkbox-inline .toggle {
+    margin: 0;
+}
+.btn-group-sm > .toggle-off.btn,
+.toggle-off.btn-sm {
+    padding-left: 9px;
+    line-height: 20px;
+}
+.btn-group-sm > .toggle-on.btn,
+.toggle-on.btn-sm {
+    padding-right: 9px;
+    line-height: 20px;
+}

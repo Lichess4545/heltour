@@ -1,0 +1,45 @@
+//== Components
+//## Navigation
+
+.navbar-brand {
+    padding-right: 5px;
+}
+.navbar {
+    margin-bottom: 2px;
+
+    @include media-breakpoint-up(md) {
+        margin-bottom: 2rem;
+    }
+    @include media-breakpoint-up(lg) {
+        .hamburger-container {
+            display: none;
+        }
+    }
+    @include media-breakpoint-down(md) {
+        .navbar-nav {
+            .nav-link {
+                padding-left: 10px;
+            }
+            .dropdown-menu {
+                background-color: transparent;
+                border-color: transparent;
+            }
+            .dropdown-divider {
+                border-color: #353535;
+            }
+            > li > a:hover,
+            > li > a:focus,
+            .dropdown-item:focus,
+            .dropdown-item:hover {
+                color: $white;
+                background-color: transparent;
+            }
+            .dropdown-item {
+                color: $white;
+            }
+        }
+    }
+}
+.hamburger:focus {
+    outline: none;
+}
