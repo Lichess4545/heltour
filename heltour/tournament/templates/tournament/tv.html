@@ -27,7 +27,7 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 {% block js %}
 <script>
   setInterval(poll, 1000 * 30); // 30 seconds
-  
+
   $('#id_timezone').children('[value=local]').text('Local (UTC' + moment().format('Z') + ')');
   $('#filters select, #id_timezone').change(updateHash);
   $('#more-schedule').click(function() { schedule_max += schedule_page_size; poll(); });
@@ -53,9 +53,9 @@ var jsonUrl = '{% leagueurl 'tv_json' league.tag season.tag %}';
 			            <section>
 			                <div class="tv-game-menu dropdown">
 	            				<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></a>
-	            				<ul class="dropdown-menu dropdown-menu-right">
-					        		<li><a href="#" class="btn-flip-board">Flip Board</a></li>
-					            </ul>
+	            				<div class="dropdown-menu dropdown-menu-right">
+					        		<a class="dropdown-item" href="#" class="btn-flip-board">Flip Board</a>
+					            </div>
 			                </div>
 			                <div class="gameLabel top-label">
 			                	<div class="team-div" style="display:none">

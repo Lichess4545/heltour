@@ -12,30 +12,29 @@
 		    </div>
 		    <div class="well-body">
 		    	{% if can_view_dashboard %}
-				{% if current_season_list or completed_season_list %}
-				<div class="dropdown inline">
-				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-				        {% if season %}{{ season.name }}{% else %}Choose a Season{% endif %}
-				        <span class="caret"></span>
-				    </button>
-				    <ul class="dropdown-menu">
-				    	{% if current_season_list %}
-					    {% for s in current_season_list %}
-					    <li><a href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a></li>
-					    {% endfor %}
-					    <li role="separator" class="divider"></li>
-					    {% endif %}
-					    {% for s in completed_season_list %}
-					    <li><a href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a></li>
-					    {% endfor %}
-				    </ul>
-				</div>
-				{% endif %}
-				<div class="inline">
-					<a href="{% url 'admin:tournament_season_add' %}" class="btn btn-default">Create a Season</a>
-				</div>
+    				{% if current_season_list or completed_season_list %}
+        				<div class="dropdown inline">
+                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                {% if season %}{{ season.name }}{% else %}Choose a Season{% endif %}
+                            </button>
+                            <div class="dropdown-menu">
+                                {% if current_season_list %}
+                                    {% for s in current_season_list %}
+                                        <a class="dropdown-item" href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a>
+                                    {% endfor %}
+                                        <div class="dropdown-divider"></div>
+                                {% endif %}
+                                {% for s in completed_season_list %}
+                                    <a class="dropdown-item" href="{% leagueurl 'league_dashboard' league.tag s.tag %}">{{ s.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+    				{% endif %}
+    				<div class="inline">
+    					<a href="{% url 'admin:tournament_season_add' %}" class="btn btn-default">Create a Season</a>
+    				</div>
 				{% else %}
-				No permissions for this league's dashboard.
+				    No permissions for this league's dashboard.
 				{% endif %}
 			</div>
 		</div>

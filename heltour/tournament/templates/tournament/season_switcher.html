@@ -2,17 +2,16 @@
 <div class="dropdown">
     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
         {{ season.name }}
-        <span class="caret"></span>
     </button>
-    <ul class="dropdown-menu">
+    <div class="dropdown-menu">
     	{% if current_seasons %}
 	    {% for s in current_seasons %}
-	    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
+	    <a class="dropdown-item" href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a>
 	    {% endfor %}
-	    <li role="separator" class="divider"></li>
+	    <div role="separator" class="dropdown-separator"></div>
 	    {% endif %}
 	    {% for s in completed_seasons %}
-	    <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
+	    <a class="dropdown-item" href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a>
 	    {% endfor %}
-    </ul>
+    </div>
 </div>

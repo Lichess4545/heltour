@@ -1,5 +1,10 @@
 $ = $ || django.jQuery;
 $(function() {
+
+	$('[data-toggle="collapse"]').on('click', function() {
+		$('.hamburger').toggleClass('is-active');
+	});
+
 	$('.popup-link').click(function() {
 		var name = this.id;
 		var href = this.href;
@@ -7,7 +12,7 @@ $(function() {
 		win.focus();
 		return false;
 	})
-	
+
 	$('.large-popup-link').click(function() {
 		var name = this.id;
 		var href = this.href;
@@ -15,7 +20,7 @@ $(function() {
 		win.focus();
 		return false;
 	})
-	
+
 	function dismissRelatedObjectPopup(win, objId) {
         win.close();
         location.reload();
@@ -23,7 +28,7 @@ $(function() {
 	window.dismissAddRelatedObjectPopup = dismissRelatedObjectPopup;
 	window.dismissChangeRelatedObjectPopup = dismissRelatedObjectPopup;
 	window.dismissDeleteRelatedObjectPopup = dismissRelatedObjectPopup;
-	
+
 	$('time').each(function(i, el) {
 		var $el = $(el);
 		var date = moment($el.attr('datetime'));

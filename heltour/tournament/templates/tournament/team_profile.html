@@ -16,7 +16,7 @@
 					<table>
 					{% for n, team_member in team.boards %}
 					<tr>
-						<td><span class="hidden-xs">Board {{ n }}:</span><span class="visible-xs">Bd {{ n }}</span></td>
+						<td><span class="d-none d-sm-inline">Board {{ n }}:</span><span class="d-inline d-sm-none">Bd {{ n }}</span></td>
 						<td{% if team_member.is_captain %} class="captain"{% endif %}>
 							{% if team_member %}
 							<a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
@@ -67,7 +67,7 @@
 					<tr>
 						<td>
 							<a class="team-link" href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_.number team.number  %}">
-								<span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span>
+								<span class="d-none d-sm-inline">Round {{ round_.number }}:</span><span class="d-inline d-sm-none">Rd {{ round_.number }}</span>
 							</a>
 						</td>
 						<td>

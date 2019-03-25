@@ -14,15 +14,12 @@
 				<div class="dropdown inline round-switcher">
 				  <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
 				    Board {{ board_number }}
-				    <span class="caret"></span>
 				  </button>
-				  <ul class="dropdown-menu">
+				  <div class="dropdown-menu">
 				    {% for n in season.board_number_list %}
-				    <li>
-				    	<a href="{% leagueurl 'board_scores' league.tag season.tag n %}">Board {{ n }}</a>
-			    	</li>
+				    	<a class="dropdown-item" href="{% leagueurl 'board_scores' league.tag season.tag n %}">Board {{ n }}</a>
 				    {% endfor %}
-				  </ul>
+				  </div>
 				</div>
 				<p>"Score" includes all games on the selected board. "Perf rating" excludes forfeits.</p>
 				<div class="table-responsive">
