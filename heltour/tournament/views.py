@@ -130,7 +130,7 @@ class ICalMixin:
                 if not round_:
                     continue
                 league = round_.season.league
-            time_control_seconds = league.time_control_total()
+            time_control_seconds = pairing.time_control_total()
             if time_control_seconds:
                 game_duration = timedelta(seconds=time_control_seconds * 2)
             else:

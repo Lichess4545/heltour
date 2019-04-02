@@ -408,7 +408,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'round': round_.number,
         'season': season.name,
         'league': league.name,
-        'time_control': league.time_control,
+        'time_control': pairing.time_control(),
         'offset': _offset_str(offset),
         'contact_period': _offset_str(league.get_leaguesetting().contact_period),
         'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling',

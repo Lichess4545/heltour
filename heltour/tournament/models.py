@@ -86,6 +86,9 @@ class _BaseModel(models.Model):
             return False
         return True
 
+    def initial_value(self, field):
+        return self.initials[field]
+
 THEME_OPTIONS = (
     ('blue', 'Blue'),
     ('green', 'Green'),
@@ -1372,6 +1375,26 @@ class PlayerPairing(_BaseModel):
     def time_control(self):
         return self.get_round().season.time_control(self.board_number)
 
+    def time_control_initial(self):
+        parts = self.time_control().split('+')
+        if len(parts) != 2:
+            return None
+        return int(parts[0]) * 60
+
+    def time_control_increment(self):
+        parts = self.time_control().split('+')
+        if len(parts) != 2:
+            return None
+        return int(parts[1])
+
+    def time_control_total(self):
+        initial = self.time_control_initial()
+        increment = self.time_control_increment() or 0
+        if not initial:
+            return None
+        expected_moves = 60
+        return initial + increment * expected_moves
+
     def variant(self):
         return self.get_round().season.league.rating_type
 
@@ -1419,22 +1442,35 @@ class PlayerPairing(_BaseModel):
             if black_changed and lpp.round.is_completed:
                 lpp.black_rank = None
                 lpp.save()
-        if result_changed and (result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
+        if result_changed and (result_is_forfeit(self.result) or
+                result_is_forfeit(self.initial_value("result"))):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
 
         # Update scheduled notifications based on the scheduled time
         if scheduled_time_changed:
             league = self.get_round().season.league
             # Calling the save method triggers the logic to recreate notifications
-            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id, type='before_game_time', league=league)
+            white_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.white_id,
+                    type='before_game_time',
+                    league=league)
             white_setting.save()
-            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id, type='before_game_time', league=league)
+            black_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.black_id,
+                    type='before_game_time',
+                    league=league)
             black_setting.save()
-            if white_changed and self.initial_white_id:
-                old_white_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_white_id, type='before_game_time', league=league)
+            if white_changed and self.initial_value("white_id"):
+                old_white_setting = PlayerNotificationSetting.get_or_default(
+                        player_id=self.initial_value("white_id"),
+                        type='before_game_time',
+                        league=league)
                 old_white_setting.save()
-            if black_changed and self.initial_black_id:
-                old_black_setting = PlayerNotificationSetting.get_or_default(player_id=self.initial_black_id, type='before_game_time', league=league)
+            if black_changed and self.initial_value("black_id"):
+                old_black_setting = PlayerNotificationSetting.get_or_default(
+                        player_id=self.initial_value("black_id"),
+                        type='before_game_time',
+                        league=league)
                 old_black_setting.save()
 
     def delete(self, *args, **kwargs):
