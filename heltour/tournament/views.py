@@ -587,7 +587,7 @@ class ICalPairingsView(PairingsView, ICalMixin):
 
     def team_view(self, round_number=None, team_number=None):
         context = self.get_team_context(
-                                        self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff,
+                                        self.league.tag, self.season.tag, round_number, team_number,
                                         self.request.user.has_perm('tournament.change_pairing', self.league))
         calendar_title = ""
         if context['current_team']:
