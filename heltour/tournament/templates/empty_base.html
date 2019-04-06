@@ -19,7 +19,7 @@
     {% block head_js %}{% endblock %}
 </head>
 
-<body class="{% if league %}theme-{{ league.theme }}{% endif %}{% if player_setting.dark_mode %} dark{% endif %}">
+<body class="{% if league %}theme-{{ league.theme }}{% endif %}{% if dark_mode %} dark{% endif %}">
     {% if STAGING %}
     <header style="background-color: #c00; height: 30px; text-align: center;">
       <div class="container-fluid">

@@ -59,15 +59,20 @@ class BaseView(View):
         return render(self.request, template, context)
 
     def preprocess(self):
-        player_setting = None
+        self.dark_mode = False
         if self.request.user.is_authenticated():
             player_setting = PlayerSetting.objects \
                 .filter(player__lichess_username__iexact=self.request.user.username).first()
+            if player_setting:
+                self.dark_mode = player_setting.dark_mode
         else:
-            player_setting = {
-                'dark_mode': self.request.session.get('dark_mode', False)
-            }
-        self.extra_context['player_setting'] = player_setting
+            self.dark_mode = self.request.session.get('dark_mode', False)
+        self.extra_context['dark_mode'] = self.dark_mode
+        self.user_data = {
+            'username': self.request.user.username,
+            'is_staff': self.request.user.is_staff,
+            'dark_mode': self.dark_mode
+        }
 
 class LeagueView(BaseView):
     def read_context(self):
@@ -261,7 +266,7 @@ class SeasonLandingView(SeasonView):
 
     def team_view(self):
         @cached_as(SeasonDocument, Document, TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             if self.season.is_completed:
                 return self.team_completed_season_view()
 
@@ -289,11 +294,11 @@ class SeasonLandingView(SeasonView):
                 'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/team_season_landing.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
     def lone_view(self):
         @cached_as(SeasonDocument, Document, *common_lone_models)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             if self.season.is_completed:
                 return self.lone_completed_season_view()
 
@@ -321,7 +326,7 @@ class SeasonLandingView(SeasonView):
                 'can_edit_document': self.request.user.has_perm('tournament.change_document', self.league),
             }
             return self.render('tournament/lone_season_landing.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
     def team_completed_season_view(self):
         current_seasons, completed_seasons = _get_season_lists(self.league)
@@ -408,7 +413,7 @@ class PairingsView(SeasonView):
             else:
                 return ('yes', 'in contact')
 
-    def get_team_context(self, league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing):
+    def get_team_context(self, league_tag, season_tag, round_number, team_number, can_change_pairing):
         specified_round = round_number is not None
         round_number_list = [round_.number for round_ in Round.objects.filter(season=self.season, publish_pairings=True).order_by('-number')]
         if round_number is None:
@@ -479,11 +484,11 @@ class PairingsView(SeasonView):
     def team_view(self, round_number=None, team_number=None):
         @cached_as(TeamScore, TeamPairing, TeamMember, SeasonPlayer, AlternateAssignment, Player, PlayerAvailability, TeamPlayerPairing,
                    PlayerPairing, *common_team_models)
-        def _view(league_tag, season_tag, round_number, team_number, is_staff, username, can_change_pairing):
-            context = self.get_team_context(league_tag, season_tag, round_number, team_number, is_staff, can_change_pairing)
+        def _view(league_tag, season_tag, round_number, team_number, user_data, can_change_pairing):
+            context = self.get_team_context(league_tag, season_tag, round_number, team_number, can_change_pairing)
             return self.render('tournament/team_pairings.html', context)
         return _view(
-                     self.league.tag, self.season.tag, round_number, team_number, self.request.user.is_staff, self.request.user.username,
+                     self.league.tag, self.season.tag, round_number, team_number, self.user_data,
                      self.request.user.has_perm('tournament.change_pairing', self.league))
 
     def get_lone_context(self, round_number=None, team_number=None):
@@ -728,7 +733,7 @@ class ModRequestSuccessView(SeasonView):
 class RostersView(SeasonView):
     def view(self):
         @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket, Player, PlayerAvailability, *common_team_models)
-        def _view(league_tag, season_tag, is_staff, username, can_edit):
+        def _view(league_tag, season_tag, user_data, can_edit):
             if self.league.competitor_type != 'team':
                 raise Http404
             if self.season is None:
@@ -785,7 +790,7 @@ class RostersView(SeasonView):
                 'can_edit': can_edit,
             }
             return self.render('tournament/team_rosters.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username, self.request.user.has_perm('tournament.manage_players', self.league))
+        return _view(self.league.tag, self.season.tag, self.user_data, self.request.user.has_perm('tournament.manage_players', self.league))
 
 class StandingsView(SeasonView):
     def view(self, section=None):
@@ -796,7 +801,7 @@ class StandingsView(SeasonView):
 
     def team_view(self):
         @cached_as(TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             round_numbers = list(range(1, self.season.rounds + 1))
             team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
             context = {
@@ -804,11 +809,11 @@ class StandingsView(SeasonView):
                 'team_scores': team_scores,
             }
             return self.render('tournament/team_standings.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
     def lone_view(self, section=None):
         @cached_as(*common_lone_models)
-        def _view(league_tag, season_tag, section, is_staff, username):
+        def _view(league_tag, season_tag, section, user_data):
             round_numbers = list(range(1, self.season.rounds + 1))
             player_scores = _lone_player_scores(self.season)
 
@@ -842,7 +847,7 @@ class StandingsView(SeasonView):
                 'player_highlights': player_highlights,
             }
             return self.render('tournament/lone_standings.html', context)
-        return _view(self.league.tag, self.season.tag, section, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, section, self.user_data)
 
 def _get_player_highlights(prize_winners):
     return [
@@ -893,7 +898,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
 class CrosstableView(SeasonView):
     def view(self):
         @cached_as(TeamScore, TeamPairing, *common_team_models)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             if self.league.competitor_type != 'team':
                 raise Http404
             team_scores = list(enumerate(sorted(TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(), reverse=True), 1))
@@ -903,12 +908,12 @@ class CrosstableView(SeasonView):
                 'team_scores': team_scores,
             }
             return self.render('tournament/team_crosstable.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
 class WallchartView(SeasonView):
     def view(self):
         @cached_as(*common_lone_models)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             if self.league.competitor_type == 'team':
                 raise Http404
             round_numbers = list(range(1, self.season.rounds + 1))
@@ -926,7 +931,7 @@ class WallchartView(SeasonView):
                 'player_highlights': player_highlights,
             }
             return self.render('tournament/lone_wallchart.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
 class StatsView(SeasonView):
     def view(self):
@@ -937,7 +942,7 @@ class StatsView(SeasonView):
 
     def team_view(self):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             all_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
                                                 .nocache()
@@ -979,11 +984,11 @@ class StatsView(SeasonView):
                 'boards': boards,
             }
             return self.render('tournament/team_stats.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
     def lone_view(self):
         @cached_as(League, Season, Round, LonePlayerPairing, PlayerPairing, SeasonPlayer)
-        def _view(league_tag, season_tag, is_staff, username):
+        def _view(league_tag, season_tag, user_data):
             season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
             active_player_ratings = [sp.player.player_rating_display(self.league) for sp in season_players.filter(is_active=True)]
             all_player_ratings = [sp.player.player_rating_display(self.league) for sp in season_players]
@@ -1052,7 +1057,7 @@ class StatsView(SeasonView):
                 'all_player_ratings': all_player_ratings,
             }
             return self.render('tournament/lone_stats.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username)
+        return _view(self.league.tag, self.season.tag, self.user_data)
 
 class BoardScoresView(SeasonView):
     def view(self, board_number):
@@ -1063,7 +1068,7 @@ class BoardScoresView(SeasonView):
 
     def team_view(self, board_number):
         @cached_as(League, Season, Round, TeamPlayerPairing, PlayerPairing)
-        def _view(league_tag, season_tag, is_staff, username, board_number):
+        def _view(league_tag, season_tag, user_data, board_number):
             board_pairings = PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self.season) \
                                                 .exclude(white=None).exclude(black=None) \
                                                 .select_related('teamplayerpairing', 'white', 'black') \
@@ -1134,7 +1139,7 @@ class BoardScoresView(SeasonView):
                 'player_scores': ps_list
             }
             return self.render('tournament/team_board_scores.html', context)
-        return _view(self.league.tag, self.season.tag, self.request.user.is_staff, self.request.user.username, board_number)
+        return _view(self.league.tag, self.season.tag, self.user_data, board_number)
 
 class LeagueDashboardView(LeagueView):
     def view(self):
