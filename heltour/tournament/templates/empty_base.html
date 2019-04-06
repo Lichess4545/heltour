@@ -1,4 +1,4 @@
-{% with "55" as static_version %}<!DOCTYPE html>
+{% with "56" as static_version %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -13,16 +13,13 @@
     <link rel="shortcut icon" type="image/png" href="{% block iconpath %}{% static 'tournament/img/favicon.png' %}{% endblock %}?v={{ static_version }}"/>
     {% block common_css %}
     <link href="{% static "lib/css/bootstrap.min.css" %}?v={{ static_version }}" rel="stylesheet">
-    <link href="{% static "tournament/css/common.css" %}?v={{ static_version }}" rel="stylesheet">
-    {% if league %}{% with "tournament/css/theme-"|add:league.theme|add:".css" as theme_css %}
-    <link href="{% static theme_css %}?v={{ static_version }}" rel="stylesheet">
-    {% endwith %}{% endif %}
+    <link href="{% static "tournament/css/main.css" %}?v={{ static_version }}" rel="stylesheet">
     {% endblock %}
     {% block css %}{% endblock %}
     {% block head_js %}{% endblock %}
 </head>
 
-<body>
+<body class="{% if league %}theme-{{ league.theme }}{% endif %}">
     {% if STAGING %}
     <header style="background-color: #c00; height: 30px; text-align: center;">
       <div class="container-fluid">
