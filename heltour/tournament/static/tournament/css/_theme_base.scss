@@ -16,22 +16,32 @@
 	background-color: $primary-color;
 }
 
-body.theme-#{$theme-name} {
-
-    &.dark {
-        .well-head,
-        .navbar {
-            background-color: $primary-color;
-        }
-        .btn-default {
-            color: $gray-300;
-            background: none;
-            background-color: $gray-600;
-            &:hover {
-                background-color: $gray-700;
-            }
-        }
+body.dark {
+  &.theme-#{$theme-name} {
+    .well-head,
+    .navbar {
+      background-color: $dark-primary-color;
     }
+    .btn-default {
+      color: $gray-300;
+      background: none;
+      background-color: $gray-600;
+      &:hover {
+        background-color: $gray-700;
+      }
+    }
+  }
+
+  .league-homelink-#{$theme-name} {
+      background-color: $dark-primary-color;
+  }
+
+  .my-pairing .league-icon.#{$theme-name} {
+      background-color: $dark-primary-color;
+  }
+}
+
+body.theme-#{$theme-name} {
 
   .navbar {
     background-color: $primary-color;

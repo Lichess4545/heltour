@@ -67,6 +67,9 @@ body.dark {
         background-color: $gray-900;
         border-color: $black;
     }
+    .table-striped > tbody > tr:nth-of-type(2n+1) {
+        background-color: rgba(0,0,0,.05);
+    }
     #table-team-pairings .captain,
     #table-team-pairings .color-dot {
         color: inherit;
@@ -121,12 +124,18 @@ body.dark {
     .legend-swatch {
         border-color: $black;
     }
+    .winners-name {
+        color: #ced4da;
+    }
     .well-body {
-        //padding: 15px 0;
         background-color: $gray-900;
         .table {
             background-color: $gray-900;
         }
+    }
+    .btn {
+        border-radius: 0;
+        border: none;
     }
     .btn-default {
         color: $gray-300;

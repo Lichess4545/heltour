@@ -639,6 +639,7 @@ div.inline {
 	width: 321px;
 	color: #333;
 	background-color: white;
+	outline: none;
 }
 
 .league-home-container:hover,
@@ -646,6 +647,7 @@ div.inline {
 .league-home-container:focus {
 	color: #333;
 	text-decoration: none;
+	outline: none;
 }
 
 .league-homelink {
@@ -700,6 +702,16 @@ div.inline {
 
 .navbar-brand {
 	padding-right: 5px;
+}
+
+.navbar.navbar-default {
+	border-radius: 0;
+	border: none;
+}
+
+.well {
+	border-radius: 0;
+	border: none;
 }
 
 #table-lone-standings thead th {

@@ -1,17 +1,22 @@
 .text-approved {
-  color: #0000ff; }
+  color: #0000ff;
+}
 
 .text-rejected {
-  color: #cc0000; }
+  color: #cc0000;
+}
 
 .text-season {
-  font-weight: bold; }
+  font-weight: bold;
+}
 
 .text-email {
-  font-weight: bold; }
+  font-weight: bold;
+}
 
 .text-username {
-  font-weight: bold; }
+  font-weight: bold;
+}
 
 .aligned-text label {
   display: block;
@@ -19,58 +24,73 @@
   float: left;
   width: 160px;
   word-wrap: break-word;
-  line-height: 1; }
+  line-height: 1;
+}
 
 .notes {
   width: 400px;
   height: 120px;
-  margin-bottom: 20px; }
+  margin-bottom: 20px;
+}
 
 .action-checkbox {
-  padding: 10px; }
+  padding: 10px;
+}
 
 .action-checkbox label {
   color: black;
-  padding-left: 5px; }
+  padding-left: 5px;
+}
 
 .actions {
-  margin-bottom: 10px; }
+  margin-bottom: 10px;
+}
 
 .create-link {
   display: block;
   margin-top: 10px;
-  margin-bottom: 10px; }
+  margin-bottom: 10px;
+}
 
 .inline-create-link {
-  margin-right: 10px; }
+  margin-right: 10px;
+}
 
 .row-error {
-  background-color: #fffcab; }
+  background-color: #fffcab;
+}
 
 .inline {
   display: inline-block;
-  vertical-align: top; }
+  vertical-align: top;
+}
 
 #scheduled-actions {
-  margin-left: 40px; }
+  margin-left: 40px;
+}
 
 #scheduled-actions table tbody tr td:nth-child(1),
 #scheduled-actions table tbody tr td:nth-child(2) {
-  padding-right: 20px; }
+  padding-right: 20px;
+}
 
 #scheduled-actions .current-round-actions .action-register,
 #scheduled-actions .current-round-actions .action-withdraw {
-  color: #999; }
+  color: #999;
+}
 
 #scheduled-actions .current-round-actions .action-register .change-link,
 #scheduled-actions .current-round-actions .action-withdraw .change-link {
-  display: none; }
+  display: none;
+}
 
 td > dl {
-  margin-bottom: 0; }
+  margin-bottom: 0;
+}
 
 .select2-container.django-select2 {
-  width: auto; }
+  width: auto;
+}
 
 .move-link {
   display: inline-block;
@@ -79,93 +99,94 @@ td > dl {
   width: 16px;
   height: 16px;
   margin-top: 2px;
-  vertical-align: bottom; }
+  vertical-align: bottom;
+}
 
 .delete-link {
-  vertical-align: top; }
+  vertical-align: top;
+}
 
-#table-edit-rosters,
-#table-alternates,
-#table-unassigned {
+#form-edit-rosters #table-edit-rosters,
+#form-edit-rosters #table-alternates,
+#form-edit-rosters #table-unassigned {
   table-layout: fixed;
-  width: 100%; }
-
-#table-edit-rosters tr th:last-child,
-#table-alternates tr th:last-child,
-#table-unassigned tr th:last-child,
-#table-edit-rosters tr th:nth-last-child(2),
-#table-alternates tr th:nth-last-child(2),
-#table-unassigned tr th:nth-last-child(2) {
-  width: 55px; }
-
-#table-unassigned {
-  margin-bottom: 20px; }
-
-#table-edit-rosters [data-board],
-#table-alternates table td,
-#table-unassigned table td {
-  padding: 1px; }
-
-#table-alternates table,
-#table-unassigned table {
   width: 100%;
-  height: 33px; }
-
-#table-alternates > tbody > tr > td,
-#table-unassigned > tbody > tr > td {
-  padding: 0; }
-
-.player {
+}
+#form-edit-rosters #table-edit-rosters tr th:last-child,
+#form-edit-rosters #table-alternates tr th:last-child,
+#form-edit-rosters #table-unassigned tr th:last-child,
+#form-edit-rosters #table-edit-rosters tr th:nth-last-child(2),
+#form-edit-rosters #table-alternates tr th:nth-last-child(2),
+#form-edit-rosters #table-unassigned tr th:nth-last-child(2) {
+  width: 55px;
+}
+#form-edit-rosters #table-unassigned {
+  margin-bottom: 20px;
+}
+#form-edit-rosters #table-edit-rosters [data-board],
+#form-edit-rosters #table-alternates table td,
+#form-edit-rosters #table-unassigned table td {
+  padding: 1px;
+}
+#form-edit-rosters #table-alternates table,
+#form-edit-rosters #table-unassigned table {
+  width: 100%;
+  height: 33px;
+}
+#form-edit-rosters #table-alternates > tbody > tr > td,
+#form-edit-rosters #table-unassigned > tbody > tr > td {
+  padding: 0;
+}
+#form-edit-rosters .player {
   display: flex;
   vertical-align: top;
   padding: 6px;
   width: calc(100% - 16px);
   background-color: white;
   border: 1px solid #ccc;
-  white-space: nowrap; }
-
-.player .name {
+  white-space: nowrap;
+}
+#form-edit-rosters .player .name {
   text-overflow: ellipsis;
   width: 65%;
-  overflow-x: hidden; }
-
-.player .rating-container {
-  margin-right: 2px; }
-
-.player.ui-draggable {
-  cursor: pointer; }
-
-.player.ui-draggable-dragging {
+  overflow-x: hidden;
+}
+#form-edit-rosters .player .rating-container {
+  margin-right: 2px;
+}
+#form-edit-rosters .player.ui-draggable {
+  cursor: pointer;
+}
+#form-edit-rosters .player.ui-draggable-dragging {
   border: 1px solid orange;
-  z-index: 1000; }
-
-.player-red {
-  background: linear-gradient(90deg, #fff 97%, #c00 3%); }
-
-.player-blue {
-  background: linear-gradient(90deg, #fff 97%, #00c 3%); }
-
-.player-purple {
-  background: linear-gradient(90deg, #fff 97%, #c6f 3%); }
-
-.team .team-name-editable {
+  z-index: 1000;
+}
+#form-edit-rosters .player-red {
+  background: linear-gradient(90deg, #fff 97%, #c00 3%);
+}
+#form-edit-rosters .player-blue {
+  background: linear-gradient(90deg, #fff 97%, #00c 3%);
+}
+#form-edit-rosters .player-purple {
+  background: linear-gradient(90deg, #fff 97%, #c6f 3%);
+}
+#form-edit-rosters .team .team-name-editable {
   display: inline-block;
   vertical-align: top;
   min-width: 160px;
   cursor: text;
-  min-height: 16px; }
-
-.team .team-name-edit {
-  margin: -10px -7px -7px -7px; }
-
-.new-team-template .team-name {
-  color: #777; }
-
-.table-player-info label {
+  min-height: 16px;
+}
+#form-edit-rosters .team .team-name-edit {
+  margin: -10px -7px -7px -7px;
+}
+#form-edit-rosters .new-team-template .team-name {
+  color: #777;
+}
+#form-edit-rosters .table-player-info label {
   vertical-align: middle;
   margin-left: 8px;
-  color: #333; }
-
-/*# sourceMappingURL=edit_rosters.css.map */
+  color: #333;
+}
 
 /*# sourceMappingURL=admin.css.map */
