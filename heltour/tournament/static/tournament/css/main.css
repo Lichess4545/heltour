@@ -1114,6 +1114,149 @@ section:hover .tv-game-menu,
     line-height: 420px;
   }
 }
+.darkmode-toggle {
+  width: 19px;
+  height: 19px;
+}
+
+body.dark {
+  color: #adb5bd;
+  background-color: #343a40;
+}
+@media (max-width: 767px) {
+  body.dark {
+    background-color: #212529;
+  }
+}
+body.dark a {
+  color: #ced4da;
+}
+body.dark p {
+  color: #adb5bd;
+}
+body.dark .form-control {
+  color: #ced4da;
+  background-color: #343a40;
+  border-color: #495057;
+}
+@media (max-width: 767px) {
+  body.dark .navbar .navbar-nav .dropdown-menu {
+    background-color: transparent;
+    border-color: transparent;
+  }
+  body.dark .navbar .navbar-nav .dropdown-divider {
+    border-color: #353535;
+  }
+  body.dark .navbar .navbar-nav > li > a:hover,
+body.dark .navbar .navbar-nav > li > a:focus,
+body.dark .navbar .navbar-nav .dropdown-item:focus,
+body.dark .navbar .navbar-nav .dropdown-item:hover {
+    color: #fff;
+    background-color: transparent;
+  }
+}
+body.dark .league-home-container {
+  position: relative;
+  color: #dee2e6;
+  background-color: #212529;
+  border-color: #222;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+body.dark .league-home-container::after {
+  position: absolute;
+  top: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  content: "";
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+body.dark .league-home-container:hover::after {
+  opacity: 1;
+}
+body.dark .dropdown-menu {
+  background-color: #212529;
+  border-color: #000;
+}
+body.dark #table-team-pairings .captain,
+body.dark #table-team-pairings .color-dot {
+  color: inherit;
+}
+body.dark .table {
+  color: #ced4da;
+}
+body.dark .table thead th,
+body.dark .table td,
+body.dark .table th,
+body.dark #table-rosters tbody tr td.cell-rating,
+body.dark #table-rosters tbody tr td.cell-player,
+body.dark .table-round-results > tbody > tr > td:first-child,
+body.dark .table-round-results > tbody > tr > td:last-child,
+body.dark .table-round-results > tbody > tr:last-child > td,
+body.dark .dropdown-divider,
+body.dark .my-pairing {
+  border-color: #343a40;
+}
+body.dark .cell-win {
+  background-color: #506b5e;
+}
+body.dark .cell-tie,
+body.dark .player-unavailable {
+  background-color: #675f4b;
+}
+body.dark .cell-cross {
+  background-color: #424956;
+}
+body.dark .cell-loss,
+body.dark .player-red-card {
+  background-color: #5d231e;
+}
+body.dark .player-yellow-card {
+  background-color: #6f6d2b;
+}
+body.dark .player-scheduled {
+  background-color: #514d67;
+}
+body.dark .player-gold {
+  background-color: #82773c;
+}
+body.dark .player-silver {
+  background-color: #7b7b7b;
+}
+body.dark .player-bronze {
+  background-color: #8a5622;
+}
+body.dark .player-blue {
+  background-color: #34546f;
+}
+body.dark .legend-swatch {
+  border-color: #000;
+}
+body.dark .well-body {
+  background-color: #212529;
+}
+body.dark .well-body .table {
+  background-color: #212529;
+}
+body.dark .btn-default {
+  color: #dee2e6;
+  background-color: #6c757d;
+}
+body.dark .btn-default:hover {
+  background-color: #495057;
+}
+body.dark .footer {
+  background-color: #000;
+}
+body.dark .header-row {
+  background-color: #343a40;
+}
+body.dark .download-games img {
+  filter: invert(0.8);
+}
+
 .league-homelink-blue {
   padding-left: 59px;
   background: url("/static/tournament/img/all-for-one.png");
@@ -1132,6 +1275,18 @@ section:hover .tv-game-menu,
   background-color: #245164;
 }
 
+body.theme-blue.dark .well-head,
+body.theme-blue.dark .navbar {
+  background-color: #245164;
+}
+body.theme-blue.dark .btn-default {
+  color: #dee2e6;
+  background: none;
+  background-color: #6c757d;
+}
+body.theme-blue.dark .btn-default:hover {
+  background-color: #495057;
+}
 body.theme-blue .navbar {
   background-color: #245164;
 }
@@ -1259,6 +1414,18 @@ body.theme-blue .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
   background-color: #225622;
 }
 
+body.theme-green.dark .well-head,
+body.theme-green.dark .navbar {
+  background-color: #225622;
+}
+body.theme-green.dark .btn-default {
+  color: #dee2e6;
+  background: none;
+  background-color: #6c757d;
+}
+body.theme-green.dark .btn-default:hover {
+  background-color: #495057;
+}
 body.theme-green .navbar {
   background-color: #225622;
 }
@@ -1386,6 +1553,18 @@ body.theme-green .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
   background-color: #562222;
 }
 
+body.theme-red.dark .well-head,
+body.theme-red.dark .navbar {
+  background-color: #562222;
+}
+body.theme-red.dark .btn-default {
+  color: #dee2e6;
+  background: none;
+  background-color: #6c757d;
+}
+body.theme-red.dark .btn-default:hover {
+  background-color: #495057;
+}
 body.theme-red .navbar {
   background-color: #562222;
 }
@@ -1513,6 +1692,18 @@ body.theme-red .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
   background-color: #c69501;
 }
 
+body.theme-yellow.dark .well-head,
+body.theme-yellow.dark .navbar {
+  background-color: #c69501;
+}
+body.theme-yellow.dark .btn-default {
+  color: #dee2e6;
+  background: none;
+  background-color: #6c757d;
+}
+body.theme-yellow.dark .btn-default:hover {
+  background-color: #495057;
+}
 body.theme-yellow .navbar {
   background-color: #c69501;
 }

@@ -18,6 +18,21 @@
 
 body.theme-#{$theme-name} {
 
+    &.dark {
+        .well-head,
+        .navbar {
+            background-color: $primary-color;
+        }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
+            &:hover {
+                background-color: $gray-700;
+            }
+        }
+    }
+
   .navbar {
     background-color: $primary-color;
   }

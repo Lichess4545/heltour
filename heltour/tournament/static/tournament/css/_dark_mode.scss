@@ -1,0 +1,147 @@
+.darkmode-toggle {
+  width: 19px;
+  height: 19px;
+}
+
+body.dark {
+    color: $gray-500;
+    background-color: $gray-800;
+
+    @media (max-width: 767px) {
+        background-color: $gray-900;
+    }
+
+    a {
+        color: $gray-400;
+    }
+    p {
+        color: $gray-500;
+    }
+    .form-control {
+        color: $gray-400;
+        background-color: $gray-800;
+        border-color: $gray-700;
+    }
+    .navbar {
+        @media (max-width: 767px) {
+            .navbar-nav {
+                .dropdown-menu {
+                    background-color: transparent;
+                    border-color: transparent;
+                }
+                .dropdown-divider {
+                    border-color: #353535;
+                }
+                > li > a:hover,
+                > li > a:focus,
+                .dropdown-item:focus,
+                .dropdown-item:hover {
+                    color: $white;
+                    background-color: transparent;
+                }
+            }
+        }
+    }
+    .league-home-container {
+        position: relative;
+        color: $gray-300;
+        background-color: $gray-900;
+        border-color: #222;
+        box-shadow: 0 1px 2px rgba(0,0,0,.3);
+        &::after {
+            position: absolute;
+            top: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+            content: '';
+            box-shadow: 0 5px 15px rgba(0,0,0,.4);
+            opacity: 0;
+            transition: opacity .3s ease-in-out;
+        }
+        &:hover::after {
+            opacity: 1;
+        }
+    }
+    .dropdown-menu {
+        background-color: $gray-900;
+        border-color: $black;
+    }
+    #table-team-pairings .captain,
+    #table-team-pairings .color-dot {
+        color: inherit;
+    }
+    .table {
+        color: $gray-400;
+    }
+    .table thead th,
+    .table td,
+    .table th,
+    #table-rosters tbody tr td.cell-rating,
+    #table-rosters tbody tr td.cell-player,
+    .table-round-results > tbody > tr > td:first-child,
+    .table-round-results > tbody > tr > td:last-child,
+    .table-round-results > tbody > tr:last-child > td,
+    .dropdown-divider,
+    .my-pairing {
+        border-color: $gray-800;
+    }
+    .cell-win {
+        background-color: #506b5e;
+    }
+    .cell-tie,
+    .player-unavailable {
+        background-color: #675f4b;
+    }
+    .cell-cross {
+        background-color: #424956;
+    }
+    .cell-loss,
+    .player-red-card {
+        background-color: #5d231e;
+    }
+    .player-yellow-card {
+        background-color: #6f6d2b;
+    }
+    .player-scheduled {
+        background-color: #514d67;
+    }
+    .player-gold {
+        background-color: #82773c;
+    }
+    .player-silver {
+        background-color: #7b7b7b;
+    }
+    .player-bronze {
+        background-color: #8a5622;
+    }
+    .player-blue {
+        background-color: #34546f;
+    }
+    .legend-swatch {
+        border-color: $black;
+    }
+    .well-body {
+        //padding: 15px 0;
+        background-color: $gray-900;
+        .table {
+            background-color: $gray-900;
+        }
+    }
+    .btn-default {
+        color: $gray-300;
+        background-color: $gray-600;
+        &:hover {
+            background-color: $gray-700;
+        }
+    }
+    .footer {
+        background-color: $black;
+    }
+    .header-row {
+        background-color: $gray-800;
+    }
+    .download-games img {
+        filter: invert(.8);
+    }
+}
