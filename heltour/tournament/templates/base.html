@@ -20,6 +20,8 @@
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/all-for-one-blue.png' %}" />
 {% elif league.theme == 'green' %}
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/wolf-head-green.png' %}" />
+{% elif league.theme == 'red' %}
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/power-lightning.png' %}" />
 {% elif league.theme == 'yellow' %}
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'tournament/img/dice-yellow.png' %}" />
 {% endif %}
