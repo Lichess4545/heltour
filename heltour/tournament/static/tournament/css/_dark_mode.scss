@@ -127,6 +127,10 @@ body.dark {
     .winners-name {
         color: #ced4da;
     }
+    .well {
+        border-radius: 0;
+        border: none;
+    }
     .well-body {
         background-color: $gray-900;
         .table {

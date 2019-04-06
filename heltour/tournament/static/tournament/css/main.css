@@ -717,11 +717,6 @@ div.inline {
   border: none;
 }
 
-.well {
-  border-radius: 0;
-  border: none;
-}
-
 #table-lone-standings thead th {
   white-space: nowrap;
 }
@@ -1835,6 +1830,10 @@ body.dark .legend-swatch {
 }
 body.dark .winners-name {
   color: #ced4da;
+}
+body.dark .well {
+  border-radius: 0;
+  border: none;
 }
 body.dark .well-body {
   background-color: #212529;
