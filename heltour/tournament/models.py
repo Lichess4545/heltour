@@ -760,6 +760,12 @@ class Player(_BaseModel):
         return self.lichess_username.lower() < other.lichess_username.lower()
 
 #-------------------------------------------------------------------------------
+class PlayerSetting(_BaseModel):
+    player = models.OneToOneField(Player)
+
+    dark_mode = models.BooleanField(default=False)
+
+#-------------------------------------------------------------------------------
 class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')

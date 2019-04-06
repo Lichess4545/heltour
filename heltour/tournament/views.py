@@ -59,9 +59,15 @@ class BaseView(View):
         return render(self.request, template, context)
 
     def preprocess(self):
-        if not hasattr(self, '_preprocess'):
-            return None
-        return self._preprocess()
+        player_setting = None
+        if self.request.user.is_authenticated():
+            player_setting = PlayerSetting.objects \
+                .filter(player__lichess_username__iexact=self.request.user.username).first()
+        else:
+            player_setting = {
+                'dark_mode': self.request.session.get('dark_mode', False)
+            }
+        self.extra_context['player_setting'] = player_setting
 
 class LeagueView(BaseView):
     def read_context(self):
@@ -105,7 +111,8 @@ class SeasonView(LeagueView):
         self.season = _get_season(league_tag, season_tag, False)
 
 class LoginRequiredMixin:
-    def _preprocess(self):
+    def preprocess(self):
+        super().preprocess()
         if not self.request.user.is_authenticated():
             self.request.session['login_redirect'] = self.request.build_absolute_uri()
             return redirect('by_league:login', self.league.tag)
@@ -1922,6 +1929,24 @@ class TvJsonView(LeagueView):
         except ValueError:
             team = None
         return JsonResponse(_tv_json(league, board, team))
+
+class ToggleDarkModeView(BaseView):
+    def view(self):
+        original_value = False
+        if self.request.user.is_authenticated():
+            player = Player.get_or_create(self.request.user.username)
+            player_setting, _ = PlayerSetting.objects.get_or_create(player=player)
+            original_value = player_setting.dark_mode
+            player_setting.dark_mode = not original_value
+            player_setting.save()
+        else:
+            original_value = self.request.session.get('dark_mode', False)
+        self.request.session['dark_mode'] = not original_value
+
+        redirect_url = self.request.GET.get('redirect_url')
+        if redirect_url:
+            return redirect(redirect_url)
+        return redirect('home')
 
 def _tv_json(league, board=None, team=None):
     def export_game(game, league, board, team):

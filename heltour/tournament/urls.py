@@ -92,6 +92,7 @@ app_urlpatterns = [
 
 urlpatterns = [
     url(r'^$', views.HomeView.as_view(), name='home'),
+    url(r'^toggle/darkmode/$', views.ToggleDarkModeView.as_view(), name='toggle_darkmode'),
     url(r'^player/(?P<username>[\w-]+)/calendar.ics$', views.ICalPlayerView.as_view(), name='player_icalendar'),
     url(r'^api/', include(api_urlpatterns, 'api')),
     url(r'^app/', include(app_urlpatterns, 'app')),
