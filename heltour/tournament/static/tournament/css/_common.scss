@@ -666,43 +666,6 @@ div.inline {
 	color: white;
 }
 
-.league-homelink-blue {
-	padding-left: 59px;
-	background: url(/static/tournament/img/all-for-one.png);
-	background-position: 5px 0px;
-	background-repeat: no-repeat;
-	background-size: 50px 50px;
-	background-color: #245164;
-}
-
-.league-homelink-green {
-	padding-left: 59px;
-	background: url(/static/tournament/img/wolf-head.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #225622;
-}
-
-.league-homelink-red {
-	padding-left: 59px;
-	background: url(/static/tournament/img/power-lightning.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #562222;
-}
-
-.league-homelink-yellow {
-	padding-left: 59px;
-	background: url(/static/tournament/img/dice.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 48px 48px;
-	background-color: #c69501;
-	color: #FFFFFF;
-}
-
 .league-home-details {
 	text-align: center;
 	padding: 0 20px;
@@ -715,33 +678,6 @@ div.inline {
 .my-pairing {
 	height: 80px;
 	border: 1px solid #e3e3e3;
-}
-
-.my-pairing .league-icon.blue {
-	width: 85px;
-	background: url(/static/tournament/img/all-for-one.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 75px 75px;
-	background-color: #245164;
-}
-
-.my-pairing .league-icon.green {
-	width: 85px;
-	background: url(/static/tournament/img/wolf-head.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 75px 75px;
-	background-color: #225622;
-}
-
-.my-pairing .league-icon.red {
-	width: 85px;
-	background: url(/static/tournament/img/power-lightning.png);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 75px 75px;
-	background-color: #562222;
 }
 
 .my-pairing .details {
@@ -1004,10 +940,6 @@ div.inline {
 
 	.round-switcher:first-child {
 		margin-left: -5px;
-	}
-
-	.league-homelink-green {
-		background-position: 5px 0px;
 	}
 
 	#table-team-pairings .cell-score {
