@@ -43,12 +43,14 @@ common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing,
 class BaseView(View):
     def get(self, request, *args, **kwargs):
         self.read_context()
+        self.read_user_data()
         return self.preprocess() or self.view(*self.args, **self.kwargs)
 
     def post(self, request, *args, **kwargs):
         if not hasattr(self, 'view_post'):
             return super(BaseView, self).post(request, *args, **kwargs)
         self.read_context()
+        self.read_user_data()
         return self.preprocess() or self.view_post(*self.args, **self.kwargs)
 
     def read_context(self):
@@ -59,6 +61,11 @@ class BaseView(View):
         return render(self.request, template, context)
 
     def preprocess(self):
+        if not hasattr(self, '_preprocess'):
+            return None
+        return self._preprocess()
+
+    def read_user_data(self):
         self.dark_mode = False
         if self.request.user.is_authenticated():
             player_setting = PlayerSetting.objects \
@@ -97,6 +104,7 @@ class LeagueView(BaseView):
 class SeasonView(LeagueView):
     def get(self, request, *args, **kwargs):
         self.read_context()
+        self.read_user_data()
         if not self._season_specified:
             return redirect('by_league:by_season:%s' % request.resolver_match.url_name, *self.args, league_tag=self.league.tag, season_tag=self.season.tag, **self.kwargs)
         return self.preprocess() or self.view(*self.args, **self.kwargs)
@@ -116,8 +124,7 @@ class SeasonView(LeagueView):
         self.season = _get_season(league_tag, season_tag, False)
 
 class LoginRequiredMixin:
-    def preprocess(self):
-        super().preprocess()
+    def _preprocess(self):
         if not self.request.user.is_authenticated():
             self.request.session['login_redirect'] = self.request.build_absolute_uri()
             return redirect('by_league:login', self.league.tag)
