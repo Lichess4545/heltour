@@ -1779,6 +1779,12 @@ body.dark #table-team-pairings .captain,
 body.dark #table-team-pairings .color-dot {
   color: inherit;
 }
+body.dark #table-team-pairings .player-white .color-dot:after {
+  content: "●";
+}
+body.dark #table-team-pairings .player-black .color-dot:after {
+  content: "○";
+}
 body.dark .table {
   color: #ced4da;
 }

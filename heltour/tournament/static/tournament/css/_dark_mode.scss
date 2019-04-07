@@ -74,6 +74,12 @@ body.dark {
     #table-team-pairings .color-dot {
         color: inherit;
     }
+    #table-team-pairings .player-white .color-dot:after {
+        content: '\25CF';
+    }
+    #table-team-pairings .player-black .color-dot:after {
+        content: '\25CB';
+    }
     .table {
         color: $gray-400;
     }
