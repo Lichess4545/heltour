@@ -34,6 +34,14 @@ def _lichess_message(league, username, subject, text):
     if league.enable_notifications:
         lichessapi.send_mail(username, subject, text)
 
+def lichess_pairing_to_string(pairing):
+    return f'@{pairing.white.lichess_username.lower()} (white pieces) vs '
+    f'@{pairing.black.lichess_username.lower()} (black pieces) @ {pairing.time_control}'
+
+def slack_pairing_to_string(pairing):
+    return f'@<{_slack_user(pairing.white)}> (_white pieces_) vs '
+    f'<@{_slack_user(pairing.black)}> (_black pieces_) @ {pairing.time_control()}'
+
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
 def league_comment(league, comment, **kwargs):
     if comment.user is None:
@@ -188,7 +196,11 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
 
     team_pairing = team.get_teampairing(round_)
     if team_pairing is not None:
-        pairing = team_pairing.teamplayerpairing_set.filter(board_number=board_number).exclude(white=None).exclude(black=None).nocache().first()
+        pairing = (team_pairing.teamplayerpairing_set
+                .filter(board_number=board_number, result=None)
+                .exclude(white=None)
+                .exclude(black=None).nocache()
+                .first())
     else:
         pairing = None
 
@@ -202,16 +214,19 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
 
     # Send a DM to the player being replaced
     if player is not None:
-        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for round %d, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
-                                     % (_slack_user(player), round_.number)
+        message_to_replaced_player = f'@{_slack_user(player)}: I am searching for an alternate'
+        f'to replace you for round {round_.number}, since you have been marked as unavailable. If '
+        'this is a mistake, please contact a mod as soon as possible.'
+
         _message_user(league, _slack_user(player), message_to_replaced_player)
 
     # Send a DM to the opponent
     if pairing is not None:
         opponent = pairing.black if pairing.white_team() == team else pairing.white
         if opponent.is_available_for(round_):
-            message_to_opponent = '@%s: Your opponent, @%s, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.' \
-                                  % (_slack_user(opponent), _slack_user(player))
+            message_to_opponent = f'@{_slack_user(opponent)}: Your opponent, @{_slack_user(player)},'
+            ' has been marked as unavailable. I am searching for an alternate for you to play, '
+            'please be patient.'
             _message_user(league, _slack_user(opponent), message_to_opponent)
 
     # Broadcast a message to both team captains
@@ -226,7 +241,10 @@ def alternate_search_reminder(season, team, board_number, round_, **kwargs):
     team_pairing = team.get_teampairing(round_)
     if team_pairing is None:
         return
-    pairing = team_pairing.teamplayerpairing_set.filter(board_number=board_number).exclude(white=None).exclude(black=None).nocache().first()
+    pairing = (team_pairing.teamplayerpairing_set
+            .filter(board_number=board_number, result=None)
+            .exclude(white=None)
+            .exclude(black=None).nocache().first())
     if pairing is None:
         return
     player = pairing.white if pairing.white_team() == team else pairing.black
@@ -286,15 +304,19 @@ def _notify_alternate_and_opponent(league, aa):
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
-    pairing = team_pairing.teamplayerpairing_set.filter(board_number=aa.board_number).exclude(white=None).exclude(black=None).nocache().first()
-    if pairing is None:
+    pairings = (team_pairing.teamplayerpairing_set
+            .filter(board_number=aa.board_number, result=None)
+            .exclude(white=None)
+            .exclude(black=None).nocache().first())
+
+    if pairings is None:
         # No pairing yet for some reason
         message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
                                % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
-
-    opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
+    p1 = pairing[0]
+    opponent = p1.black if p1.white_team() == aa.team else p1.white
     if not opponent.is_available_for(aa.round):
         # Still looking for an alternate for the opponent
         message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
@@ -322,19 +344,21 @@ def _notify_alternate_and_opponent(league, aa):
     _message_user(league, _slack_user(opponent), message_to_opponent)
 
     # Send configured notifications
+    slack_pairing_strings = '\n'.join([slack_pairing_to_string(p) for p in pairings])
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + slack_pairing_strings + '\n' \
            + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+           + slack_pairing_strings + '\n' \
            + 'Message your opponent here as soon as possible.\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
+    li_pairing_strings = '\n'.join([lichess_pairing_to_string(p) for p in pairings])
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
+           + li_pairing_strings + '\n' \
            + 'Message your opponent on Slack as soon as possible.\n' \
            + '{slack_url}\n' \
            + 'When you have agreed on a time, post it in {scheduling_channel}.'
@@ -445,23 +469,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
-    im_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
-
-    mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Message your opponent here within {contact_period}.\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
-
-    li_subject = 'Round {round} - {league}'
-    li_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
-           + 'Message your opponent on Slack within {contact_period}.\n' \
-           + '{slack_url}\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel}.'
-
+    logger.info("Sending notifications")
     season = round_.season
     league = season.league
     if not league.enable_notifications:
@@ -473,31 +481,56 @@ def notify_players_round_start(round_, **kwargs):
                                                       .select_related('player').nocache()}
 
     with cache.lock('round_start'):
-        for pairing in round_.pairings.select_related('white', 'black'):
-            if season.alternates_manager_enabled() and (pairing.white in unavailable_players or pairing.black in unavailable_players):
+        for pairings in PlayerPairing.pairing_groups(round_):
+            p1 = pairings[0]
+            if season.alternates_manager_enabled() and (p1.white in unavailable_players or p1.black in unavailable_players):
                 # Don't send a notification, since the alternates manager will handle it
                 continue
-            send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+            slack_pairing_strings = '\n'.join([slack_pairing_to_string(p) for p in pairings])
+            im_msg = 'You have been paired for Round {round} in {season}.\n' \
+                + slack_pairing_strings + '\n' \
+                + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
+                + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+
+            mp_msg = 'You have been paired for Round {round} in {season}.\n' \
+                + slack_pairing_strings + '\n' \
+                + 'Message your opponent here as soon as possible.\n' \
+                + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+
+            li_pairing_strings = '\n'.join([lichess_pairing_to_string(p) for p in pairings])
+            li_subject = 'Round {round} - {league}'
+            li_msg = 'You have been paired for Round {round} in {season}.\n' \
+                + li_pairing_strings + '\n' \
+                + 'Message your opponent on Slack as soon as possible.\n' \
+                + '{slack_url}\n' \
+                + 'When you have agreed on a time, post it in {scheduling_channel}.'
+
+            send_pairing_notification('round_started', p1, im_msg, mp_msg, li_subject, li_msg)
             time.sleep(1)
 
 @receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
-def notify_players_late_pairing(round_, pairing, **kwargs):
+def notify_players_late_pairing(round_, pairings, **kwargs):
+
+    p1 = pairings[0]
+    slack_pairing_strings = '\n'.join([slack_pairing_to_string(p) for p in pairings])
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+        + slack_pairing_strings + '\n' \
+        + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
+        + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
-           + 'Message your opponent here within {contact_period}.\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+        + slack_pairing_strings + '\n' \
+        + 'Message your opponent here as soon as possible.\n' \
+        + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
+    li_pairing_strings = '\n'.join([lichess_pairing_to_string(p) for p in pairings])
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
-           + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
-           + 'Message your opponent on Slack within {contact_period}.\n' \
-           + '{slack_url}\n' \
-           + 'When you have agreed on a time, post it in {scheduling_channel}.'
+        + li_pairing_strings + '\n' \
+        + 'Message your opponent on Slack as soon as possible.\n' \
+        + '{slack_url}\n' \
+        + 'When you have agreed on a time, post it in {scheduling_channel}.'
 
     season = round_.season
     league = season.league
@@ -507,27 +540,35 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
         logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
         return
 
-    send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    send_pairing_notification('round_started', p1, im_msg, mp_msg, li_subject, li_msg)
     time.sleep(1)
 
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
-def notify_players_game_time(pairing, **kwargs):
-    im_msg = 'Your game is about to start.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+def notify_players_game_time(pairings, **kwargs):
+
+    pairings = [p for p in pairings if pairing.game_link == '' and pairing.result == '']
+    if not len(pairings):
+        return
+
+    slack_pairing_strings = '\n'.join([p.slack_str() for p in pairings])
+    plural = len(pairings) > 1
+    about_to_start = f'Your {"games are" if plural else "game is"} about to start.\n'
+    im_msg = about_to_start \
+           + slack_pairing_strings \
            + 'Send a <https://lichess.org/?user={opponent}#friend|lichess challenge> for a rated {time_control} game as {color}.'
 
-    mp_msg = 'Your game is about to start.\n' \
-           + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+    mp_msg = about_to_start \
+           + slack_pairing_strings \
            + 'Send a lichess challenge for a rated {time_control} game.'
 
+    li_pairing_strings = '\n'.join([p.lichess_str(p) for p in pairings])
     li_subject = 'Round {round} - {league}'
-    li_msg = 'Your game is about to start.\n' \
-           + '@{white} (white pieces) vs @{black} (black pieces)\n' \
-           + 'Send a challenge for a rated {time_control} game as {color}.\n' \
+    li_msg = about_to_start \
+           + li_pairing_strings \
+           + 'Send a challenge for a rated {time_control} game.\n' \
            + 'https://lichess.org/?user={opponent}#friend' \
 
-    if pairing.game_link == '' and pairing.result == '':
-        send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
+    send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 @receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
 def before_game_time(player, pairing, offset, **kwargs):

@@ -18,6 +18,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from heltour import settings
+from itertools import groupby
 import reversion
 
 logger = logging.getLogger(__name__)
@@ -211,6 +212,15 @@ class Season(_BaseModel):
         )
         ordering = ['league__name', '-name']
 
+    def reset(self):
+        for round in self.round_set.all():
+            round.publish_pairings = False
+            round.is_completed = False
+            round.save()
+            for pairing in TeamPairing.objects.filter(round=round):
+                TeamPlayerPairing.objects.filter(team_pairing=pairing).delete()
+                pairing.delete()
+
     def games_on_board(self, board):
         if self.board_set.exists():
             board = self.board_set.get(board_number=board)
@@ -219,7 +229,7 @@ class Season(_BaseModel):
         else:
             return self.league.games_per_round
 
-    def time_control(self, board):
+    def time_control(self, board=None):
         if self.board_set.exists():
             board = self.board_set.get(board_number=board)
             if board.time_control:
@@ -367,10 +377,11 @@ class Season(_BaseModel):
             last_round = round_
 
         # Precalculate groups of tied teams for the tiebreaks
-        tied_team_map = defaultdict(set)
-        for team in Team.objects.filter(season=self):
-            score_state = score_dict[(team.pk, last_round.number)]
-            tied_team_map[(score_state.match_points, score_state.game_points)].add(team.pk)
+        if last_round:
+            tied_team_map = defaultdict(set)
+            for team in Team.objects.filter(season=self):
+                score_state = score_dict[(team.pk, last_round.number)]
+                tied_team_map[(score_state.match_points, score_state.game_points)].add(team.pk)
 
         team_scores = TeamScore.objects.filter(team__season=self)
         for score in team_scores:
@@ -1293,6 +1304,7 @@ class PlayerPairing(_BaseModel):
 
     watch_fields = ['game_link', 'result', 'white_id', 'black_id', 'scheduled_time']
 
+
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
             return self.white_rating
@@ -1373,7 +1385,7 @@ class PlayerPairing(_BaseModel):
         return None
 
     def time_control(self):
-        return self.get_round().season.time_control(self.board_number)
+        return self.get_round().season.time_control()
 
     def time_control_initial(self):
         parts = self.time_control().split('+')
@@ -1406,6 +1418,24 @@ class PlayerPairing(_BaseModel):
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
+
+
+    def lichess_str(self, time_zone=True, time_control=True):
+        white = f'@{self.white.lichess_username.lower()}'
+        black = f'@{pairing.black.lichess_username.lower()}'
+        tc = f' @ {self.time_control()}' if time_control else ''
+        white_tz = f', {self.white.timezone_str}' if time_zone else ''
+        black_tz = f', {self.black.timezone_str}' if time_zone else ''
+        string = f'{white} (white pieces{white_tz}) vs {black} (black pieces{black_tz}){tc}'
+
+    def slack_str(self, time_zone=True, time_control=True):
+        white = f'@{self.white.lichess_username.lower()}'
+        black = f'@{pairing.black.lichess_username.lower()}'
+        tc = f' @ {self.time_control()}' if time_control else ''
+        white_tz = f', {self.white.timezone_str}' if time_zone else ''
+        black_tz = f', {self.black.timezone_str}' if time_zone else ''
+        string = f'{white} (_white pieces_{white_tz}) vs {black} (_black pieces_{black_tz}){tc}'
+
 
     def save(self, *args, **kwargs):
         result_changed = self.changed('result')
@@ -1497,14 +1527,28 @@ class TeamPlayerPairing(PlayerPairing):
     team_pairing = models.ForeignKey(TeamPairing)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
+    # These are the teams of the player playing that color.  Not the team_pairing color.  Best way
+    # to remember what team is which side in this pairing even after both players were replaced by
+    # alternates.
+    white_player_team = models.ForeignKey(Team, related_name='white_player_pairings', null=True)
+    black_player_team = models.ForeignKey(Team, related_name='black_player_pairings', null=True)
+
+    @classmethod
+    def pairing_groups(cls, round):
+        pairings = cls.objects.filter(team_pairing__round=round).select_related('white', 'black')
+        return [list(g) for k,g in groupby(pairings, key=lambda p: {p.black.pk, p.white.pk})]
+
+    def time_control(self):
+        return self.get_round().season.time_control(self.board_number)
+
     def white_team(self):
-        return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
+        return self.white_player_team
 
     def black_team(self):
-        return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
+        return self.black_player_team
 
     def _reversed(self):
-        return self.team_pairing.white_team.has_member(self.black)
+        return self.team_pairing.white_team == self.white_player_team
 
     def white_team_player(self):
         return self.white if not self._reversed() else self.black
@@ -1560,6 +1604,11 @@ class LonePlayerPairing(PlayerPairing):
     pairing_order = models.PositiveIntegerField()
     white_rank = models.PositiveIntegerField(blank=True, null=True)
     black_rank = models.PositiveIntegerField(blank=True, null=True)
+
+    @classmethod
+    def pairing_groups(cls, round):
+        pairings = cls.objects.filter(round=round).select_related('white', 'black')
+        return [list(g) for k,g in group_by(pairings, key=lambda p: {p.black.pk, p.white.pk})]
 
     def refresh_ranks(self, rank_dict=None):
         if rank_dict == None:

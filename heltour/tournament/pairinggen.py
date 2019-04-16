@@ -57,12 +57,17 @@ def _generate_team_pairings(round_, overwrite=False):
                 with reversion.create_revision():
                     reversion.set_comment('Generated pairings.')
                     for game in range(round_.season.games_on_board(board_number)):
-                        white, black = player_colors(board_number, game)(pair)
+                        swap = player_colors(board_number, game)
+                        white, black = swap(pair)
+                        white_player_team, black_player_team = swap((team_pairing.white_team,
+                                                                team_pairing.black_team))
                         TeamPlayerPairing.objects.create(
                                 team_pairing=team_pairing,
                                 board_number=board_number,
                                 white=white,
-                                black=black)
+                                black=black,
+                                white_player_team=white_player_team,
+                                black_player_team=black_player_team)
 
 
 # Create a list of players playing for the team this round

@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'captcha',
     'select2',
     'impersonate',
+    'django_celery_beat',
 ]
 
 COMMENTS_APP = 'heltour.comments'

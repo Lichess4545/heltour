@@ -22,3 +22,4 @@ pillow==4.2.1
 pyfcm==1.3.1
 letsencrypt
 -e hg+https://bitbucket.org/lakin.wecker/baste#egg=baste
+django_celery_beat==1.3.0

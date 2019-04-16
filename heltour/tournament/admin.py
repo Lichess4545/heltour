@@ -33,6 +33,7 @@ from django.dispatch.dispatcher import receiver
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
 from heltour.tournament import teamgen
 import time
+from itertools import groupby
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -1597,11 +1598,18 @@ class PlayerPairingAdmin(_BaseAdmin):
 
     def send_pairing_notification(self, request, queryset):
         count = 0
-        for pairing in queryset.all():
-            round_ = pairing.get_round()
+        def key(p):
+            return {p.white.pk, p.black.pk}
+
+        sorted_pairings = sorted(queryset.all(), key=key)
+        grouped_pairings = group_by(sorted_pairings, key=key)
+        grouped_pairings = [list(g) for k,g in grouped_pairings]
+        for pairings in queryset.all():
+            round_ = pairings[0].get_round()
             if round_ is not None:
-                signals.notify_players_late_pairing.send(sender=self, round_=round_, pairing=pairing)
-                count += 1
+                signals.notify_players_late_pairings.send(sender=self, round_=round_,
+                        pairings=pairings)
+                count += len(pairings)
         self.message_user(request, 'Notifications sent for %d pairings.' % count, messages.INFO)
 
     def get_queryset(self, request):

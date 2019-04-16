@@ -1,6 +1,7 @@
 DEBUG = True
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/vagrant/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/home/vagrant/heltour/slack-token.conf'
+SLACK_WEBHOOK_FILE_PATH ='/home/vagrant/heltour/slack-webhook.conf'
 LICHESS_CREDS_FILE_PATH = '/home/vagrant/heltour/.ignore/lichess.conf'
 LINK_PROTOCOL = 'http'
 SITE_ID = 1
