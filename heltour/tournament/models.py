@@ -1550,7 +1550,7 @@ class TeamPlayerPairing(PlayerPairing):
         return self.black_player_team
 
     def _reversed(self):
-        return self.team_pairing.white_team == self.white_player_team
+        return not self.team_pairing.white_team == self.white_player_team
 
     def white_team_player(self):
         return self.white if not self._reversed() else self.black
