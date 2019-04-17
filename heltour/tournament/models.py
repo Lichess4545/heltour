@@ -1304,6 +1304,12 @@ class PlayerPairing(_BaseModel):
 
     watch_fields = ['game_link', 'result', 'white_id', 'black_id', 'scheduled_time']
 
+    @classmethod
+    def pairing_groups(cls, round):
+        pairings = TeamPlayerPairing.objects.filter(team_pairing__round=round).select_related('white', 'black')
+        if not pairings:
+            pairings = LonePlayerPairing.objects.filter(round=round).select_related('white', 'black')
+        return [list(g) for k,g in groupby(pairings, key=lambda p: {p.black.pk, p.white.pk})]
 
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
@@ -1422,19 +1428,19 @@ class PlayerPairing(_BaseModel):
 
     def lichess_str(self, time_zone=True, time_control=True):
         white = f'@{self.white.lichess_username.lower()}'
-        black = f'@{pairing.black.lichess_username.lower()}'
+        black = f'@{self.black.lichess_username.lower()}'
         tc = f' @ {self.time_control()}' if time_control else ''
         white_tz = f', {self.white.timezone_str}' if time_zone else ''
         black_tz = f', {self.black.timezone_str}' if time_zone else ''
-        string = f'{white} (white pieces{white_tz}) vs {black} (black pieces{black_tz}){tc}'
+        return f'{white} (white pieces{white_tz}) vs {black} (black pieces{black_tz}){tc}'
 
     def slack_str(self, time_zone=True, time_control=True):
         white = f'@{self.white.lichess_username.lower()}'
-        black = f'@{pairing.black.lichess_username.lower()}'
+        black = f'@{self.black.lichess_username.lower()}'
         tc = f' @ {self.time_control()}' if time_control else ''
         white_tz = f', {self.white.timezone_str}' if time_zone else ''
         black_tz = f', {self.black.timezone_str}' if time_zone else ''
-        string = f'{white} (_white pieces_{white_tz}) vs {black} (_black pieces_{black_tz}){tc}'
+        return f'{white} (_white pieces_{white_tz}) vs {black} (_black pieces_{black_tz}){tc}'
 
 
     def save(self, *args, **kwargs):
@@ -1533,10 +1539,6 @@ class TeamPlayerPairing(PlayerPairing):
     white_player_team = models.ForeignKey(Team, related_name='white_player_pairings', null=True)
     black_player_team = models.ForeignKey(Team, related_name='black_player_pairings', null=True)
 
-    @classmethod
-    def pairing_groups(cls, round):
-        pairings = cls.objects.filter(team_pairing__round=round).select_related('white', 'black')
-        return [list(g) for k,g in groupby(pairings, key=lambda p: {p.black.pk, p.white.pk})]
 
     def time_control(self):
         return self.get_round().season.time_control(self.board_number)

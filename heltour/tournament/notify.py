@@ -459,20 +459,24 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
         _lichess_message(league, black, li_subject.format(**black_params), li_msg.format(**black_params))
     # Send slack ims
+    print("use_mpim:", use_mpim, "send_to_white:", send_to_white, "white:", white)
     if send_to_white and (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
         _message_user(league, white, im_msg.format(**white_params))
     if send_to_black and (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
         _message_user(league, black, im_msg.format(**black_params))
     # Send slack mpim
+
     if send_to_white and use_mpim:
         _message_multiple_users(league, [white, black], mp_msg.format(**common_params))
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
+    print("Sending Notifications")
     logger.info("Sending notifications")
     season = round_.season
     league = season.league
     if not league.enable_notifications:
+        print("Notifications silent")
         return
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
@@ -481,13 +485,16 @@ def notify_players_round_start(round_, **kwargs):
                                                       .select_related('player').nocache()}
 
     with cache.lock('round_start'):
+        print("about to get pairing groups")
+        print("round:", round_)
         for pairings in PlayerPairing.pairing_groups(round_):
+            print("found pairing groups")
             p1 = pairings[0]
             if season.alternates_manager_enabled() and (p1.white in unavailable_players or p1.black in unavailable_players):
                 # Don't send a notification, since the alternates manager will handle it
                 continue
 
-            slack_pairing_strings = '\n'.join([slack_pairing_to_string(p) for p in pairings])
+            slack_pairing_strings = '\n'.join([p.slack_str() for p in pairings])
             im_msg = 'You have been paired for Round {round} in {season}.\n' \
                 + slack_pairing_strings + '\n' \
                 + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
@@ -498,14 +505,14 @@ def notify_players_round_start(round_, **kwargs):
                 + 'Message your opponent here as soon as possible.\n' \
                 + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
-            li_pairing_strings = '\n'.join([lichess_pairing_to_string(p) for p in pairings])
+            li_pairing_strings = '\n'.join([p.lichess_str() for p in pairings])
             li_subject = 'Round {round} - {league}'
             li_msg = 'You have been paired for Round {round} in {season}.\n' \
                 + li_pairing_strings + '\n' \
                 + 'Message your opponent on Slack as soon as possible.\n' \
                 + '{slack_url}\n' \
                 + 'When you have agreed on a time, post it in {scheduling_channel}.'
-
+            print(mp_msg)
             send_pairing_notification('round_started', p1, im_msg, mp_msg, li_subject, li_msg)
             time.sleep(1)
 
