@@ -20,6 +20,7 @@ from django_comments.models import Comment
 from heltour import settings
 from itertools import groupby
 import reversion
+from heltour.tournament import lichessapi
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +250,6 @@ class Season(_BaseModel):
             time_controls = sorted(time_controls, key=time_control_normal)
             return f'between {time_controls[0]} and {time_controls[-1]}'
         return time_controls[0]
-
 
     def last_season_alternates(self):
         last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
@@ -745,7 +745,10 @@ class Player(_BaseModel):
         if account_status_changed:
             signals.player_account_status_changed.send(Player, instance=self, old_value=self.initial_account_status, new_value=self.account_status)
 
-    def update_profile(self, user_meta):
+    def update_profile(self, user_meta=None):
+        if not user_meta:
+            user_meta = lichessapi.get_user_meta(self.lichess_username, 1)
+        print(user_meta)
         self.profile = user_meta
         classical = user_meta['perfs'].get('classical')
         if classical is not None:

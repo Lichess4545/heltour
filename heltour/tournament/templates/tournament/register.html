@@ -22,6 +22,25 @@
 				{% if registration_season.start_date %}
 				<p>The season {% if registration_season.is_started %}started{% else %}starts{% endif %} {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
 				{% endif %}
+                <div class="form-group">
+                    <label>Lichess Username</label>
+                    <div>
+                        {{lichess_username}} 
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>{{rating_type}} rating</label>
+                    <div>
+                        {{rating}} 
+                    </div>
+                </div>
+                {% if is_provisional %}
+                <div class="form-group"> 
+                    Warning: Your rating is provisional. Your registration will
+                    not be accepted until you obtain a non-provisional rating.
+                    Go play come games
+                </div>
+                {% endif %}
 				<form action="" method="post">
 				    {% csrf_token %}
 				    {% bootstrap_form form %}

@@ -623,6 +623,11 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         if not Registration.can_register(self.request.user, reg_season):
             return redirect('by_league:league_home', self.league.tag)
 
+        player = Player.get_or_create(self.request.user.username)
+        player.update_profile()
+        #  if not player.profile:
+            #  player.update_profile()
+
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
             if post:
@@ -630,8 +635,13 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
-
                         form.save()
+
+                        instance = form.instance
+                        instance.classical_rating = player.rating_for(reg_season.league)
+                        instance.lichess_username = player.lichess_username
+                        instance.has_played_20_games = not player.provisional_for(reg_season.league)
+                        instance.save()
 
                     # send registration received email
                     subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
@@ -652,22 +662,15 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
             else:
                 form = RegistrationForm(instance=instance, season=reg_season)
-                player = Player.get_or_create(self.request.user.username)
                 form.fields['email'].initial = player.email
-
-                form.fields['lichess_username'].initial = player.lichess_username
-                form.fields['lichess_username'].disabled = True
-
-                form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
-                form.fields['classical_rating'].disabled = True
-
-                form.fields['has_played_20_games'].initial = not player.provisional_for(reg_season.league)
-                form.fields['has_played_20_games'].disabled = True
-
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
             context = {
                 'form': form,
+                'lichess_username': player.lichess_username,
+                'rating': player.rating_for(reg_season.league),
+                'is_provisional': player.provisional_for(reg_season.league),
+                'rating_type': reg_season.league.get_rating_type_display(),
                 'registration_season': reg_season
             }
             return self.render('tournament/register.html', context)

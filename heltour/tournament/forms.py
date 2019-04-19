@@ -25,13 +25,12 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'classical_rating',
-            'has_played_20_games', 'email', 'already_in_slack_group',
+            'email', 'already_in_slack_group',
             'previous_season_alternate', 'can_commit', 'friends', 'avoid', 'agreed_to_rules',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
-            'lichess_username': _('Your Lichess Username'),
+            #  'lichess_username': _('Your Lichess Username'),
             'email': _('Your Email'),
         }
 
@@ -39,20 +38,6 @@ class RegistrationForm(forms.ModelForm):
         self.season = kwargs.pop('season')
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
-
-        # Rating fields
-        rating_type = league.get_rating_type_display()
-        self.fields['classical_rating'] = (
-            forms.IntegerField(required=True,
-                               label=_('Your Lichess %s Rating' % rating_type)))
-
-        # 20 games
-        self.fields['has_played_20_games'] = (
-            forms.TypedChoiceField(label=_(f'Is your {rating_type.lower()} rating established (not '
-                                           'provisional)?'),
-                                   help_text=_('If it is provisional, it must be established ASAP '
-                                               'by playing more games.'),
-                                   **YES_NO_RADIO_OPTIONS))
 
         # In slack
         self.fields['already_in_slack_group'] = (
