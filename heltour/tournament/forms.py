@@ -25,8 +25,8 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'email', 'classical_rating',
-            'has_played_20_games', 'already_in_slack_group',
+            'lichess_username', 'classical_rating',
+            'has_played_20_games', 'email', 'already_in_slack_group',
             'previous_season_alternate', 'can_commit', 'friends', 'avoid', 'agreed_to_rules',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
@@ -59,7 +59,7 @@ class RegistrationForm(forms.ModelForm):
             forms.TypedChoiceField(label=_('Are you on our Slack group?'), **YES_NO_RADIO_OPTIONS))
 
 
-        self.competitor_type_init(league.competitor_type)
+        self.competitor_type_init(league)
 
         # Can commit
         self.fields['can_commit'] = self.can_commit_field(league, self.season)
@@ -85,24 +85,14 @@ class RegistrationForm(forms.ModelForm):
         if settings.DEBUG:
             del self.fields['captcha']
 
-    def competitor_type_init(self, type):
+    def competitor_type_init(self, league):
+        type = league.competitor_type
         if type == 'team':
             self.fields['previous_season_alternate'] = (
                 forms.ChoiceField(required=True,
                                   choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS,
                                   widget=forms.RadioSelect,
                                   label=_('Were you an alternate for the previous season?')))
-            self.fields['friends'] = (
-                forms.CharField(required=False,
-                                label=_('Are there any friends you would like to be paired with?'),
-                                help_text=_('Note: Please enter their exact lichess usernames.'
-                                            ' All players must register. All players must join '
-                                            'Slack. All players should also request each other.')))
-            self.fields['avoid'] = (
-                forms.CharField(required=False,
-                                label=_('Are there any players you would like NOT to be paired '
-                                        'with?'),
-                                help_text=_('Note: Please enter their exact lichess usernames.')))
 
             self.fields['alternate_preference'] = (
                 forms.ChoiceField(required=True,
@@ -112,6 +102,23 @@ class RegistrationForm(forms.ModelForm):
                                           'player?'),
                                   help_text=_('Players are put into teams on a first come first served basis, you may '
                                               'be an alternate even if you request to be a full time player.')))
+
+            if league.leaguesetting.friends_and_avoids:
+                self.fields['friends'] = (
+                    forms.CharField(required=False,
+                                    label=_('Are there any friends you would like to be paired with?'),
+                                    help_text=_('Note: Please enter their exact lichess usernames.'
+                                                ' All players must register. All players must join '
+                                                'Slack. All players should also request each other.')))
+                self.fields['avoid'] = (
+                    forms.CharField(required=False,
+                                    label=_('Are there any players you would like NOT to be paired '
+                                            'with?'),
+                                    help_text=_('Note: Please enter their exact lichess usernames.')))
+            else:
+                del self.fields['avoid']
+                del self.fields['friends']
+
         else:
             del self.fields['previous_season_alternate']
             del self.fields['friends']
@@ -135,12 +142,13 @@ class RegistrationForm(forms.ModelForm):
                                        **YES_NO_RADIO_OPTIONS))
 
     def can_commit_field(self, league, season):
-        time_control, rating_type, games_per_round = league.time_control, league.rating_type, league.games_per_round
+        time_control, rating_type, games_per_round = (season.time_control_str(),
+            league.rating_type, league.games_per_round)
         plural = 's' if games_per_round > 1 else ''
 
         if rating_type != 'blitz':
             label=(f'Are you able to commit to {games_per_round} game{plural} of {rating_type} '
-                   f'chess with a time control {time_control} on Lichess.org per week')
+                   f'chess with a time control of {time_control} on Lichess.org per week')
         else:
             start_date, rounds = season.start_date, season.rounds
             if start_date is None:

@@ -44,6 +44,11 @@ def add_system_comment(obj, text, user_name='System'):
     Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
                            comment=text, submit_date=timezone.now(), is_public=True)
 
+# For comparing time controls to determine which is longer
+def time_control_normal(tc):
+    m = re.search(r'(\d+)\+(\d+)', tc)
+    return int(m.group(1)) * 60 + int(m.group(2)) * 40
+
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
 
@@ -175,6 +180,7 @@ class LeagueSetting(_BaseModel):
     carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
+    friends_and_avoids = models.BooleanField(default=True)
 
     def __str__(self):
         return '%s Settings' % self.league
@@ -236,6 +242,14 @@ class Season(_BaseModel):
                 return board.time_control
         else:
             return self.league.time_control
+
+    def time_control_str(self):
+        time_controls = {self.time_control(board) for board in range(1, self.boards + 1)}
+        if len(time_controls):
+            time_controls = sorted(time_controls, key=time_control_normal)
+            return f'between {time_controls[0]} and {time_controls[-1]}'
+        return time_controls[0]
+
 
     def last_season_alternates(self):
         last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
