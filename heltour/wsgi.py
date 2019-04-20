@@ -15,11 +15,14 @@ if os.path.exists(activate_this):
     exec(compile(open(activate_this).read(), activate_this, 'exec'), dict(__file__=activate_this))
 
 
+from django.conf import settings
+from django.contrib.staticfiles.handlers import StaticFilesHandler
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault("HELTOUR_ENV", "LIVE")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "heltour.settings")
 
-application = get_wsgi_application()
-
-
+if settings.DEBUG:
+    application = StaticFilesHandler(get_wsgi_application())
+else:
+    application = get_wsgi_application()
