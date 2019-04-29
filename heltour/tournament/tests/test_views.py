@@ -181,6 +181,12 @@ class RegisterTestCase(TestCase):
             self.assertContains(response, 'Change Registration')
             self.assertNotContains(response, 'Register')
 
+            user.username = user.username.lower()
+            user.save()
+            response = self.client.get(reverse('by_league:league_home', args=[league]))
+            self.assertContains(response, 'Change Registration')
+            self.assertNotContains(response, 'Register')
+
             registration.status = 'rejected'
             registration.save()
 
