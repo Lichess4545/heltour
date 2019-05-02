@@ -1569,13 +1569,13 @@ class Registration(_BaseModel):
     @classmethod
     def get_latest_registration(cls, user, season):
         return (cls.objects
-                .filter(lichess_username=user.username, season=season)
+                .filter(lichess_username__iexact=user.username, season=season)
                 .order_by('-date_created')
                 .first())
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username=user.username, season=season).exists()
+        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
