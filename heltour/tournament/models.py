@@ -643,6 +643,7 @@ class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
+    user = models.ForeignKey(User, blank=True, null=True)
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
@@ -674,6 +675,7 @@ class Player(_BaseModel):
         self.initial_account_status = self.account_status
 
     def save(self, *args, **kwargs):
+        self.lichess_username = self.user.username
         account_status_changed = self.pk and self.account_status != self.initial_account_status
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:
@@ -693,7 +695,11 @@ class Player(_BaseModel):
 
     @classmethod
     def get_or_create(cls, lichess_username):
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username, defaults={'lichess_username': lichess_username})
+        try:
+            user = User.objects.get(username__iexact=lichess_username)
+        except User.DoesNotExist:
+            raise f'no user with lichess username {lichess_username} exists'
+        player, _ = Player.objects.get_or_create(user=user)
         return player
 
     @classmethod
@@ -706,7 +712,7 @@ class Player(_BaseModel):
             reversion.set_comment('Link slack account')
             player.slack_user_id = slack_user_id
             player.save()
-            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username, slack_user_id=slack_user_id)
+            signals.slack_account_linked.send(sender=cls, player=player, slack_user_id=slack_user_id)
             return True
 
     def is_available_for(self, round_):
@@ -1519,6 +1525,7 @@ ALTERNATE_PREFERENCE_OPTIONS = (
 #-------------------------------------------------------------------------------
 class Registration(_BaseModel):
     season = models.ForeignKey(Season)
+    user = models.ForeignKey(User, blank=True, null=True)
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
@@ -1543,6 +1550,10 @@ class Registration(_BaseModel):
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        self.lichess_username = self.user.username
+        super(Registration, self).save(*args, **kwargs)
+
     def __str__(self):
         return "%s" % (self.lichess_username)
 
@@ -1553,7 +1564,7 @@ class Registration(_BaseModel):
         return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
 
     def player(self):
-        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+        return self.user.player
 
     @classmethod
     def can_register(cls, user, season):
