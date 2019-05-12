@@ -22,7 +22,8 @@ def createCommonLeagueData():
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player%d' % player_num)
+            user = User.objects.create_user(f'Player{player_num}', password='test')
+            player = Player.objects.create(user=user)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
 
@@ -135,7 +136,6 @@ class StatsTestCase(TestCase):
 class RegisterTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
-        User.objects.create_user('Player1', password='test')
 
     def test_require_login(self):
         response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
@@ -173,7 +173,7 @@ class RegisterTestCase(TestCase):
             self.assertContains(response, 'Register')
             self.assertNotContains(response, 'Change Registration')
 
-            registration = create_reg(season, user.username)
+            registration = create_reg(season, user)
             registration.classical_rating = 1600
             registration.save()
 

@@ -3,6 +3,7 @@ import json
 from django.test import TestCase, Client
 from heltour.tournament.models import *
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
 
 def createCommonAPIData():
     team_count = 4
@@ -19,7 +20,8 @@ def createCommonAPIData():
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player%d' % player_num)
+            user = User.objects.create_user(f'Player{player_num}', password='test')
+            player = Player.objects.create(user=user)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
 
