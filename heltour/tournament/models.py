@@ -1558,13 +1558,13 @@ class Registration(_BaseModel):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)
+        return Registration.objects.filter(user=self.user, date_created__lt=self.date_created)
 
     def other_seasons(self):
-        return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
+        return SeasonPlayer.objects.filter(player__user=self.user).exclude(season=self.season)
 
     def player(self):
-        return self.user.player
+        return Player.objects.get(user=self.user)
 
     @classmethod
     def can_register(cls, user, season):
@@ -1580,13 +1580,13 @@ class Registration(_BaseModel):
     @classmethod
     def get_latest_registration(cls, user, season):
         return (cls.objects
-                .filter(lichess_username__iexact=user.username, season=season)
+                .filter(user=user, season=season)
                 .order_by('-date_created')
                 .first())
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
+        return cls.objects.filter(user=user, season=season).exists()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
