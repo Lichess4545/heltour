@@ -132,7 +132,7 @@ class LoginRequiredMixin:
 
     @property
     def player(self):
-        return Player.get_or_create(self.request.user.username)
+        return Player.get_or_create(self.request.user)
 
 class ICalMixin:
     def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
@@ -672,7 +672,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
             else:
                 form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
-                player = Player.get_or_create(self.request.user.username)
+                player = Player.get_or_create(self.request.user)
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
                 form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
@@ -1210,7 +1210,7 @@ class UserDashboardView(LeagueView):
         if not self.request.user.is_authenticated():
             return redirect('by_league:league_home', self.league.tag)
 
-        player = Player.get_or_create(self.request.user.username)
+        player = Player.get_or_create(self.request.user)
 
         slack_linked = bool(player.slack_user_id)
         slack_linked_just_now = False
@@ -1833,13 +1833,14 @@ class LoginView(LeagueView):
                             user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
                     user.backend = 'django.contrib.auth.backends.ModelBackend'
                     login(self.request, user)
+                    player = Player.get_or_create(user)
 
                     if token.slack_user_id:
                         # Double check against the session to prevent certain kinds of attacks
                         if self.request.session.get('slack_user_id') == token.slack_user_id \
                            or token.source_ip and token.source_ip == get_client_ip(self.request)[0]:
                             # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                            if Player.link_slack_account(token.lichess_username, token.slack_user_id):
+                            if player.link_slack_account(token.slack_user_id):
                                 self.request.session['slack_linked'] = True
 
                     redir_url = self.request.session.get('login_redirect')
@@ -1852,7 +1853,8 @@ class LoginView(LeagueView):
                     # The user has been directed here from Slack. If they complete the login their accounts will be associated
                     if self.request.user.is_authenticated():
                         # Already logged in, so associate right now
-                        if Player.link_slack_account(self.request.user.username, token.slack_user_id):
+                        player = Player.get_or_create(self.request.user)
+                        if player.link_slack_account(token.slack_user_id):
                             self.request.session['slack_linked'] = True
                         return redirect('by_league:user_dashboard', self.league.tag)
                     slack_user_id = token.slack_user_id
@@ -1947,7 +1949,7 @@ class ToggleDarkModeView(BaseView):
     def view(self):
         original_value = False
         if self.request.user.is_authenticated():
-            player = Player.get_or_create(self.request.user.username)
+            player = Player.get_or_create(self.request.user)
             player_setting, _ = PlayerSetting.objects.get_or_create(player=player)
             original_value = player_setting.dark_mode
             player_setting.dark_mode = not original_value

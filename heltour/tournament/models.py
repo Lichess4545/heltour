@@ -694,25 +694,19 @@ class Player(_BaseModel):
         self.save()
 
     @classmethod
-    def get_or_create(cls, lichess_username):
-        try:
-            user = User.objects.get(username__iexact=lichess_username)
-        except User.DoesNotExist:
-            raise f'no user with lichess username {lichess_username} exists'
+    def get_or_create(cls, user):
         player, _ = Player.objects.get_or_create(user=user)
         return player
 
-    @classmethod
-    def link_slack_account(cls, lichess_username, slack_user_id):
-        player = Player.get_or_create(lichess_username)
-        if player.slack_user_id == slack_user_id:
+    def link_slack_account(self, slack_user_id):
+        if self.slack_user_id == slack_user_id:
             # No change needed
             return False
         with reversion.create_revision():
             reversion.set_comment('Link slack account')
-            player.slack_user_id = slack_user_id
-            player.save()
-            signals.slack_account_linked.send(sender=cls, player=player, slack_user_id=slack_user_id)
+            self.slack_user_id = slack_user_id
+            self.save()
+            signals.slack_account_linked.send(sender=Player, player=self, slack_user_id=slack_user_id)
             return True
 
     def is_available_for(self, round_):
