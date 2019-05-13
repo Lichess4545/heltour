@@ -132,7 +132,7 @@ class LoginRequiredMixin:
 
     @property
     def player(self):
-        return Player.get_or_create(self.request.user.username)
+        return Player.get_or_create(self.request.user)
 
 class ICalMixin:
     def ical_from_pairings_list(self, pairings, calendar_title, uid_component):
@@ -672,7 +672,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
             else:
                 form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
-                player = Player.get_or_create(self.request.user.username)
+                player = Player.get_or_create(self.request.user)
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
                 form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
@@ -1212,7 +1212,7 @@ class UserDashboardView(LeagueView):
         if not self.request.user.is_authenticated():
             return redirect('by_league:league_home', self.league.tag)
 
-        player = Player.get_or_create(self.request.user.username)
+        player = Player.get_or_create(self.request.user)
 
         slack_linked = bool(player.slack_user_id)
         slack_linked_just_now = False
@@ -1881,7 +1881,7 @@ class ToggleDarkModeView(BaseView):
     def view(self):
         original_value = False
         if self.request.user.is_authenticated():
-            player = Player.get_or_create(self.request.user.username)
+            player = Player.get_or_create(self.request.user)
             player_setting, _ = PlayerSetting.objects.get_or_create(player=player)
             original_value = player_setting.dark_mode
             player_setting.dark_mode = not original_value

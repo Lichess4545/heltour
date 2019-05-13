@@ -316,7 +316,7 @@ def validate_registration(self, reg_id):
 
     try:
         user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
-        player, _ = Player.get_or_create(reg.lichess_username)
+        player, _ = Player.get_or_create(reg.user)
         player.update_profile(user_meta)
         reg.classical_rating = player.rating_for(reg.season.league)
         reg.peak_classical_rating = lichessapi.get_peak_rating(reg.lichess_username, reg.season.league.rating_type)
