@@ -643,7 +643,7 @@ class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.OneToOneField(User, blank=True, null=True)
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
