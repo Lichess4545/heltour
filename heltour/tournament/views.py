@@ -631,17 +631,11 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
             if post:
-                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
+                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season, player=player)
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
                         form.save()
-
-                        instance = form.instance
-                        instance.classical_rating = player.rating_for(reg_season.league)
-                        instance.lichess_username = player.lichess_username
-                        instance.has_played_20_games = not player.provisional_for(reg_season.league)
-                        instance.save()
 
                     # send registration received email
                     subject = render_to_string('tournament/emails/registration_received_subject.txt', {'reg': form.instance})
@@ -661,7 +655,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag, season_tag=self.season.tag))
             else:
-                form = RegistrationForm(instance=instance, season=reg_season)
+                form = RegistrationForm(instance=instance, season=reg_season, player=player)
                 form.fields['email'].initial = player.email
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 

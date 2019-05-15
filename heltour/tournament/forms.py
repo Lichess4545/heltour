@@ -36,6 +36,7 @@ class RegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
+        self.player = kwargs.pop('player')
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
@@ -182,8 +183,14 @@ class RegistrationForm(forms.ModelForm):
 
 
     def save(self, commit=True, *args, **kwargs):
-        registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
+        registration = (super(RegistrationForm, self)
+            .save(commit=False, *args, **kwargs))
         registration.season = self.season
+        registration.classical_rating = (
+            self.player.rating_for(self.season.league))
+        registration.lichess_username = self.player.lichess_username
+        registration.has_played_20_games = (
+            not self.player.provisional_for(self.season.league))
         registration.status = 'pending'
         if commit:
             registration.save()

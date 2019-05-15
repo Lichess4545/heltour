@@ -228,6 +228,9 @@ class Season(_BaseModel):
                 TeamPlayerPairing.objects.filter(team_pairing=pairing).delete()
                 pairing.delete()
 
+    def has_started(self):
+        return Round.objects.filter(season=self, publish_pairings=True).exists()
+
     def games_on_board(self, board):
         if self.board_set.exists():
             board = self.board_set.get(board_number=board)
@@ -249,10 +252,12 @@ class Season(_BaseModel):
 
     def time_control_str(self):
         time_controls = {self.time_control(board) for board in range(1, self.boards + 1)}
-        if len(time_controls):
+        print(time_controls)
+        print("len(time_controls):", len(time_controls))
+        if len(time_controls) > 1:
             time_controls = sorted(time_controls, key=time_control_normal)
             return f'between {time_controls[0]} and {time_controls[-1]}'
-        return time_controls[0]
+        return time_controls.pop()
 
     def last_season_alternates(self):
         last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
@@ -786,7 +791,8 @@ class Player(_BaseModel):
 
     def rating_for(self, league):
         if league:
-            if self.profile is None:
+            if (self.profile is None
+                or not self.profile['perfs'].get(league.rating_type, {})):
                 return 1500
             return self.profile['perfs'].get(league.rating_type, {}).get('rating')
         return self.rating

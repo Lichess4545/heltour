@@ -180,8 +180,11 @@ def get_peak_rating(lichess_username, perf_type):
         if response.status_code != 200:
             logger.error('Received status %s when trying to retrieve peak rating on lichess: %s' % (response.status_code, response.text))
             return None
+        try:
+            return response.json()['stat']['highest']['int']
+        except KeyError:
+            return 1500
 
-        return response.json()['stat']['highest']['int']
     except Exception:
         logger.exception('Error retrieving peak rating for %s' % lichess_username)
         return None
