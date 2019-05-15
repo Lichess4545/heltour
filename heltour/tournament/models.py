@@ -238,11 +238,14 @@ class Season(_BaseModel):
 
     def time_control(self, board=None):
         if self.board_set.exists():
-            board = self.board_set.get(board_number=board)
-            if board.time_control:
-                return board.time_control
-        else:
-            return self.league.time_control
+            try:
+                board = self.board_set.get(board_number=board)
+                if board.time_control:
+                    return board.time_control
+            except Board.DoesNotExist:
+                logger.exception(f"Board sets exist but could not find board {board}")
+
+        return self.league.time_control
 
     def time_control_str(self):
         time_controls = {self.time_control(board) for board in range(1, self.boards + 1)}
@@ -1408,7 +1411,10 @@ class PlayerPairing(_BaseModel):
         return None
 
     def time_control(self):
-        return self.get_round().season.time_control()
+        try:
+            return self.teamplayerpairing.time_control()
+        except:
+            return self.get_round().season.time_control()
 
     def time_control_initial(self):
         parts = self.time_control().split('+')
