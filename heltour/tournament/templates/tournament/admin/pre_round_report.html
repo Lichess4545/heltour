@@ -79,13 +79,26 @@
 	<thead>
 		<tr>
 			<th>Name</th>
+			<th>Pairing Result</th>
+			<th>Comments</th>
 			<th></th>
 		</tr>
 	</thead>
 	<tbody>
-		{% for player in red_cards %}
+		{% for player, pairing, comments in red_cards %}
 		<tr>
 			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
+            <td>{{ pairing.result }}</td>
+            <td>
+                {% for comment in comments %}
+                    <dt id="c{{ comment.id }}">
+                        {{ comment.submit_date }} - {{ comment.name }}
+                    </dt>
+                    <dd>
+                        <p>{{ comment.comment }}</p>
+                    </dd>
+                {% endfor %}
+            </td>
 			<td>
 				<a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
 		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw

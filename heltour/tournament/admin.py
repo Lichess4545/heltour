@@ -735,7 +735,7 @@ class SeasonAdmin(_BaseAdmin):
             'last_round': last_round,
             'next_round': next_round,
             'missing_withdrawals': with_round_info(missing_withdrawals),
-            'red_cards': sorted(red_cards),
+            'red_cards': with_round_info(sorted(red_cards)),
             'bad_player_status': sorted(bad_player_status) if bad_player_status is not None else None,
             'not_on_slack': sorted(not_on_slack) if not_on_slack is not None else None,
             'pending_mod_reqs': pending_mod_reqs,
