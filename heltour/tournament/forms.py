@@ -32,6 +32,7 @@ class RegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
+        self.user = kwargs.pop('user')
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
@@ -134,6 +135,7 @@ class RegistrationForm(forms.ModelForm):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
         registration.status = 'pending'
+        registration.user = self.user
         if commit:
             registration.save()
         return registration

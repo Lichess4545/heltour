@@ -316,7 +316,7 @@ def validate_registration(self, reg_id):
 
     try:
         user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username, defaults={'lichess_username': reg.lichess_username})
+        player, _ = Player.get_or_create(reg.user)
         player.update_profile(user_meta)
         reg.classical_rating = player.rating_for(reg.season.league)
         reg.peak_classical_rating = lichessapi.get_peak_rating(reg.lichess_username, reg.season.league.rating_type)
@@ -414,15 +414,14 @@ def do_schedule_publish(sender, round_id, eta, **kwargs):
         signals.publish_scheduled.send(sender=do_schedule_publish, round_id=round_id, eta=eta)
 
 @app.task(bind=True)
-def notify_slack_link(self, lichess_username):
-    player = Player.get_or_create(lichess_username)
+def notify_slack_link(self, player):
     email = slackapi.get_user(player.slack_user_id).email
     msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
     lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
 
 @receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.tasks')
-def do_notify_slack_link(lichess_username, **kwargs):
-    notify_slack_link.apply_async(args=[lichess_username], countdown=1)
+def do_notify_slack_link(player, **kwargs):
+    notify_slack_link.apply_async(args=[player], countdown=1)
 
 @app.task(bind=True)
 def create_team_channel(self, team_ids):

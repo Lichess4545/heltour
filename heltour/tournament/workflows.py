@@ -308,7 +308,7 @@ class ApproveRegistrationWorkflow():
     def default_section(self):
         if not hasattr(self.reg.season, 'section'):
             return self.reg.season
-        player = Player.get_or_create(self.reg.lichess_username)
+        player = Player.get_or_create(self.reg.user)
         if self.reg.section_preference is not None and self.reg.section_preference.is_eligible(player):
             return self.reg.section_preference.season
         section_list = self.reg.season.section_list()

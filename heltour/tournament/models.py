@@ -643,6 +643,7 @@ class Player(_BaseModel):
     # TODO: we should find out the real restrictions on a lichess username and
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
+    user = models.OneToOneField(User, blank=True, null=True)
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
@@ -674,6 +675,7 @@ class Player(_BaseModel):
         self.initial_account_status = self.account_status
 
     def save(self, *args, **kwargs):
+        self.lichess_username = self.user.username
         account_status_changed = self.pk and self.account_status != self.initial_account_status
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:
@@ -692,21 +694,19 @@ class Player(_BaseModel):
         self.save()
 
     @classmethod
-    def get_or_create(cls, lichess_username):
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username, defaults={'lichess_username': lichess_username})
+    def get_or_create(cls, user):
+        player, _ = Player.objects.get_or_create(user=user)
         return player
 
-    @classmethod
-    def link_slack_account(cls, lichess_username, slack_user_id):
-        player = Player.get_or_create(lichess_username)
-        if player.slack_user_id == slack_user_id:
+    def link_slack_account(self, slack_user_id):
+        if self.slack_user_id == slack_user_id:
             # No change needed
             return False
         with reversion.create_revision():
             reversion.set_comment('Link slack account')
-            player.slack_user_id = slack_user_id
-            player.save()
-            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username, slack_user_id=slack_user_id)
+            self.slack_user_id = slack_user_id
+            self.save()
+            signals.slack_account_linked.send(sender=Player, player=self, slack_user_id=slack_user_id)
             return True
 
     def is_available_for(self, round_):
@@ -1521,6 +1521,7 @@ ALTERNATE_PREFERENCE_OPTIONS = (
 #-------------------------------------------------------------------------------
 class Registration(_BaseModel):
     season = models.ForeignKey(Season)
+    user = models.ForeignKey(User, blank=True, null=True)
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
@@ -1545,17 +1546,21 @@ class Registration(_BaseModel):
     validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        self.lichess_username = self.user.username
+        super(Registration, self).save(*args, **kwargs)
+
     def __str__(self):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username__iexact=self.lichess_username, date_created__lt=self.date_created)
+        return Registration.objects.filter(user=self.user, date_created__lt=self.date_created)
 
     def other_seasons(self):
-        return SeasonPlayer.objects.filter(player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
+        return SeasonPlayer.objects.filter(player__user=self.user).exclude(season=self.season)
 
     def player(self):
-        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+        return Player.objects.get(user=self.user)
 
     @classmethod
     def can_register(cls, user, season):
@@ -1571,13 +1576,13 @@ class Registration(_BaseModel):
     @classmethod
     def get_latest_registration(cls, user, season):
         return (cls.objects
-                .filter(lichess_username__iexact=user.username, season=season)
+                .filter(user=user, season=season)
                 .order_by('-date_created')
                 .first())
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
+        return cls.objects.filter(user=user, season=season).exists()
 
 #-------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):

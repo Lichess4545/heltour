@@ -1,5 +1,6 @@
 from django.test import TestCase
 from heltour.tournament.models import *
+from django.contrib.auth.models import User
 from datetime import datetime
 from django.utils import timezone
 
@@ -18,7 +19,8 @@ def createCommonLeagueData():
         team = Team.objects.create(season=season, number=n, name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player%d' % player_num)
+            user = User.objects.create_user(f'Player{player_num}', password='test')
+            player = Player.objects.create(user=user)
             sp = SeasonPlayer.objects.create(season=season2, player=player)
             LonePlayerScore.objects.create(season_player=sp)
             player_num += 1
@@ -27,8 +29,8 @@ def createCommonLeagueData():
 def set_rating(player, rating, rating_type='classical'):
     player.profile = {'perfs': {rating_type: {'rating': rating}}}
 
-def create_reg(season, name):
-    return Registration.objects.create(season=season, status='pending', lichess_username=name, slack_username=name,
+def create_reg(season, user):
+    return Registration.objects.create(season=season, status='pending', user=user, slack_username=user.username,
                                        email='a@test.com', classical_rating=1500, peak_classical_rating=1600,
                                        has_played_20_games=True, already_in_slack_group=True, previous_season_alternate='new',
                                        can_commit=True, agreed_to_rules=True, alternate_preference='full_time')
@@ -354,21 +356,23 @@ class RegistrationTestCase(TestCase):
 
     def test_registration_previous(self):
         season = Season.objects.all()[0]
-        reg = create_reg(season, 'testuser')
+        user = User.objects.first()
+        reg = create_reg(season, user)
 
         self.assertEqual([], list(reg.previous_registrations()))
 
-        reg2 = create_reg(season, 'testuser')
+        reg2 = create_reg(season, user)
         self.assertEqual([], list(reg.previous_registrations()))
         self.assertEqual([reg], list(reg2.previous_registrations()))
 
     def test_registration_other_seasons(self):
         season = Season.objects.all()[0]
+        user = User.objects.create_user('testuser', password='test')
         season2 = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4, boards=6)
 
-        player = Player.objects.create(lichess_username='testuser')
+        player = Player.objects.create(user=user)
         sp = SeasonPlayer.objects.create(season=season, player=player)
-        reg = create_reg(season2, 'testuser')
+        reg = create_reg(season2, user)
 
         self.assertEqual([sp], list(reg.other_seasons()))
 
@@ -415,13 +419,14 @@ class AlternateTestCase(TestCase):
     def test_priority_date(self):
         season = Season.objects.get(tag='teamseason')
         player = Player.objects.all()[0]
+        user = User.objects.first()
         sp = SeasonPlayer.objects.create(season=season, player=player)
         alt = Alternate.objects.create(season_player=sp, board_number=1)
 
         self.assertEqual(alt.date_created, alt.priority_date())
 
         time1 = timezone.now()
-        sp.registration = create_reg(sp.season, 'testuser')
+        sp.registration = create_reg(sp.season, user)
         sp.save()
         time2 = timezone.now()
 
@@ -470,7 +475,8 @@ class AlternateAssignmentTestCase(TestCase):
 
         self.assertEqual('Player1', pp1.white.lichess_username)
 
-        AlternateAssignment.objects.create(round=tp.round, team=team1, board_number=1, player=Player.objects.create(lichess_username='Test User'))
+        AlternateAssignment.objects.create(round=tp.round, team=team1, board_number=1,
+                player=Player.objects.create(user=User.objects.create_user('Test User', password='test')))
         pp1.refresh_from_db()
         self.assertEqual('Test User', pp1.white.lichess_username)
 
