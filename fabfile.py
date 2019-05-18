@@ -217,6 +217,10 @@ def runserver():
     local("python %s runserver 0.0.0.0:8000" % manage_py)
 
 #-------------------------------------------------------------------------------
+def localmail():
+    local("python -m smtpd -n -c DebuggingServer localhost:1025")
+
+#-------------------------------------------------------------------------------
 def cleansedb():
     manage_py = project_relative("manage.py")
     local("python %s cleansedb" % manage_py)

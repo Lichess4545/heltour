@@ -157,7 +157,7 @@ class _BaseAdmin(VersionAdmin):
         return []
 
     def authorized_leagues(self, user):
-        return [lm['league_id'] for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username).values('league_id')]
+        return [lm['league_id'] for lm in LeagueModerator.objects.filter(player__user__username__iexact=user.username).values('league_id')]
 
 #-------------------------------------------------------------------------------
 class LeagueRestrictedListFilter(RelatedFieldListFilter):
@@ -771,7 +771,7 @@ class SeasonAdmin(_BaseAdmin):
         season = get_object_or_404(Season, pk=object_id)
         if not request.user.has_perm('tournament.manage_players', season.league):
             raise PermissionDenied
-        season_player = get_object_or_404(SeasonPlayer, season=season, player__lichess_username=player_name)
+        season_player = get_object_or_404(SeasonPlayer, season=season, player__user__username=player_name)
         player = season_player.player
 
         reg = season_player.registration
@@ -797,7 +797,7 @@ class SeasonAdmin(_BaseAdmin):
                                                     number=team_number,
                                                     name=f'Team {team_number}')
                 for board_number, board in enumerate(team.boards, 1):
-                    player = Player.objects.get(lichess_username=board.name)
+                    player = Player.objects.get(user__username=board.name)
                     TeamMember.objects.create(team=team_instance,
                                               player=player,
                                               board_number=board_number)
@@ -807,7 +807,7 @@ class SeasonAdmin(_BaseAdmin):
                 for player in board:
                     season_player = (SeasonPlayer.objects
                                      .get(season=season,
-                                          player__lichess_username__iexact=player.name))
+                                          player__user__username__iexact=player.name))
                     Alternate.objects.create(season_player=season_player,
                                              board_number=board_number)
 
@@ -898,7 +898,7 @@ class SeasonAdmin(_BaseAdmin):
                                         teammember.delete()
                                         teammember = None
                                     else:
-                                        teammember.player = Player.objects.get(lichess_username=player_info['name'])
+                                        teammember.player = Player.objects.get(user__username=player_info['name'])
                                         teammember.is_captain = player_info['is_captain']
                                         teammember.is_vice_captain = player_info['is_vice_captain']
                                         teammember.save()
@@ -921,7 +921,7 @@ class SeasonAdmin(_BaseAdmin):
 
                                     for board_num, player_info in enumerate(model['boards'], 1):
                                         if player_info is not None:
-                                            player = Player.objects.get(lichess_username=player_info['name'])
+                                            player = Player.objects.get(user__username=player_info['name'])
                                             is_captain = player_info['is_captain']
                                             with reversion.create_revision():
                                                 TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
@@ -941,7 +941,7 @@ class SeasonAdmin(_BaseAdmin):
                                 board_num = change['board_number']
                                 season_player = (SeasonPlayer.objects
                                                  .get(season=season,
-                                                      player__lichess_username__iexact=change['player_name']))
+                                                      player__user__username__iexact=change['player_name']))
                                 (Alternate.objects
                                  .update_or_create(season_player=season_player,
                                                    defaults={ 'board_number': board_num }))
@@ -954,7 +954,7 @@ class SeasonAdmin(_BaseAdmin):
                                 board_num = change['board_number']
                                 season_player = (SeasonPlayer.objects
                                                  .get(season=season,
-                                                      player__lichess_username__iexact=change['player_name']))
+                                                      player__user__username__iexact=change['player_name']))
                                 alt = (Alternate.objects
                                        .filter(season_player=season_player, board_number=board_num)
                                        .first())
@@ -1076,14 +1076,16 @@ class SeasonAdmin(_BaseAdmin):
     def lone_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
 
-        active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
-        inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
+        active_players = SeasonPlayer.objects.filter(season=season,
+                is_active=True).order_by('player__user__username')
+        inactive_players = SeasonPlayer.objects.filter(season=season,
+                is_active=False).order_by('player__user__username')
 
         projected_active = {sp.player for sp in active_players}
 
         def get_data(r):
-            regs = r.playerlateregistration_set.order_by('player__lichess_username')
-            wds = r.playerwithdrawal_set.order_by('player__lichess_username')
+            regs = r.playerlateregistration_set.order_by('player__user__username')
+            wds = r.playerwithdrawal_set.order_by('player__user__username')
 
             if not r.publish_pairings:
                 for reg in regs:
@@ -1094,13 +1096,14 @@ class SeasonAdmin(_BaseAdmin):
                     except KeyError:
                         pass
 
-            byes = r.playerbye_set.order_by('player__lichess_username')
+            byes = r.playerbye_set.order_by('player__user__username')
             players_with_byes = {b.player for b in byes}
 
             def show(avail):
                 return avail.player in projected_active and avail.player not in players_with_byes
 
-            unavailables = [avail for avail in r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username') if show(avail)]
+            unavailables = [avail for avail in
+                    r.playeravailability_set.filter(is_available=False).order_by('player__user__username') if show(avail)]
 
             return r, regs, wds, byes, unavailables
 
@@ -1246,7 +1249,7 @@ class RoundAdmin(_BaseAdmin):
             return render(request, 'tournament/admin/review_team_pairings.html', context)
         else:
             pairings = round_.loneplayerpairing_set.order_by('pairing_order').nocache()
-            byes = round_.playerbye_set.order_by('type', 'player_rank', 'player__lichess_username')
+            byes = round_.playerbye_set.order_by('type', 'player_rank', 'player__user__username')
             next_pairing_order = 0
             for p in pairings:
                 next_pairing_order = max(next_pairing_order, p.pairing_order + 1)
@@ -1310,7 +1313,7 @@ class RoundAdmin(_BaseAdmin):
 @admin.register(PlayerLateRegistration)
 class PlayerLateRegistrationAdmin(_BaseAdmin):
     list_display = ('__str__', 'retroactive_byes', 'late_join_points')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
     actions = ['refresh_fields', 'move_to_next_round']
@@ -1376,7 +1379,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
 @admin.register(PlayerWithdrawal)
 class PlayerWithdrawalAdmin(_BaseAdmin):
     list_display = ('__str__',)
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
@@ -1386,7 +1389,7 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
 @admin.register(PlayerBye)
 class PlayerByeAdmin(_BaseAdmin):
     list_display = ('__str__', 'type')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
     exclude = ('player_rating',)
@@ -1397,7 +1400,7 @@ class PlayerByeAdmin(_BaseAdmin):
 @admin.register(PlayerWarning)
 class PlayerWarningAdmin(_BaseAdmin):
     list_display = ('__str__', 'type')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
@@ -1406,7 +1409,7 @@ class PlayerWarningAdmin(_BaseAdmin):
 #-------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
-    search_fields = ('lichess_username', 'email', 'slack_user_id')
+    search_fields = ('user__username', 'email', 'slack_user_id')
     list_filter = ('is_active',)
     readonly_fields = ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile',)
@@ -1419,7 +1422,7 @@ class PlayerAdmin(_BaseAdmin):
     def get_readonly_fields(self, request, obj=None):
         fields = []
         if not request.user.has_perm('tournament.change_player_details'):
-            fields += ('lichess_username', 'email', 'is_active')
+            fields += ('user__username', 'email', 'is_active')
         fields += ['rating', 'games_played']
         if not request.user.has_perm('tournament.link_slack'):
             fields += ['slack_user_id']
@@ -1430,7 +1433,7 @@ class PlayerAdmin(_BaseAdmin):
 #         try:
         usernames = [p.lichess_username for p in queryset.all()]
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
-            p = Player.objects.get(lichess_username__iexact=user_meta['id'])
+            p = Player.objects.get(user__username__iexact=user_meta['id'])
             p.update_profile(user_meta)
         self.message_user(request, 'Rating(s) updated', messages.INFO)
 #         except:
@@ -1445,7 +1448,7 @@ class PlayerAdmin(_BaseAdmin):
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(_BaseAdmin):
     list_display = ('__str__', 'is_active', 'send_contact_emails')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)
     league_id_field = 'league_id'
@@ -1500,7 +1503,7 @@ class TeamAdmin(_BaseAdmin):
 @admin.register(TeamMember)
 class TeamMemberAdmin(_BaseAdmin):
     list_display = ('__str__', 'team')
-    search_fields = ('team__name', 'player__lichess_username')
+    search_fields = ('team__name', 'player__user__username')
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
     exclude = ('player_rating',)
@@ -1521,7 +1524,7 @@ class TeamScoreAdmin(_BaseAdmin):
 @admin.register(Alternate)
 class AlternateAdmin(_BaseAdmin):
     list_display = ('__str__', 'board_number', 'status')
-    search_fields = ('season_player__player__lichess_username',)
+    search_fields = ('season_player__player__user__username',)
     list_filter = ('season_player__season', 'board_number', 'status')
     raw_id_fields = ('season_player',)
     exclude = ('player_rating',)
@@ -1532,7 +1535,7 @@ class AlternateAdmin(_BaseAdmin):
 @admin.register(AlternateAssignment)
 class AlternateAssignmentAdmin(_BaseAdmin):
     list_display = ('__str__', 'player')
-    search_fields = ('team__name', 'player__lichess_username')
+    search_fields = ('team__name', 'player__user__username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
     league_id_field = 'round__season__league_id'
@@ -1586,7 +1589,7 @@ class PlayerPresenceInline(admin.TabularInline):
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'scheduled_time', 'game_link_url')
-    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
+    search_fields = ('white__user__username', 'black__user__username', 'game_link')
     raw_id_fields = ('white', 'black')
     inlines = [PlayerPresenceInline]
     exclude = ('white_rating', 'black_rating', 'tv_state')
@@ -1643,7 +1646,7 @@ class PlayerPairingAdmin(_BaseAdmin):
 @admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'team_pairing', 'board_number', 'game_link_url')
-    search_fields = ('white__lichess_username', 'black__lichess_username',
+    search_fields = ('white__user__username', 'black__user__username',
                      'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
@@ -1662,7 +1665,7 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'round', 'game_link_url')
-    search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
+    search_fields = ('white__user__username', 'black__user__username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
     league_id_field = 'round__season__league_id'
@@ -1681,7 +1684,7 @@ class LonePlayerPairingAdmin(_BaseAdmin):
 class RegistrationAdmin(_BaseAdmin):
     list_display = ('review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating', 'date_created')
     list_display_links = ()
-    search_fields = ('lichess_username', 'email', 'season__name')
+    search_fields = ('user__username', 'email', 'season__name')
     list_filter = ('status', 'season', 'section_preference__name')
     actions = ('validate', 'approve')
     league_id_field = 'season__league_id'
@@ -1826,7 +1829,7 @@ class RegistrationAdmin(_BaseAdmin):
 
         next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
 
-        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        mod = LeagueModerator.objects.filter(player__user__username__iexact=reg.lichess_username).first()
         no_email_change = mod is not None and mod.player.email and mod.player.email != reg.email
         confirm_email = mod.player.email if no_email_change else reg.email
 
@@ -1909,7 +1912,7 @@ class InSlackFilter(SimpleListFilter):
 @admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
-    search_fields = ('season__name', 'player__lichess_username')
+    search_fields = ('season__name', 'player__user__username')
     list_filter = ('season__league', 'season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
     league_id_field = 'season__league_id'
@@ -1991,7 +1994,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
 @admin.register(LonePlayerScore)
 class LonePlayerScoreAdmin(_BaseAdmin):
     list_display = ('season_player', 'points', 'late_join_points')
-    search_fields = ('season_player__season__name', 'season_player__player__lichess_username')
+    search_fields = ('season_player__season__name', 'season_player__player__user__username')
     list_filter = ('season_player__season',)
     raw_id_fields = ('season_player',)
     league_id_field = 'season_player__season__league_id'
@@ -2001,7 +2004,7 @@ class LonePlayerScoreAdmin(_BaseAdmin):
 @admin.register(PlayerAvailability)
 class PlayerAvailabilityAdmin(_BaseAdmin):
     list_display = ('player', 'round', 'is_available')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('player', 'round')
     league_id_field = 'round__season__league_id'
@@ -2017,7 +2020,7 @@ class SeasonPrizeAdmin(_BaseAdmin):
 @admin.register(SeasonPrizeWinner)
 class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
-    search_fields = ('season_prize__name', 'player__lichess_username')
+    search_fields = ('season_prize__name', 'player__user__username')
     raw_id_fields = ('season_prize', 'player')
     league_id_field = 'season_prize__season__league_id'
 
@@ -2025,7 +2028,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
 @admin.register(GameNomination)
 class GameNominationAdmin(_BaseAdmin):
     list_display = ('__str__',)
-    search_fields = ('season__name', 'nominating_player__lichess_username')
+    search_fields = ('season__name', 'nominating_player__user__username')
     raw_id_fields = ('nominating_player', 'pairing')
     league_id_field = 'season__league_id'
 
@@ -2041,7 +2044,7 @@ class GameSelectionAdmin(_BaseAdmin):
 @admin.register(AvailableTime)
 class AvailableTimeAdmin(_BaseAdmin):
     list_display = ('player', 'time', 'league')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     league_id_field = 'league_id'
 
 #-------------------------------------------------------------------------------
@@ -2155,7 +2158,7 @@ class ScheduledEventAdmin(_BaseAdmin):
 class PlayerNotificationSettingAdmin(_BaseAdmin):
     list_display = ('player', 'type', 'league', 'offset', 'enable_lichess_mail', 'enable_slack_im', 'enable_slack_mpim')
     list_filter = ('league', 'type')
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     raw_id_fields = ('player',)
     league_id_field = 'league_id'
 
@@ -2164,7 +2167,7 @@ class PlayerNotificationSettingAdmin(_BaseAdmin):
 class ScheduledNotificationAdmin(_BaseAdmin):
     list_display = ('setting', 'pairing', 'notification_time')
     list_filter = ('setting__type',)
-    search_fields = ('player__lichess_username',)
+    search_fields = ('player__user__username',)
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
 
@@ -2174,7 +2177,7 @@ class ModRequestAdmin(_BaseAdmin):
     list_display = ('review', 'type', 'status', 'season', 'date_created')
     list_display_links = ()
     list_filter = ('status', 'type', 'season')
-    search_fields = ('requester__lichess_username',)
+    search_fields = ('requester__user__username',)
     raw_id_fields = ('round', 'requester', 'pairing')
     league_id_field = 'season__league_id'
 
@@ -2184,7 +2187,7 @@ class ModRequestAdmin(_BaseAdmin):
 
     def review(self, obj):
         _url = reverse('admin:tournament_modrequest_review', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
-        return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username)
+        return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.user__username)
     review.allow_tags = True
 
     def edit(self, obj):

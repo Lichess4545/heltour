@@ -93,15 +93,27 @@
 						Dashboard
 				</a></li>
 				{% endif %}
-				{% if user|can_register:registration_season %}
-				<li><a href="{% leagueurl 'register' league.tag None %}">
-				{% if user|is_registered:registration_season %}
-				Change Registration
-				{% else %}
-				Register
-				{% endif %}
-				</a></li>
-				{% endif %}
+                {% if user|can_register:registration_season %}
+                    <li>
+                    {% if user|is_approved:registration_season and registration_season.is_started %}
+                        <a href="{% leagueurl 'edit_availability' league.tag registration_season.tag %}">
+                            Edit Availability
+                        </a>
+                    {% elif user|is_approved:registration_season and not registration_season.is_started %}
+                        <a href="{% leagueurl 'register' league.tag None %}">
+                            Change Registration
+                        </a>
+                    {% elif user|is_registered:registration_season %}
+                        <a href="{% leagueurl 'register' league.tag None %}">
+                            Change Registration
+                        </a>
+                    {% else %}
+                        <a href="{% leagueurl 'register' league.tag None %}">
+                            Register
+                        </a>
+                    {% endif %}
+                    </a></li>
+                {% endif %}
 
 				{% if user.is_authenticated %}
 				<li><a href="{% leagueurl 'user_dashboard' league.tag None %}">{{ user.username }}</a></li>

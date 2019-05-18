@@ -69,7 +69,7 @@ class BaseView(View):
         self.dark_mode = False
         if self.request.user.is_authenticated():
             player_setting = PlayerSetting.objects \
-                .filter(player__lichess_username__iexact=self.request.user.username).first()
+                .filter(player__user__username__iexact=self.request.user.username).first()
             if player_setting:
                 self.dark_mode = player_setting.dark_mode
         else:
@@ -508,7 +508,7 @@ class PairingsView(SeasonView):
                 pass
         round_ = Round.objects.filter(number=round_number, season=self.season).first()
         pairings = LonePlayerPairing.objects.filter(round=round_).order_by('pairing_order').select_related('white', 'black').nocache()
-        byes = PlayerBye.objects.filter(round=round_).order_by('type', 'player_rank', 'player__lichess_username').select_related('player').nocache()
+        byes = PlayerBye.objects.filter(round=round_).order_by('type', 'player_rank', 'player__user__username').select_related('player').nocache()
 
         next_pairing_order = 0
         for p in pairings:
@@ -627,7 +627,7 @@ class ICalPairingsView(PairingsView, ICalMixin):
 
 class ICalPlayerView(BaseView, ICalMixin):
     def view(self, username):
-        player = get_object_or_404(Player, lichess_username__iexact=username)
+        player = get_object_or_404(Player, user__username__iexact=username)
         calendar_title = "{} Chess Games".format(player.lichess_username)
         uid_component = 'all'
         pairings = player.pairings.exclude(scheduled_time=None)
@@ -644,6 +644,9 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
+            if reg_season.is_started and instance and instance.status == 'approved':
+                return redirect('by_league:by_season:edit_availability',
+                        reg_season.league.tag, reg_season.tag)
             if post:
                 form = RegistrationForm(self.request.POST, instance=instance, season=reg_season,
                         user=self.request.user)
@@ -1311,7 +1314,7 @@ class AboutView(LeagueView):
 
 class PlayerProfileView(LeagueView):
     def view(self, username):
-        player = get_object_or_404(Player, lichess_username__iexact=username)
+        player = get_object_or_404(Player, user__username__iexact=username)
 
         def game_count(season):
             if season.league.competitor_type == 'team':

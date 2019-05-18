@@ -277,7 +277,7 @@ class ApproveRegistrationWorkflow():
 
     def __init__(self, reg, round_number=None):
         self.reg = reg
-        self.player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
+        self.player = Player.objects.filter(user__username__iexact=self.reg.lichess_username).first()
         self.league = reg.season.league
         self.round_number = round_number
 
@@ -370,7 +370,7 @@ class ApproveRegistrationWorkflow():
             reg.season = season
 
         # Limit changes to moderators
-        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        mod = LeagueModerator.objects.filter(player__user__username__iexact=reg.lichess_username).first()
         if mod is not None and mod.player.email and mod.player.email != reg.email:
             reg.email = mod.player.email
 
@@ -378,11 +378,12 @@ class ApproveRegistrationWorkflow():
         with reversion.create_revision():
             reversion.set_user(request.user)
             reversion.set_comment('Approved registration.')
-
+            user, _ = User.objects.update_or_create(
+                username__iexact=reg.lichess_username,
+                defaults={'username': reg.lichess_username, 'email': reg.email, 'is_active': True})
             player, _ = Player.objects.update_or_create(
-                lichess_username__iexact=reg.lichess_username,
-                defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
-            )
+                user=user,
+                defaults={'email': reg.email, 'is_active': True})
             if player.rating is None:
                 # This is automatically set, so don't change it if we already have a rating
                 player.rating = reg.classical_rating

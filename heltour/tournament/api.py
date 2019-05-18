@@ -182,13 +182,13 @@ def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
 def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
     pairings = pairings.exclude(white=None).exclude(black=None)
     if player is not None:
-        white_pairings = pairings.filter(white__lichess_username__iexact=player)
-        black_pairings = pairings.filter(black__lichess_username__iexact=player)
+        white_pairings = pairings.filter(white__user__username__iexact=player)
+        black_pairings = pairings.filter(black__user__username__iexact=player)
         pairings = white_pairings | black_pairings
     if white is not None:
-        pairings = pairings.filter(white__lichess_username__iexact=white) | pairings.filter(white__slack_user_id__iexact=white)
+        pairings = pairings.filter(white__user__username__iexact=white) | pairings.filter(white__slack_user_id__iexact=white)
     if black is not None:
-        pairings = pairings.filter(black__lichess_username__iexact=black) | pairings.filter(black__slack_user_id__iexact=black)
+        pairings = pairings.filter(black__user__username__iexact=black) | pairings.filter(black__slack_user_id__iexact=black)
     if scheduled == True:
         pairings = pairings.exclude(result='', scheduled_time=None)
     if scheduled == False:
@@ -301,7 +301,7 @@ def assign_alternate(request):
         round_ = _get_next_round(league_tag, season_tag, round_num)
         season = round_.season
         team = season.team_set.filter(number=team_num)[0]
-        player = Player.objects.filter(lichess_username__iexact=player_name).first()
+        player = Player.objects.filter(user__username__iexact=player_name).first()
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
@@ -343,7 +343,7 @@ def set_availability(request):
 
     try:
         round_ = _get_next_round(league_tag, season_tag, round_num)
-        player = Player.objects.filter(lichess_username__iexact=player_name).first()
+        player = Player.objects.filter(user__username__iexact=player_name).first()
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
@@ -368,7 +368,7 @@ def get_league_moderators(request):
     if not league_tag:
         return HttpResponse('Bad request', status=400)
 
-    moderator_names = [lm.player.lichess_username for lm in LeagueModerator.objects.filter(league__tag=league_tag, is_active=True)]
+    moderator_names = [lm.player.user__username for lm in LeagueModerator.objects.filter(league__tag=league_tag, is_active=True)]
 
     return JsonResponse({'moderators': moderator_names})
 
@@ -413,7 +413,7 @@ def link_slack(request):
 
     token = LoginToken.objects.create(slack_user_id=user_id, username_hint=display_name, expires=timezone.now() + timedelta(days=30))
     league = League.objects.filter(is_default=True).first()
-    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('-season__start_date').first()
+    sp = SeasonPlayer.objects.filter(player__user__username__iexact=display_name).order_by('-season__start_date').first()
     if sp:
         league = sp.season.league
     url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
@@ -446,10 +446,10 @@ def player_contact(request):
     updated = 0
     time = timezone.now()
     for r in rounds:
-        pairings = r.pairings.filter(white__lichess_username__iexact=sender, black__lichess_username__iexact=recip) | \
-                   r.pairings.filter(white__lichess_username__iexact=recip, black__lichess_username__iexact=sender)
+        pairings = r.pairings.filter(white__user__username__iexact=sender, black__user__username__iexact=recip) | \
+                   r.pairings.filter(white__user__username__iexact=recip, black__user__username__iexact=sender)
         for p in pairings:
-            presence = p.get_player_presence(Player.objects.get(lichess_username__iexact=sender))
+            presence = p.get_player_presence(Player.objects.get(user__username__iexact=sender))
             if not presence.first_msg_time:
                 presence.first_msg_time = time
             presence.last_msg_time = time

@@ -108,7 +108,7 @@ class SeasonTestCase(TestCase):
     def test_season_calculate_lone_scores(self):
         season = Season.objects.get(tag='loneseason')
         rounds = list(season.round_set.order_by('number'))
-        season_players = list(season.seasonplayer_set.order_by('player__lichess_username'))[:4]
+        season_players = list(season.seasonplayer_set.order_by('player__user__username'))[:4]
         players = [sp.player for sp in season_players]
 
         def score_matrix():

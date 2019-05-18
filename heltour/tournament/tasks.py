@@ -24,7 +24,7 @@ def update_player_ratings(self):
     try:
         updated = 0
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
-            p = Player.objects.get(lichess_username__iexact=user_meta['id'])
+            p = Player.objects.get(user__username__iexact=user_meta['id'])
             p.update_profile(user_meta)
             updated += 1
         logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))

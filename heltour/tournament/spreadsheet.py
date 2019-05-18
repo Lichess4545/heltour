@@ -86,8 +86,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     player_row = i + 1
                     player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
                     player_rating = sheet_rosters[player_row][player_rating_col]
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    user, _ = User.objects.update_or_create(username__iexact=player_name, defaults={'username': player_name})
+                    player, _ = Player.objects.update_or_create(user=user, defaults={'rating': int(player_rating)})
                     SeasonPlayer.objects.get_or_create(season=season, player=player)
                     TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
                 # Alternates
@@ -97,8 +97,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     player_rating = sheet_rosters[alternates_row][player_rating_col]
                     if len(player_name) == 0 or len(player_rating) == 0:
                         break
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    user, _ = User.objects.update_or_create(username__iexact=player_name, defaults={'username': player_name})
+                    player, _ = Player.objects.update_or_create(user=user, defaults={'rating': int(player_rating)})
                     season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
                     Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
                     alternates_row += 1
@@ -139,8 +139,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     player_col = i + 1
                     player_name, is_captain = _parse_player_name(sheet_rosters[name_row][player_col])
                     player_rating = sheet_rosters[rating_row][player_col]
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    user, _ = User.objects.update_or_create(username__iexact=player_name, defaults={'username': player_name})
+                    player, _ = Player.objects.update_or_create(user=user, defaults={'rating': int(player_rating)})
                     SeasonPlayer.objects.get_or_create(season=season, player=player)
                     TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
 
@@ -175,11 +175,15 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                         board_number += 1
 
                     white_player_name = row[2]
-                    white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+                    white_user, _ = User.objects.get_or_create(username__iexact=white_player_name,
+                            defaults={'username': white_player_name})
+                    white_player, _ = Player.objects.get_or_create(user=white_user)
                     SeasonPlayer.objects.get_or_create(season=season, player=white_player)
 
                     black_player_name = row[3]
-                    black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+                    black_user, _ = User.objects.get_or_create(username__iexact=black_player_name,
+                            defaults={'username': black_player_name})
+                    black_player, _ = Player.objects.get_or_create(user=black_user)
                     SeasonPlayer.objects.get_or_create(season=season, player=black_player)
 
                     game_link = row[5]
@@ -297,10 +301,14 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
         # Individual pairings
         for k in range(season.boards):
             white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
-            white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+            white_user, _ = User.objects.get_or_create(username__iexact=white_player_name,
+                    defaults={'username': white_player_name})
+            white_player, _ = Player.objects.get_or_create(user=white_user)
             SeasonPlayer.objects.get_or_create(season=season, player=white_player)
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
-            black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+            black_user, _ = User.objects.get_or_create(username__iexact=black_player_name,
+                    defaults={'username': black_player_name})
+            black_player, _ = Player.objects.get_or_create(user=black_user)
             SeasonPlayer.objects.get_or_create(season=season, player=black_player)
             result = sheet[pairing_row][result_col]
             if result == '\u2694':
@@ -382,8 +390,10 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             if len(name) == 0:
                 break
             rating = int(sheet_standings[row][rating_col])
-            player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
-                                                            defaults={'lichess_username': name, 'rating': rating})
+            user, _ = User.objects.update_or_create(username__iexact=name,
+                                                    defaults={'username': name})
+            player, _ = Player.objects.update_or_create(user=user,
+                                                            defaults={'rating': rating})
             season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': rating})
             points = float(sheet_standings[row][points_col])
             ljp = float(sheet_standings[row][ljp_col]) if ljp_col is not None else 0
@@ -408,8 +418,10 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 round_number = int(sheet_changes[row][round_col])
                 action = sheet_changes[row][action_col]
                 rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
-                player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
-                                                                defaults={'lichess_username': name, 'rating': rating})
+                user, _ = User.objects.update_or_create(username__iexact=name,
+                                                        defaults={'username': name})
+                player, _ = Player.objects.update_or_create(user=user,
+                                                                defaults={'rating': rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': player.rating})
                 if action == 'register':
                     PlayerLateRegistration.objects.create(round=season.round_set.get(number=round_number), player=player)
@@ -450,7 +462,9 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 white_player_name, white_player_rating = _parse_player_name_and_rating(sheet[row][white_col])
                 if white_player_name is None:
                     continue
-                white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
+                white_user, _ = User.objects.update_or_create(username__iexact=player_name,
+                        defaults={'username': white_player_name})
+                white_player, _ = Player.objects.get_or_create(user=white_user, defaults={'rating': white_player_rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=white_player, defaults={'seed_rating': white_player.rating})
                 try:
                     white_rank = int(sheet[row][white_rank_col])
@@ -464,7 +478,10 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
                 if black_player_name is None:
                     continue
-                black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
+                black_user, _ = User.objects.update_or_create(username__iexact=player_name,
+                        defaults={'username': black_player_name})
+                black_player, _ = Player.objects.get_or_create(user=black_user,
+                        defaults={'rating': black_player_rating})
                 SeasonPlayer.objects.get_or_create(season=season, player=black_player, defaults={'seed_rating': black_player.rating})
                 try:
                     black_rank = int(sheet[row][black_rank_col])
