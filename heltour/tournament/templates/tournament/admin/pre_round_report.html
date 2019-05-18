@@ -12,211 +12,211 @@
 <h2>Pending mod requests</h2>
 <p>Process mod requests in advance.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Type</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for req in pending_mod_reqs %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag req.requester.lichess_username %}">{{ req.requester.lichess_username }}</a></td>
-			<td>
-			    {{ req.get_type_display }}
-		    </td>
-			<td>
-				<a href="{% url 'admin:tournament_modrequest_review' req.pk %}">
-		            Review
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in pending_mod_reqs %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag req.requester.lichess_username %}">{{ req.requester.lichess_username }}</a></td>
+            <td>
+                {{ req.get_type_display }}
+            </td>
+            <td>
+                <a href="{% url 'admin:tournament_modrequest_review' req.pk %}">
+                    Review
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Missing withdrawals</h2>
 <p>Anyone here that hasn't been in contact with the mods should be withdrawn.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for player in missing_withdrawals %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
-			<td>
-				<a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
-		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for player in missing_withdrawals %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
+            <td>
+                <a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
+                    <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Red cards</h2>
 <p>These players should be withdrawn.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for player in red_cards %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
-			<td>
-				<a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
-		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for player in red_cards %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
+            <td>
+                <a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
+                    <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Bad player status</h2>
 <p>These players should always be withdrawn.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Account Status</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for player in bad_player_status %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
-			<td>{{ player.get_account_status_display }}</td>
-			<td>
-				<a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
-		            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Account Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for player in bad_player_status %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
+            <td>{{ player.get_account_status_display }}</td>
+            <td>
+                <a href="{% url 'admin:tournament_playerwithdrawal_add' %}?_popup=1&round={{ next_round.pk }}&player={{ player.pk }}" id="add-playerwithdrawal" class="inline-create-link popup-link" title="Add player withdrawal">
+                    <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="Add"> Withdraw
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Registrants not on Slack</h2>
 <p>Move these to the next round or delete if enough time has passed.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Days Since Approval</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for player, latereg, days in not_on_slack %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
-			<td>{{ days|default_if_none:'Already active' }}</td>
-			<td>
-				{% if latereg %}
-				<a href="{% url 'admin:move_latereg' latereg.pk %}?_popup=1" id="move-playerlateregistration-{{ latereg.pk }}" class="move-link popup-link" title="Move selected player late registration">
-		            &nbsp;
-		        </a>
-				<a href="{% url 'admin:tournament_playerlateregistration_delete' latereg.pk %}?_popup=1" id="delete-playerlateregistration-{{ latereg.pk }}" class="delete-link popup-link" title="Delete selected player late registration">
-		            <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Change">
-		        </a>
-		        {% endif %}
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Days Since Approval</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for player, latereg, days in not_on_slack %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
+            <td>{{ days|default_if_none:'Already active' }}</td>
+            <td>
+                {% if latereg %}
+                <a href="{% url 'admin:move_latereg' latereg.pk %}?_popup=1" id="move-playerlateregistration-{{ latereg.pk }}" class="move-link popup-link" title="Move selected player late registration">
+                    &nbsp;
+                </a>
+                <a href="{% url 'admin:tournament_playerlateregistration_delete' latereg.pk %}?_popup=1" id="delete-playerlateregistration-{{ latereg.pk }}" class="delete-link popup-link" title="Delete selected player late registration">
+                    <img src="{% static 'admin/img/icon-deletelink.svg' %}" alt="Change">
+                </a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Pending registrations</h2>
 <p>Try and process registrations in advance.</p>
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Status</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for lichess_username, reg in pending_regs %}
-		<tr>
-			<td><a href="{% leagueurl 'player_profile' original.league.tag original.tag lichess_username %}">{{ lichess_username }}</a></td>
-			<td>
-			    {% if reg.validation_warning == True %}
-			    <img src="{% static 'admin/img/icon-alert.svg' %}"/>
-			    {% elif reg.validation_ok == True %}
-			    <img src="{% static 'admin/img/icon-yes.svg' %}"/>
-			    {% elif reg.validation_ok == False %}
-			    <img src="{% static 'admin/img/icon-no.svg' %}"/>
-			    {% endif %}
-		    </td>
-			<td>
-				<a href="{% url 'admin:review_registration' reg.pk %}">
-		            Review
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lichess_username, reg in pending_regs %}
+        <tr>
+            <td><a href="{% leagueurl 'player_profile' original.league.tag original.tag lichess_username %}">{{ lichess_username }}</a></td>
+            <td>
+                {% if reg.validation_warning == True %}
+                <img src="{% static 'admin/img/icon-alert.svg' %}"/>
+                {% elif reg.validation_ok == True %}
+                <img src="{% static 'admin/img/icon-yes.svg' %}"/>
+                {% elif reg.validation_ok == False %}
+                <img src="{% static 'admin/img/icon-no.svg' %}"/>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'admin:review_registration' reg.pk %}">
+                    Review
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Pairings without results</h2>
 <p>Search slack for each player name. If you don't find anything relevant, contact them or just give 0-0.</p>
 <table>
-	<thead>
-		<tr>
-			<th>White</th>
-			<th>Black</th>
-			<th>Time</th>
-			<th></th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for pairing, text_class in pairings_wo_results %}
-		<tr>
-			<td>
-				{% if pairing.white %}
-				<a href="{% leagueurl 'player_profile' original.league.tag original.tag pairing.white.lichess_username %}">
-					{{ pairing.white.lichess_username }}
-				</a>
-				{% endif %}
-			</td>
-			<td>
-				{% if pairing.black %}
-				<a href="{% leagueurl 'player_profile' original.league.tag original.tag pairing.black.lichess_username %}">
-					{{ pairing.black.lichess_username }}
-				</a>
-				{% endif %}
-			</td>
-			<td>
-				<span class="{{ text_class }}">
-			    	{{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}
-				</span>
-		    </td>
-			<td>
-				<a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
-		            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-		        </a>
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>White</th>
+            <th>Black</th>
+            <th>Time</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pairing, text_class in pairings_wo_results %}
+        <tr>
+            <td>
+                {% if pairing.white %}
+                <a href="{% leagueurl 'player_profile' original.league.tag original.tag pairing.white.lichess_username %}">
+                    {{ pairing.white.lichess_username }}
+                </a>
+                {% endif %}
+            </td>
+            <td>
+                {% if pairing.black %}
+                <a href="{% leagueurl 'player_profile' original.league.tag original.tag pairing.black.lichess_username %}">
+                    {{ pairing.black.lichess_username }}
+                </a>
+                {% endif %}
+            </td>
+            <td>
+                <span class="{{ text_class }}">
+                    {{ pairing.scheduled_time | date:"m/d H:i" | default_if_none:"" }}
+                </span>
+            </td>
+            <td>
+                <a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1" id="change-pairing-{{ pairing.pk }}" class="popup-link" title="Change selected pairing">
+                    <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <h2>Ready?</h2>
 <p>
-	<a href="{% url 'admin:round_transition' original.pk %}">
-	    Start Round
-	</a>
+    <a href="{% url 'admin:round_transition' original.pk %}">
+        Start Round
+    </a>
 </p>
 {% endblock %}
