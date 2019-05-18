@@ -12,15 +12,13 @@ def assign_user_to_player_and_registration(apps, schema_editor):
     Registration = apps.get_model('tournament', 'Registration')
     User = apps.get_model('auth', 'User')
 
-    users = User.objects.all()
-
     def join(objects):
         for o in objects:
-            for user in users:
-                if o.lichess_username.lower() == user.username.lower():
-                    o.user = user
-                    o.save()
-                    break
+            username = o.lichess_username.lower().strip()
+            if not username: continue
+            user, _ = User.objects.get_or_create(username=username)
+            o.user = user
+            o.save()
 
     join(Player.objects.all())
     join(Registration.objects.all())
