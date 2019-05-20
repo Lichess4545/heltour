@@ -3,47 +3,47 @@
 
 {% block content %}
 <form action="" method="post">
-	{% csrf_token %}
-	<table id="table-pairings">
-			{% for pairing_list in pairing_lists %}
-			<tr>
-				<th>BD</th>
-				<th>TEAM</th>
-				<th>WHITE</th>
-				<th>BLACK</th>
-				<th>TEAM</th>
-			</tr>
-			{% for pairing in pairing_list %}
-			<tr>
-				<td>{{ pairing.board_number }}</td>
-				<td>{{ pairing.white_team_name }}</td>
-				<td>
-					{% if pairing.white %}
-					<div class="pairing-player">
-						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.white.lichess_username %}">
-							{{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
-						</a>
-					</div>
-					{% endif %}
-				</td>
-				<td>
-					{% if pairing.black %}
-					<div class="pairing-player">
-						<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.black.lichess_username %}">
-							{{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
-						</a>
-					</div>
-					{% endif %}
-				</td>
-				<td>{{ pairing.black_team_name }}</td>
-			</tr>
-			{% endfor %}
-			{% endfor %}
-		</table>
-	<div class="submit-row">
-		<input class="default" value="Publish" name="publish" type="submit">
-		<input class="default" value="Schedule" name="schedule" type="submit">
-		<input value="Delete" name="delete" type="submit">
-	</div>
+    {% csrf_token %}
+    <table id="table-pairings">
+            {% for pairing_list in pairing_lists %}
+            <tr>
+                <th>BD</th>
+                <th>TEAM</th>
+                <th>WHITE</th>
+                <th>BLACK</th>
+                <th>TEAM</th>
+            </tr>
+            {% for pairing in pairing_list %}
+            <tr>
+                <td>{{ pairing.board_number }}</td>
+                <td>{{ pairing.white_team_name }}</td>
+                <td>
+                    {% if pairing.white %}
+                    <div class="pairing-player">
+                        <a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.white.lichess_username %}">
+                            {{ pairing.white.lichess_username }}{% if pairing.white.rating %} ({{ pairing.white.rating }}){% endif %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if pairing.black %}
+                    <div class="pairing-player">
+                        <a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag pairing.black.lichess_username %}">
+                            {{ pairing.black.lichess_username }}{% if pairing.black.rating %} ({{ pairing.black.rating }}){% endif %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>{{ pairing.black_team_name }}</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+        </table>
+    <div class="submit-row">
+        <input class="default" value="Publish" name="publish" type="submit">
+        <input class="default" value="Schedule" name="schedule" type="submit">
+        <input value="Delete" name="delete" type="submit">
+    </div>
 </form>
 {% endblock %}

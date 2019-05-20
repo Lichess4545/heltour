@@ -7,60 +7,60 @@
 
 {% block content %}
 <div class="row row-condensed-xs">
-	<div class="col-md-12">
-		<div class="well">
-			<div class="well-head">
-				<div class="inline">
-					<h3>Crosstable</h3>
-				</div>
-			</div>
-			<div class="well-body">
-				{% if team_scores %}
-				<div class="table-responsive">
-					<table class="table table-striped table-condensed-sm" id="table-crosstable">
-						<thead>
-							<tr>
-								<th></th>
-								<th>Team</th>
-								{% for number, team_score, cross_scores in team_scores %}
-								<td class="cell-teamnumber cell-score">{{ number }}</td>
-								{% endfor %}
-								<th class="text-center">Match Pts</th>
-								<th class="text-center">Game Pts</th>
-								<th class="text-center"># Matches</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for number, team_score, cross_scores in team_scores %}
-							<tr>
-								<td class="cell-teamnumber">{{ number }}</td>
-								<td>
-									<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
-								</td>
-								{% for number, score, opp_score, round_num in cross_scores %}
-								{% if number == team_score.team.number %}
-								<td class="cell-score cell-cross">x</td>
-								{% elif score == None %}
-								<td class="cell-score"></td>
-								{% else %}
-								<td class="cell-score {% resultclass score opp_score %}">
-									<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
-								</td>
-								{% endif %}
-								{% endfor %}
-								<td class="text-center">{{ team_score.match_points_display }}</td>
-								<td class="text-center">{{ team_score.game_points_display }}</td>
-								<td class="text-center">{{ team_score.match_count }}</td>
-							</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
-				{% else %}
-				No results available.
-				{% endif %}
-			</div>
-		</div>
-	</div>
+    <div class="col-md-12">
+        <div class="well">
+            <div class="well-head">
+                <div class="inline">
+                    <h3>Crosstable</h3>
+                </div>
+            </div>
+            <div class="well-body">
+                {% if team_scores %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-condensed-sm" id="table-crosstable">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Team</th>
+                                {% for number, team_score, cross_scores in team_scores %}
+                                <td class="cell-teamnumber cell-score">{{ number }}</td>
+                                {% endfor %}
+                                <th class="text-center">Match Pts</th>
+                                <th class="text-center">Game Pts</th>
+                                <th class="text-center"># Matches</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for number, team_score, cross_scores in team_scores %}
+                            <tr>
+                                <td class="cell-teamnumber">{{ number }}</td>
+                                <td>
+                                    <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
+                                </td>
+                                {% for number, score, opp_score, round_num in cross_scores %}
+                                {% if number == team_score.team.number %}
+                                <td class="cell-score cell-cross">x</td>
+                                {% elif score == None %}
+                                <td class="cell-score"></td>
+                                {% else %}
+                                <td class="cell-score {% resultclass score opp_score %}">
+                                    <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
+                                </td>
+                                {% endif %}
+                                {% endfor %}
+                                <td class="text-center">{{ team_score.match_points_display }}</td>
+                                <td class="text-center">{{ team_score.game_points_display }}</td>
+                                <td class="text-center">{{ team_score.match_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                No results available.
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

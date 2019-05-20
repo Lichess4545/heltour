@@ -5,79 +5,79 @@
 
 {% block content %}
 <div class="row row-condensed-xs">
-	<div class="col-md-12">
-		<div class="well">
-			<div class="well-head">
-				<h3>Notification Settings</h3>
-			</div>
-			<div class="well-body">
-				<div class="dropdown round-switcher">
-				    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-				        {{ league.name }}
-				        <span class="caret"></span>
-				    </button>
-				    <ul class="dropdown-menu">
-					    {% for l in other_leagues %}
-					    <li><a href="{% leagueurl 'notifications' l.tag %}">{{ l.name }}</a></li>
-					    {% endfor %}
-				    </ul>
-				</div>
-				<p>Welcome, {{ player.lichess_username }}! Edit your notification settings here.</p>
-				<form action="" method="post">
-				    {% csrf_token %}
-				    {{ form.errors }}
-				    <table class="table" id="table-notifications">
-				    	<thead>
-				    		<tr>
-						    	<th>Message me</th>
-						    	<th colspan="3">On</th>
-						    </tr>
-				    	</thead>
-				    	<tbody>
-						    <tr>
-						    	<td>When I get a pairing</td>
-						    	<td>{{ form.round_started_lichess|label_right }}</td>
-						    	<td>{{ form.round_started_slack|label_right }}</td>
-						    	<td>{{ form.round_started_slack_wo|label_right }}</td>
-						    </tr>
-						    <tr>
-						    	<td>When my game starts</td>
-						    	<td>{{ form.game_time_lichess|label_right }}</td>
-						    	<td>{{ form.game_time_slack|label_right }}</td>
-						    	<td>{{ form.game_time_slack_wo|label_right }}</td>
-						    </tr>
-						    <tr>
-						    	<td>{{ form.before_game_time_offset}} before my game starts</td>
-						    	<td>{{ form.before_game_time_lichess|label_right }}</td>
-						    	<td>{{ form.before_game_time_slack|label_right }}</td>
-						    	<td>{{ form.before_game_time_slack_wo|label_right }}</td>
-						    </tr>
-						    <tr>
-						    	<td>When my game is unscheduled</td>
-						    	<td>{{ form.unscheduled_game_lichess|label_right }}</td>
-						    	<td>{{ form.unscheduled_game_slack|label_right }}</td>
-						    	<td>{{ form.unscheduled_game_slack_wo|label_right }}</td>
-						    </tr>
-						    <tr>
-						    	<td>When my game has an issue (e.g. unrated instead of rated)</td>
-						    	<td>{{ form.game_warning_lichess|label_right }}</td>
-						    	<td>{{ form.game_warning_slack|label_right }}</td>
-						    	<td>{{ form.game_warning_slack_wo|label_right }}</td>
-						    </tr>
-						    {% if league.competitor_type == 'team' %}
-						    <tr>
-						    	<td>When an alternate spot is available</td>
-						    	<td>{{ form.alternate_needed_lichess|label_right }}</td>
-						    	<td>{{ form.alternate_needed_slack|label_right }}</td>
-						    	<td></td>
-						    </tr>
-						    {% endif %}
-					    </tbody>
-				    </table>
-		        	<button type="submit" class="btn btn-primary single-field-btn">Save</button>
-				</form>
-			</div>
-		</div>
-	</div>
+    <div class="col-md-12">
+        <div class="well">
+            <div class="well-head">
+                <h3>Notification Settings</h3>
+            </div>
+            <div class="well-body">
+                <div class="dropdown round-switcher">
+                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                        {{ league.name }}
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for l in other_leagues %}
+                        <li><a href="{% leagueurl 'notifications' l.tag %}">{{ l.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <p>Welcome, {{ player.lichess_username }}! Edit your notification settings here.</p>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    {{ form.errors }}
+                    <table class="table" id="table-notifications">
+                        <thead>
+                            <tr>
+                                <th>Message me</th>
+                                <th colspan="3">On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>When I get a pairing</td>
+                                <td>{{ form.round_started_lichess|label_right }}</td>
+                                <td>{{ form.round_started_slack|label_right }}</td>
+                                <td>{{ form.round_started_slack_wo|label_right }}</td>
+                            </tr>
+                            <tr>
+                                <td>When my game starts</td>
+                                <td>{{ form.game_time_lichess|label_right }}</td>
+                                <td>{{ form.game_time_slack|label_right }}</td>
+                                <td>{{ form.game_time_slack_wo|label_right }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ form.before_game_time_offset}} before my game starts</td>
+                                <td>{{ form.before_game_time_lichess|label_right }}</td>
+                                <td>{{ form.before_game_time_slack|label_right }}</td>
+                                <td>{{ form.before_game_time_slack_wo|label_right }}</td>
+                            </tr>
+                            <tr>
+                                <td>When my game is unscheduled</td>
+                                <td>{{ form.unscheduled_game_lichess|label_right }}</td>
+                                <td>{{ form.unscheduled_game_slack|label_right }}</td>
+                                <td>{{ form.unscheduled_game_slack_wo|label_right }}</td>
+                            </tr>
+                            <tr>
+                                <td>When my game has an issue (e.g. unrated instead of rated)</td>
+                                <td>{{ form.game_warning_lichess|label_right }}</td>
+                                <td>{{ form.game_warning_slack|label_right }}</td>
+                                <td>{{ form.game_warning_slack_wo|label_right }}</td>
+                            </tr>
+                            {% if league.competitor_type == 'team' %}
+                            <tr>
+                                <td>When an alternate spot is available</td>
+                                <td>{{ form.alternate_needed_lichess|label_right }}</td>
+                                <td>{{ form.alternate_needed_slack|label_right }}</td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn btn-primary single-field-btn">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

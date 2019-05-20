@@ -3,80 +3,80 @@
 
 {% block content %}
 <form action="" method="post">
-	{% csrf_token %}
-	<input type="hidden" name="_changelist_filters" value="{{ changelist_filters }}"/>
-	
-	<div class="aligned-text">
-	
-		<div class="form-row">
-			<label>Season:</label>
-		    {{ original.season.name }}
-		</div>
-		
-		<div class="form-row">
-			<label>Request date:</label>
-		    {{ original.date_created }}
-		</div>
-		
-		<div class="form-row">
-			<label>Request status:</label>
-		    <span class="{% if original.status == 'approved' %}text-approved{% elif original.status == 'rejected' %}text-rejected{% endif %}">{{ original.get_status_display }}</span>
-		</div>
-		
-		<div class="form-row">
-			<label>Requester:</label>
-			<a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag original.requester.lichess_username %}">
-				{{ original.requester.lichess_username }}
-			</a>
-		</div>
-		
-		<div class="form-row">
-			<label>Type:</label>
-		    {{ original.get_type_display }}
-		</div>
-		
-		<div class="form-row">
-			<label>Notes:</label>
-		    {{ original.notes }}
-		</div>
-		
-		<div class="form-row">
-			<label>Screenshot:</label>
-			{% if original.screenshot %}
-			<a href="{{ original.screenshot.url }}">
-		    	<img src="{{ original.screenshot.url }}" width="400" />
-		    </a>
-		    {% endif %}
-		</div>
+    {% csrf_token %}
+    <input type="hidden" name="_changelist_filters" value="{{ changelist_filters }}"/>
 
-		<div class="form-row">
-			<label>Round:</label>
-			{{ original.round|default_if_none:'?' }}
-		</div>
+    <div class="aligned-text">
+
+        <div class="form-row">
+            <label>Season:</label>
+            {{ original.season.name }}
+        </div>
+
+        <div class="form-row">
+            <label>Request date:</label>
+            {{ original.date_created }}
+        </div>
+
+        <div class="form-row">
+            <label>Request status:</label>
+            <span class="{% if original.status == 'approved' %}text-approved{% elif original.status == 'rejected' %}text-rejected{% endif %}">{{ original.get_status_display }}</span>
+        </div>
+
+        <div class="form-row">
+            <label>Requester:</label>
+            <a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag original.requester.lichess_username %}">
+                {{ original.requester.lichess_username }}
+            </a>
+        </div>
+
+        <div class="form-row">
+            <label>Type:</label>
+            {{ original.get_type_display }}
+        </div>
+
+        <div class="form-row">
+            <label>Notes:</label>
+            {{ original.notes }}
+        </div>
+
+        <div class="form-row">
+            <label>Screenshot:</label>
+            {% if original.screenshot %}
+            <a href="{{ original.screenshot.url }}">
+                <img src="{{ original.screenshot.url }}" width="400" />
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="form-row">
+            <label>Round:</label>
+            {{ original.round|default_if_none:'?' }}
+        </div>
 
         {% if original.pairing %}
-		<div class="form-row">
-			<label>Pairing:</label>
-			{{ original.pairing }}
-		</div>
+        <div class="form-row">
+            <label>Pairing:</label>
+            {{ original.pairing }}
+        </div>
         {% endif %}
 
         {% if original.pairing.result %}
-		<div class="form-row">
-			<label>Result:</label>
-			{{ original.pairing.result }}
-		</div>
+        <div class="form-row">
+            <label>Result:</label>
+            {{ original.pairing.result }}
+        </div>
         {% endif %}
-		
-	</div>
-	
-	<div class="submit-row">
-		<input value="Edit" name="edit" type="submit">
-	    {% if original.status == 'pending' %}
-		<input class="default" value="Approve" name="approve" type="submit">
-		<input class="default" value="Reject" name="reject" type="submit">
-		{% endif %}
-	</div>
+
+    </div>
+
+    <div class="submit-row">
+        <input value="Edit" name="edit" type="submit">
+        {% if original.status == 'pending' %}
+        <input class="default" value="Approve" name="approve" type="submit">
+        <input class="default" value="Reject" name="reject" type="submit">
+        {% endif %}
+    </div>
 </form>
 
 <h2>Comments</h2>

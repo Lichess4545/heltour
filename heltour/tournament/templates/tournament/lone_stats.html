@@ -19,11 +19,11 @@
          {{ win_percents.1 }}, 'color: #999; stroke-width: 1; stroke-color: #000',
          {{ win_percents.2 }}, 'color: #000; stroke-width: 1; stroke-color: #000'],
     ]);
-	var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
-  	formatter.format(data, 1);
-  	formatter.format(data, 3);
-  	formatter.format(data, 5);
-  	
+    var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
+      formatter.format(data, 1);
+      formatter.format(data, 3);
+      formatter.format(data, 5);
+      
     // Set chart options
     var options = {/*'title': 'Win Rate',*/
                    'width': 600,
@@ -42,7 +42,7 @@
   function drawRatingChart(title, rating_data, div_name) {
     // Create the data table.
     var data = google.visualization.arrayToDataTable(rating_data);
-  	
+      
     // Set chart options
     var options = {'title': title,
                    'width': 600,
@@ -61,16 +61,16 @@
   
   function drawCharts() {
     {% if has_win_rate_stats %}
-  	drawResultChart();
-  	{% endif %}
-  	{% if active_player_ratings %}
-  	drawRatingChart('Active Players', [
+      drawResultChart();
+      {% endif %}
+      {% if active_player_ratings %}
+      drawRatingChart('Active Players', [
         ['', 'Rating'],
         {% for r in active_player_ratings %}['', {{ r }}],{% endfor %}
     ], 'active-rating-chart-div');
     {% endif %}
     {% if all_player_ratings %}
-  	drawRatingChart('All Players', [
+      drawRatingChart('All Players', [
         ['', 'Rating'],
         {% for r in all_player_ratings %}['', {{ r }}],{% endfor %}
     ], 'all-rating-chart-div');
@@ -81,126 +81,126 @@
 
 {% block content %}
 <div class="row row-condensed-xs">
-	<div class="col-md-12">
-		<div class="well">
-			<div class="well-head">
-				<h3>Stats</h3>
-			</div>
-			<div class="well-body">
-				{% include 'tournament/section_switcher.html' %}
-				{% if all_player_ratings %}
-				<h4>Rating Distribution</h4>
-				<div class="table-responsive">
-					<div id="active-rating-chart-div" style="height: 300px;"></div>
-					<table class="table table-condensed-xs table-stats">
-						<tr>
-							<td>Count: {{ active_player_ratings|length }}</td>
-							<td>Mean: {{ active_player_ratings|mean }}</td>
-							<td>Median: {{ active_player_ratings|median }}</td>
-							<td>Min: {{ active_player_ratings|minimum }}</td>
-							<td>Max: {{ active_player_ratings|maximum }}</td>
-						</tr>
-					</table>
-					<div id="all-rating-chart-div" style="height: 300px;"></div>
-					<table class="table table-condensed-xs table-stats">
-						<tr>
-							<td>Count: {{ all_player_ratings|length }}</td>
-							<td>Mean: {{ all_player_ratings|mean }}</td>
-							<td>Median: {{ all_player_ratings|median }}</td>
-							<td>Min: {{ all_player_ratings|minimum }}</td>
-							<td>Max: {{ all_player_ratings|maximum }}</td>
-						</tr>
-					</table>
-					<br/>
-				</div>
-				{% endif %}
-				{% if has_win_rate_stats %}
-				<h4>Win Rate</h4>
-				<div class="table-responsive">
-					<div id="result-chart-div" style="height: 300px;"></div>
-					<table class="table table-condensed-xs table-stats">
-						<tr class="header-row">
-							<th>&nbsp;</th>
-							<th>White Win</th>
-							<th>Draw</th>
-							<th>Black Win</th>
-							<th>Differential</th>
-							<th>White Rating+</th>
-						</tr>
-						<tr>
-							<td>Count</td>
-							<td>{{ win_counts.0 }}</td>
-							<td>{{ win_counts.1 }}</td>
-							<td>{{ win_counts.2 }}</td>
-							<td>{{ win_counts.3 }}</td>
-							<td>{{ win_rating_delta|floatformat:2 }}</td>
-						</tr>
-						<tr>
-							<td>Percent</td>
-							<td>{{ win_percents.0|percent:2 }}</td>
-							<td>{{ win_percents.1|percent:2 }}</td>
-							<td>{{ win_percents.2|percent:2 }}</td>
-							<td>{{ win_percents.3|percent:2 }}</td>
-							<td>&nbsp;</td>
-						</tr>
-					</table>
-				</div>
-				{% endif %}
-				{% if has_rating_delta_stats %}
-				<h4>Rating Deltas</h4>
-				<div class="table-responsive">
-					<table class="table table-condensed-xs table-stats">
-						<tr class="header-row">
-							<th>&nbsp;</th>
-							<th>0-100</th>
-							<th>100-200</th>
-							<th>200-300</th>
-							<th>300-400</th>
-							<th>400-500</th>
-							<th>500+</th>
-						</tr>
-						<tr>
-							<td>Count</td>
-							<td>{{ rating_delta_counts.0 }}</td>
-							<td>{{ rating_delta_counts.1 }}</td>
-							<td>{{ rating_delta_counts.2 }}</td>
-							<td>{{ rating_delta_counts.3 }}</td>
-							<td>{{ rating_delta_counts.4 }}</td>
-							<td>{{ rating_delta_counts.5 }}</td>
-						</tr>
-						<tr>
-							<td>Percent</td>
-							<td>{{ rating_delta_percents.0|percent:2 }}</td>
-							<td>{{ rating_delta_percents.1|percent:2 }}</td>
-							<td>{{ rating_delta_percents.2|percent:2 }}</td>
-							<td>{{ rating_delta_percents.3|percent:2 }}</td>
-							<td>{{ rating_delta_percents.4|percent:2 }}</td>
-							<td>{{ rating_delta_percents.5|percent:2 }}</td>
-						</tr>
-						<tr>
-							<td>Upsets</td>
-							<td>{{ upset_percents.0|percent:2 }}</td>
-							<td>{{ upset_percents.1|percent:2 }}</td>
-							<td>{{ upset_percents.2|percent:2 }}</td>
-							<td>{{ upset_percents.3|percent:2 }}</td>
-							<td>{{ upset_percents.4|percent:2 }}</td>
-							<td>{{ upset_percents.5|percent:2 }}</td>
-						</tr>
-						<tr>
-							<td>Average</td>
-							<td>{{ rating_delta_average|floatformat:1 }}</td>
-							<td colspan="5">&nbsp;</td>
-						</tr>
-					</table>
-				</div>
-				{% endif %}
-				{% if not has_win_rate_stats and not has_rating_delta_stats and not all_player_ratings %}
-				<div class="row">
-					<div class="col-md-12">No stats available.</div>
-				</div>
-				{% endif %}
-			</div>
-		</div>
-	</div>
+    <div class="col-md-12">
+        <div class="well">
+            <div class="well-head">
+                <h3>Stats</h3>
+            </div>
+            <div class="well-body">
+                {% include 'tournament/section_switcher.html' %}
+                {% if all_player_ratings %}
+                <h4>Rating Distribution</h4>
+                <div class="table-responsive">
+                    <div id="active-rating-chart-div" style="height: 300px;"></div>
+                    <table class="table table-condensed-xs table-stats">
+                        <tr>
+                            <td>Count: {{ active_player_ratings|length }}</td>
+                            <td>Mean: {{ active_player_ratings|mean }}</td>
+                            <td>Median: {{ active_player_ratings|median }}</td>
+                            <td>Min: {{ active_player_ratings|minimum }}</td>
+                            <td>Max: {{ active_player_ratings|maximum }}</td>
+                        </tr>
+                    </table>
+                    <div id="all-rating-chart-div" style="height: 300px;"></div>
+                    <table class="table table-condensed-xs table-stats">
+                        <tr>
+                            <td>Count: {{ all_player_ratings|length }}</td>
+                            <td>Mean: {{ all_player_ratings|mean }}</td>
+                            <td>Median: {{ all_player_ratings|median }}</td>
+                            <td>Min: {{ all_player_ratings|minimum }}</td>
+                            <td>Max: {{ all_player_ratings|maximum }}</td>
+                        </tr>
+                    </table>
+                    <br/>
+                </div>
+                {% endif %}
+                {% if has_win_rate_stats %}
+                <h4>Win Rate</h4>
+                <div class="table-responsive">
+                    <div id="result-chart-div" style="height: 300px;"></div>
+                    <table class="table table-condensed-xs table-stats">
+                        <tr class="header-row">
+                            <th>&nbsp;</th>
+                            <th>White Win</th>
+                            <th>Draw</th>
+                            <th>Black Win</th>
+                            <th>Differential</th>
+                            <th>White Rating+</th>
+                        </tr>
+                        <tr>
+                            <td>Count</td>
+                            <td>{{ win_counts.0 }}</td>
+                            <td>{{ win_counts.1 }}</td>
+                            <td>{{ win_counts.2 }}</td>
+                            <td>{{ win_counts.3 }}</td>
+                            <td>{{ win_rating_delta|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Percent</td>
+                            <td>{{ win_percents.0|percent:2 }}</td>
+                            <td>{{ win_percents.1|percent:2 }}</td>
+                            <td>{{ win_percents.2|percent:2 }}</td>
+                            <td>{{ win_percents.3|percent:2 }}</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+                {% if has_rating_delta_stats %}
+                <h4>Rating Deltas</h4>
+                <div class="table-responsive">
+                    <table class="table table-condensed-xs table-stats">
+                        <tr class="header-row">
+                            <th>&nbsp;</th>
+                            <th>0-100</th>
+                            <th>100-200</th>
+                            <th>200-300</th>
+                            <th>300-400</th>
+                            <th>400-500</th>
+                            <th>500+</th>
+                        </tr>
+                        <tr>
+                            <td>Count</td>
+                            <td>{{ rating_delta_counts.0 }}</td>
+                            <td>{{ rating_delta_counts.1 }}</td>
+                            <td>{{ rating_delta_counts.2 }}</td>
+                            <td>{{ rating_delta_counts.3 }}</td>
+                            <td>{{ rating_delta_counts.4 }}</td>
+                            <td>{{ rating_delta_counts.5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Percent</td>
+                            <td>{{ rating_delta_percents.0|percent:2 }}</td>
+                            <td>{{ rating_delta_percents.1|percent:2 }}</td>
+                            <td>{{ rating_delta_percents.2|percent:2 }}</td>
+                            <td>{{ rating_delta_percents.3|percent:2 }}</td>
+                            <td>{{ rating_delta_percents.4|percent:2 }}</td>
+                            <td>{{ rating_delta_percents.5|percent:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Upsets</td>
+                            <td>{{ upset_percents.0|percent:2 }}</td>
+                            <td>{{ upset_percents.1|percent:2 }}</td>
+                            <td>{{ upset_percents.2|percent:2 }}</td>
+                            <td>{{ upset_percents.3|percent:2 }}</td>
+                            <td>{{ upset_percents.4|percent:2 }}</td>
+                            <td>{{ upset_percents.5|percent:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average</td>
+                            <td>{{ rating_delta_average|floatformat:1 }}</td>
+                            <td colspan="5">&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+                {% if not has_win_rate_stats and not has_rating_delta_stats and not all_player_ratings %}
+                <div class="row">
+                    <div class="col-md-12">No stats available.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
