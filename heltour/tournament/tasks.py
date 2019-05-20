@@ -425,11 +425,13 @@ def do_notify_slack_link(lichess_username, **kwargs):
 
 @app.task(bind=True)
 def create_team_channel(self, team_ids):
+    logger.info("create_team_channel called")
     intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
                       + 'You need to pick a team captain and a team name by {season_start}.\n' \
                       + 'Once you\'ve chosen (or if you need help with anything), contact one of the moderators:\n' \
                       + '{mods}'
 
+    auth_user_id = slackapi.get_auth_user()
     for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
         pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team', args=[team.season.league.tag, team.season.tag, team.number]))
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
@@ -448,7 +450,7 @@ def create_team_channel(self, team_ids):
             continue
         channel_ref = '#%s' % group.name
         for user_id in user_ids:
-            if user_id:
+            if user_id and user_id != auth_user_id:
                 try:
                     slackapi.invite_to_group(group.id, user_id)
                 except slackapi.SlackError:
@@ -463,14 +465,18 @@ def create_team_channel(self, team_ids):
 
         slackapi.set_group_topic(group.id, pairings_url)
         time.sleep(1)
-        slackapi.leave_group(group.id)
+        if auth_user_id not in user_ids:
+            logger.info(f"removing auth user from group {group.name}")
+            if not settings.DEBUG:
+                slackapi.leave_group(group.id)
         time.sleep(1)
         slackapi.send_message(channel_ref, intro_message_formatted)
         time.sleep(1)
 
 @receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
 def do_create_team_channel(sender, team_ids, **kwargs):
-    create_team_channel.apply_async(args=[team_ids], countdown=1)
+    logger.info("create team channels being scheduled channels")
+    create_team_channel(team_ids)
 
 @app.task(bind=True)
 def alternates_manager_tick(self):

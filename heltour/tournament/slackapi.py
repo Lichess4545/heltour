@@ -111,6 +111,14 @@ def leave_group(group_id):
     if not json['ok']:
         raise SlackError(json['error'])
 
+def get_auth_user():
+    url = 'https://slack.com/api/auth.test'
+    r = requests.get(url, params={'token': _get_slack_token()})
+    json = r.json()
+    if not json['ok']:
+        raise SlackError(json['error'])
+    return json['user_id']
+
 class SlackError(Exception):
     pass
 
