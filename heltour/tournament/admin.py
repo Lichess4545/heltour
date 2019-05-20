@@ -10,6 +10,7 @@ import reversion
 import json
 from . import pairinggen
 from . import spreadsheet
+from django.db.models import Q
 from django.db.models.query import Prefetch
 from django.db import transaction
 from heltour import settings
@@ -30,6 +31,7 @@ from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
+from django.contrib.contenttypes.models import ContentType
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
 from heltour.tournament import teamgen
 import time
@@ -694,7 +696,7 @@ class SeasonAdmin(_BaseAdmin):
                         players_with_0f.add(p.black)
                     if p.white_score() == 0:
                         players_with_0f.add(p.white)
-            missing_withdrawals = (players_with_0f & active_players) - withdrawn_players - continuation_players
+            missing_withdrawals = sorted((players_with_0f & active_players) - withdrawn_players - continuation_players)
 
             def text_class(p):
                 if p.game_link != '':
@@ -705,6 +707,25 @@ class SeasonAdmin(_BaseAdmin):
 
             pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by('loneplayerpairing__pairing_order').filter(result='')]
 
+        ct_pairing = ContentType.objects.get_for_model(PlayerPairing)
+        ct_season_player = ContentType.objects.get_for_model(SeasonPlayer)
+        def with_round_info(player_list):
+            """Annotates a player record with their pairing and comments
+            """
+            if not player_list:
+                return None
+            retval = []
+
+            for player in player_list:
+                pairing = LonePlayerPairing.objects.get(Q(white=player) | Q(black=player), round=last_round)
+                season_player = SeasonPlayer.objects.get(player=player, season=season)
+                comments = list(Comment.objects.filter(
+                        (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
+                        (Q(content_type=ct_season_player) & Q(object_pk=season_player.pk))
+                    ))
+                retval.append((player, pairing, comments))
+            return retval
+
         context = {
             'has_permission': True,
             'opts': self.model._meta,
@@ -713,8 +734,8 @@ class SeasonAdmin(_BaseAdmin):
             'title': 'Pre-round report',
             'last_round': last_round,
             'next_round': next_round,
-            'missing_withdrawals': sorted(missing_withdrawals) if missing_withdrawals is not None else None,
-            'red_cards': sorted(red_cards) if missing_withdrawals is not None else None,
+            'missing_withdrawals': with_round_info(missing_withdrawals),
+            'red_cards': with_round_info(sorted(red_cards)),
             'bad_player_status': sorted(bad_player_status) if bad_player_status is not None else None,
             'not_on_slack': sorted(not_on_slack) if not_on_slack is not None else None,
             'pending_mod_reqs': pending_mod_reqs,
