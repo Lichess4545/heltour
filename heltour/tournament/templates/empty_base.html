@@ -38,15 +38,15 @@
     <footer class="footer">
       <div class="container-fluid">
         <p class="text-muted">
-	        Lichess Leagues
-    		{% if league %}
-	        &middot; <a href="{% url 'home' %}">Home</a>
-	        &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a>
-	        &middot; <a href="{% leagueurl 'about' league.tag %}">About</a>
-    		{% endif %}
-    		{% if user.is_staff %}
-	        &middot; <a href="{% url 'admin:index' %}">Admin</a>
-	        {% endif %}
+            Lichess Leagues
+            {% if league %}
+            &middot; <a href="{% url 'home' %}">Home</a>
+            &middot; <a href="{% leagueurl 'contact' league.tag %}">Contact</a>
+            &middot; <a href="{% leagueurl 'about' league.tag %}">About</a>
+            {% endif %}
+            {% if user.is_staff %}
+            &middot; <a href="{% url 'admin:index' %}">Admin</a>
+            {% endif %}
             &middot; <a href="{% url 'toggle_darkmode' %}?redirect_url={{ request.path }}">
                 <img class="darkmode-toggle" src="{% static "tournament/img/yin-yang-32.png" %}">
             </a>
@@ -58,7 +58,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="{% static "lib/js/bootstrap.min.js" %}?v={{ static_version }}"></script>
     <script src="{% static "tournament/js/common.js" %}?v={{ static_version }}"></script>
-	<script type="text/javascript" src="{% static 'lib/js/moment.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'lib/js/moment.min.js' %}"></script>
     {% endblock %}
     {% block js %}{% endblock %}
 </body>

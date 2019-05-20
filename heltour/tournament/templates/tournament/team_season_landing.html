@@ -7,97 +7,97 @@
 
 {% block content %}
 <div class="row row-condensed-xs home-row">
-	<div class="col-md-6 col-xs-12">
-		{% if active_round %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Round {{ active_round.number}} has started!</h3>
-			</div>
-			<div class="well-body">
-				<p>Games must be completed by {{ active_round.end_date | date_el:"m/d H:i" }} UTC.</p>
-				<a href="{% leagueurl 'pairings' league.tag season.tag %}" class="btn btn-default">Pairings</a>
-			</div>
-		</div>
-		{% endif %}
-	    {% if team_scores %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Standings</h3>
-			</div>
-			<div class="well-body">
-				<table class="table table-striped table-partial-standings">
-					<thead>
-						<tr>
-							<th></th>
-							<th>Team</th>
-							<th class="text-center">Match Points</th>
-							<th class="text-center">Game Points</th>
-						</tr>
-					</thead>
-					<tbody>
-						{% for number, team_score in team_scores %}
-						<tr>
-							<td class="text-center cell-teamnumber">{{ number }}</td>
-							<td>
-								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
-							</td>
-							<td class="text-center">{{ team_score.match_points_display }}</td>
-							<td class="text-center">{{ team_score.game_points_display }}</td>
-						</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-				<a href="{% leagueurl 'standings' league.tag season.tag %}" class="btn btn-default">Full Standings</a>
-			</div>
-		</div>
-		{% endif %}
-		{% if has_more_seasons %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Change Season</h3>
-			</div>
-			<div class="well-body">
-				{% include "tournament/season_switcher.html" %}
-			</div>
-		</div>
-	    {% endif %}
-	</div>
-	<div class="col-md-6 col-xs-12">
-		{% if last_round %}
-		<div class="well">
-			<div class="well-head">
-				<h3>Round {{ last_round.number }} Results</h3>
-			</div>
-			<div class="well-body">
-				<table class="table table-striped table-round-results">
-					<thead>
-					</thead>
-					<tbody>
-						{% for team_pairing in last_round_pairings %}
-						<tr>
-							<td class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
-								<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.white_team.number %}">{{ team_pairing.white_points_display }}</a>
-							</td>
-							<td>
-								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">{{ team_pairing.white_team.name }}</a>
-							</td>
-							<td class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
-								<a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.black_team.number %}">{{ team_pairing.black_points_display }}</a>
-							</td>
-							<td>
-								<a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">{{ team_pairing.black_team.name }}</a>
-							</td>
-						</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-				<a href="{% leagueurl 'crosstable' league.tag season.tag %}" class="btn btn-default">All Results</a>
-			</div>
-		</div>
-		{% endif %}
-		{% if links_doc %}
-		{% include 'tournament/document_inline.html' with document=links_doc.document %}
-		{% endif %}
-	</div>
+    <div class="col-md-6 col-xs-12">
+        {% if active_round %}
+        <div class="well">
+            <div class="well-head">
+                <h3>Round {{ active_round.number}} has started!</h3>
+            </div>
+            <div class="well-body">
+                <p>Games must be completed by {{ active_round.end_date | date_el:"m/d H:i" }} UTC.</p>
+                <a href="{% leagueurl 'pairings' league.tag season.tag %}" class="btn btn-default">Pairings</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if team_scores %}
+        <div class="well">
+            <div class="well-head">
+                <h3>Standings</h3>
+            </div>
+            <div class="well-body">
+                <table class="table table-striped table-partial-standings">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Team</th>
+                            <th class="text-center">Match Points</th>
+                            <th class="text-center">Game Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for number, team_score in team_scores %}
+                        <tr>
+                            <td class="text-center cell-teamnumber">{{ number }}</td>
+                            <td>
+                                <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
+                            </td>
+                            <td class="text-center">{{ team_score.match_points_display }}</td>
+                            <td class="text-center">{{ team_score.game_points_display }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <a href="{% leagueurl 'standings' league.tag season.tag %}" class="btn btn-default">Full Standings</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if has_more_seasons %}
+        <div class="well">
+            <div class="well-head">
+                <h3>Change Season</h3>
+            </div>
+            <div class="well-body">
+                {% include "tournament/season_switcher.html" %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-md-6 col-xs-12">
+        {% if last_round %}
+        <div class="well">
+            <div class="well-head">
+                <h3>Round {{ last_round.number }} Results</h3>
+            </div>
+            <div class="well-body">
+                <table class="table table-striped table-round-results">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        {% for team_pairing in last_round_pairings %}
+                        <tr>
+                            <td class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
+                                <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.white_team.number %}">{{ team_pairing.white_points_display }}</a>
+                            </td>
+                            <td>
+                                <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">{{ team_pairing.white_team.name }}</a>
+                            </td>
+                            <td class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
+                                <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag team_pairing.round.number team_pairing.black_team.number %}">{{ team_pairing.black_points_display }}</a>
+                            </td>
+                            <td>
+                                <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">{{ team_pairing.black_team.name }}</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <a href="{% leagueurl 'crosstable' league.tag season.tag %}" class="btn btn-default">All Results</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if links_doc %}
+        {% include 'tournament/document_inline.html' with document=links_doc.document %}
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

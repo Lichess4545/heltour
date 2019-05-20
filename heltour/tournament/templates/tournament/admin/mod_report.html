@@ -2,21 +2,21 @@
 
 {% block content %}
 <table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>League games</th>
-			<th>Lichess games</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for league_games, lichess_games, name in players %}
-		<tr>
-			<td><a href="https://lichess.org/@/{{ name }}?mod">{{ name }}</a></td>
-			<td>{{ league_games }}</td>
-			<td>{{ lichess_games }}</td>
-		</tr>
-		{% endfor %}
-	</tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>League games</th>
+            <th>Lichess games</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for league_games, lichess_games, name in players %}
+        <tr>
+            <td><a href="https://lichess.org/@/{{ name }}?mod">{{ name }}</a></td>
+            <td>{{ league_games }}</td>
+            <td>{{ lichess_games }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 {% endblock %}
