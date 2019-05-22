@@ -1026,29 +1026,21 @@ class SeasonAdmin(_BaseAdmin):
             new_team_number = teams[-1].number + 1
 
         # Player highlights
-        red_players = set()
-        blue_players = set()
-        purple_players = set()
-        for sp in season_player_objs:
-            reg = sp.registration
-            if sp.player.provisional_for(league):
-                red_players.add(sp.player)
-            if not sp.player.slack_user_id:
-                red_players.add(sp.player)
-            if sp.games_missed >= 2:
-                red_players.add(sp.player)
-            if sp.player.account_status != 'normal':
-                red_players.add(sp.player)
-            if reg is not None and reg.alternate_preference == 'alternate':
-                blue_players.add(sp.player)
-            if sp.player in old_alternates:
-                purple_players.add(sp.player)
+        red_players = {sp.player for sp in season_player_objs if
+            sp.player.provisional_for(league)
+            or not sp.player.slack_user_id
+            or sp.games_missed >= 2
+            or sp.player.account_status != 'normal'}
+
+        blue_players = {sp.player for sp in season_player_objs if
+            sp.registration is not None and sp.registration.alternate_preference == 'alternate'}
+
+        purple_players = {sp.player for sp in season_player_objs if sp.player in old_alternates}
 
         expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
-        season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         context = {
-            'season_started': season_started,
+            'season_started': season.has_started(),
             'has_permission': True,
             'opts': self.model._meta,
             'site_url': '/',
@@ -1493,7 +1485,7 @@ class TeamAdmin(_BaseAdmin):
             if len(team.season.tag) > 3:
                 self.message_user(request, 'The team season tag is too long to create a channel.', messages.ERROR)
                 return
-            if team.slack_channel == '':
+            if True or team.slack_channel == '':
                 team_ids.append(team.pk)
             else:
                 skipped += 1
