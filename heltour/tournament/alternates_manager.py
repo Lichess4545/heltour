@@ -223,8 +223,12 @@ def alternate_accepted(alternate):
         if search.still_needs_alternate():
             with reversion.create_revision():
                 reversion.set_comment('Alternate assigned')
-                assignment, _ = AlternateAssignment.objects.update_or_create(round=round_, team=search.team, board_number=search.board_number, \
-                                                                         defaults={'player': alternate.season_player.player, 'replaced_player': None})
+                assignment, _ = (AlternateAssignment.objects
+                        .update_or_create(round=round_,
+                            team=search.team,
+                            board_number=search.board_number,
+                            defaults={'player': alternate.season_player.player,
+                                'replaced_player': None}))
             with reversion.create_revision():
                 reversion.set_comment('Alternate assigned')
                 alternate.status = 'accepted'

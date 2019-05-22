@@ -252,8 +252,6 @@ class Season(_BaseModel):
 
     def time_control_str(self):
         time_controls = {self.time_control(board) for board in range(1, self.boards + 1)}
-        print(time_controls)
-        print("len(time_controls):", len(time_controls))
         if len(time_controls) > 1:
             time_controls = sorted(time_controls, key=time_control_normal)
             return f'between {time_controls[0]} and {time_controls[-1]}'
@@ -1070,6 +1068,13 @@ class Team(_BaseModel):
     def has_member(self, player):
         return self.teammember_set.filter(player=player).exists()
 
+    def get_member(self, board_number):
+        return TeamMember.objects.filter(team=self, board_number=board_number).first()
+
+    def get_player_pairings_for_round(self, round):
+        team_pairing = self.pairings.filter(round=round).first()
+        return team_pairing.teamplayerpairing_set.all()
+
     @property
     def pairings(self):
         return self.pairings_as_white.all() | self.pairings_as_black.all()
@@ -1090,7 +1095,7 @@ BOARD_NUMBER_OPTIONS = (
 class TeamMember(_BaseModel):
     team = models.ForeignKey(Team)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
-    board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
+    board_number = models.PositiveIntegerField()
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
 
@@ -1471,6 +1476,11 @@ class PlayerPairing(_BaseModel):
         black_tz = f', {self.black.timezone_str}' if time_zone else ''
         return f'{white} (_white pieces_{white_tz}) vs {black} (_black pieces_{black_tz}){tc}'
 
+    def replace(self, current_player, new_player):
+        if self.white == current_player:
+            self.white = new_player
+        elif self.black == current_player:
+            self.black = new_player
 
     def save(self, *args, **kwargs):
         result_changed = self.changed('result')
@@ -2010,7 +2020,8 @@ class AlternateAssignment(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username')
 
-    replaced_player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username', null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
+    replaced_player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
+            null=True, blank=True, on_delete=models.SET_NULL, related_name='alternate_replacements')
 
     class Meta:
         unique_together = ('round', 'team', 'board_number')
@@ -2024,36 +2035,27 @@ class AlternateAssignment(_BaseModel):
     def clean(self):
         if self.round_id and self.team_id and self.round.season_id != self.team.season_id:
             raise ValidationError('Round and team seasons must match')
-        if self.team_id and self.player_id and not SeasonPlayer.objects.filter(season=self.team.season, player=self.player).exists():
+        if (self.team_id
+                and self.player_id
+                and not SeasonPlayer.objects.filter(season=self.team.season,
+                    player=self.player).exists()):
             raise ValidationError('Assigned player must be a player in the season')
 
     def save(self, *args, **kwargs):
         if self.replaced_player is None:
-            tm = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
+            tm = self.team.get_member(self.board_number)
             if tm is not None:
                 self.replaced_player = tm.player
 
         super(AlternateAssignment, self).save(*args, **kwargs)
 
         # Find and update any current pairings
-        white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
-        if white_pairing is not None:
-            pairing = white_pairing.teamplayerpairing_set.filter(board_number=self.board_number).nocache().first()
-            if pairing is not None:
-                if self.board_number % 2 == 1:
-                    pairing.white = self.player
-                else:
-                    pairing.black = self.player
-                pairing.save()
-        black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
-        if black_pairing is not None:
-            pairing = black_pairing.teamplayerpairing_set.filter(board_number=self.board_number).nocache().first()
-            if pairing is not None:
-                if self.board_number % 2 == 1:
-                    pairing.black = self.player
-                else:
-                    pairing.white = self.player
-                pairing.save()
+        pairings = (self.team.get_player_pairings_for_round(self.round)
+                .filter(board_number=self.board_number).nocache())
+        for pairing in pairings:
+            pairing.replace(self.replaced_player, self.player)
+            pairing.save()
+
 
     def __str__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)

@@ -375,15 +375,19 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
 
     # Send a DM to the alternate, regardless of settings
     round_str = 'this round' if round_.publish_pairings else 'round %d' % round_.number
-    message = '@%s: A team needs an alternate for %s. Would you like to play? Please click one of the following links within %s.\n<%s|Yes, I want to play>\n<%s|No, maybe next week>' \
-              % (_slack_user(alternate.season_player), round_str, _offset_str(response_time), abs_url(accept_url), abs_url(decline_url))
+    message = (f'@{_slack_user(alternate.season_player)}: A team needs an alternate for'
+                f'{round_str}. Would you like to play? Please click one of the following links '
+                f'within {_offset_str(response_time)}.'
+                f'\n<{abs_url(accept_url)}|Yes, I want to play>'
+                f'\n<{abs_url(decline_url)}|No, maybe next week>')
     _message_user(league, _slack_user(player), message)
 
     if setting.enable_lichess_mail:
         # Send a lichess message
         li_subject = 'Round %d - %s' % (round_.number, league.name)
-        li_msg = 'A team needs an alternate for %s. Please check Slack for more information.\n' % round_str \
-               + f'https://lichess4545.slack.com/messages/@{settings.BOT_NAME}/'
+        li_msg = (f'A team needs an alternate for {round_str}. '
+                    'Please check Slack for more information.\n'
+                    f'https://{settings.SLACK_HOST}/messages/@{settings.BOT_NAME}/')
         _lichess_message(league, _slack_user(player), li_subject, li_msg)
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')

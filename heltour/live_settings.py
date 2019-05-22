@@ -210,7 +210,7 @@ CELERYBEAT_SCHEDULE = {
     },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
-        'schedule': timedelta(minutes=5),
+        'schedule': timedelta(minutes=1),
         'args': ()
     },
 }
@@ -285,6 +285,7 @@ FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 
 SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
+SLACK_HOST = 'lichess4545.slack.com'
 BOT_USER_ID = 'U0VCPUT7T'
 BOT_NAME = 'chesster'
 
