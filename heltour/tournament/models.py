@@ -1469,8 +1469,8 @@ class PlayerPairing(_BaseModel):
         return f'{white} (white pieces{white_tz}) vs {black} (black pieces{black_tz}){tc}'
 
     def slack_str(self, time_zone=True, time_control=True):
-        white = f'@{self.white.lichess_username.lower()}'
-        black = f'@{self.black.lichess_username.lower()}'
+        white = f'<@{self.white.lichess_username.lower()}>'
+        black = f'<@{self.black.lichess_username.lower()}>'
         tc = f' @ {self.time_control()}' if time_control else ''
         white_tz = f', {self.white.timezone_str}' if time_zone else ''
         black_tz = f', {self.black.timezone_str}' if time_zone else ''
@@ -1638,6 +1638,9 @@ class TeamPlayerPairing(PlayerPairing):
 
     def round_number(self):
         return "%d" % self.team_pairing.round.number
+
+    def opponent_of(self, player):
+        return self.black if self.white_team() == player.team else self.white
 
 #-------------------------------------------------------------------------------
 class LonePlayerPairing(PlayerPairing):
@@ -2322,8 +2325,9 @@ class LeagueChannel(_BaseModel):
     # TODO: Rename to LeagueChannel
     league = models.ForeignKey(League)
     type = models.CharField(max_length=255, choices=LEAGUE_CHANNEL_TYPES)
-    slack_channel = models.CharField(max_length=255)
-    slack_channel_id = models.CharField(max_length=255, blank=True)
+    slack_channel = models.CharField(max_length=255, help_text="Include the # in the channel name")
+    slack_channel_id = models.CharField(max_length=255, blank=True,
+            help_text="http://{league slackname}.slack.com/messages/{channel_id}")
     send_messages = models.BooleanField(default=True)
 
     class Meta:
