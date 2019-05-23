@@ -1992,7 +1992,8 @@ class SeasonPlayerAdmin(_BaseAdmin):
 
 #-------------------------------------------------------------------------------
 @admin.register(Board)
-class BoardAdmin(admin.ModelAdmin):
+class BoardAdmin(_BaseAdmin):
+    list_display = ('board_number', 'season', 'games_per_round', 'time_control')
     list_filter = ('season__league', 'season__name')
 
 #-------------------------------------------------------------------------------
