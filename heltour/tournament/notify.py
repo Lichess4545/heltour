@@ -477,8 +477,16 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         _message_user(league, black, im_msg.format(**black_params))
     # Send slack mpim
 
+
     if send_to_white and use_mpim:
-        _message_multiple_users(league, [white, black], mp_msg.format(**common_params))
+        def add_captains_if_team(pairing):
+            try:
+                return [p for p in [pairing.white_player_team.captain(),
+                    pairing.black_player_team.captain()] if p]
+            except:
+                return []
+        recipients = [white, black] + add_captains_if_team(pairing)
+        _message_multiple_users(league, recipients, mp_msg.format(**common_params))
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
