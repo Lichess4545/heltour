@@ -870,7 +870,7 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     # calculations, we populate a few common data structures and use those as parameters.
 
     if sort_by_seed:
-        sort_key = lambda s: s.season_player.seed_rating_display()
+        sort_key = lambda s: s.season_player.seed_rating_display() or 0
     elif season.is_completed or final:
         sort_key = lambda s: s.final_standings_sort_key()
     else:
@@ -998,7 +998,9 @@ class StatsView(SeasonView):
         def _view(league_tag, season_tag, user_data):
             season_players = self.season.seasonplayer_set.order_by('player__rating').select_related('player').nocache()
             active_player_ratings = [sp.player.player_rating_display(self.league) for sp in season_players.filter(is_active=True)]
+            active_player_ratings = [r for r in active_player_ratings if r is not None]
             all_player_ratings = [sp.player.player_rating_display(self.league) for sp in season_players]
+            all_player_ratings = [r for r in all_player_ratings if r is not None]
 
             all_pairings = PlayerPairing.objects.filter(loneplayerpairing__round__season=self.season) \
                                                 .select_related('loneplayerpairing', 'white', 'black') \
