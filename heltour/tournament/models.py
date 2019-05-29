@@ -303,7 +303,6 @@ class Season(_BaseModel):
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
         new_obj = self.pk is None
-        print('rounds changed: ', self.changed('rounds'))
         rounds_changed = self.pk is None or self.changed('rounds')
         round_duration_changed = self.pk is None or self.changed('round_duration')
         start_date_changed = self.pk is None or self.changed('start_date')
@@ -1032,6 +1031,7 @@ class Team(_BaseModel):
         team_members = self.teammember_set.all()
         return [(n, find(team_members, board_number=n)) for n in Season.objects.get(pk=self.season_id).board_number_list()]
 
+
     def average_rating(self, expected_rating=False):
         n = 0
         total = 0.0
@@ -1049,8 +1049,25 @@ class Team(_BaseModel):
     def get_mean(self, expected_rating=False):
         return self.average_rating(expected_rating)
 
-    def captain(self):
-        return self.teammember_set.filter(is_captain=True).first()
+    def get_captain(self):
+        try:
+            return self.teammember_set.get(is_captain=True).player
+        except TeamMember.DoesNotExist:
+            return None
+
+    def set_captain(self, player):
+        try:
+            captain = self.teammember_set.get(is_captain=True)
+            if captain.player == player:
+                return
+            captain.is_captain = False
+            captain.save()
+        except TeamMember.DoesNotExist:
+            pass
+
+        captain = self.teammember_set.get(player=player)
+        captain.is_captain = True
+        captain.save()
 
     def get_teampairing(self, round_):
         return (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(black_team=self)).first()
@@ -1071,9 +1088,16 @@ class Team(_BaseModel):
     def get_member(self, board_number):
         return TeamMember.objects.filter(team=self, board_number=board_number).first()
 
+    def board(self, board_number):
+        return (self.teammember_set
+                .filter(board_number=board_number).first()
+                .player)
+
     def get_player_pairings_for_round(self, round):
-        team_pairing = self.pairings.filter(round=round).first()
-        return team_pairing.teamplayerpairing_set.all()
+        try:
+            return self.pairings.get(round=round).teamplayerpairing_set.all()
+        except TeamPairing.DoesNotExist:
+            return TeamPlayerPairing.objects.none()
 
     @property
     def pairings(self):
@@ -1502,11 +1526,14 @@ class PlayerPairing(_BaseModel):
             self.teamplayerpairing.team_pairing.refresh_points()
             self.teamplayerpairing.team_pairing.save()
         if hasattr(self, 'loneplayerpairing'):
-            lpp = LonePlayerPairing.objects.nocache().get(pk=self.loneplayerpairing.pk)
+            lpp = LonePlayerPairing.objects.nocache().get(
+                    pk=self.loneplayerpairing.pk)
             if result_changed and lpp.round.is_completed:
                 lpp.round.season.calculate_scores()
             # If the players for a PlayerPairing in the current round are edited, then we can update the player ranks
-            if (white_changed or black_changed) and lpp.round.publish_pairings and not lpp.round.is_completed:
+            if ((white_changed or black_changed)
+                    and lpp.round.publish_pairings
+                    and not lpp.round.is_completed):
                 lpp.refresh_ranks()
                 lpp.save()
             # If the players for a PlayerPairing in a previous round are edited, then the player ranks will be out of
@@ -1519,7 +1546,8 @@ class PlayerPairing(_BaseModel):
                 lpp.save()
         if result_changed and (result_is_forfeit(self.result) or
                 result_is_forfeit(self.initial_value("result"))):
-            signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
+            signals.pairing_forfeit_changed.send(
+                    sender=self.__class__, instance=self)
 
         # Update scheduled notifications based on the scheduled time
         if scheduled_time_changed:
@@ -1572,12 +1600,28 @@ class TeamPlayerPairing(PlayerPairing):
     team_pairing = models.ForeignKey(TeamPairing)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
-    # These are the teams of the player playing that color.  Not the team_pairing color.  Best way
-    # to remember what team is which side in this pairing even after both players were replaced by
-    # alternates.
-    white_player_team = models.ForeignKey(Team, related_name='white_player_pairings', null=True)
-    black_player_team = models.ForeignKey(Team, related_name='black_player_pairings', null=True)
+    # These are the teams of the player playing that color.  Not the
+    # team_pairing color.  Best way to remember what team is which side in this
+    # pairing even after both players were replaced by alternates.
+    white_player_team = models.ForeignKey(Team,
+            related_name='white_player_pairings', null=True)
+    black_player_team = models.ForeignKey(Team,
+            related_name='black_player_pairings', null=True)
 
+    def save(self, *args, **kwargs):
+        def which_team(player):
+            if self.team_pairing.white_team.has_member(player):
+                return self.team_pairing.white_team
+            elif self.team_pairing.black_team.has_member(player):
+                return self.team_pairing.black_team
+            return None
+
+        if not self.white_player_team:
+            self.white_player_team = which_team(self.white)
+
+        if not self.black_player_team:
+            self.black_player_team = which_team(self.black)
+        super(TeamPlayerPairing, self).save(*args, **kwargs)
 
     def time_control(self):
         return self.get_round().season.time_control(self.board_number)
@@ -1640,7 +1684,14 @@ class TeamPlayerPairing(PlayerPairing):
         return "%d" % self.team_pairing.round.number
 
     def opponent_of(self, player):
-        return self.black if self.white_team() == player.team else self.white
+        if player == self.black:
+            return self.white
+        if player == self.white:
+            return self.black
+        raise ValueError(f"player {player} is not playing in this pairing")
+
+    def is_team(self):
+        return True
 
 #-------------------------------------------------------------------------------
 class LonePlayerPairing(PlayerPairing):
@@ -1659,6 +1710,9 @@ class LonePlayerPairing(PlayerPairing):
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
+
+    def is_team(self):
+        return False
 
 REGISTRATION_STATUS_OPTIONS = (
     ('pending', 'Pending'),
@@ -2060,6 +2114,14 @@ class AlternateAssignment(_BaseModel):
             pairing.save()
 
 
+    def pairings(self):
+        return (self
+                .team
+                .get_teampairing(self.round)
+                .teamplayerpairing_set
+                .filter(board_number=self.board_number, result='')
+                .exclude(white=None, black=None).nocache())
+
     def __str__(self):
         return "%s - %s - Board %d" % (self.round, self.team.name, self.board_number)
 
@@ -2425,12 +2487,20 @@ class PlayerNotificationSetting(_BaseModel):
         if self.type == 'before_game_time':
             # Rebuild scheduled notifications based on offset
             self.schedulednotification_set.all().delete()
-            upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
-            upcoming_pairings = upcoming_pairings.filter(teamplayerpairing__team_pairing__round__season__league=self.league) | \
-                                upcoming_pairings.filter(loneplayerpairing__round__season__league=self.league)
+
+            upcoming_pairings = self.player.pairings.filter(
+                    scheduled_time__gt=timezone.now())
+            upcoming_pairings = (
+                    upcoming_pairings.filter(
+                        teamplayerpairing__team_pairing__round__season__league=self.league)
+                    | upcoming_pairings.filter(
+                        loneplayerpairing__round__season__league=self.league))
             for p in upcoming_pairings:
                 notification_time = p.scheduled_time - self.offset
-                ScheduledNotification.objects.create(setting=self, pairing=p, notification_time=notification_time)
+                ScheduledNotification.objects.create(
+                    setting=self,
+                    pairing=p,
+                    notification_time=notification_time)
 
     @classmethod
     def get_or_default(cls, **kwargs):
@@ -2442,13 +2512,24 @@ class PlayerNotificationSetting(_BaseModel):
         type_ = kwargs.get('type')
         if type_ == 'before_game_time' and obj.offset is not None:
             del kwargs['offset']
-            has_other_offset = PlayerNotificationSetting.objects.filter(**kwargs).exists()
+            has_other_offset = PlayerNotificationSetting.objects.filter(
+                    **kwargs).exists()
             if has_other_offset or obj.offset != timedelta(minutes=60):
                 # Non-default offset, so leave everything disabled
                 return obj
-        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
-        obj.enable_slack_im = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
-        obj.enable_slack_mpim = type_ in ('round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+        obj.enable_lichess_mail = type_ in (
+                'round_started', 'game_warning', 'alternate_needed')
+        obj.enable_slack_im = type_ in (
+                'round_started',
+                'before_game_time',
+                'game_time',
+                'unscheduled_game',
+                'alternate_needed')
+        obj.enable_slack_mpim = type_ in (
+                'round_started',
+                'before_game_time',
+                'game_time',
+                'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
@@ -2511,9 +2592,14 @@ class ScheduledNotification(_BaseModel):
     def run(self):
         try:
             if self.setting.type == 'before_game_time':
-                pairing = PlayerPairing.objects.nocache().get(pk=self.pairing_id)
+                pairing = PlayerPairing.objects.nocache().get(
+                        pk=self.pairing_id)
                 if pairing.scheduled_time is not None:
-                    signals.before_game_time.send(sender=self.__class__, player=self.setting.player, pairing=pairing, offset=self.setting.offset)
+                    signals.before_game_time.send(
+                            sender=self.__class__,
+                            player=self.setting.player,
+                            pairing=pairing,
+                            offset=self.setting.offset)
         except Exception:
             logger.exception('Error running scheduled notification')
         self.delete()

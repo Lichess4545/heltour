@@ -278,21 +278,39 @@ def alternate_assigned(season, alt_assignment, **kwargs):
 
     opponent = _notify_alternate_and_opponent(league, aa)
     if opponent is not None:
-        opponent_notified = ' Their opponent, @%s, has been notified.' % _slack_user(opponent)
+        opponent_notified = (' Their opponent, @{opponent}, has been notified.'
+                .format(opponent=_slack_user(opponent)))
+
     else:
         opponent_notified = ''
 
     # Send a message to the captains
     if aa.player == aa.replaced_player:
-        message = '%sI have reassigned <@%s> to play on board %d of "%s" for round %d.%s' \
-                  % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, opponent_notified)
+        message = ('{captains}I have reassigned <@{team_member}> to play on '
+                'board {board} of "{team}" for round {round}.'
+                '{opponent_notified}'.format(
+                    captains=_captains_ping(aa.team, aa.round),
+                    team_member=_slack_user(aa.player),
+                    board=aa.board_number,
+                    team=aa.team.name,
+                    opponent_notified=opponent_notified))
     else:
-        message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s> for round %d.%s' \
-                  % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number, aa.team.name, _slack_user(aa.replaced_player), aa.round.number, opponent_notified)
+        message = (
+                '{captains}I have assigned <@{alternate}> to play on board '
+                '{board} of "{team}" in place of <@{team_member}> for round '
+                '{round}.{opponent_notified}'.format(
+                    captains=_captains_ping(aa.team, aa.round),
+                    alternate=_slack_user(aa.player),
+                    board=aa.board_number,
+                    team=aa.team.name,
+                    team_member=_slack_user(aa.replaced_player),
+                    round=aa.round.number,
+                    opponent_notified=opponent_notified,
+                    ))
     _send_notification('captains', league, message)
 
 def _notify_alternate_and_opponent(league, aa):
-    captain = aa.team.captain()
+    captain = aa.team.get_captain()
     if captain is not None:
         captain_text = ' The team captain is <@%s>.' % _slack_user(captain)
     else:
@@ -301,53 +319,80 @@ def _notify_alternate_and_opponent(league, aa):
     team_pairing = aa.team.get_teampairing(aa.round)
     if team_pairing is None:
         # Round hasn't started yet
-        message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
-                % (_slack_user(aa.player), aa.board_number, aa.team.name, aa.round.number, captain_text)
+        message_to_alternate = ('@{alternate}: You will be playing on board '
+                '{board} of "{team}" for round {round}.{captain}'
+                .format(
+                    alternate=_slack_user(aa.player),
+                    board=aa.board_number,
+                    team=aa.team.name,
+                    round=aa.round.number,
+                    captain=captain_text))
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
-    pairings = (team_pairing.teamplayerpairing_set
-            .filter(board_number=aa.board_number, result=None)
-            .exclude(white=None)
-            .exclude(black=None).nocache())
-
-    if pairings is None:
+    pairings = aa.pairings()
+    if not pairings:
         # No pairing yet for some reason
-        message_to_alternate = '@%s: You will be playing on board %d of "%s" for round %d.%s' \
-                % (_slack_user(aa.player), aa.board_number, aa.team.name,
-                        aa.round.number, captain_text)
+        message_to_alternate = ('@{alternate}: You will be playing on board '
+                '{board} of "{team}" for round {round}.{captains}'.format(
+                    alternate=_slack_user(aa.player),
+                    board=aa.board_number,
+                    team=aa.team.name,
+                    round=aa.round.number,
+                    captains=captain_text))
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
+
     p1 = pairings[0]
-    opponent = p1.opponent_of(aa)
+    opponent = p1.opponent_of(aa.player)
     if not opponent.is_available_for(aa.round):
         # Still looking for an alternate for the opponent
-        message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n'
-                'I am still searching for another alternate for you to play, please be patient.'
-                % (_slack_user(aa.player), aa.board_number, aa.team.name, captain_text))
+        message_to_alternate = ('@{alternate}: You are playing on board '
+                '{board} of "{team}".{captains}\nI am still searching for '
+                'another alternate for you to play, please be patient.'
+                .format(
+                    alternate=_slack_user(aa.player),
+                    board=aa.board_number,
+                    team=aa.team.name,
+                    captains=captain_text))
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
     # Normal assignment
-    message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n'
-            'Please contact your opponent, <@%s>, as soon as possible.'
-            % (_slack_user(aa.player), aa.board_number, aa.team.name,
-                captain_text, _slack_user(opponent)))
+    message_to_alternate = ('@{alternate}: You are playing on board {board} '
+            'of "{team}".{captains}\nPlease contact your opponent, '
+            '<@{opponent}>, as soon as possible.'
+            .format(
+                alternate=_slack_user(aa.player),
+                board=aa.board_number,
+                team=aa.team.name,
+                captains=captain_text,
+                opponent=_slack_user(opponent)))
     _message_user(league, _slack_user(aa.player), message_to_alternate)
 
     # Send a DM to the opponent
     if aa.player == aa.replaced_player:
-        message_to_opponent = ('@%s: Your opponent, <@%s>, no longer requires an alternate. '
-                'Please contact <@%s> as soon as possible.'
-                % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player)))
-    elif aa.replaced_player is not None:
-        message_to_opponent = ('@%s: Your opponent, @%s, has been replaced by an alternate. '
-                'Please contact your new opponent, <@%s>, as soon as possible.'
-                % (_slack_user(opponent), _slack_user(aa.replaced_player), _slack_user(aa.player)))
+        message_to_opponent = ('@{opponent}: Your opponent, <@{replaced}>, '
+                'no longer requires an alternate. Please contact '
+                '<@{replaced}> as soon as possible.'
+                .format(
+                    opponent=_slack_user(opponent),
+                    replaced=_slack_user(aa.replaced_player)))
+    elif aa.replaced_player:
+        message_to_opponent = ('@{opponent}: Your opponent, @{replaced}, has '
+                'been replaced by an alternate. Please contact your new '
+                'opponent, <@{alternate}>, as soon as possible.'
+                .format(
+                    opponent=_slack_user(opponent),
+                    replaced=_slack_user(aa.replaced_player),
+                    alternate=_slack_user(aa.player)))
     else:
-        message_to_opponent = ('@%s: Your opponent has been replaced by an alternate. '
-                'Please contact your new opponent, <@%s>, as soon as possible.'
-                % (_slack_user(opponent), _slack_user(aa.player)))
+        message_to_opponent = ('@{opponent}: Your opponent has been replaced '
+                'by an alternate.  Please contact your new opponent, '
+                '<@{alternate}>, as soon as possible.'
+                .format(
+                    opponent=_slack_user(opponent),
+                    alternate=_slack_user(aa.player)))
     _message_user(league, _slack_user(opponent), message_to_opponent)
 
     # Send configured notifications
@@ -370,7 +415,8 @@ def _notify_alternate_and_opponent(league, aa):
            '{slack_url}\n'
            'When you have agreed on a time, post it in {scheduling_channel}.')
 
-    send_pairing_notification('round_started', pairings[0], im_msg, mp_msg, li_subject, li_msg)
+    send_pairing_notification( 'round_started', pairings[0], im_msg,
+            mp_msg, li_subject, li_msg)
 
     return opponent
 
@@ -420,18 +466,31 @@ def _offset_str(offset):
     else:
         return '%d minutes' % (s / 60)
 
-def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg, offset=None, player=None):
+def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject,
+        li_msg, offset=None, player=None):
     if pairing.white is None or pairing.black is None:
         return
     round_ = pairing.get_round()
     season = round_.season
     league = season.league
-    scheduling = LeagueChannel.objects.filter(league=league, type='scheduling').first()
+    scheduling = LeagueChannel.objects.filter(
+            league=league,
+            type='scheduling').first()
     white = pairing.white.lichess_username.lower()
     black = pairing.black.lichess_username.lower()
-    white_setting = PlayerNotificationSetting.get_or_default(player=pairing.white, type=type_, league=league, offset=offset)
-    black_setting = PlayerNotificationSetting.get_or_default(player=pairing.black, type=type_, league=league, offset=offset)
-    use_mpim = white_setting.enable_slack_mpim and black_setting.enable_slack_mpim and mp_msg
+    white_setting = PlayerNotificationSetting.get_or_default(
+            player=pairing.white,
+            type=type_,
+            league=league,
+            offset=offset)
+    black_setting = PlayerNotificationSetting.get_or_default(
+            player=pairing.black,
+            type=type_,
+            league=league,
+            offset=offset)
+    use_mpim = (white_setting.enable_slack_mpim
+            and black_setting.enable_slack_mpim
+            and mp_msg)
     send_to_white = player is None or player == pairing.white
     send_to_black = player is None or player == pairing.black
 
@@ -445,48 +504,99 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'league': league.name,
         'time_control': pairing.time_control(),
         'offset': _offset_str(offset),
-        'contact_period': _offset_str(league.get_leaguesetting().contact_period),
-        'scheduling_channel': scheduling.slack_channel if scheduling is not None else '#scheduling',
-        'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
+        'contact_period': _offset_str(
+            league.get_leaguesetting().contact_period),
+        'scheduling_channel': (
+            scheduling.slack_channel
+            if scheduling is not None
+            else '#scheduling'),
+        'scheduling_channel_link': (
+            scheduling.channel_link()
+            if scheduling is not None
+            else '#scheduling')
     }
+
+    if use_mpim:
+        def team_captains(pairing):
+            captains = [pairing.white_player_team.get_captain(),
+                pairing.black_player_team.get_captain()]
+            return [_slack_user(p) for p in captains if p]
+
+        def mpim_slack_url(recipients, user, bot):
+            slack_url_tmpl = 'https://lichess4545.slack.com/messages/@{users}/'
+            users = ','.join( [_slack_user(u) for u in recipients if u != user]
+                            + [bot])
+            return slack_url_tmpl.format(users=(users))
+
+        recipients = [white, black]
+        if pairing.is_team():
+            captains = team_captains(pairing)
+            recipients = list(set(recipients + captains))
+
+
+        white_slack_url = mpim_slack_url(recipients, white, settings.BOT_NAME)
+        black_slack_url = mpim_slack_url(recipients, black, settings.BOT_NAME)
+
+    else:
+        white_slack_url = f'https://lichess4545.slack.com/messages/@{black}/'
+        black_slack_url = f'https://lichess4545.slack.com/messages/@{white}/'
+
+
     white_params = {
         'self': white,
         'opponent': black,
         'color': 'white',
-        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (f'@{settings.BOT_NAME},' if use_mpim else '@', black)
+        'slack_url': white_slack_url
     }
     white_params.update(common_params)
     black_params = {
         'self': black,
         'opponent': white,
         'color': 'black',
-        'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (f'@{settings.BOT_NAME},' if use_mpim else '@', white)
+        'slack_url': black_slack_url
     }
     black_params.update(common_params)
 
     # Send lichess mails
-    if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
-        _lichess_message(league, white, li_subject.format(**white_params), li_msg.format(**white_params))
-    if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
-        _lichess_message(league, black, li_subject.format(**black_params), li_msg.format(**black_params))
-    # Send slack ims
-    print("use_mpim:", use_mpim, "send_to_white:", send_to_white, "white:", white)
-    if send_to_white and (white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        _message_user(league, white, im_msg.format(**white_params))
-    if send_to_black and (black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        _message_user(league, black, im_msg.format(**black_params))
-    # Send slack mpim
+    if (send_to_white
+            and white_setting.enable_lichess_mail
+            and li_subject
+            and li_msg):
+        _lichess_message(
+                league,
+                white,
+                li_subject.format(**white_params),
+                li_msg.format(**white_params))
+    if (send_to_black
+            and black_setting.enable_lichess_mail
+            and li_subject
+            and li_msg):
+        _lichess_message(
+                league,
+                black,
+                li_subject.format(**black_params),
+                li_msg.format(**black_params))
 
+    if use_mpim:
+        # Send slack mpim
+        if send_to_white:
+            _message_multiple_users(
+                    league,
+                    recipients,
+                    mp_msg.format(**common_params))
+    else:
+        # Send slack ims
+        if (send_to_white
+                and (white_setting.enable_slack_im
+                    or white_setting.enable_slack_mpim)
+                and im_msg):
+            _message_user(league, white, im_msg.format(**white_params))
+        if (send_to_black
+                and (black_setting.enable_slack_im
+                    or black_setting.enable_slack_mpim)
+                and im_msg):
+            _message_user(league, black, im_msg.format(**black_params))
 
-    if send_to_white and use_mpim:
-        def add_captains_if_team(pairing):
-            try:
-                return [p for p in [pairing.white_player_team.captain(),
-                    pairing.black_player_team.captain()] if p]
-            except:
-                return []
-        recipients = [white, black] + add_captains_if_team(pairing)
-        _message_multiple_users(league, recipients, mp_msg.format(**common_params))
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
@@ -500,8 +610,10 @@ def notify_players_round_start(round_, **kwargs):
     if not round_.publish_pairings or round_.is_completed:
         logger.error('Could not send round start notifications due to incorrect round state: %s' % round_)
         return
-    unavailable_players = {pa.player for pa in PlayerAvailability.objects.filter(round=round_, is_available=False) \
-                                                      .select_related('player').nocache()}
+    unavailable_players = {
+            pa.player for pa in PlayerAvailability.objects
+                .filter(round=round_, is_available=False)
+                .select_related('player').nocache()}
 
     with cache.lock('round_start'):
         print("about to get pairing groups")
@@ -519,10 +631,13 @@ def notify_players_round_start(round_, **kwargs):
                 + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
                 + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
-            mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-                + slack_pairing_strings + '\n' \
-                + 'Message your opponent here as soon as possible.\n' \
-                + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
+            mp_msg = ('You have been paired for Round {round} in {season}.\n'
+                + slack_pairing_strings + '\n'
+                'Message your opponent here as soon as possible.\n'
+                'When you have agreed on a time, post it in'
+                '{scheduling_channel_link}.\n\n'
+                '[Experimental] Your team captains have been included this week '
+                'to help make sure scheduling goes smoothly')
 
             li_pairing_strings = '\n'.join(p.lichess_str() for p in pairings)
             li_subject = 'Round {round} - {league}'
@@ -797,13 +912,9 @@ def _slack_user(obj):
     return str(obj).lower()
 
 def _captains_ping(team, round_):
-    captains = []
-    captain = team.captain()
-    if captain is not None:
-        captains.append(captain)
     opp = team.get_opponent(round_)
     if opp is not None:
-        opp_captain = opp.captain()
-        if opp_captain is not None:
-            captains.append(opp_captain)
-    return '' if len(captains) == 0 else '<@%s>: ' % _slack_user(captains[0]) if len(captains) == 1 else '<@%s>, <@%s>: ' % (_slack_user(captains[0]), _slack_user(captains[1]))
+        captains = [c for c in [team.get_captain(), opp.captain()] if c]
+    else:
+        captains = [team.get_captain()] if team.get_captain() else []
+    return ', '.join('<@{}>'.format(_slack_user(c)) for c in captains) + ': '

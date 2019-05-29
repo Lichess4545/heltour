@@ -1,24 +1,46 @@
 from django.test import TestCase
 from heltour.tournament.models import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
+from unittest.mock import MagicMock, patch
 
 def createCommonLeagueData():
     team_count = 4
     round_count = 3
     board_count = 2
 
-    league = League.objects.create(name='Team League', tag='teamleague', competitor_type='team', rating_type='classical')
-    season = Season.objects.create(league=league, name='Test Season', tag='teamseason', rounds=round_count, boards=board_count)
-    league2 = League.objects.create(name='Lone League', tag='loneleague', competitor_type='lone', rating_type='classical')
-    season2 = Season.objects.create(league=league2, name='Test Season', tag='loneseason', rounds=round_count)
+    league = League.objects.create(
+            name='Team League',
+            tag='teamleague',
+            competitor_type='team',
+            rating_type='classical')
+    season = Season.objects.create(
+            league=league,
+            name='Test Season',
+            tag='teamseason',
+            rounds=round_count,
+            boards=board_count)
+    league2 = League.objects.create(
+            name='Lone League',
+            tag='loneleague',
+            competitor_type='lone',
+            rating_type='classical')
+    season2 = Season.objects.create(
+            league=league2,
+            name='Test Season',
+            tag='loneseason',
+            rounds=round_count)
 
     player_num = 1
     for n in range(1, team_count + 1):
-        team = Team.objects.create(season=season, number=n, name='Team %s' % n)
+        team = Team.objects.create(
+                season=season,
+                number=n,
+                name='Team %s' % n)
         TeamScore.objects.create(team=team)
         for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player%d' % player_num)
+            player = Player.objects.create(
+                    lichess_username='Player%d' % player_num)
             sp = SeasonPlayer.objects.create(season=season2, player=player)
             LonePlayerScore.objects.create(season_player=sp)
             player_num += 1
@@ -161,23 +183,68 @@ class TeamTestCase(TestCase):
         bd1.delete()
         self.assertEqual([(1, None), (2, bd2)], team.boards())
 
+    def test_board(self):
+        team = Team.objects.get(number=1)
+        bd1 = team.teammember_set.get(board_number=1).player
+        self.assertEqual(team.board(1), bd1)
+
+    def test_set_captian(self):
+        team = Team.objects.get(number=1)
+        team.set_captain(team.board(1))
+        self.assertEqual(team.get_captain(), team.board(1))
+
+        team.set_captain(team.board(2))
+        self.assertEqual(team.get_captain(), team.board(2))
+        self.assertEqual(1,
+                team.teammember_set.filter(is_captain=True).count())
+
+        with self.assertRaises(Exception) as context:
+            p = Player.objects.create(lichess_username='not_on_team')
+            team.set_captain(p)
+
     def test_team_average_rating(self):
         team = Team.objects.get(number=1)
         bd1 = team.teammember_set.get(board_number=1)
         bd2 = team.teammember_set.get(board_number=2)
 
-        self.assertEqual(None, team.average_rating())
+        self.assertEqual(1500, team.average_rating())
 
-        set_rating(bd1.player, 1800)
+        set_rating(bd1.player, 1900)
         bd1.player.save()
-        self.assertEqual(1800, team.average_rating())
-
-        set_rating(bd2.player, 1600)
-        bd2.player.save()
         self.assertEqual(1700, team.average_rating())
 
+        set_rating(bd2.player, 1700)
+        bd2.player.save()
+        self.assertEqual(1800, team.average_rating())
+
         bd1.delete()
-        self.assertEqual(1600, team.average_rating())
+        self.assertEqual(1700, team.average_rating())
+
+    def test_get_player_pairings_for_round(self):
+        t1, t2 = Team.objects.get(number=1), Team.objects.get(number=2)
+        season = Season.objects.get(tag="teamseason")
+        round = Round.objects.get(number=1, season=season)
+
+        self.assertSequenceEqual([], t1.get_player_pairings_for_round(round))
+        tp = TeamPairing.objects.create(
+                white_team=t1,
+                black_team=t2,
+                round=round,
+                pairing_order=0)
+        self.assertSequenceEqual([], t1.get_player_pairings_for_round(round))
+
+        tpp = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                board_number=1,
+                white=t1.board(1),
+                black=t2.board(1))
+
+        self.assertSequenceEqual(
+                [tpp],
+                t1.get_player_pairings_for_round(round))
+        self.assertSequenceEqual(
+                [tpp],
+                t2.get_player_pairings_for_round(round))
 
 class TeamScoreTestCase(TestCase):
     def setUp(self):
@@ -359,6 +426,51 @@ class PlayerPairingTestCase(TestCase):
         self.assertEqual(0.0, pp.white_score())
         self.assertEqual(1.0, pp.black_score())
 
+
+class TeamPlayerPairingTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_opponent_of(self):
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+
+        tp = TeamPairing.objects.create(
+                white_team=team1,
+                black_team=team2,
+                round=Round.objects.all()[0],
+                pairing_order=0)
+        tpp = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                white=team1.board(1),
+                black=team2.board(1),
+                board_number=1)
+        self.assertEqual(team1.board(1), tpp.opponent_of(team2.board(1)))
+        self.assertEqual(team2.board(1), tpp.opponent_of(team1.board(1)))
+        p = Player.objects.create(lichess_username="nobody")
+        with self.assertRaises(Exception) as context:
+            tpp.opponent_of(p)
+
+    def test_save(self):
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+
+        tp = TeamPairing.objects.create(
+                white_team=team1,
+                black_team=team2,
+                round=Round.objects.all()[0],
+                pairing_order=0)
+        tpp = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                white=team1.board(1),
+                black=team2.board(1),
+                board_number=1)
+
+        with patch('heltour.tournament.models.PlayerNotificationSetting') as pns:
+            tpp.scheduled_time = (timezone.now() + timedelta(hours=2))
+            tpp.save()
+            pns.get_or_default.assert_called()
+
 class RegistrationTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
@@ -442,7 +554,11 @@ class AlternateTestCase(TestCase):
         r = Round.objects.all()[0]
         r.end_date = time3
         r.save()
-        AlternateAssignment.objects.create(round=r, team=Team.objects.all()[0], board_number=1, player=sp.player)
+        AlternateAssignment.objects.create(
+                round=r,
+                team=Team.objects.all()[0],
+                board_number=1,
+                player=sp.player)
 
         self.assertEqual(time3, alt.priority_date())
 
@@ -475,13 +591,25 @@ class AlternateAssignmentTestCase(TestCase):
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
 
-        tp = TeamPairing.objects.create(white_team=team1, black_team=team2, round=Round.objects.all()[0], pairing_order=0)
+        tp = TeamPairing.objects.create(
+                white_team=team1,
+                black_team=team2,
+                round=Round.objects.all()[0],
+                pairing_order=0)
 
-        pp1 = TeamPlayerPairing.objects.create(team_pairing=tp, board_number=1, white=team1.teammember_set.all()[0].player, black=team2.teammember_set.all()[0].player)
+        pp1 = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                board_number=1,
+                white=team1.teammember_set.all()[0].player,
+                black=team2.teammember_set.all()[0].player)
 
         self.assertEqual('Player1', pp1.white.lichess_username)
 
-        AlternateAssignment.objects.create(round=tp.round, team=team1, board_number=1, player=Player.objects.create(lichess_username='Test User'))
+        AlternateAssignment.objects.create(
+                round=tp.round,
+                team=team1,
+                board_number=1,
+                player=Player.objects.create(lichess_username='Test User'))
         pp1.refresh_from_db()
         self.assertEqual('Test User', pp1.white.lichess_username)
 
@@ -539,3 +667,57 @@ class PlayerByeTestCase(TestCase):
 
         bye2.refresh_rank()
         self.assertEqual(1, bye2.player_rank)
+
+class PlayerNotificationSettingTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_get_or_default(self):
+        player = Player.objects.first()
+        league = League.objects.get(tag='teamleague')
+        #  with patch('heltour.tournament.models.ScheduledNotification') as sn:
+            #  pns = PlayerNotificationSetting.get_or_default(
+                    #  player=player,
+                    #  type='before_game_time',
+                    #  league=league)
+            #  pns.save()
+            #  sn.objects.create.assert_not_called()
+
+        season = Season.objects.get(league=league, tag="teamseason")
+        round = Round.objects.get(number=1, season=season)
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+        tp = TeamPairing.objects.create(
+                white_team=team1,
+                black_team=team2,
+                round=round,
+                pairing_order=0)
+        tpp = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                white=team1.board(1),
+                black=team2.board(1),
+                board_number=1,
+                scheduled_time=timezone.now() + timedelta(hours=2))
+        tpp2 = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                white=team2.board(1),
+                black=team1.board(1),
+                board_number=1,
+                scheduled_time=timezone.now() + timedelta(hours=2))
+
+        #  with patch('heltour.tournament.models.ScheduledNotification') as sn:
+            #  pns = PlayerNotificationSetting.get_or_default(
+                    #  player=team1.board(1),
+                    #  type='before_game_time',
+                    #  league=league)
+            #  pns.save()
+
+        print(ScheduledNotification.objects.all())
+        pns = PlayerNotificationSetting.get_or_default(
+                player=team1.board(1),
+                type='before_game_time',
+                league=league)
+        pns.save()
+        print(ScheduledNotification.objects.all())
+        self.assertEqual(1, ScheduledNotification.objects.count())
+

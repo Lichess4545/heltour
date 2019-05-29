@@ -219,15 +219,20 @@ def run_scheduled_events(self):
             # Determine a range of times to search
             # If the comparison point (e.g. round start) is in the range, we run the event
             upper_bound = now - event.offset
-            lower_bound = max(event.last_run or event.date_created, now - _max_lateness) - event.offset
+            lower_bound = max(
+                    event.last_run or event.date_created,
+                    now - _max_lateness) - event.offset
 
             # Determine an upper bound for events that should be run before the next task execution
             # The idea is that we want events to be run as close to their scheduled time as possible,
             # not just at whatever interval this task happens to be run
-            future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
+            future_bound = ( upper_bound +
+                    settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule'])
 
             def matching_rounds(**kwargs):
-                result = Round.objects.filter(**kwargs).filter(season__is_active=True)
+                result = (Round.objects
+                        .filter(**kwargs)
+                        .filter(season__is_active=True))
                 if event.league is not None:
                     result = result.filter(season__league=event.league)
                 if event.season is not None:
@@ -235,42 +240,82 @@ def run_scheduled_events(self):
                 return result
 
             def matching_pairings(**kwargs):
-                team_result = PlayerPairing.objects.filter(**kwargs).filter(teamplayerpairing__team_pairing__round__season__is_active=True)
-                lone_result = PlayerPairing.objects.filter(**kwargs).filter(loneplayerpairing__round__season__is_active=True)
+                team_result = (PlayerPairing.objects
+                        .filter(**kwargs)
+                        .filter(teamplayerpairing__team_pairing__round__season__is_active=True))
+                lone_result = (PlayerPairing.objects
+                        .filter(**kwargs)
+                        .filter(loneplayerpairing__round__season__is_active=True))
                 if event.league is not None:
-                    team_result = team_result.filter(teamplayerpairing__team_pairing__round__season__league=event.league)
-                    lone_result = lone_result.filter(loneplayerpairing__round__season__league=event.league)
+                    team_result = (team_result
+                            .filter(teamplayerpairing__team_pairing__round__season__league=event.league))
+                    lone_result = (lone_result
+                            .filter(loneplayerpairing__round__season__league=event.league))
                 if event.season is not None:
-                    team_result = team_result.filter(teamplayerpairing__team_pairing__round__season=event.season)
-                    lone_result = lone_result.filter(loneplayerpairing__round__season=event.season)
+                    team_result = (team_result
+                            .filter(teamplayerpairing__team_pairing__round__season=event.season))
+                    lone_result = (lone_result
+                            .filter(loneplayerpairing__round__season=event.season))
                 return team_result | lone_result
 
             if event.relative_to == 'round_start':
-                for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
+                for obj in matching_rounds(
+                        start_date__gt=lower_bound,
+                        start_date__lte=upper_bound):
                     event.run(obj)
-                for obj in matching_rounds(start_date__gt=upper_bound, start_date__lte=future_bound):
-                    future_event_time = obj.start_date + event.offset if future_event_time is None else min(future_event_time, obj.start_date + event.offset)
+                for obj in matching_rounds(
+                        start_date__gt=upper_bound,
+                        start_date__lte=future_bound):
+                    future_event_time = (
+                            obj.start_date + event.offset
+                            if future_event_time is None
+                            else min(future_event_time,
+                                obj.start_date + event.offset))
             elif event.relative_to == 'round_end':
-                for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
+                for obj in matching_rounds(
+                        end_date__gt=lower_bound,
+                        end_date__lte=upper_bound):
                     event.run(obj)
-                for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
-                    future_event_time = obj.end_date + event.offset if future_event_time is None else min(future_event_time, obj.end_date + event.offset)
+                for obj in matching_rounds(
+                        end_date__gt=upper_bound,
+                        end_date__lte=future_bound):
+                    future_event_time = (
+                            obj.end_date + event.offset
+                            if future_event_time is None
+                            else min(future_event_time,
+                                obj.end_date + event.offset))
             elif event.relative_to == 'game_scheduled_time':
-                for obj in matching_pairings(scheduled_time__gt=lower_bound, scheduled_time__lte=upper_bound):
+                for obj in matching_pairings(
+                    scheduled_time__gt=lower_bound,
+                    scheduled_time__lte=upper_bound):
                     event.run(obj)
-                for obj in matching_pairings(scheduled_time__gt=upper_bound, scheduled_time__lte=future_bound):
-                    future_event_time = obj.scheduled_time + event.offset if future_event_time is None else min(future_event_time, obj.scheduled_time + event.offset)
+                for obj in matching_pairings(
+                        scheduled_time__gt=upper_bound,
+                        scheduled_time__lte=future_bound):
+                    future_event_time = (
+                            obj.scheduled_time + event.offset
+                            if future_event_time is None
+                            else min(future_event_time,
+                                obj.scheduled_time + event.offset))
 
         # Run ScheduledNotifications now
         upper_bound = now
         lower_bound = now - _max_lateness
 
-        future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule']
+        future_bound = (upper_bound +
+                settings.CELERYBEAT_SCHEDULE['run_scheduled_events']['schedule'])
 
-        for n in ScheduledNotification.objects.filter(notification_time__gt=lower_bound, notification_time__lte=upper_bound):
+        for n in ScheduledNotification.objects.filter(
+                    notification_time__gt=lower_bound,
+                    notification_time__lte=upper_bound):
             n.run()
-        for n in ScheduledNotification.objects.filter(notification_time__gt=upper_bound, notification_time__lte=future_bound):
-            future_event_time = n.notification_time if future_event_time is None else min(future_event_time, n.notification_time)
+        for n in ScheduledNotification.objects.filter(
+                notification_time__gt=upper_bound,
+                notification_time__lte=future_bound):
+            future_event_time = (
+                    n.notification_time
+                    if future_event_time is None
+                    else min(future_event_time, n.notification_time))
 
         # Schedule this task to be run again at the next event's scheduled time
         # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
