@@ -3,6 +3,7 @@ from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.tasks import pairings_published
+from itertools import groupby
 import reversion
 import time
 
@@ -62,6 +63,8 @@ def automod_unresponsive(round_, **kwargs):
     pairings = (round_.pairings
             .filter(game_link='', result='', scheduled_time=None)
             .exclude(white=None, black=None))
+    pairing_groups = groupby(pairings, key=lambda p: {p.black.pk, p.white.pk})
+    pairings = [list(g)[0] for k,g in pairing_groups]
     for p in pairings:
         #verify that neither player is previously marked unavailable
         if round_.season.league.competitor_type == 'team':
@@ -81,9 +84,7 @@ def automod_unresponsive(round_, **kwargs):
                 signals.notify_opponent_unresponsive.send(
                         sender=automod_unresponsive,
                         round_=round_,
-                        player=p.black,
-                        opponent=p.white,
-                        pairing=p)
+                        player=p.black)
             time.sleep(1)
         if black_unresponsive:
             player_unresponsive(round_, p, p.black, groups)
@@ -91,9 +92,7 @@ def automod_unresponsive(round_, **kwargs):
                 signals.notify_opponent_unresponsive.send(
                         sender=automod_unresponsive,
                         round_=round_,
-                        player=p.white,
-                        opponent=p.black,
-                        pairing=p)
+                        player=p.white)
             time.sleep(1)
     signals.notify_mods_unresponsive.send(
             sender=automod_unresponsive,

@@ -843,7 +843,6 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
             team = tpp.white_team()
         else:
             team = tpp.black_team()
-
         message = ('{captains}<@{player}> appears to be unresponsive on board'
                 '{board} of "{team}" in round {round}.'.format(
                     captains=_captains_ping(team, round_),
@@ -864,7 +863,7 @@ def notify_scheduling_draw_claim(round_,player, **kwargs):
     _message_user(league, _slack_user(player),message)
 
 @receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
-def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
+def notify_opponent_unresponsive(round_, player, **kwargs):
     season = round_.season
     league = season.league
     if league.competitor_type != 'team':
