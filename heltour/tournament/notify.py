@@ -819,14 +819,22 @@ def mod_request_rejected(instance, **kwargs):
 def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **kwargs):
     season = round_.season
     league = season.league
-    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
-    message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
-            + 'You are required to message your opponent within %s of the round start. ' % _offset_str(league.get_leaguesetting().contact_period) \
-            + punishment + '\n' \
-            + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
+    contact_period = _offset_str(league.get_leaguesetting().contact_period)
+    appeal_url = abs_url(reverse(
+        'by_league:by_season:modrequest',
+        args=[league.tag, season.tag, 'appeal_late_response']))
+
+    message = (f"Notice: You haven't messaged your {league.name} opponent in "
+            'the provided chat.  You are required to message your opponent '
+            f'within {contact_period} of the round start. {punishment}\n'
+            "If you've messaged your opponent elsewhere, "
+            f'<{appeal_url}|click here> to send a screenshot to the mods.')
     if allow_continue:
-        continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
-        message += '\nIf you haven\'t but want to continue playing next round, <%s|click here>.' % continue_url
+        continue_url = abs_url(reverse(
+            'by_league:by_season:modrequest',
+            args=[league.tag, season.tag, 'request_continuation']))
+        message += ("\nIf you haven't but want to continue playing next round, "
+                f'<{continue_url}|click here>.')
     _message_user(league, _slack_user(player), message)
 
     if league.competitor_type == 'team':
@@ -835,8 +843,14 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
             team = tpp.white_team()
         else:
             team = tpp.black_team()
-        message = '%s<@%s> appears to be unresponsive on board %d of "%s" in round %d.' \
-                  % (_captains_ping(team, round_), _slack_user(player), tpp.board_number, team.name, round_.number)
+
+        message = ('{captains}<@{player}> appears to be unresponsive on board'
+                '{board} of "{team}" in round {round}.'.format(
+                    captains=_captains_ping(team, round_),
+                    player=_slack_user(player),
+                    board=tpp.board_number,
+                    team=team.name,
+                    round=round_.number))
         _send_notification('captains', league, message)
 
 @receiver(signals.notify_scheduling_draw_claim, dispatch_uid='heltour.tournament.notify')
@@ -914,7 +928,7 @@ def _slack_user(obj):
 def _captains_ping(team, round_):
     opp = team.get_opponent(round_)
     if opp is not None:
-        captains = [c for c in [team.get_captain(), opp.captain()] if c]
+        captains = [c for c in [team.get_captain(), opp.get_captain()] if c]
     else:
         captains = [team.get_captain()] if team.get_captain() else []
     return ', '.join('<@{}>'.format(_slack_user(c)) for c in captains) + ': '

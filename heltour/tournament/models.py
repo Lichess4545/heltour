@@ -1642,10 +1642,14 @@ class TeamPlayerPairing(PlayerPairing):
         return self.black if not self._reversed() else self.white
 
     def white_team_rating(self, league=None):
-        return self.white_rating_display(league) if not self._reversed() else self.black_rating_display(league)
+        if not self._reversed():
+            return self.white_rating_display(league)
+        return self.black_rating_display(league)
 
     def black_team_rating(self, league=None):
-        return self.black_rating_display(league) if not self._reversed() else self.white_rating_display(league)
+        if not self._reversed():
+            return self.black_rating_display(league)
+        return self.white_rating_display(league)
 
     def white_team_color(self):
         return 'white' if not self._reversed() else 'black'
@@ -1666,10 +1670,14 @@ class TeamPlayerPairing(PlayerPairing):
         return self.black_team_score() or 0
 
     def white_team_match_score(self):
-        return self.team_pairing.white_points if not self._reversed() else self.team_pairing.black_points
+        if not self._reversed():
+            return self.team_pairing.white_points
+        return self.team_pairing.black_points
 
     def black_team_match_score(self):
-        return self.team_pairing.black_points if not self._reversed() else self.team_pairing.white_points
+        if not self._reversed():
+            return self.team_pairing.black_points
+        return self.team_pairing.white_points
 
     def white_team_name(self):
         return "%s" % self.white_team().name

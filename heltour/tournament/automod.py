@@ -59,36 +59,59 @@ def withdraw_approved(instance, **kwargs):
 @receiver(signals.automod_unresponsive, dispatch_uid='heltour.tournament.automod')
 def automod_unresponsive(round_, **kwargs):
     groups = { 'warning': [], 'yellow': [], 'red': [] }
-    for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
+    pairings = (round_.pairings
+            .filter(game_link='', result='', scheduled_time=None)
+            .exclude(white=None, black=None))
+    for p in pairings:
         #verify that neither player is previously marked unavailable
         if round_.season.league.competitor_type == 'team':
-            white_unavail = PlayerAvailability.objects.filter(round=round_, player=p.white, is_available=False).exists()
-            black_unavail = PlayerAvailability.objects.filter(round=round_, player=p.black, is_available=False).exists()
+            white_unavail = PlayerAvailability.objects.filter(
+                    round=round_, player=p.white, is_available=False).exists()
+            black_unavail = PlayerAvailability.objects.filter(
+                    round=round_, player=p.black, is_available=False).exists()
             if white_unavail or black_unavail:
                 continue
         #check who is not present
-        white_present = p.get_player_presence(p.white).first_msg_time is not None
-        black_present = p.get_player_presence(p.black).first_msg_time is not None
-        if not white_present:
+        white_unresponsive, black_unresponsive= (
+                p.get_player_presence(player).first_msg_time is None
+                for player in [p.white, p.black])
+        if white_unresponsive:
             player_unresponsive(round_, p, p.white, groups)
-            if black_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white, pairing=p)
+            if not black_unresponsive:
+                signals.notify_opponent_unresponsive.send(
+                        sender=automod_unresponsive,
+                        round_=round_,
+                        player=p.black,
+                        opponent=p.white,
+                        pairing=p)
             time.sleep(1)
-        if not black_present:
+        if black_unresponsive:
             player_unresponsive(round_, p, p.black, groups)
-            if white_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black, pairing=p)
+            if not white_unresponsive:
+                signals.notify_opponent_unresponsive.send(
+                        sender=automod_unresponsive,
+                        round_=round_,
+                        player=p.white,
+                        opponent=p.black,
+                        pairing=p)
             time.sleep(1)
-    signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
+    signals.notify_mods_unresponsive.send(
+            sender=automod_unresponsive,
+            round_=round_,
+            warnings=groups['warning'],
+            yellows=groups['yellow'],
+            reds=groups['red'])
 
 def player_unresponsive(round_, pairing, player, groups):
     season = round_.season
     league = season.league
-    has_warning = PlayerWarning.objects.filter(player=player, round__season=season, type='unresponsive').exists()
+    has_warning = PlayerWarning.objects.filter(
+            player=player, round__season=season, type='unresponsive').exists()
     if not has_warning and league.get_leaguesetting().warning_for_late_response:
         with reversion.create_revision():
             reversion.set_comment('Automatic warning for unresponsiveness')
-            PlayerWarning.objects.create(player=player, round=round_, type='unresponsive')
+            PlayerWarning.objects.create(
+                    player=player, round=round_, type='unresponsive')
         punishment = 'You may receive a yellow card.'
         allow_continue = league.competitor_type != 'team'
         groups['warning'].append(player)
@@ -100,10 +123,17 @@ def player_unresponsive(round_, pairing, player, groups):
         allow_continue = card_color != 'red' and league.competitor_type != 'team'
         groups[card_color].append(player)
     if league.competitor_type == 'team':
-        avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
+        avail, _ = PlayerAvailability.objects.get_or_create(
+                round=round_, player=player)
         avail.is_available = False
         avail.save()
-    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue, pairing=pairing)
+    signals.notify_unresponsive.send(
+            sender=automod_unresponsive,
+            round_=round_,
+            player=player,
+            punishment=punishment,
+            allow_continue=allow_continue,
+            pairing=pairing)
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_approved(instance, **kwargs):
@@ -240,7 +270,7 @@ def claim_draw_scheduling_created(instance, **kwargs):
     if not instance.pairing:
         instance.reject(response='You don\'t currently have a pairing you can claim a scheduling draw for.')
         return
-    
+
     if instance.pairing.result:
         instance.reject(response='You can\'t claim a scheduling draw for a game which already has a set result.')
         return
@@ -264,7 +294,7 @@ def claim_scheduling_draw_approved(instance, **kwargs):
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
 def appeal_scheduling_draw_created(instance, **kwargs):
-    # Figure out which round to use    
+    # Figure out which round to use
     if not instance.round:
         instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
         instance.save()

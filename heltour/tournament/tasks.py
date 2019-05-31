@@ -95,10 +95,17 @@ def _find_closest_rating(player, date, season):
     if player is None:
         return None
     if season.league.competitor_type == 'team':
-        season_pairings = TeamPlayerPairing.objects.filter(team_pairing__round__season=season).exclude(white_rating=None, black_rating=None).nocache()
+        season_pairings = (TeamPlayerPairing.objects
+                .filter(team_pairing__round__season=season)
+                .exclude(white_rating=None, black_rating=None)
+                .nocache())
     else:
-        season_pairings = LonePlayerPairing.objects.filter(round__season=season).exclude(white_rating=None, black_rating=None).nocache()
-    pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
+        season_pairings = (LonePlayerPairing.objects
+                .filter(round__season=season)
+                .exclude(white_rating=None, black_rating=None)
+                .nocache())
+    pairings = (season_pairings.filter(white=player)
+            | season_pairings.filter(black=player))
 
     def pairing_date(p):
         if season.league.competitor_type == 'team':
@@ -112,7 +119,9 @@ def _find_closest_rating(player, date, season):
         else:
             return p.black_rating
 
-    pairings_by_date = sorted([(pairing_date(p), p) for p in pairings])
+    pairings_by_date = sorted(
+            [(pairing_date(p), p) for p in pairings],
+            key=lambda x: x[0])
     if len(pairings_by_date) == 0:
         # Try to find the seed rating
         sp = SeasonPlayer.objects.filter(season=season, player=player).first()
@@ -126,8 +135,12 @@ def _find_closest_rating(player, date, season):
         # Get the rating AFTER the game
         p = pairings_by_date_lt[-1][1]
         if p.game_id() is not None:
-            game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
-            player_meta = game_meta['players']['white'] if p.white == player else game_meta['players']['black']
+            game_meta = lichessapi.get_game_meta(
+                    p.game_id(), priority=0, timeout=300)
+            if p.white == player:
+                player_meta = game_meta['players']['white']
+            else:
+                player_meta = game_meta['players']['black']
             if 'ratingDiff' in player_meta:
                 return player_meta['rating'] + player_meta['ratingDiff']
         return rating(p)

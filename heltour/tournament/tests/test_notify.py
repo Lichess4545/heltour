@@ -301,3 +301,28 @@ class SendPairingNotificationTestCase(TestCase):
             send_pairing_notification('round_started', tpp, 'm', 'm', 'm',
                     li_msg)
             print(lm.call_args_list[0][0][3])
+
+class CaptainsPingTestCase(TestCase):
+    def setUp(self):
+        create_team_league()
+
+    def commonObjects(self):
+        league = m.League.objects.first()
+        r = m.Round.objects.get(number=1)
+        t1, t2 = m.Team.objects.get(number=1), m.Team.objects.get(number=2)
+        tp = make_team_pairing(t1, t2)
+        tpp = make_player_pairing(tp, t1, t2)
+        white, black = tpp.white, tpp.black
+        return league, r, t1, t2, tp, tpp, white, black
+
+    def test_captains_ping(self):
+        league, r, t1, t2, tp, tpp, white, black = self.commonObjects()
+        from heltour.tournament.notify import _captains_ping
+
+        self.assertEqual(': ', _captains_ping(t1, r))
+
+        t1.set_captain(t1.board(1))
+        self.assertEqual('<@p-t1-b1>: ', _captains_ping(t1, r))
+
+        t2.set_captain(t2.board(1))
+        self.assertEqual('<@p-t1-b1>, <@p-t2-b1>: ', _captains_ping(t1, r))
