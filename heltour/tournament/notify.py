@@ -843,6 +843,7 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
             team = tpp.white_team()
         else:
             team = tpp.black_team()
+
         message = ('{captains}<@{player}> appears to be unresponsive on board'
                 '{board} of "{team}" in round {round}.'.format(
                     captains=_captains_ping(team, round_),
@@ -876,9 +877,16 @@ def notify_opponent_unresponsive(round_, player, **kwargs):
 def notify_noshow(round_, player, opponent, **kwargs):
     season = round_.season
     league = season.league
-    claim_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'claim_win_noshow']))
-    message = 'Notice: It appears your opponent, <@%s>, has not shown up for your scheduled game time in %s. ' % (_slack_user(opponent), league.name) \
-            + 'To claim a win by forfeit, <%s|click here>.' % claim_url
+    claim_url = abs_url(reverse(
+        'by_league:by_season:modrequest',
+        args=[league.tag, season.tag, 'claim_win_noshow']))
+    message = ('Notice: It appears your opponent, <@{opponent}>, has not shown '
+            'up for your scheduled game time in {league}. To claim a win by '
+            'forfeit, <{claim_url}|click here>.'
+            .format(
+                opponent=_slack_user(opponent),
+                league=league.name,
+                claim_url=claim_url))
     _message_user(league, _slack_user(player), message)
 
 @receiver(signals.notify_noshow_claim, dispatch_uid='heltour.tournament.notify')

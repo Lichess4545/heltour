@@ -210,7 +210,7 @@ CELERYBEAT_SCHEDULE = {
     },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
-        'schedule': timedelta(minutes=1),
+        'schedule': timedelta(minutes=5),
         'args': ()
     },
 }

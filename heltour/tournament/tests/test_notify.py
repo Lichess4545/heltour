@@ -69,6 +69,15 @@ def make_player_pairing(tp, t1, t2):
             white=t1.board(1),
             black=t2.board(1))
 
+def common_objects():
+    league = m.League.objects.first()
+    r = m.Round.objects.get(number=1)
+    t1, t2 = m.Team.objects.get(number=1), m.Team.objects.get(number=2)
+    tp = make_team_pairing(t1, t2)
+    tpp = make_player_pairing(tp, t1, t2)
+    white, black = tpp.white, tpp.black
+    return league, r, t1, t2, tp, tpp, white, black
+
 class NotifyAlternateAndOpponentTestCase(TestCase):
     def setUp(self):
         create_team_league()
