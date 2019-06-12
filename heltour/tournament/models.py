@@ -1366,6 +1366,14 @@ class PlayerPairing(_BaseModel):
             pairings = LonePlayerPairing.objects.filter(round=round).select_related('white', 'black')
         return [list(g) for k,g in groupby(pairings, key=lambda p: {p.black.pk, p.white.pk})]
 
+    def simultaneous_games(self):
+        return (TeamPlayerPairing.objects
+            .filter(team_pairing__round=self.round)
+            .exclude(white__not__in=[self.white, self.black])
+            .exclude(black__not__in=[self.white, self.black])
+            .exclude(scheduled_time__not__eq=self.scheduled_time)
+            .select_related('white', 'black'))
+
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
             return self.white_rating
@@ -1479,6 +1487,14 @@ class PlayerPairing(_BaseModel):
         if not presence:
             presence = PlayerPresence.objects.create(pairing=self, player=player, round=self.get_round())
         return presence
+
+    def win_by_forfeit(self, player):
+        if self.white == player:
+            self.result = '1X-0F'
+        elif self.black == player:
+            self.result = '0F-1X'
+        else:
+            raise Exception(f'player {player} is not part of this pairing')
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())

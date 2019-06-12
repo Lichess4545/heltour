@@ -196,31 +196,42 @@ def claim_win_noshow_created(instance, **kwargs):
        and timezone.now() > p.scheduled_time + timedelta(minutes=21):
         instance.approve(response='You\'ve been given a win by forfeit.')
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved,
+        sender=MOD_REQUEST_SENDER['claim_win_noshow'],
+        dispatch_uid='heltour.tournament.automod')
 def claim_win_noshow_approved(instance, **kwargs):
     if not instance.pairing:
         return
 
-    p = instance.pairing
-    opponent = p.white if p.white != instance.requester else p.black
-
+    pairing = instance.pairing
+    pairings = pairing.simultaneous_games()
+    opponent = pairing.opponent_of(instance.requester)
     with reversion.create_revision():
         reversion.set_comment('Auto forfeit for no-show')
-        if p.white == instance.requester:
-            p.result = '1X-0F'
-        if p.black == instance.requester:
-            p.result = '0F-1X'
-        p.save()
-    add_system_comment(p, '%s no-show' % opponent.lichess_username)
-    sp = SeasonPlayer.objects.filter(player=opponent, season=instance.season).first()
-    add_system_comment(sp, 'Round %d no-show' % instance.round.number)
+        for p in pairings:
+            p.win_by_forfeit(instance.requester)
+            p.save()
+            add_system_comment(p, '%s no-show' % opponent.lichess_username)
+
+    sp = (SeasonPlayer.objects
+            .filter(player=opponent, season=instance.season)
+            .first())
+    add_system_comment(sp,
+            'Round {round} no-show'.format(round=instance.round.number))
 
     card_color = give_card(instance.round, opponent, 'card_noshow')
     if not card_color:
         return
     punishment = 'You have been given a %s card.' % card_color
-    allow_continue = card_color != 'red' and instance.season.league.competitor_type != 'team'
-    signals.notify_noshow_claim.send(sender=claim_win_noshow_approved, round_=instance.round, player=opponent, punishment=punishment, allow_continue=allow_continue)
+    allow_continue = (card_color != 'red'
+            and instance.season.league.competitor_type != 'team')
+    signals.notify_noshow_claim.send(
+            sender=claim_win_noshow_approved,
+            round_=instance.round,
+            player=opponent,
+            punishment=punishment,
+            allow_continue=allow_continue)
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
 def appeal_noshow_created(instance, **kwargs):
@@ -236,14 +247,17 @@ def appeal_noshow_created(instance, **kwargs):
 def appeal_noshow_approved(instance, **kwargs):
     if not instance.pairing:
         return
-
     with reversion.create_revision():
         reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
         revoke_card(instance.round, instance.requester, 'card_noshow')
+
+    pairings = instance.pairing.simultaneous_games()
     with reversion.create_revision():
         reversion.set_comment('No-show appeal approved by %s' % instance.status_changed_by)
-        instance.pairing.result = ''
-        instance.pairing.save()
+        for p in pairings:
+            if 'X' in p.result:
+                p.pairing.result = ''
+                p.pairing.save()
 
 @receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
 def claim_draw_scheduling_created(instance, **kwargs):
