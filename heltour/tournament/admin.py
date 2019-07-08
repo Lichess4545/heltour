@@ -1568,6 +1568,35 @@ class TeamPairingAdmin(_BaseAdmin):
     raw_id_fields = ('white_team', 'black_team', 'round')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
+    actions = ['generate_player_pairings']
+
+    def generate_player_pairings(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
+            return
+        more_than_one_round = len(list({tp.round for tp in queryset.all()})) > 1
+        if(more_than_one_round):
+            self.message_user(request,
+                              'We can only generate player pairings for one '
+                              'round at a time',
+                              level=messages.ERROR)
+            return
+
+        player_pairings_already_exist = (TeamPlayerPairing.objects
+                                         .filter(team_pairing__in=queryset.all())
+                                         .exists())
+        if(player_pairings_already_exist):
+            self.message_user(request,
+                              'Player pairings exist for at least one of '
+                              'These team pairings.  You must delete all '
+                              'player pairings if you want to generate new ones',
+                              level=messages.ERROR)
+            return
+
+        pairinggen.generate_team_player_pairings(queryset.all())
+        self.message_user(request,
+                          'Successfully generated team player pairings',
+                          level=messages.SUCCESS)
 
 #-------------------------------------------------------------------------------
 class PlayerPresenceInline(admin.TabularInline):
