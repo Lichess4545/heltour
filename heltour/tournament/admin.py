@@ -1571,9 +1571,6 @@ class TeamPairingAdmin(_BaseAdmin):
     actions = ['generate_player_pairings']
 
     def generate_player_pairings(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
-            return
         more_than_one_round = len(list({tp.round for tp in queryset.all()})) > 1
         if(more_than_one_round):
             self.message_user(request,
