@@ -426,6 +426,25 @@ class PlayerPairingTestCase(TestCase):
         self.assertEqual(0.0, pp.white_score())
         self.assertEqual(1.0, pp.black_score())
 
+    def test_round(self):
+        t1, t2 = Team.objects.get(number=1), Team.objects.get(number=2)
+        season = Season.objects.get(tag="teamseason")
+        round = Round.objects.get(number=1, season=season)
+
+        tp = TeamPairing.objects.create(
+                white_team=t1,
+                black_team=t2,
+                round=round,
+                pairing_order=0)
+
+        tpp = TeamPlayerPairing.objects.create(
+                team_pairing=tp,
+                board_number=1,
+                white=t1.board(1),
+                black=t2.board(1))
+        pp = tpp.playerpairing_ptr
+        self.assertEqual(round, pp.get_round())
+
 
 class TeamPlayerPairingTestCase(TestCase):
     def setUp(self):

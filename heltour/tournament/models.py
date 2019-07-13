@@ -1368,11 +1368,20 @@ class PlayerPairing(_BaseModel):
 
     def simultaneous_games(self):
         return (TeamPlayerPairing.objects
-            .filter(team_pairing__round=self.round)
+            .filter(team_pairing__round=self.get_round())
             .exclude(white__not__in=[self.white, self.black])
             .exclude(black__not__in=[self.white, self.black])
             .exclude(scheduled_time__not__eq=self.scheduled_time)
             .select_related('white', 'black'))
+
+    def get_round(self):
+        try:
+            return self.teamplayerpairing.team_pairing.round
+        except TeamPlayerPairing.DoesNotExist:
+            try:
+                return self.loneplayerpairing.round
+            except:
+                raise "blah"
 
     def white_rating_display(self, league=None):
         if self.white_rating is not None:
