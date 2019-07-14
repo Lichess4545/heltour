@@ -1456,7 +1456,7 @@ class TeamProfileView(LeagueView):
         display_ratings = {}
         for tp in team.pairings.order_by('round__start_date'):
             for p in tp.teamplayerpairing_set.nocache():
-                if p.board_number % 2 == (1 if tp.white_team == team else 0):
+                if p.white_team() == team:
                     if p.white is not None:
                         game_counts[p.white] += 1
                         display_ratings[p.white] = p.white_rating
@@ -1465,7 +1465,13 @@ class TeamProfileView(LeagueView):
                         game_counts[p.black] += 1
                         display_ratings[p.black] = p.black_rating
 
-        prev_members = [(player, display_ratings.get(player, None) or player.rating_for(self.league), game_count) for player, game_count in sorted(list(game_counts.items()), key=lambda i: i[0].lichess_username.lower()) if player not in member_players]
+        prev_members = [
+            (player, display_ratings.get(player, None) or
+                     player.rating_for(self.league), game_count)
+            for player, game_count
+            in sorted(list(game_counts.items()),
+                      key=lambda i: i[0].lichess_username.lower())
+            if player not in member_players]
 
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
