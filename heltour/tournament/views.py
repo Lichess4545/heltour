@@ -24,7 +24,7 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from ipware import get_client_ip
 
-from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi
+from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi, oauth
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 from heltour.tournament.forms import *
 from heltour.tournament.models import *
@@ -1817,80 +1817,12 @@ class NotificationsView(SeasonView, LoginRequiredMixin):
         return self.view(post=True)
 
 class LoginView(LeagueView):
-    def view(self, secret_token=None, post=False):
-        slack_user_id = ''
-        username_hint = ''
-        if secret_token:
-            token = LoginToken.objects.filter(secret_token=secret_token).first()
-            if token and not token.is_expired():
-                if token.lichess_username:
-                    # Okay, we've successfully authenticated via lichess
-                    # Now we set it up so Django recognizes the user
-                    user = User.objects.filter(username__iexact=token.lichess_username).first()
-                    if not user:
-                        # Create the user with a password no one will ever use; it can always be manually reset if needed
-                        with reversion.create_revision():
-                            reversion.set_comment('Create user from lichess login')
-                            user = User.objects.create_user(username=token.lichess_username, password=create_api_token())
-                    user.backend = 'django.contrib.auth.backends.ModelBackend'
-                    login(self.request, user)
+    def view(self):
+        return oauth.redirect_for_authorization(self.request, self.league.tag)
 
-                    if token.slack_user_id:
-                        # Double check against the session to prevent certain kinds of attacks
-                        if self.request.session.get('slack_user_id') == token.slack_user_id \
-                           or token.source_ip and token.source_ip == get_client_ip(self.request)[0]:
-                            # Oh look, we've also associated the lichess account with a slack account. How convenient.
-                            if Player.link_slack_account(token.lichess_username, token.slack_user_id):
-                                self.request.session['slack_linked'] = True
-
-                    redir_url = self.request.session.get('login_redirect')
-                    if redir_url:
-                        self.request.session['login_redirect'] = None
-                        return redirect(redir_url)
-                    else:
-                        return redirect('by_league:user_dashboard', self.league.tag)
-                elif token.slack_user_id:
-                    # The user has been directed here from Slack. If they complete the login their accounts will be associated
-                    if self.request.user.is_authenticated():
-                        # Already logged in, so associate right now
-                        if Player.link_slack_account(self.request.user.username, token.slack_user_id):
-                            self.request.session['slack_linked'] = True
-                        return redirect('by_league:user_dashboard', self.league.tag)
-                    slack_user_id = token.slack_user_id
-                    username_hint = token.username_hint
-        if post:
-            form = LoginForm(self.request.POST)
-            if form.is_valid():
-                username = form.cleaned_data['lichess_username']
-                if slack_user_id:
-                    # As well as in the token, store the slack ID in the session for validation purposes
-                    self.request.session['slack_user_id'] = slack_user_id
-                login_token, _ = LoginToken.objects.get_or_create(
-                                                               lichess_username=username, slack_user_id=slack_user_id,
-                                                               source_ip=get_client_ip(self.request)[0],
-                                                               expires__gt=timezone.now() + timedelta(hours=12),
-                                                               defaults={'expires':timezone.now() + timedelta(days=1)})
-                if not login_token.mail_id:
-                    login_link = abs_url(reverse('by_league:login_with_token', args=[self.league.tag, login_token.secret_token]))
-                    msg = 'Click this link to complete the login process.\n\n%s' % login_link
-                    result = lichessapi.send_mail(username, '%s - Login' % self.league, msg)
-                    if result:
-                        login_token.mail_id = result
-                        login_token.save()
-                if login_token.mail_id:
-                    return redirect(settings.LICHESS_DOMAIN + 'inbox/' + login_token.mail_id)
-                form.add_error('lichess_username', format_html('A validation mail could not be sent. Check your spelling and <a href="https://lichess.org/account/preferences/privacy">privacy settings</a>.'))
-        else:
-            form = LoginForm()
-            form.fields['lichess_username'].initial = username_hint
-
-        context = {
-            'form': form,
-        }
-        return self.render('tournament/login.html', context)
-
-    def view_post(self, secret_token=None):
-        return self.view(secret_token, post=True)
+class OAuthCallbackView(View):
+    def get(self, request, *args, **kwargs):
+        return oauth.login_with_code(request, request.GET.get('code'), request.GET.get('state'))
 
 class LogoutView(LeagueView):
     def view(self, post=False):

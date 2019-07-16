@@ -97,6 +97,7 @@ urlpatterns = [
     url(r'^api/', include(api_urlpatterns, 'api')),
     url(r'^app/', include(app_urlpatterns, 'app')),
     url(r'^auth/slack/$', auth.SlackAuth.as_view(), name='slack_auth'),
+    url(r'^auth/lichess/$', views.OAuthCallbackView.as_view(), name='lichess_auth'),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^select2/', include('select2.urls')),

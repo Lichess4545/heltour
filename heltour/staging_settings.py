@@ -281,7 +281,12 @@ SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
 CHESSTER_USER_ID = 'U0VCPUT7T'
 
-LICHESS_DOMAIN = 'https://listage.ovh/'
+LICHESS_DOMAIN = 'https://lichess.dev/'
+LICHESS_OAUTH_ACCOUNT_URL = 'https://lichess.org/api/account'
+LICHESS_OAUTH_AUTHORIZE_URL = 'https://oauth.lichess.org/oauth/authorize'
+LICHESS_OAUTH_TOKEN_URL = 'https://oauth.lichess.org/oauth'
+LICHESS_OAUTH_CLIENTID = ''
+LICHESS_OAUTH_CLIENTSECRET = ''
 
 # Testing overrides
 import sys
@@ -322,3 +327,5 @@ if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
     SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
     RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)
     RECAPTCHA_PRIVATE_KEY = overrides.get("RECAPTCHA_PRIVATE_KEY", RECAPTCHA_PRIVATE_KEY)
+    LICHESS_OAUTH_CLIENTID = overrides.get("LICHESS_OAUTH_CLIENTID", LICHESS_OAUTH_CLIENTID)
+    LICHESS_OAUTH_CLIENTSECRET = overrides.get("LICHESS_OAUTH_CLIENTSECRET", LICHESS_OAUTH_CLIENTSECRET)
