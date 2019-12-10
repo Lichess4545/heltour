@@ -201,9 +201,10 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
         player = None
 
     # Send a DM to the player being replaced
+    availability_url = abs_url(reverse('by_league:by_season:edit_availability', args=[league.tag, season.tag]))
     if player is not None:
-        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for round %d, since you have been marked as unavailable. If this is a mistake, please contact a mod as soon as possible.' \
-                                     % (_slack_user(player), round_.number)
+        message_to_replaced_player = '@%s: I am searching for an alternate to replace you for round %d, since you have been marked as unavailable. To stop the search and set yourself available again <%s|clickhere>.' \
+                                     % (_slack_user(player), round_.number, availability_url)
         _message_user(league, _slack_user(player), message_to_replaced_player)
 
     # Send a DM to the opponent
@@ -637,12 +638,10 @@ def mod_request_rejected(instance, **kwargs):
 def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **kwargs):
     season = round_.season
     league = season.league
-    appeal_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_late_response']))
     availability_url = abs_url(reverse('by_league:by_season:edit_availability', args=[league.tag, season.tag]))
     message = 'Notice: You haven\'t messaged your %s opponent in the provided chat. ' % league.name \
             + 'You are required to message your opponent within %s of the round start. ' % _offset_str(league.get_leaguesetting().contact_period) \
             + punishment + '\n' \
-            + 'You have been set unavailable for this round, to set yourself available again <%s|clickhere>' % availability_url + '\n' \
             + 'If you\'ve messaged your opponent elsewhere, <%s|click here> to send a screenshot to the mods.' % appeal_url
     if allow_continue:
         continue_url = abs_url(reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'request_continuation']))
