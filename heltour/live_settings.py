@@ -307,6 +307,9 @@ try:
     exec('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
 except ImportError:
     pass # ignore missing local settings
+# Special case for Travis continuous integration
+if 'TRAVIS' in os.environ:
+    from .local.travis import *
 
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os
