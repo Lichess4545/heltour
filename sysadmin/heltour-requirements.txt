@@ -1,4 +1,4 @@
-django==1.11.23
+django==3.0
 django-reversion==3.0.2
 psycopg2-binary==2.7.6.1
 django-debug-toolbar==1.11
