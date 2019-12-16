@@ -1,172 +1,175 @@
 .league-homelink-#{$theme-name} {
-	padding-left: 59px;
-	background: url($logo);
-	background-position: $logo-position;
-	background-repeat: no-repeat;
-	background-size: $logo-size;
-	background-color: $primary-color;
-}
-
-.my-pairing .league-icon.#{$theme-name} {
-	width: 85px;
-	background: url($logo);
-	background-position: 6px 1px;
-	background-repeat: no-repeat;
-	background-size: 75px 75px;
-	background-color: $primary-color;
-}
-
-body.dark {
-  &.theme-#{$theme-name} {
-    .well-head,
-    .navbar {
-      background-color: $dark-primary-color;
-    }
-    .btn-default {
-      color: $gray-300;
-      background: none;
-      background-color: $gray-600;
-      &:hover {
-        background-color: $gray-700;
-      }
-    }
-  }
-
-  .league-homelink-#{$theme-name} {
-      background-color: $dark-primary-color;
-  }
-
-  .my-pairing .league-icon.#{$theme-name} {
-      background-color: $dark-primary-color;
-  }
-}
-
-body.theme-#{$theme-name} {
-
-  .navbar {
-    background-color: $primary-color;
-  }
-
-  .navbar .navbar-brand {
     padding-left: 59px;
     background: url($logo);
     background-position: $logo-position;
     background-repeat: no-repeat;
     background-size: $logo-size;
-  }
-
-  .navbar .navbar-brand,
-  .navbar .navbar-brand:hover,
-  .navbar .navbar-brand:focus,
-  .navbar .navbar-nav > li > a {
-    color: #ffffff;
-  }
-
-  .navbar .navbar-nav > li.active > a,
-  .navbar .navbar-nav > .active > a:hover,
-  .navbar .navbar-nav > .active > a:focus,
-  .navbar .navbar-nav > .open > a,
-  .navbar .navbar-nav > .open > a:hover,
-  .navbar .navbar-nav > .open > a:focus {
-    background-color: $secondary-color;
-    color: #ffffff;
-  }
-
-  .navbar .navbar-nav > li > a:hover,
-  .navbar .navbar-nav > li > a:focus {
-    background-color: $nav-focus-color;
-    color: #ffffff;
-  }
-
-  .navbar .navbar-nav .dropdown-menu {
-    border-color: $primary-color;
-  }
-
-  .navbar .navbar-toggle .icon-bar {
-    background-color: white;
-  }
-
-  .navbar .navbar-toggle:hover,
-  .navbar .navbar-toggle:focus {
-    background-color: $nav-focus-color;
-  }
-
-  .well {
-    padding: 0;
-  }
-
-  .well-head {
-    background-color: $secondary-color;
-    color: #ffffff;
-    padding: 3px 15px 3px 15px;
-  }
-
-  .well-head h3 {
-    font-size: 18px;
-  }
-
-  .well-body {
-    padding: 15px;
-    background-color: #ffffff;
-  }
-
-  .btn-primary {
-    background: linear-gradient($secondary-color, $primary-color);
-    border-color: $primary-color;
-    color: #ffffff;
-  }
-  .btn-primary:active,
-  .btn-primary:hover,
-  .btn-primary:active:focus,
-  .btn-primary:active:hover {
     background-color: $primary-color;
-  }
+}
 
-  .btn-default {
-    background: linear-gradient(#f9f9f9, #d9d9d9);
-    color: #000000;
-  }
+.my-pairing .league-icon.#{$theme-name} {
+    width: 85px;
+    background: url($logo);
+    background-position: 6px 1px;
+    background-repeat: no-repeat;
+    background-size: 75px 75px;
+    background-color: $primary-color;
+}
 
-  .btn-default:hover,
-  .btn-default:focus {
-    color: #000000;
-  }
+body.dark {
+    &.theme-#{$theme-name} {
+        .well-head,
+        .navbar {
+            background-color: $dark-primary-color;
+        }
 
-  @media (max-width: 767px) {
-    .row-condensed-xs .well {
-      border-radius: 0;
-    }
-    .row-condensed-xs .well-body > .table-condensed-xs {
-      margin-left: -15px;
-      min-width: calc(100% + 30px);
-    }
-    .row-condensed-xs .well-body > .table-responsive {
-      margin-left: -15px;
-      min-width: calc(100% + 30px);
-    }
+        .btn-default {
+            color: $gray-300;
+            background: none;
+            background-color: $gray-600;
 
-    .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
-    .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
-      background-color: #4d8358;
-      color: #ffffff;
+            &:hover {
+                background-color: $gray-700;
+            }
+        }
     }
 
-    .navbar .navbar-nav .open .dropdown-menu > li > a {
-      color: #ffffff;
+    .league-homelink-#{$theme-name} {
+        background-color: $dark-primary-color;
     }
-  }
-  @media (max-width: 991px) {
-    .row-condensed-sm .well {
-      border-radius: 0;
+
+    .my-pairing .league-icon.#{$theme-name} {
+        background-color: $dark-primary-color;
     }
-    .row-condensed-sm .well-body > .table-condensed-sm {
-      margin-left: -15px;
-      min-width: calc(100% + 30px);
+}
+
+body.theme-#{$theme-name} {
+
+    .navbar {
+        background-color: $primary-color;
     }
-    .row-condensed-sm .well-body > .table-responsive {
-      margin-left: -15px;
-      min-width: calc(100% + 30px);
+
+    .navbar .navbar-brand {
+        padding-left: 59px;
+        background: url($logo);
+        background-position: $logo-position;
+        background-repeat: no-repeat;
+        background-size: $logo-size;
     }
-  }
+
+    .navbar .navbar-brand,
+    .navbar .navbar-brand:hover,
+    .navbar .navbar-brand:focus,
+    .navbar .navbar-nav > li > a {
+        color: #ffffff;
+    }
+
+    .navbar .navbar-nav > li.active > a,
+    .navbar .navbar-nav > .active > a:hover,
+    .navbar .navbar-nav > .active > a:focus,
+    .navbar .navbar-nav > .open > a,
+    .navbar .navbar-nav > .open > a:hover,
+    .navbar .navbar-nav > .open > a:focus {
+        background-color: $secondary-color;
+        color: #ffffff;
+    }
+
+    .navbar .navbar-nav > li > a:hover,
+    .navbar .navbar-nav > li > a:focus {
+        background-color: $nav-focus-color;
+        color: #ffffff;
+    }
+
+    .navbar .navbar-nav .dropdown-menu {
+        border-color: $primary-color;
+    }
+
+    .navbar .navbar-toggle .icon-bar {
+        background-color: white;
+    }
+
+    .navbar .navbar-toggle:hover,
+    .navbar .navbar-toggle:focus {
+        background-color: $nav-focus-color;
+    }
+
+    .well {
+        padding: 0;
+    }
+
+    .well-head {
+        background-color: $secondary-color;
+        color: #ffffff;
+        padding: 3px 15px 3px 15px;
+    }
+
+    .well-head h3 {
+        font-size: 18px;
+    }
+
+    .well-body {
+        padding: 15px;
+        background-color: #ffffff;
+    }
+
+    .btn-primary {
+        background: linear-gradient($secondary-color, $primary-color);
+        border-color: $primary-color;
+        color: #ffffff;
+    }
+
+    .btn-primary:active,
+    .btn-primary:hover,
+    .btn-primary:active:focus,
+    .btn-primary:active:hover {
+        background-color: $primary-color;
+    }
+
+    .btn-default {
+        background: linear-gradient(#f9f9f9, #d9d9d9);
+        color: #000000;
+    }
+
+    .btn-default:hover,
+    .btn-default:focus {
+        color: #000000;
+    }
+
+    @media (max-width: 767px) {
+        .row-condensed-xs .well {
+            border-radius: 0;
+        }
+        .row-condensed-xs .well-body > .table-condensed-xs {
+            margin-left: -15px;
+            min-width: calc(100% + 30px);
+        }
+        .row-condensed-xs .well-body > .table-responsive {
+            margin-left: -15px;
+            min-width: calc(100% + 30px);
+        }
+
+        .navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+        .navbar .navbar-nav .open .dropdown-menu > li > a:focus {
+            background-color: #4d8358;
+            color: #ffffff;
+        }
+
+        .navbar .navbar-nav .open .dropdown-menu > li > a {
+            color: #ffffff;
+        }
+    }
+    @media (max-width: 991px) {
+        .row-condensed-sm .well {
+            border-radius: 0;
+        }
+        .row-condensed-sm .well-body > .table-condensed-sm {
+            margin-left: -15px;
+            min-width: calc(100% + 30px);
+        }
+        .row-condensed-sm .well-body > .table-responsive {
+            margin-left: -15px;
+            min-width: calc(100% + 30px);
+        }
+    }
 
 }

@@ -6,140 +6,145 @@
 {% block nav_season %}active{% endblock %}
 
 {% block content %}
-<div class="row row-condensed-xs home-row">
-    <div class="col-md-8 col-xs-12">
-        <div class="well">
-            <div class="well-head">
-                <h3>{{ season.name }} Winners</h3>
-            </div>
-            <div class="well-body">
-                <div class="row">
-                    <div class="podium lone-podium">
-                        <div class="first-place">
-                            {% if first_player %}
-                            <div class="winners-trophy">
-                                <img src="{% static 'tournament/img/trophy-1.png' %}"/>
+    <div class="row row-condensed-xs home-row">
+        <div class="col-md-8 col-xs-12">
+            <div class="well">
+                <div class="well-head">
+                    <h3>{{ season.name }} Winners</h3>
+                </div>
+                <div class="well-body">
+                    <div class="row">
+                        <div class="podium lone-podium">
+                            <div class="first-place">
+                                {% if first_player %}
+                                    <div class="winners-trophy">
+                                        <img src="{% static 'tournament/img/trophy-1.png' %}"/>
+                                    </div>
+                                    <div class="winners-name">
+                                        <a class="player-link"
+                                           href="{% leagueurl 'player_profile' league.tag season.tag first_player.season_player.player.lichess_username %}">
+                                            {{ first_player.season_player.player.lichess_username }}
+                                        </a>
+                                    </div>
+                                {% endif %}
                             </div>
-                            <div class="winners-name">
-                                <a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag first_player.season_player.player.lichess_username %}">
-                                    {{ first_player.season_player.player.lichess_username }}
-                                </a>
+                            <div class="second-place">
+                                {% if second_player %}
+                                    <div class="winners-trophy">
+                                        <img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
+                                    </div>
+                                    <div class="winners-name">
+                                        <a class="player-link"
+                                           href="{% leagueurl 'player_profile' league.tag season.tag second_player.season_player.player.lichess_username %}">
+                                            {{ second_player.season_player.player.lichess_username }}
+                                        </a>
+                                    </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
+                            <div class="third-place">
+                                {% if third_player %}
+                                    <div class="winners-trophy">
+                                        <img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
+                                    </div>
+                                    <div class="winners-name">
+                                        <a class="player-link"
+                                           href="{% leagueurl 'player_profile' league.tag season.tag third_player.season_player.player.lichess_username %}">
+                                            {{ third_player.season_player.player.lichess_username }}
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% for ribbon in ribbons %}
+                                <div class="u1600-winner">
+                                    <div class="winners-trophy">
+                                        <img src="{% static 'tournament/img/blue-ribbon.png' %}"/>
+                                    </div>
+                                    <div class="winners-name">
+                                        U{{ ribbon.season_prize.max_rating }}<br/>
+                                        <a class="player-link"
+                                           href="{% leagueurl 'player_profile' league.tag season.tag ribbon.player.lichess_username %}">
+                                            {{ ribbon.player.lichess_username }}
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
-                        <div class="second-place">
-                            {% if second_player %}
-                            <div class="winners-trophy">
-                                <img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
-                            </div>
-                            <div class="winners-name">
-                                <a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag second_player.season_player.player.lichess_username %}">
-                                    {{ second_player.season_player.player.lichess_username }}
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="third-place">
-                            {% if third_player %}
-                            <div class="winners-trophy">
-                                <img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
-                            </div>
-                            <div class="winners-name">
-                                <a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag third_player.season_player.player.lichess_username %}">
-                                    {{ third_player.season_player.player.lichess_username }}
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% for ribbon in ribbons %}
-                        <div class="u1600-winner">
-                            <div class="winners-trophy">
-                                <img src="{% static 'tournament/img/blue-ribbon.png' %}"/>
-                            </div>
-                            <div class="winners-name">
-                                U{{ ribbon.season_prize.max_rating }}<br/>
-                                <a class="player-link" href="{% leagueurl 'player_profile' league.tag season.tag ribbon.player.lichess_username %}">
-                                    {{ ribbon.player.lichess_username }}
-                                </a>
-                            </div>
-                        </div>
-                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-4 col-xs-12">
-        {% if has_more_seasons %}
-        <div class="well">
-            <div class="well-head">
-                <h3>Change Season</h3>
-            </div>
-            <div class="well-body">
-                {% include "tournament/season_switcher.html" %}
-            </div>
-        </div>
-        {% endif %}
-        {% if links_doc %}
-        {% include 'tournament/document_inline.html' with document=links_doc.document %}
-        {% endif %}
-    </div>
-</div>
-<div class="row row-condensed-xs home-row">
-    <div class="col-md-12">
-        {% if player_scores %}
-        <div class="well">
-            <div class="well-head">
-                <h3>Final Standings</h3>
-            </div>
-            <div class="well-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-condensed-sm" id="table-lone-standings">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Name</th>
-                                <th class="text-center">Rtng</th>
-                                {% for round_number in round_numbers %}
-                                <th class="text-left">Rd {{ round_number }}</th>
-                                {% endfor %}
-                                <th class="text-center">Tot</th>
-                                <th title ="Modified Median" class="text-right">TBrk[M]</th>
-                                <th title ="Solkoff" class="text-right">TBrk[S]</th>
-                                <th title ="Cumulative" class="text-right">TBrk[C]</th>
-                                <th title ="Cumulative Opponent" class="text-right">TBrk[O]</th>
-                                <th class="text-center">Perf</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for number, player_score, round_scores in player_scores %}
-                            {% with player_score.season_player.player as player %}
-                            <tr>
-                                <td class="text-center rank-value">{{ number }}</td>
-                                <td class="{% highlightclass player_highlights player %}">
-                                    <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                                        {{ player.lichess_username }}
-                                    </a>
-                                </td>
-                                <td class="text-center">{% player_rating player_score.season_player %}</td>
-                                {% for result_code, opponent_num, _, _ in round_scores %}
-                                <td>{{ result_code|default_if_none:'' }}{% if opponent_num %}{{ opponent_num }}{% else %}---{% endif %}</td>
-                                {% endfor %}
-                                <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
-                                <td class="text-right rank-value">{{ player_score.tiebreak1_display }}</td>
-                                <td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
-                                <td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
-                                <td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
-                                <td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
-                            </tr>
-                            {% endwith %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <div class="col-md-4 col-xs-12">
+            {% if has_more_seasons %}
+                <div class="well">
+                    <div class="well-head">
+                        <h3>Change Season</h3>
+                    </div>
+                    <div class="well-body">
+                        {% include "tournament/season_switcher.html" %}
+                    </div>
                 </div>
-            </div>
+            {% endif %}
+            {% if links_doc %}
+                {% include 'tournament/document_inline.html' with document=links_doc.document %}
+            {% endif %}
         </div>
-        {% endif %}
     </div>
-</div>
+    <div class="row row-condensed-xs home-row">
+        <div class="col-md-12">
+            {% if player_scores %}
+                <div class="well">
+                    <div class="well-head">
+                        <h3>Final Standings</h3>
+                    </div>
+                    <div class="well-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-condensed-sm" id="table-lone-standings">
+                                <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Name</th>
+                                    <th class="text-center">Rtng</th>
+                                    {% for round_number in round_numbers %}
+                                        <th class="text-left">Rd {{ round_number }}</th>
+                                    {% endfor %}
+                                    <th class="text-center">Tot</th>
+                                    <th title="Modified Median" class="text-right">TBrk[M]</th>
+                                    <th title="Solkoff" class="text-right">TBrk[S]</th>
+                                    <th title="Cumulative" class="text-right">TBrk[C]</th>
+                                    <th title="Cumulative Opponent" class="text-right">TBrk[O]</th>
+                                    <th class="text-center">Perf</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for number, player_score, round_scores in player_scores %}
+                                    {% with player_score.season_player.player as player %}
+                                        <tr>
+                                            <td class="text-center rank-value">{{ number }}</td>
+                                            <td class="{% highlightclass player_highlights player %}">
+                                                <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
+                                                    {{ player.lichess_username }}
+                                                </a>
+                                            </td>
+                                            <td class="text-center">{% player_rating player_score.season_player %}</td>
+                                            {% for result_code, opponent_num, _, _ in round_scores %}
+                                                <td>{{ result_code|default_if_none:'' }}{% if opponent_num %}
+                                                    {{ opponent_num }}{% else %}---{% endif %}</td>
+                                            {% endfor %}
+                                            <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+                                            <td class="text-right rank-value">{{ player_score.tiebreak1_display }}</td>
+                                            <td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
+                                            <td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
+                                            <td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
+                                            <td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
+                                        </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

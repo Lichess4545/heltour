@@ -10,14 +10,19 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 def _get_fcm_key():
     with open(settings.FCM_API_KEY_FILE_PATH) as fin:
         return fin.read().strip()
 
+
 def _get_push_service():
     return FCMNotification(api_key=_get_fcm_key())
 
-available_topics = [('[Team]', 'team_a'), ('[Lonewolf]', 'lonewolf_a'), ('[Ladder]', 'ladder_a'), ('[Blitz]', 'blitz_a'), ('[Ledger]', 'ledger_a')]
+
+available_topics = [('[Team]', 'team_a'), ('[Lonewolf]', 'lonewolf_a'), ('[Ladder]', 'ladder_a'),
+                    ('[Blitz]', 'blitz_a'), ('[Ledger]', 'ledger_a')]
+
 
 @csrf_exempt
 @require_POST
@@ -50,8 +55,10 @@ def slack_event(request):
 
     return HttpResponse('ok')
 
+
 def process_slack_message(users, channel, sender, text, ts):
-    logger.warning('Received slack message: %s %s %s %s %s' % (','.join(users), channel, sender, text, ts))
+    logger.warning(
+        'Received slack message: %s %s %s %s %s' % (','.join(users), channel, sender, text, ts))
     if channel == settings.SLACK_ANNOUNCE_CHANNEL:
         topics = [name for match, name in available_topics if match.lower() in text.lower()]
         if len(topics) > 0:
@@ -63,6 +70,7 @@ def process_slack_message(users, channel, sender, text, ts):
         reg_ids = [sub.reg_id for sub in FcmSub.objects.filter(slack_user_id__in=other_users)]
         if len(reg_ids) > 0:
             _get_push_service().notify_multiple_devices(registration_ids=reg_ids)
+
 
 @csrf_exempt
 @require_POST
@@ -82,6 +90,7 @@ def fcm_register(request):
     logger.warning('FCM registration complete for %s %s' % (slack_user_id, reg_id))
 
     return HttpResponse('ok')
+
 
 @csrf_exempt
 @require_POST

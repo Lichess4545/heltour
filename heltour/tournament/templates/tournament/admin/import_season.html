@@ -1,32 +1,32 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
-<form action="" method="post">
-    {% csrf_token %}
-    <div class="aligned">
-        <div class="form-row">
-            {{ form.spreadsheet_url.label_tag }}
-            {{ form.spreadsheet_url }}
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="aligned">
+            <div class="form-row">
+                {{ form.spreadsheet_url.label_tag }}
+                {{ form.spreadsheet_url }}
+            </div>
+            <div class="form-row">
+                {{ form.season_name.label_tag }}
+                {{ form.season_name }}
+            </div>
+            <div class="form-row">
+                {{ form.season_tag.label_tag }}
+                {{ form.season_tag }}
+            </div>
+            <div class="form-row">
+                {{ form.rosters_only.label_tag }}
+                {{ form.rosters_only }}
+            </div>
+            <div class="form-row">
+                {{ form.exclude_live_pairings.label_tag }}
+                {{ form.exclude_live_pairings }}
+            </div>
         </div>
-        <div class="form-row">
-            {{ form.season_name.label_tag }}
-            {{ form.season_name }}
+        <div class="submit-row">
+            <input class="default" value="Import" name="confirm" type="submit">
         </div>
-        <div class="form-row">
-            {{ form.season_tag.label_tag }}
-            {{ form.season_tag }}
-        </div>
-        <div class="form-row">
-            {{ form.rosters_only.label_tag }}
-            {{ form.rosters_only }}
-        </div>
-        <div class="form-row">
-            {{ form.exclude_live_pairings.label_tag }}
-            {{ form.exclude_live_pairings }}
-        </div>
-    </div>
-    <div class="submit-row">
-        <input class="default" value="Import" name="confirm" type="submit">
-    </div>
-</form>
+    </form>
 {% endblock %}

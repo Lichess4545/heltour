@@ -6,6 +6,7 @@ import time
 from django.utils import timezone
 from datetime import timedelta
 
+
 def _run_worker():
     while True:
         _, fn, args = _work_queue.get()
@@ -14,10 +15,12 @@ def _run_worker():
         except:
             pass
 
+
 _work_queue = queue.PriorityQueue()
 _worker_thread = threading.Thread(target=_run_worker)
 _worker_thread.daemon = True
 _worker_thread.start()
+
 
 def queue_work(priority, fn, *args):
     _work_queue.put((-priority, fn, args))
@@ -52,11 +55,13 @@ def _run_socket():
         except:
             continue
 
+
 def _start_watching(game_id):
     try:
         _websocket.send(json.dumps({'t': 'startWatching', 'd': game_id}))
     except:
         pass
+
 
 _websocket = None
 _games = {}
@@ -64,6 +69,7 @@ _games_lock = threading.Lock()
 _socket_thread = threading.Thread(target=_run_socket)
 _socket_thread.daemon = True
 _socket_thread.start()
+
 
 def watch_games(game_ids):
     with _games_lock:
@@ -74,6 +80,7 @@ def watch_games(game_ids):
             _games[game_id] = None
             _start_watching(game_id)
         return [_games[game_id] for game_id in game_ids]
+
 
 def add_watch(game_id):
     with _games_lock:

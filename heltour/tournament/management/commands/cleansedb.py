@@ -8,6 +8,7 @@ from django.contrib.sessions.models import Session
 from reversion.models import Revision
 from impersonate.models import ImpersonationLog
 
+
 class Command(BaseCommand):
     help = "Cleanse your local database of sensitive things"
 

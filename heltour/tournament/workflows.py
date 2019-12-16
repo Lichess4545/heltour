@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from heltour import settings
 from . import alternates_manager
 
+
 class RoundTransitionWorkflow():
 
     def __init__(self, season):
@@ -15,19 +16,23 @@ class RoundTransitionWorkflow():
 
     @property
     def round_to_close(self):
-        return self.season.round_set.filter(publish_pairings=True, is_completed=False).order_by('number').first()
+        return self.season.round_set.filter(publish_pairings=True, is_completed=False).order_by(
+            'number').first()
 
     @property
     def round_to_open(self):
-        return self.season.round_set.filter(publish_pairings=False, is_completed=False).order_by('number').first()
+        return self.season.round_set.filter(publish_pairings=False, is_completed=False).order_by(
+            'number').first()
 
     @property
     def season_to_close(self):
         round_to_close = self.round_to_close
         round_to_open = self.round_to_open
-        return self.season if not self.season.is_completed and round_to_open is None and (round_to_close is None or round_to_close.number == self.season.rounds) else None
+        return self.season if not self.season.is_completed and round_to_open is None and (
+                round_to_close is None or round_to_close.number == self.season.rounds) else None
 
-    def run(self, complete_round=False, complete_season=False, update_board_order=False, generate_pairings=False, background=False, user=None):
+    def run(self, complete_round=False, complete_season=False, update_board_order=False,
+            generate_pairings=False, background=False, user=None):
         msg_list = []
         round_to_close = self.round_to_close
         round_to_open = self.round_to_open
@@ -40,8 +45,10 @@ class RoundTransitionWorkflow():
                     reversion.set_comment('Closed round.')
                     round_to_close.is_completed = True
                     round_to_close.save()
-                msg_list.append(('Round %d set as completed.' % round_to_close.number, messages.INFO))
-            if complete_season and season_to_close is not None and (round_to_close is None or round_to_close.is_completed):
+                msg_list.append(
+                    ('Round %d set as completed.' % round_to_close.number, messages.INFO))
+            if complete_season and season_to_close is not None and (
+                round_to_close is None or round_to_close.is_completed):
                 with reversion.create_revision():
                     reversion.set_user(user)
                     reversion.set_comment('Closed season.')
@@ -57,7 +64,8 @@ class RoundTransitionWorkflow():
                     return msg_list
             if generate_pairings and round_to_open is not None:
                 if background:
-                    signals.do_generate_pairings.send(sender=self.__class__, round_id=round_to_open.pk)
+                    signals.do_generate_pairings.send(sender=self.__class__,
+                                                      round_id=round_to_open.pk)
                     msg_list.append(('Generating pairings in background.', messages.INFO))
                 else:
                     try:
@@ -71,9 +79,11 @@ class RoundTransitionWorkflow():
                     except pairinggen.PairingsExistException:
                         msg_list.append(('Unpublished pairings already exist.', messages.WARNING))
                     except pairinggen.PairingHasResultException:
-                        msg_list.append(('Pairings with results can\'t be overwritten.', messages.ERROR))
+                        msg_list.append(
+                            ('Pairings with results can\'t be overwritten.', messages.ERROR))
                     except pairinggen.PairingGenerationException as e:
-                        msg_list.append(('Error generating pairings. %s' % e.message, messages.ERROR))
+                        msg_list.append(
+                            ('Error generating pairings. %s' % e.message, messages.ERROR))
         return msg_list
 
     @property
@@ -82,18 +92,25 @@ class RoundTransitionWorkflow():
         round_to_close = self.round_to_close
         round_to_open = self.round_to_open
 
-        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(hours=1):
+        if round_to_close is not None and round_to_close.end_date is not None and round_to_close.end_date > timezone.now() + timedelta(
+            hours=1):
             time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
-            msg_list.append(('The round %d end date is %s from now.' % (round_to_close.number, time_from_now), messages.WARNING))
-        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(hours=1):
+            msg_list.append(('The round %d end date is %s from now.' % (
+            round_to_close.number, time_from_now), messages.WARNING))
+        elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(
+            hours=1):
             time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
-            msg_list.append(('The round %d start date is %s from now.' % (round_to_open.number, time_from_now), messages.WARNING))
+            msg_list.append(('The round %d start date is %s from now.' % (
+            round_to_open.number, time_from_now), messages.WARNING))
 
         if round_to_close is not None:
-            incomplete_pairings = PlayerPairing.objects.filter(result='', teamplayerpairing__team_pairing__round=round_to_close).nocache() | \
-                                  PlayerPairing.objects.filter(result='', loneplayerpairing__round=round_to_close).nocache()
+            incomplete_pairings = PlayerPairing.objects.filter(result='',
+                                                               teamplayerpairing__team_pairing__round=round_to_close).nocache() | \
+                                  PlayerPairing.objects.filter(result='',
+                                                               loneplayerpairing__round=round_to_close).nocache()
             if len(incomplete_pairings) > 0:
-                msg_list.append(('Round %d has %d pairing(s) without a result.' % (round_to_close.number, len(incomplete_pairings)), messages.WARNING))
+                msg_list.append(('Round %d has %d pairing(s) without a result.' % (
+                round_to_close.number, len(incomplete_pairings)), messages.WARNING))
 
         return msg_list
 
@@ -110,6 +127,7 @@ class RoundTransitionWorkflow():
             else:
                 return '%d hours' % hours
 
+
 class UpdateBoardOrderWorkflow():
 
     def __init__(self, season):
@@ -122,10 +140,16 @@ class UpdateBoardOrderWorkflow():
         if not alternates_only:
             self.update_teammember_order()
 
-        if alternates_only or not self.season.alternates_manager_enabled() or self.season.round_set.filter(publish_pairings=True).count() == 0:
-            members_by_board = [TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in range(self.season.boards)]
-            ratings_by_board = [sorted([float(m.player.rating_for(self.season.league)) for m in m_list]) for m_list in members_by_board]
-            alternates = Alternate.objects.filter(season_player__season=self.season).select_related('season_player__player').nocache()
+        if alternates_only or not self.season.alternates_manager_enabled() or self.season.round_set.filter(
+            publish_pairings=True).count() == 0:
+            members_by_board = [
+                TeamMember.objects.filter(team__season=self.season, board_number=n + 1) for n in
+                range(self.season.boards)]
+            ratings_by_board = [
+                sorted([float(m.player.rating_for(self.season.league)) for m in m_list]) for m_list
+                in members_by_board]
+            alternates = Alternate.objects.filter(season_player__season=self.season).select_related(
+                'season_player__player').nocache()
 
             boundaries = self.calc_alternate_boundaries(ratings_by_board)
             flex = self.season.alternates_manager_setting().rating_flex
@@ -145,8 +169,12 @@ class UpdateBoardOrderWorkflow():
                 alternate_search_round = alternates_manager.current_round(self.season)
 
                 def invariant(board_num):
-                    search = AlternateSearch.objects.filter(round=alternate_search_round, team=team, board_number=board_num, is_active=True).first()
-                    assignment = AlternateAssignment.objects.filter(round=alternate_search_round, team=team, board_number=board_num).first()
+                    search = AlternateSearch.objects.filter(round=alternate_search_round, team=team,
+                                                            board_number=board_num,
+                                                            is_active=True).first()
+                    assignment = AlternateAssignment.objects.filter(round=alternate_search_round,
+                                                                    team=team,
+                                                                    board_number=board_num).first()
                     return assignment or (search and search.still_needs_alternate())
 
                 # Do a modified bubble sort - this lets us restrict swaps in some cases
@@ -181,15 +209,23 @@ class UpdateBoardOrderWorkflow():
                     if old_order[board_number] != new_order[board_number]:
                         m = new_order[board_number]
                         TeamMember.objects.update_or_create(team=team, board_number=board_number, \
-                                                  defaults={ 'player': m.player, 'is_captain': m.is_captain,
-                                                             'is_vice_captain': m.is_vice_captain })
-                        change_descriptions.append('changed board %d from "%s" to "%s"' % (board_number, old_order[board_number], m))
+                                                            defaults={'player': m.player,
+                                                                      'is_captain': m.is_captain,
+                                                                      'is_vice_captain': m.is_vice_captain})
+                        change_descriptions.append('changed board %d from "%s" to "%s"' % (
+                        board_number, old_order[board_number], m))
                 reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
     def calc_alternate_boundaries(self, ratings_by_board):
         # Calculate the average of the upper/lower half of each board (minus the most extreme value to avoid outliers skewing the average)
-        left_average_by_board = [sum(r_list[1:int(len(r_list) / 2)]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
-        right_average_by_board = [sum(r_list[int((len(r_list) + 1) / 2):-1]) / (int(len(r_list) / 2) - 1) if len(r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list in ratings_by_board]
+        left_average_by_board = [
+            sum(r_list[1:int(len(r_list) / 2)]) / (int(len(r_list) / 2) - 1) if len(
+                r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list
+            in ratings_by_board]
+        right_average_by_board = [
+            sum(r_list[int((len(r_list) + 1) / 2):-1]) / (int(len(r_list) / 2) - 1) if len(
+                r_list) > 2 else sum(r_list) / len(r_list) if len(r_list) > 0 else None for r_list
+            in ratings_by_board]
         boundaries = []
         for i in range(self.season.boards + 1):
             # The logic here is a bit complicated in order to handle cases where there are no players for a board
@@ -220,7 +256,8 @@ class UpdateBoardOrderWorkflow():
                 # Split the difference between the highest/lowest 2 players on each board to determine
                 # the absolute most we're willing the change the boundary
                 higher_board_min = (ratings_by_board[i][0] + ratings_by_board[i][1]) / 2 - flex
-                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][-2]) / 2 + flex
+                lower_board_max = (ratings_by_board[i + 1][-1] + ratings_by_board[i + 1][
+                    -2]) / 2 + flex
                 if boundary < higher_board_min and boundary < lower_board_max:
                     delta_up = max(higher_board_min, lower_board_max) - boundary
                     delta_down = 0
@@ -232,7 +269,6 @@ class UpdateBoardOrderWorkflow():
                     delta_down = boundary - min(higher_board_min, lower_board_max)
                 up_step_sizes.append(delta_up / float(iter_count))
                 down_step_sizes.append(delta_down / float(iter_count))
-
 
             # Start iterating the smoothing algorithm
             total_alt_count = len(alternates)
@@ -251,10 +287,12 @@ class UpdateBoardOrderWorkflow():
                     expected_on_left = total_alt_count * i / float(self.season.boards)
                     actual_on_left = sum(bucket_counts[0:i])
                     if bucket_counts[i] > bucket_counts[i + 1] + 1 or \
-                            bucket_counts[i] == bucket_counts[i + 1] + 1 and actual_on_left > expected_on_left + 1:
+                        bucket_counts[i] == bucket_counts[
+                        i + 1] + 1 and actual_on_left > expected_on_left + 1:
                         boundaries[i + 1] += up_step_sizes[i]
                     if bucket_counts[i] < bucket_counts[i + 1] - 1 or \
-                            bucket_counts[i] == bucket_counts[i + 1] - 1 and actual_on_left < expected_on_left - 1:
+                        bucket_counts[i] == bucket_counts[
+                        i + 1] - 1 and actual_on_left < expected_on_left - 1:
                         boundaries[i + 1] -= down_step_sizes[i]
 
     def update_alternate_buckets(self, boundaries):
@@ -265,19 +303,25 @@ class UpdateBoardOrderWorkflow():
                 min_rating = boundaries[board_num]
                 max_rating = boundaries[board_num - 1]
                 if min_rating is None and max_rating is None:
-                    AlternateBucket.objects.filter(season=self.season, board_number=board_num).delete()
+                    AlternateBucket.objects.filter(season=self.season,
+                                                   board_number=board_num).delete()
                 else:
-                    AlternateBucket.objects.update_or_create(season=self.season, board_number=board_num, defaults={ 'max_rating': max_rating, 'min_rating': min_rating })
+                    AlternateBucket.objects.update_or_create(season=self.season,
+                                                             board_number=board_num,
+                                                             defaults={'max_rating': max_rating,
+                                                                       'min_rating': min_rating})
 
     def assign_alternates_to_buckets(self):
         for alt in Alternate.objects.filter(season_player__season=self.season):
             alt.update_board_number()
 
+
 class ApproveRegistrationWorkflow():
 
     def __init__(self, reg, round_number=None):
         self.reg = reg
-        self.player = Player.objects.filter(lichess_username__iexact=self.reg.lichess_username).first()
+        self.player = Player.objects.filter(
+            lichess_username__iexact=self.reg.lichess_username).first()
         self.league = reg.season.league
         self.round_number = round_number
 
@@ -295,9 +339,11 @@ class ApproveRegistrationWorkflow():
         bye_count = min(self.active_round_count, 2)
         if self.player:
             rounds = self.reg.season.round_set.all()
-            for round_number in range(self.active_round_count - bye_count + 1, self.active_round_count + 1):
+            for round_number in range(self.active_round_count - bye_count + 1,
+                                      self.active_round_count + 1):
                 round_ = find(rounds, number=round_number)
-                pairings = round_.loneplayerpairing_set.filter(white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
+                pairings = round_.loneplayerpairing_set.filter(
+                    white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
                 byes = round_.playerbye_set.filter(player=self.player)
                 if pairings.count() > 0 or byes.count() > 0:
                     # A pairing/bye already exists for the round
@@ -309,7 +355,8 @@ class ApproveRegistrationWorkflow():
         if not hasattr(self.reg.season, 'section'):
             return self.reg.season
         player = Player.get_or_create(self.reg.lichess_username)
-        if self.reg.section_preference is not None and self.reg.section_preference.is_eligible(player):
+        if self.reg.section_preference is not None and self.reg.section_preference.is_eligible(
+            player):
             return self.reg.section_preference.season
         section_list = self.reg.season.section_list()
         # Assume least restrictive sections are first, and that we should default to more restrictive
@@ -326,15 +373,18 @@ class ApproveRegistrationWorkflow():
         active_round_count = self.active_round_count
 
         if self.default_byes < active_round_count:
-            season_players = season.seasonplayer_set.filter(is_active=True).select_related('player', 'loneplayerscore').nocache()
-            rating = self.reg.classical_rating if self.player is None else self.player.rating_for(self.league)
+            season_players = season.seasonplayer_set.filter(is_active=True).select_related('player',
+                                                                                           'loneplayerscore').nocache()
+            rating = self.reg.classical_rating if self.player is None else self.player.rating_for(
+                self.league)
             sp = SeasonPlayer.objects.filter(season=season, player=self.player).first()
             current_points = sp.get_loneplayerscore().points if sp else 0
 
             # Get the scores of players +/- 100 rating points (or a wider range if not enough players are close)
             diff = 100
             while diff < 500:
-                close_players = [sp for sp in season_players if abs(sp.player.rating_for(self.league) - rating) < diff]
+                close_players = [sp for sp in season_players if
+                                 abs(sp.player.rating_for(self.league) - rating) < diff]
                 if len(close_players) >= 5:
                     break
                 diff += 100
@@ -343,14 +393,17 @@ class ApproveRegistrationWorkflow():
             close_player_scores_adjusted = close_player_scores[1:-1]
             if len(close_player_scores_adjusted) > 0:
                 # Calculate the average of the scores
-                average_score = sum(close_player_scores_adjusted) / len(close_player_scores_adjusted)
-                if active_round_count > 1 and season.round_set.filter(publish_pairings=True, is_completed=False).count():
+                average_score = sum(close_player_scores_adjusted) / len(
+                    close_player_scores_adjusted)
+                if active_round_count > 1 and season.round_set.filter(publish_pairings=True,
+                                                                      is_completed=False).count():
                     expected_score = average_score * active_round_count / (active_round_count - 1)
                 else:
                     expected_score = average_score
                 expected_score_rounded = round(2.0 * expected_score) / 2.0
                 # Subtract 0.5, and another 0.5 for each bye
-                default_ljp = max(expected_score_rounded - 0.5 - self.default_byes * 0.5 - current_points, 0)
+                default_ljp = max(
+                    expected_score_rounded - 0.5 - self.default_byes * 0.5 - current_points, 0)
                 # Hopefully we now have a reasonable value for LjP
         return default_ljp
 
@@ -364,13 +417,15 @@ class ApproveRegistrationWorkflow():
     def is_late(self):
         return self.league.competitor_type != 'team' and self.active_round_count > 0
 
-    def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, season, retroactive_byes, late_join_points):
+    def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, season,
+                    retroactive_byes, late_join_points):
         reg = self.reg
         if season != reg.season:
             reg.season = season
 
         # Limit changes to moderators
-        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        mod = LeagueModerator.objects.filter(
+            player__lichess_username__iexact=reg.lichess_username).first()
         if mod is not None and mod.player.email and mod.player.email != reg.email:
             reg.email = mod.player.email
 
@@ -381,7 +436,8 @@ class ApproveRegistrationWorkflow():
 
             player, _ = Player.objects.update_or_create(
                 lichess_username__iexact=reg.lichess_username,
-                defaults={'lichess_username': reg.lichess_username, 'email': reg.email, 'is_active': True}
+                defaults={'lichess_username': reg.lichess_username, 'email': reg.email,
+                          'is_active': True}
             )
             if player.rating is None:
                 # This is automatically set, so don't change it if we already have a rating
@@ -390,14 +446,16 @@ class ApproveRegistrationWorkflow():
 
         if self.is_late:
             # Late registration
-            next_round = Round.objects.filter(season=season, publish_pairings=False).order_by('number').first()
+            next_round = Round.objects.filter(season=season, publish_pairings=False).order_by(
+                'number').first()
             if next_round is not None:
                 with reversion.create_revision():
                     reversion.set_user(request.user)
                     reversion.set_comment('Approved registration.')
                     PlayerLateRegistration.objects.update_or_create(round=next_round, player=player,
-                                                      defaults={'retroactive_byes': retroactive_byes,
-                                                      'late_join_points': late_join_points})
+                                                                    defaults={
+                                                                        'retroactive_byes': retroactive_byes,
+                                                                        'late_join_points': late_join_points})
 
         with reversion.create_revision():
             reversion.set_user(request.user)
@@ -411,7 +469,8 @@ class ApproveRegistrationWorkflow():
 
             if created:
                 # Add a yellow card for players that had a red card their previous season
-                last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(season=season).order_by('-season__start_date').first()
+                last_sp = player.seasonplayer_set.filter(season__league=self.league).exclude(
+                    season=season).order_by('-season__start_date').first()
                 if last_sp is not None and last_sp.games_missed >= 2 and self.league.get_leaguesetting().carry_over_red_cards_as_yellow:
                     sp.games_missed = 1
                     sp.save()
@@ -424,21 +483,32 @@ class ApproveRegistrationWorkflow():
                     with reversion.create_revision():
                         reversion.set_user(request.user)
                         reversion.set_comment('Approved registration.')
-                        PlayerAvailability.objects.update_or_create(player=player, round=round_, defaults={'is_available': False})
+                        PlayerAvailability.objects.update_or_create(player=player, round=round_,
+                                                                    defaults={
+                                                                        'is_available': False})
 
         if season.league.competitor_type == 'team':
-            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/team_registration_approved.html', {'reg': reg})
+            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt',
+                                       {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt',
+                                         {'reg': reg})
+            msg_html = render_to_string('tournament/emails/team_registration_approved.html',
+                                        {'reg': reg})
         elif season.league.rating_type == 'blitz':
             # TODO: Make the email template a league setting
-            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html', {'reg': reg})
+            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt',
+                                       {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt',
+                                         {'reg': reg})
+            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html',
+                                        {'reg': reg})
         else:
-            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt', {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt', {'reg': reg})
-            msg_html = render_to_string('tournament/emails/lone_registration_approved.html', {'reg': reg})
+            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt',
+                                       {'reg': reg})
+            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt',
+                                         {'reg': reg})
+            msg_html = render_to_string('tournament/emails/lone_registration_approved.html',
+                                        {'reg': reg})
 
         if send_confirm_email:
             try:
@@ -450,26 +520,35 @@ class ApproveRegistrationWorkflow():
                     html_message=msg_html,
                 )
                 if modeladmin:
-                    modeladmin.message_user(request, 'Confirmation email sent to "%s".' % reg.email, messages.INFO)
+                    modeladmin.message_user(request, 'Confirmation email sent to "%s".' % reg.email,
+                                            messages.INFO)
             except SMTPException:
                 logger.exception('A confirmation email could not be sent.')
                 if modeladmin:
-                    modeladmin.message_user(request, 'A confirmation email could not be sent.', messages.ERROR)
+                    modeladmin.message_user(request, 'A confirmation email could not be sent.',
+                                            messages.ERROR)
 
         if invite_to_slack:
             try:
                 if request.user.has_perm('tournament.invite_to_slack'):
                     slackapi.invite_user(reg.email)
                     if modeladmin:
-                        modeladmin.message_user(request, 'Slack invitation sent to "%s".' % reg.email, messages.INFO)
+                        modeladmin.message_user(request,
+                                                'Slack invitation sent to "%s".' % reg.email,
+                                                messages.INFO)
                 elif modeladmin:
-                    modeladmin.message_user(request, 'You don\'t have permission to invite players to slack.', messages.ERROR)
+                    modeladmin.message_user(request,
+                                            'You don\'t have permission to invite players to slack.',
+                                            messages.ERROR)
             except slackapi.AlreadyInTeam:
                 if modeladmin:
-                    modeladmin.message_user(request, 'The player is already in the slack group.', messages.WARNING)
+                    modeladmin.message_user(request, 'The player is already in the slack group.',
+                                            messages.WARNING)
             except slackapi.AlreadyInvited:
                 if modeladmin:
-                    modeladmin.message_user(request, 'The player has already been invited to the slack group.', messages.WARNING)
+                    modeladmin.message_user(request,
+                                            'The player has already been invited to the slack group.',
+                                            messages.WARNING)
 
         with reversion.create_revision():
             reversion.set_user(request.user)
@@ -480,7 +559,10 @@ class ApproveRegistrationWorkflow():
             reg.save()
 
         if modeladmin:
-            modeladmin.message_user(request, 'Registration for "%s" approved.' % reg.lichess_username, messages.INFO)
+            modeladmin.message_user(request,
+                                    'Registration for "%s" approved.' % reg.lichess_username,
+                                    messages.INFO)
+
 
 class MoveLateRegWorkflow():
 
@@ -500,7 +582,8 @@ class MoveLateRegWorkflow():
         sp = self.season.seasonplayer_set.filter(player=self.reg.player).first()
         if update_fields and sp and sp.registration:
             subwf = ApproveRegistrationWorkflow(sp.registration, round_number=self.reg.round.number)
-            next_round = subwf.default_section.round_set.filter(number=self.round.number + 1).first()
+            next_round = subwf.default_section.round_set.filter(
+                number=self.round.number + 1).first()
             if not next_round:
                 return False
             self.reg.retroactive_byes = subwf.default_byes
@@ -508,6 +591,7 @@ class MoveLateRegWorkflow():
         self.reg.round = next_round
         self.reg.save()
         return True
+
 
 class RefreshLateRegWorkflow():
 

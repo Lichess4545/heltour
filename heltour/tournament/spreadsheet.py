@@ -8,14 +8,17 @@ from django.db import transaction
 import re
 from gspread.exceptions import WorksheetNotFound
 
+
 def _open_doc(url):
     scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
     gc = gspread.authorize(credentials)
     try:
         return gc.open_by_url(url)
     except gspread.SpreadsheetNotFound:
         raise SpreadsheetNotFound
+
 
 def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
     doc = _open_doc(url)
@@ -60,7 +63,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
             board_count = board - 1
 
             # Create the season
-            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, playoffs=playoffs, is_active=False)
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count,
+                                           boards=board_count, playoffs=playoffs, is_active=False)
 
             # Read the teams
             team_name_col = sheet_rosters[0].index('Teams')
@@ -84,12 +88,16 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                 # Team members
                 for i in range(len(teams)):
                     player_row = i + 1
-                    player_name, is_captain = _parse_player_name(sheet_rosters[player_row][player_name_col])
+                    player_name, is_captain = _parse_player_name(
+                        sheet_rosters[player_row][player_name_col])
                     player_rating = sheet_rosters[player_row][player_rating_col]
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    player, _ = Player.objects.update_or_create(
+                        lichess_username__iexact=player_name,
+                        defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                     SeasonPlayer.objects.get_or_create(season=season, player=player)
-                    TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
+                    TeamMember.objects.get_or_create(team=teams[i], board_number=board,
+                                                     defaults={'player': player,
+                                                               'is_captain': is_captain})
                 # Alternates
                 alternates_row = alternates_start_row
                 while True:
@@ -97,10 +105,13 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     player_rating = sheet_rosters[alternates_row][player_rating_col]
                     if len(player_name) == 0 or len(player_rating) == 0:
                         break
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
-                    season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player)
-                    Alternate.objects.get_or_create(season_player=season_player, defaults={'board_number': board})
+                    player, _ = Player.objects.update_or_create(
+                        lichess_username__iexact=player_name,
+                        defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    season_player, _ = SeasonPlayer.objects.get_or_create(season=season,
+                                                                          player=player)
+                    Alternate.objects.get_or_create(season_player=season_player,
+                                                    defaults={'board_number': board})
                     alternates_row += 1
 
         except WorksheetNotFound:
@@ -117,7 +128,8 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     break
 
             # Create the season
-            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, boards=board_count, playoffs=playoffs, is_active=False)
+            season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count,
+                                           boards=board_count, playoffs=playoffs, is_active=False)
 
             # Read the teams
             teams = []
@@ -137,12 +149,16 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                 # Team members
                 for i in range(len(teams)):
                     player_col = i + 1
-                    player_name, is_captain = _parse_player_name(sheet_rosters[name_row][player_col])
+                    player_name, is_captain = _parse_player_name(
+                        sheet_rosters[name_row][player_col])
                     player_rating = sheet_rosters[rating_row][player_col]
-                    player, _ = Player.objects.update_or_create(lichess_username__iexact=player_name,
-                                                                defaults={'lichess_username': player_name, 'rating': int(player_rating)})
+                    player, _ = Player.objects.update_or_create(
+                        lichess_username__iexact=player_name,
+                        defaults={'lichess_username': player_name, 'rating': int(player_rating)})
                     SeasonPlayer.objects.get_or_create(season=season, player=player)
-                    TeamMember.objects.get_or_create(team=teams[i], board_number=board, defaults={'player': player, 'is_captain':is_captain})
+                    TeamMember.objects.get_or_create(team=teams[i], board_number=board,
+                                                     defaults={'player': player,
+                                                               'is_captain': is_captain})
 
         if not rosters_only:
 
@@ -161,13 +177,17 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                     except ValueError:
                         continue
 
-                    white_team_name = row[1] if board_number == board_count or board_number % 2 == 0 else row[4]
+                    white_team_name = row[
+                        1] if board_number == board_count or board_number % 2 == 0 else row[4]
                     white_team = Team.objects.get(season=season, name__iexact=white_team_name)
 
-                    black_team_name = row[4] if board_number == board_count or board_number % 2 == 0 else row[1]
+                    black_team_name = row[
+                        4] if board_number == board_count or board_number % 2 == 0 else row[1]
                     black_team = Team.objects.get(season=season, name__iexact=black_team_name)
 
-                    team_pairing, created = TeamPairing.objects.get_or_create(round=rounds[round_number - 1], white_team=white_team, black_team=black_team, defaults={'pairing_order': pairing_order})
+                    team_pairing, created = TeamPairing.objects.get_or_create(
+                        round=rounds[round_number - 1], white_team=white_team,
+                        black_team=black_team, defaults={'pairing_order': pairing_order})
                     if created:
                         pairing_order += 1
                         board_number = 1
@@ -175,11 +195,15 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                         board_number += 1
 
                     white_player_name = row[2]
-                    white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+                    white_player, _ = Player.objects.get_or_create(
+                        lichess_username__iexact=white_player_name,
+                        defaults={'lichess_username': white_player_name})
                     SeasonPlayer.objects.get_or_create(season=season, player=white_player)
 
                     black_player_name = row[3]
-                    black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+                    black_player, _ = Player.objects.get_or_create(
+                        lichess_username__iexact=black_player_name,
+                        defaults={'lichess_username': black_player_name})
                     SeasonPlayer.objects.get_or_create(season=season, player=black_player)
 
                     game_link = row[5]
@@ -189,7 +213,12 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
 
                     # TODO: Scheduled time
 
-                    TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=board_number, white=white_player, black=black_player, result=result, game_link=game_link, colors_reversed=colors_reversed, scheduled_time=None)
+                    TeamPlayerPairing.objects.create(team_pairing=team_pairing,
+                                                     board_number=board_number, white=white_player,
+                                                     black=black_player, result=result,
+                                                     game_link=game_link,
+                                                     colors_reversed=colors_reversed,
+                                                     scheduled_time=None)
 
                 for round_ in rounds:
                     round_.publish_pairings = True
@@ -213,19 +242,22 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
             for round_ in rounds:
                 round_number = round_.number
                 try:
-                    round_start_row = [row[0] == 'Round %d' % round_number for row in sheet_past_rounds].index(True)
+                    round_start_row = [row[0] == 'Round %d' % round_number for row in
+                                       sheet_past_rounds].index(True)
                 except ValueError:
                     # No more rounds in this sheet
                     last_round_number = round_number - 1
                     break
                 header_row = round_start_row + 1
-                result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams, round_, pairings, pairing_rows)
+                result_col = _read_team_pairings(sheet_past_rounds, header_row, season, teams,
+                                                 round_, pairings, pairing_rows)
                 round_.publish_pairings = True
                 round_.is_completed = True
                 round_.save()
 
             # Load game links from the input formatting on the result column range
-            _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows, result_col)
+            _update_pairing_game_links(doc.worksheet('Past Rounds'), pairings, pairing_rows,
+                                       result_col)
 
             # Update the season date based on the round dates
             if len(rounds) > 0:
@@ -234,27 +266,32 @@ def import_team_season(league, url, name, tag, rosters_only=False, exclude_live_
                 season.start_date = timezone.now().date()
 
             if not exclude_live_pairings:
-
                 # Read the live round data
                 round_ = rounds[last_round_number]
                 current_round_name = 'Round %d' % round_.number
-                sheet_current_round = _trim_cells(doc.worksheet(current_round_name).get_all_values())
+                sheet_current_round = _trim_cells(
+                    doc.worksheet(current_round_name).get_all_values())
                 header_row = 0
                 pairings = []
                 pairing_rows = []
-                result_col = _read_team_pairings(sheet_current_round, header_row, season, teams, round_, pairings, pairing_rows)
-                _update_pairing_game_links(doc.worksheet(current_round_name), pairings, pairing_rows, result_col)
+                result_col = _read_team_pairings(sheet_current_round, header_row, season, teams,
+                                                 round_, pairings, pairing_rows)
+                _update_pairing_game_links(doc.worksheet(current_round_name), pairings,
+                                           pairing_rows, result_col)
                 round_.publish_pairings = True
                 round_.save()
 
+
 class SpreadsheetNotFound(Exception):
     pass
+
 
 def _trim_cells(sheet_array):
     for x in range(len(sheet_array)):
         for y in range(len(sheet_array[x])):
             sheet_array[x][y] = sheet_array[x][y].strip()
     return sheet_array
+
 
 def _parse_player_name(player_name):
     if player_name[-1:] == '*':
@@ -270,6 +307,7 @@ def _parse_player_name(player_name):
         is_captain = False
     return player_name, is_captain
 
+
 def _parse_player_name_and_rating(cell):
     match = re.match(r'([^\s]*)\s*\((\d+)\)', cell)
     if match is None:
@@ -277,6 +315,7 @@ def _parse_player_name_and_rating(cell):
             return cell, None
         return None, None
     return match.group(1), match.group(2)
+
 
 def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pairing_rows):
     white_col = sheet[header_row].index('WHITE')
@@ -293,14 +332,19 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
         white_team = Team.objects.get(season=season, name__iexact=white_team_name)
         black_team_name = sheet[pairing_row][black_team_col]
         black_team = Team.objects.get(season=season, name__iexact=black_team_name)
-        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team, black_team=black_team, pairing_order=j + 1)
+        team_pairing = TeamPairing.objects.create(round=round_, white_team=white_team,
+                                                  black_team=black_team, pairing_order=j + 1)
         # Individual pairings
         for k in range(season.boards):
             white_player_name, _ = _parse_player_name(sheet[pairing_row][white_col])
-            white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name})
+            white_player, _ = Player.objects.get_or_create(
+                lichess_username__iexact=white_player_name,
+                defaults={'lichess_username': white_player_name})
             SeasonPlayer.objects.get_or_create(season=season, player=white_player)
             black_player_name, _ = _parse_player_name(sheet[pairing_row][black_col])
-            black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name})
+            black_player, _ = Player.objects.get_or_create(
+                lichess_username__iexact=black_player_name,
+                defaults={'lichess_username': black_player_name})
             SeasonPlayer.objects.get_or_create(season=season, player=black_player)
             result = sheet[pairing_row][result_col]
             if result == '\u2694':
@@ -318,22 +362,28 @@ def _read_team_pairings(sheet, header_row, season, teams, round_, pairings, pair
                 if round_.end_date is None or game_end_estimate > round_.end_date:
                     round_.end_date = game_end_estimate
                     round_.save()
-            pairing = TeamPlayerPairing.objects.create(team_pairing=team_pairing, board_number=k + 1, white=white_player, black=black_player, result=result, scheduled_time=scheduled_time)
+            pairing = TeamPlayerPairing.objects.create(team_pairing=team_pairing,
+                                                       board_number=k + 1, white=white_player,
+                                                       black=black_player, result=result,
+                                                       scheduled_time=scheduled_time)
             pairings.append(pairing)
             pairing_rows.append(pairing_row)
             pairing_row += 1
     return result_col
 
+
 def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col):
     if len(pairings) > 0:
         game_link_col_letter = chr(ord('A') + game_link_col)
-        range_game_links = worksheet.range('%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
+        range_game_links = worksheet.range(
+            '%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
         for i in range(len(pairings)):
             input_value = range_game_links[pairing_rows[i]].input_value
             match = re.match('=HYPERLINK\("(.*)","(.*)"\)', input_value)
             if match is not None:
                 pairings[i].game_link = match.group(1)
                 pairings[i].save()
+
 
 def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_live_pairings=False):
     doc = _open_doc(url)
@@ -362,7 +412,8 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     round_count = int(match.group(1))
 
         # Create the season
-        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count, is_active=False)
+        season = Season.objects.create(league=league, name=name, tag=tag, rounds=round_count,
+                                       is_active=False)
 
         # Read the players and their scores
         name_col = sheet_standings[0].index('Name')
@@ -383,8 +434,10 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                 break
             rating = int(sheet_standings[row][rating_col])
             player, _ = Player.objects.update_or_create(lichess_username__iexact=name,
-                                                            defaults={'lichess_username': name, 'rating': rating})
-            season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': rating})
+                                                        defaults={'lichess_username': name,
+                                                                  'rating': rating})
+            season_player, _ = SeasonPlayer.objects.get_or_create(season=season, player=player,
+                                                                  defaults={'seed_rating': rating})
             points = float(sheet_standings[row][points_col])
             ljp = float(sheet_standings[row][ljp_col]) if ljp_col is not None else 0
             tb1 = float(sheet_standings[row][tb1_col])
@@ -392,7 +445,9 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             tb3 = float(sheet_standings[row][tb3_col])
             tb4 = float(sheet_standings[row][tb4_col])
 
-            LonePlayerScore.objects.create(season_player=season_player, points=points, late_join_points=ljp, tiebreak1=tb1, tiebreak2=tb2, tiebreak3=tb3, tiebreak4=tb4)
+            LonePlayerScore.objects.create(season_player=season_player, points=points,
+                                           late_join_points=ljp, tiebreak1=tb1, tiebreak2=tb2,
+                                           tiebreak3=tb3, tiebreak4=tb4)
             row += 1
 
         if sheet_changes is not None:
@@ -407,19 +462,26 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     break
                 round_number = int(sheet_changes[row][round_col])
                 action = sheet_changes[row][action_col]
-                rating = int(sheet_changes[row][rating_col]) if len(sheet_changes[row][rating_col]) > 0 else None
+                rating = int(sheet_changes[row][rating_col]) if len(
+                    sheet_changes[row][rating_col]) > 0 else None
                 player, _ = Player.objects.get_or_create(lichess_username__iexact=name,
-                                                                defaults={'lichess_username': name, 'rating': rating})
-                SeasonPlayer.objects.get_or_create(season=season, player=player, defaults={'seed_rating': player.rating})
+                                                         defaults={'lichess_username': name,
+                                                                   'rating': rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=player,
+                                                   defaults={'seed_rating': player.rating})
                 if action == 'register':
-                    PlayerLateRegistration.objects.create(round=season.round_set.get(number=round_number), player=player)
+                    PlayerLateRegistration.objects.create(
+                        round=season.round_set.get(number=round_number), player=player)
                 elif action == 'withdraw':
-                    PlayerWithdrawal.objects.create(round=season.round_set.get(number=round_number), player=player)
+                    PlayerWithdrawal.objects.create(round=season.round_set.get(number=round_number),
+                                                    player=player)
                 elif action == 'half-point-bye':
-                    PlayerBye.objects.create(round=season.round_set.get(number=round_number), player=player, type='half-point-bye')
+                    PlayerBye.objects.create(round=season.round_set.get(number=round_number),
+                                             player=player, type='half-point-bye')
 
         # TODO: Infer missing round changes from the standings page
-        round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1) if ('Rd %d' % n) in sheet_standings[0]]
+        round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1)
+                      if ('Rd %d' % n) in sheet_standings[0]]
 
         # TODO: Fill missing pairings from the standings page
 
@@ -447,25 +509,35 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
             black_rank_col = black_col - 1
             result_col = sheet[0].index('Result')
             for row in range(1, len(sheet)):
-                white_player_name, white_player_rating = _parse_player_name_and_rating(sheet[row][white_col])
+                white_player_name, white_player_rating = _parse_player_name_and_rating(
+                    sheet[row][white_col])
                 if white_player_name is None:
                     continue
-                white_player, _ = Player.objects.get_or_create(lichess_username__iexact=white_player_name, defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
-                SeasonPlayer.objects.get_or_create(season=season, player=white_player, defaults={'seed_rating': white_player.rating})
+                white_player, _ = Player.objects.get_or_create(
+                    lichess_username__iexact=white_player_name,
+                    defaults={'lichess_username': white_player_name, 'rating': white_player_rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=white_player,
+                                                   defaults={'seed_rating': white_player.rating})
                 try:
                     white_rank = int(sheet[row][white_rank_col])
                 except ValueError:
                     white_rank = None
 
                 if sheet[row][black_col] == 'BYE':
-                    PlayerBye.objects.update_or_create(round=round_, player=white_player, type='half-point-bye', defaults={'player_rank': white_rank})
+                    PlayerBye.objects.update_or_create(round=round_, player=white_player,
+                                                       type='half-point-bye',
+                                                       defaults={'player_rank': white_rank})
                     continue
 
-                black_player_name, black_player_rating = _parse_player_name_and_rating(sheet[row][black_col])
+                black_player_name, black_player_rating = _parse_player_name_and_rating(
+                    sheet[row][black_col])
                 if black_player_name is None:
                     continue
-                black_player, _ = Player.objects.get_or_create(lichess_username__iexact=black_player_name, defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
-                SeasonPlayer.objects.get_or_create(season=season, player=black_player, defaults={'seed_rating': black_player.rating})
+                black_player, _ = Player.objects.get_or_create(
+                    lichess_username__iexact=black_player_name,
+                    defaults={'lichess_username': black_player_name, 'rating': black_player_rating})
+                SeasonPlayer.objects.get_or_create(season=season, player=black_player,
+                                                   defaults={'seed_rating': black_player.rating})
                 try:
                     black_rank = int(sheet[row][black_rank_col])
                 except ValueError:
@@ -486,8 +558,12 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                     if round_.end_date is None or game_end_estimate > round_.end_date:
                         round_.end_date = game_end_estimate
                         round_.save()
-                pairing = LonePlayerPairing.objects.create(round=round_, pairing_order=row, white=white_player, white_rank=white_rank,
-                                                           black=black_player, black_rank=black_rank, result=result, scheduled_time=scheduled_time)
+                pairing = LonePlayerPairing.objects.create(round=round_, pairing_order=row,
+                                                           white=white_player,
+                                                           white_rank=white_rank,
+                                                           black=black_player,
+                                                           black_rank=black_rank, result=result,
+                                                           scheduled_time=scheduled_time)
                 pairings.append(pairing)
                 pairing_rows.append(row)
             _update_pairing_game_links(worksheet, pairings, pairing_rows, result_col)

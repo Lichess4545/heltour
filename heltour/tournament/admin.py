@@ -36,6 +36,7 @@ from heltour.tournament.team_rating_utils import team_rating_range, team_rating_
 from heltour.tournament import teamgen
 import time
 
+
 # Customize which sections are visible
 # admin.site.register(Comment)
 # admin.site.unregister(Site)
@@ -45,6 +46,7 @@ def redirect_with_params(*args, **kwargs):
     response = redirect(*args, **kwargs)
     response['Location'] += params
     return response
+
 
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
 def comment_saved(instance, created, **kwargs):
@@ -60,7 +62,8 @@ def comment_saved(instance, created, **kwargs):
     league = League.objects.get(pk=league_id)
     signals.league_comment.send(sender=comment_saved, league=league, comment=instance)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 class _BaseAdmin(VersionAdmin):
     change_form_template = 'tournament/admin/change_form_with_comments.html'
     history_latest_first = True
@@ -81,7 +84,9 @@ class _BaseAdmin(VersionAdmin):
             return False
         authorized_leagues = self.authorized_leagues(user)
         if self.league_competitor_type is not None \
-                and all((League.objects.get(pk=pk).competitor_type != self.league_competitor_type for pk in authorized_leagues)):
+            and all(
+            (League.objects.get(pk=pk).competitor_type != self.league_competitor_type for pk in
+             authorized_leagues)):
             return False
         if obj is None:
             return bool(authorized_leagues)
@@ -94,7 +99,8 @@ class _BaseAdmin(VersionAdmin):
             return queryset
         if self.league_id_field is None:
             return queryset.none()
-        return queryset.filter(**{self.league_id_field + '__in': self.authorized_leagues(request.user)})
+        return queryset.filter(
+            **{self.league_id_field + '__in': self.authorized_leagues(request.user)})
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         kwargs['queryset'] = admin.site._registry[db_field.related_model].get_queryset(request)
@@ -152,28 +158,35 @@ class _BaseAdmin(VersionAdmin):
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
-        extra_context['related_objects_for_comments'] = self.related_objects_for_comments(request, object_id)
-        return super(_BaseAdmin, self).change_view(request, object_id, form_url, extra_context=extra_context)
+        extra_context['related_objects_for_comments'] = self.related_objects_for_comments(request,
+                                                                                          object_id)
+        return super(_BaseAdmin, self).change_view(request, object_id, form_url,
+                                                   extra_context=extra_context)
 
     def related_objects_for_comments(self, request, object_id):
         return []
 
     def authorized_leagues(self, user):
-        return [lm['league_id'] for lm in LeagueModerator.objects.filter(player__lichess_username__iexact=user.username).values('league_id')]
+        return [lm['league_id'] for lm in LeagueModerator.objects.filter(
+            player__lichess_username__iexact=user.username).values('league_id')]
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 class LeagueRestrictedListFilter(RelatedFieldListFilter):
 
     def field_choices(self, field, request, model_admin):
-        if not isinstance(model_admin, _BaseAdmin) or model_admin.has_assigned_perm(request.user, 'change'):
+        if not isinstance(model_admin, _BaseAdmin) or model_admin.has_assigned_perm(request.user,
+                                                                                    'change'):
             return field.get_choices(include_blank=False)
         league_id_field = admin.site._registry[field.related_model].league_id_field
         league_filter = {league_id_field + '__in': model_admin.authorized_leagues(request.user)}
         return field.get_choices(include_blank=False, limit_choices_to=league_filter)
 
+
 FieldListFilter.register(lambda f: f.remote_field, LeagueRestrictedListFilter, take_priority=True)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(League)
 class LeagueAdmin(_BaseAdmin):
     actions = ['import_season', 'export_forfeit_data']
@@ -188,7 +201,8 @@ class LeagueAdmin(_BaseAdmin):
     def get_readonly_fields(self, request, obj=None):
         if self.has_assigned_perm(request.user, 'change'):
             return ()
-        return ('competitor_type', 'tag', 'theme', 'display_order', 'description', 'is_active', 'is_default', 'enable_notifications')
+        return ('competitor_type', 'tag', 'theme', 'display_order', 'description', 'is_active',
+                'is_default', 'enable_notifications')
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -218,17 +232,28 @@ class LeagueAdmin(_BaseAdmin):
             if form.is_valid():
                 try:
                     if league.competitor_type == 'team':
-                        spreadsheet.import_team_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['season_tag'],
-                                                  form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
+                        spreadsheet.import_team_season(league, form.cleaned_data['spreadsheet_url'],
+                                                       form.cleaned_data['season_name'],
+                                                       form.cleaned_data['season_tag'],
+                                                       form.cleaned_data['rosters_only'],
+                                                       form.cleaned_data['exclude_live_pairings'])
                         self.message_user(request, "Season imported.")
                     elif league.competitor_type == 'individual':
-                        spreadsheet.import_lonewolf_season(league, form.cleaned_data['spreadsheet_url'], form.cleaned_data['season_name'], form.cleaned_data['season_tag'],
-                                                           form.cleaned_data['rosters_only'], form.cleaned_data['exclude_live_pairings'])
+                        spreadsheet.import_lonewolf_season(league,
+                                                           form.cleaned_data['spreadsheet_url'],
+                                                           form.cleaned_data['season_name'],
+                                                           form.cleaned_data['season_tag'],
+                                                           form.cleaned_data['rosters_only'],
+                                                           form.cleaned_data[
+                                                               'exclude_live_pairings'])
                         self.message_user(request, "Season imported.")
                     else:
-                        self.message_user(request, "League competitor type not supported for spreadsheet import")
+                        self.message_user(request,
+                                          "League competitor type not supported for spreadsheet import")
                 except spreadsheet.SpreadsheetNotFound:
-                    self.message_user(request, "Spreadsheet not found. The service account may not have edit permissions.", messages.ERROR)
+                    self.message_user(request,
+                                      "Spreadsheet not found. The service account may not have edit permissions.",
+                                      messages.ERROR)
                 return redirect('admin:tournament_league_changelist')
         else:
             form = forms.ImportSeasonForm()
@@ -249,15 +274,18 @@ class LeagueAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.change_league', league):
             raise PermissionDenied
 
-        pairings = LonePlayerPairing.objects.exclude(result='').exclude(white=None).exclude(black=None).filter(round__season__league=league) \
-                                    .order_by('round__start_date').select_related('white', 'black', 'round').nocache()
+        pairings = LonePlayerPairing.objects.exclude(result='').exclude(white=None).exclude(
+            black=None).filter(round__season__league=league) \
+            .order_by('round__start_date').select_related('white', 'black', 'round').nocache()
         rows = []
 
         for p in pairings:
             rows.append({
                 'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '0F-1X' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '1X-0F' else 'NO',
-                'average_rating': (p.white_rating_display(league) + p.black_rating_display(league)) / 2,
-                'rating_delta': abs(p.white_rating_display(league) - p.black_rating_display(league)),
+                'average_rating': (p.white_rating_display(league) + p.black_rating_display(
+                    league)) / 2,
+                'rating_delta': abs(
+                    p.white_rating_display(league) - p.black_rating_display(league)),
                 'timezone_delta': 'TODO',
                 'round_joined': 'TODO',
                 'player_games_played': 'TODO',
@@ -270,8 +298,10 @@ class LeagueAdmin(_BaseAdmin):
             })
             rows.append({
                 'forfeit': 'BOTH' if p.result == '0F-0F' else 'SELF' if p.result == '1X-0F' else 'DRAW' if p.result == '1/2Z-1/2Z' else 'OPP' if p.result == '0F-1X' else 'NO',
-                'average_rating': (p.white_rating_display(league) + p.black_rating_display(league)) / 2,
-                'rating_delta': abs(p.white_rating_display(league) - p.black_rating_display(league)),
+                'average_rating': (p.white_rating_display(league) + p.black_rating_display(
+                    league)) / 2,
+                'rating_delta': abs(
+                    p.white_rating_display(league) - p.black_rating_display(league)),
                 'timezone_delta': 'TODO',
                 'round_joined': 'TODO',
                 'player_games_played': 'TODO',
@@ -294,13 +324,15 @@ class LeagueAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/export_forfeit_data.html', context)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LeagueSetting)
 class LeagueSettingAdmin(_BaseAdmin):
     list_display = ('__str__',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(SectionGroup)
 class SectionGroupAdmin(_BaseAdmin):
     list_display = ('__str__', 'league')
@@ -308,7 +340,8 @@ class SectionGroupAdmin(_BaseAdmin):
     list_filter = ('league',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Section)
 class SectionAdmin(_BaseAdmin):
     list_display = ('__str__', 'season', 'min_rating', 'max_rating')
@@ -316,13 +349,16 @@ class SectionAdmin(_BaseAdmin):
     list_filter = ('season__league',)
     league_id_field = 'season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Season)
 class SeasonAdmin(_BaseAdmin):
     list_display = ('__str__', 'league',)
     list_display_links = ('__str__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores', 'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report', 'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores',
+               'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report',
+               'manage_players', 'round_transition', 'simulate_tournament']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -370,15 +406,16 @@ class SeasonAdmin(_BaseAdmin):
         ]
         return my_urls + urls
 
-
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
             raise PermissionDenied
         if not settings.DEBUG and not settings.STAGING:
-            self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
+            self.message_user(request, 'Results can\'t be simulated in a live environment',
+                              messages.ERROR)
             return
         if queryset.count() > 1:
-            self.message_user(request, 'Results can only be simulated one season at a time', messages.ERROR)
+            self.message_user(request, 'Results can only be simulated one season at a time',
+                              messages.ERROR)
             return
         season = queryset[0]
         simulation.simulate_season(season)
@@ -414,12 +451,15 @@ class SeasonAdmin(_BaseAdmin):
                 if p.game_link != old:
                     p.save()
             if bad_gamelinks > 0:
-                self.message_user(request, '%d bad gamelinks for %s.' % (bad_gamelinks, season.name), messages.WARNING)
+                self.message_user(request,
+                                  '%d bad gamelinks for %s.' % (bad_gamelinks, season.name),
+                                  messages.WARNING)
         self.message_user(request, 'Data verified.', messages.INFO)
 
     def review_nominated_games(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Nominated games can only be reviewed one season at a time.', messages.ERROR)
+            self.message_user(request, 'Nominated games can only be reviewed one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:review_nominated_games', object_id=queryset[0].pk)
 
@@ -428,8 +468,10 @@ class SeasonAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.review_nominated_games', season.league):
             raise PermissionDenied
 
-        selections = GameSelection.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number')
-        nominations = GameNomination.objects.filter(season=season).order_by('pairing__teamplayerpairing__board_number', 'date_created')
+        selections = GameSelection.objects.filter(season=season).order_by(
+            'pairing__teamplayerpairing__board_number')
+        nominations = GameNomination.objects.filter(season=season).order_by(
+            'pairing__teamplayerpairing__board_number', 'date_created')
 
         selected_links = set((s.game_link for s in selections))
 
@@ -443,11 +485,15 @@ class SeasonAdmin(_BaseAdmin):
                 link_to_nom[n.game_link] = n
             link_counts[n.game_link] = value + 1
 
-        selections = [(link_counts.get(s.game_link, 0), s, link_to_nom.get(s.game_link, None)) for s in selections]
-        nominations = [(link_counts.get(n.game_link, 0), n) for n in first_nominations if n.game_link not in selected_links]
+        selections = [(link_counts.get(s.game_link, 0), s, link_to_nom.get(s.game_link, None)) for s
+                      in selections]
+        nominations = [(link_counts.get(n.game_link, 0), n) for n in first_nominations if
+                       n.game_link not in selected_links]
 
         if season.nominations_open:
-            self.message_user(request, 'Nominations are still open. You should edit the season and close nominations before reviewing.', messages.WARNING)
+            self.message_user(request,
+                              'Nominations are still open. You should edit the season and close nominations before reviewing.',
+                              messages.WARNING)
 
         context = {
             'has_permission': True,
@@ -468,7 +514,8 @@ class SeasonAdmin(_BaseAdmin):
             raise PermissionDenied
         nom = get_object_or_404(GameNomination, pk=nom_id)
 
-        GameSelection.objects.get_or_create(season=season, game_link=nom.game_link, defaults={'pairing': nom.pairing})
+        GameSelection.objects.get_or_create(season=season, game_link=nom.game_link,
+                                            defaults={'pairing': nom.pairing})
 
         return redirect('admin:review_nominated_games', object_id=object_id)
 
@@ -493,7 +540,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def round_transition(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Rounds can only be transitioned one season at a time.', messages.ERROR)
+            self.message_user(request, 'Rounds can only be transitioned one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:round_transition', object_id=queryset[0].pk)
 
@@ -509,17 +557,27 @@ class SeasonAdmin(_BaseAdmin):
         season_to_close = workflow.season_to_close
 
         if request.method == 'POST':
-            form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close, request.POST)
+            form = forms.RoundTransitionForm(season.league.competitor_type == 'team',
+                                             round_to_close, round_to_open, season_to_close,
+                                             request.POST)
             if form.is_valid():
-                complete_round = 'round_to_close' in form.cleaned_data and form.cleaned_data['round_to_close'] == round_to_close.number \
+                complete_round = 'round_to_close' in form.cleaned_data and form.cleaned_data[
+                    'round_to_close'] == round_to_close.number \
                                  and form.cleaned_data['complete_round']
-                complete_season = 'complete_season' in form.cleaned_data and form.cleaned_data['complete_season']
-                update_board_order = 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number \
-                                     and 'update_board_order' in form.cleaned_data and form.cleaned_data['update_board_order']
-                generate_pairings = 'round_to_open' in form.cleaned_data and form.cleaned_data['round_to_open'] == round_to_open.number \
+                complete_season = 'complete_season' in form.cleaned_data and form.cleaned_data[
+                    'complete_season']
+                update_board_order = 'round_to_open' in form.cleaned_data and form.cleaned_data[
+                    'round_to_open'] == round_to_open.number \
+                                     and 'update_board_order' in form.cleaned_data and \
+                                     form.cleaned_data['update_board_order']
+                generate_pairings = 'round_to_open' in form.cleaned_data and form.cleaned_data[
+                    'round_to_open'] == round_to_open.number \
                                     and form.cleaned_data['generate_pairings']
 
-                msg_list = workflow.run(complete_round=complete_round, complete_season=complete_season, update_board_order=update_board_order, generate_pairings=generate_pairings)
+                msg_list = workflow.run(complete_round=complete_round,
+                                        complete_season=complete_season,
+                                        update_board_order=update_board_order,
+                                        generate_pairings=generate_pairings)
 
                 for text, level in msg_list:
                     self.message_user(request, text, level)
@@ -529,7 +587,8 @@ class SeasonAdmin(_BaseAdmin):
                 else:
                     return redirect('admin:tournament_season_changelist')
         else:
-            form = forms.RoundTransitionForm(season.league.competitor_type == 'team', round_to_close, round_to_open, season_to_close)
+            form = forms.RoundTransitionForm(season.league.competitor_type == 'team',
+                                             round_to_close, round_to_open, season_to_close)
 
         for text, level in workflow.warnings:
             self.message_user(request, text, level)
@@ -547,7 +606,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def bulk_email(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Emails can only be sent one season at a time.', messages.ERROR)
+            self.message_user(request, 'Emails can only be sent one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:bulk_email', object_id=queryset[0].pk)
 
@@ -560,7 +620,8 @@ class SeasonAdmin(_BaseAdmin):
             form = forms.BulkEmailForm(season.seasonplayer_set.count(), request.POST)
             if form.is_valid() and form.cleaned_data['confirm_send']:
                 season_players = season.seasonplayer_set.all()
-                email_addresses = {sp.player.email for sp in season_players if sp.player.email != ''}
+                email_addresses = {sp.player.email for sp in season_players if
+                                   sp.player.email != ''}
                 email_messages = []
                 for addr in email_addresses:
                     message = EmailMultiAlternatives(
@@ -575,7 +636,8 @@ class SeasonAdmin(_BaseAdmin):
                 conn.open()
                 conn.send_messages(email_messages)
                 conn.close()
-                self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
+                self.message_user(request, 'Emails sent to %d players.' % len(season_players),
+                                  messages.INFO)
                 return redirect('admin:tournament_season_changelist')
         else:
             form = forms.BulkEmailForm(season.seasonplayer_set.count())
@@ -593,7 +655,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def team_spam(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Team spam can only be sent one season at a time.', messages.ERROR)
+            self.message_user(request, 'Team spam can only be sent one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:team_spam', object_id=queryset[0].pk)
 
@@ -628,7 +691,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def mod_report(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Can only generate mod report one season at a time.', messages.ERROR)
+            self.message_user(request, 'Can only generate mod report one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:mod_report', object_id=queryset[0].pk)
 
@@ -640,7 +704,8 @@ class SeasonAdmin(_BaseAdmin):
         season_players = season.seasonplayer_set.select_related('player').nocache()
         players = []
         for sp in season_players:
-            games = (PlayerPairing.objects.filter(white=sp.player) | PlayerPairing.objects.filter(black=sp.player)).nocache()
+            games = (PlayerPairing.objects.filter(white=sp.player) | PlayerPairing.objects.filter(
+                black=sp.player)).nocache()
             game_count = games.count()
             players.append((game_count, sp.player.games_played, sp.player.lichess_username))
 
@@ -657,7 +722,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def pre_round_report(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Can only generate pre-round report one season at a time.', messages.ERROR)
+            self.message_user(request, 'Can only generate pre-round report one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:pre_round_report', object_id=queryset[0].pk)
 
@@ -666,24 +732,32 @@ class SeasonAdmin(_BaseAdmin):
         if not request.user.has_perm('tournament.change_season', season.league):
             raise PermissionDenied
 
-        last_round = Round.objects.filter(season=season, publish_pairings=True, is_completed=False).order_by('number').first()
-        next_round = Round.objects.filter(season=season, publish_pairings=False, is_completed=False).order_by('number').first()
+        last_round = Round.objects.filter(season=season, publish_pairings=True,
+                                          is_completed=False).order_by('number').first()
+        next_round = Round.objects.filter(season=season, publish_pairings=False,
+                                          is_completed=False).order_by('number').first()
 
         season_players = season.seasonplayer_set.select_related('player').nocache()
         active_players = {sp.player for sp in season_players if sp.is_active}
         withdrawn_players = {wd.player for wd in PlayerWithdrawal.objects.filter(round=next_round)}
-        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=next_round, type='request_continuation', status='approved')}
-        red_cards = {sp.player for sp in season_players if sp.is_active and sp.games_missed >= 2} - withdrawn_players
+        continuation_players = {mr.requester for mr in ModRequest.objects.filter(round=next_round,
+                                                                                 type='request_continuation',
+                                                                                 status='approved')}
+        red_cards = {sp.player for sp in season_players if
+                     sp.is_active and sp.games_missed >= 2} - withdrawn_players
 
         missing_withdrawals = None
         pairings_wo_results = None
 
-        pending_regs = [(reg.lichess_username, reg) for reg in Registration.objects.filter(season=season, status='pending')]
+        pending_regs = [(reg.lichess_username, reg) for reg in
+                        Registration.objects.filter(season=season, status='pending')]
 
-        bad_player_status = [p for p in (active_players - withdrawn_players) if p.account_status != 'normal']
+        bad_player_status = [p for p in (active_players - withdrawn_players) if
+                             p.account_status != 'normal']
 
         latereg_list = PlayerLateRegistration.objects.filter(round=next_round)
-        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in latereg_list if not lr.player.slack_user_id]
+        not_on_slack = [(lr.player, lr, (timezone.now() - lr.date_created).days) for lr in
+                        latereg_list if not lr.player.slack_user_id]
         not_on_slack += [(p, None, None) for p in active_players if not p.slack_user_id]
 
         pending_mod_reqs = ModRequest.objects.filter(season=season, status='pending')
@@ -696,7 +770,8 @@ class SeasonAdmin(_BaseAdmin):
                         players_with_0f.add(p.black)
                     if p.white_score() == 0:
                         players_with_0f.add(p.white)
-            missing_withdrawals = sorted((players_with_0f & active_players) - withdrawn_players - continuation_players)
+            missing_withdrawals = sorted(
+                (players_with_0f & active_players) - withdrawn_players - continuation_players)
 
             def text_class(p):
                 if p.game_link != '':
@@ -705,10 +780,12 @@ class SeasonAdmin(_BaseAdmin):
                     return 'text-rejected'
                 return ''
 
-            pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by('loneplayerpairing__pairing_order').filter(result='')]
+            pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by(
+                'loneplayerpairing__pairing_order').filter(result='')]
 
         ct_pairing = ContentType.objects.get_for_model(PlayerPairing)
         ct_season_player = ContentType.objects.get_for_model(SeasonPlayer)
+
         def with_round_info(player_list):
             """Annotates a player record with their pairing and comments
             """
@@ -717,12 +794,13 @@ class SeasonAdmin(_BaseAdmin):
             retval = []
 
             for player in player_list:
-                pairing = LonePlayerPairing.objects.get(Q(white=player) | Q(black=player), round=last_round)
+                pairing = LonePlayerPairing.objects.get(Q(white=player) | Q(black=player),
+                                                        round=last_round)
                 season_player = SeasonPlayer.objects.get(player=player, season=season)
                 comments = list(Comment.objects.filter(
-                        (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
-                        (Q(content_type=ct_season_player) & Q(object_pk=season_player.pk))
-                    ))
+                    (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
+                    (Q(content_type=ct_season_player) & Q(object_pk=season_player.pk))
+                ))
                 retval.append((player, pairing, comments))
             return retval
 
@@ -736,10 +814,12 @@ class SeasonAdmin(_BaseAdmin):
             'next_round': next_round,
             'missing_withdrawals': with_round_info(missing_withdrawals),
             'red_cards': with_round_info(sorted(red_cards)),
-            'bad_player_status': sorted(bad_player_status) if bad_player_status is not None else None,
+            'bad_player_status': sorted(
+                bad_player_status) if bad_player_status is not None else None,
             'not_on_slack': sorted(not_on_slack) if not_on_slack is not None else None,
             'pending_mod_reqs': pending_mod_reqs,
-            'pending_regs': sorted(pending_regs, key=lambda x: x[0].lower()) if pending_regs is not None else None,
+            'pending_regs': sorted(pending_regs, key=lambda x: x[
+                0].lower()) if pending_regs is not None else None,
             'pairings_wo_results': pairings_wo_results
         }
 
@@ -784,7 +864,8 @@ class SeasonAdmin(_BaseAdmin):
 
     def manage_players(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Players can only be managed one season at a time.', messages.ERROR)
+            self.message_user(request, 'Players can only be managed one season at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:manage_players', object_id=queryset[0].pk)
 
@@ -792,7 +873,8 @@ class SeasonAdmin(_BaseAdmin):
         season = get_object_or_404(Season, pk=object_id)
         if not request.user.has_perm('tournament.manage_players', season.league):
             raise PermissionDenied
-        season_player = get_object_or_404(SeasonPlayer, season=season, player__lichess_username=player_name)
+        season_player = get_object_or_404(SeasonPlayer, season=season,
+                                          player__lichess_username=player_name)
         player = season_player.player
 
         reg = season_player.registration
@@ -842,9 +924,9 @@ class SeasonAdmin(_BaseAdmin):
             if form.is_valid():
                 player_data = [p for p in season.export_players() if p['date_created']]
                 league = teamgen.get_best_league(player_data,
-                                         season.boards,
-                                         form.cleaned_data['balance'],
-                                         form.cleaned_data['count'])
+                                                 season.boards,
+                                                 form.cleaned_data['balance'],
+                                                 form.cleaned_data['count'])
 
                 with reversion.create_revision():
                     reversion.set_user(request.user)
@@ -911,7 +993,8 @@ class SeasonAdmin(_BaseAdmin):
                                     board_num = change['board_number']
                                     player_info = change['player']
 
-                                    teammember = TeamMember.objects.filter(team=team, board_number=board_num).first()
+                                    teammember = TeamMember.objects.filter(team=team,
+                                                                           board_number=board_num).first()
                                     original_teammember = str(teammember)
                                     if teammember == None:
                                         teammember = TeamMember(team=team, board_number=board_num)
@@ -919,12 +1002,15 @@ class SeasonAdmin(_BaseAdmin):
                                         teammember.delete()
                                         teammember = None
                                     else:
-                                        teammember.player = Player.objects.get(lichess_username=player_info['name'])
+                                        teammember.player = Player.objects.get(
+                                            lichess_username=player_info['name'])
                                         teammember.is_captain = player_info['is_captain']
                                         teammember.is_vice_captain = player_info['is_vice_captain']
                                         teammember.save()
 
-                                    change_descriptions.append('changed board %d from "%s" to "%s"' % (board_num, original_teammember, teammember))
+                                    change_descriptions.append(
+                                        'changed board %d from "%s" to "%s"' % (
+                                        board_num, original_teammember, teammember))
 
                                 if change['action'] == 'change-team' and not teams_locked:
                                     team_num = change['team_number']
@@ -934,18 +1020,24 @@ class SeasonAdmin(_BaseAdmin):
                                     team.name = team_name
                                     team.save()
 
-                                    change_descriptions.append('changed team name to "%s"' % team_name)
+                                    change_descriptions.append(
+                                        'changed team name to "%s"' % team_name)
 
                                 if change['action'] == 'create-team' and not teams_locked:
                                     model = change['model']
-                                    team = Team.objects.create(season=season, number=model['number'], name=model['name'])
+                                    team = Team.objects.create(season=season,
+                                                               number=model['number'],
+                                                               name=model['name'])
 
                                     for board_num, player_info in enumerate(model['boards'], 1):
                                         if player_info is not None:
-                                            player = Player.objects.get(lichess_username=player_info['name'])
+                                            player = Player.objects.get(
+                                                lichess_username=player_info['name'])
                                             is_captain = player_info['is_captain']
                                             with reversion.create_revision():
-                                                TeamMember.objects.create(team=team, player=player, board_number=board_num, is_captain=is_captain)
+                                                TeamMember.objects.create(team=team, player=player,
+                                                                          board_number=board_num,
+                                                                          is_captain=is_captain)
 
                                     change_descriptions.append('created team "%s"' % model['name'])
                             except Exception:
@@ -962,10 +1054,11 @@ class SeasonAdmin(_BaseAdmin):
                                 board_num = change['board_number']
                                 season_player = (SeasonPlayer.objects
                                                  .get(season=season,
-                                                      player__lichess_username__iexact=change['player_name']))
+                                                      player__lichess_username__iexact=change[
+                                                          'player_name']))
                                 (Alternate.objects
                                  .update_or_create(season_player=season_player,
-                                                   defaults={ 'board_number': board_num }))
+                                                   defaults={'board_number': board_num}))
 
                         if change['action'] == 'delete-alternate':
                             with reversion.create_revision():
@@ -975,7 +1068,8 @@ class SeasonAdmin(_BaseAdmin):
                                 board_num = change['board_number']
                                 season_player = (SeasonPlayer.objects
                                                  .get(season=season,
-                                                      player__lichess_username__iexact=change['player_name']))
+                                                      player__lichess_username__iexact=change[
+                                                          'player_name']))
                                 alt = (Alternate.objects
                                        .filter(season_player=season_player, board_number=board_num)
                                        .first())
@@ -995,37 +1089,51 @@ class SeasonAdmin(_BaseAdmin):
             form = forms.EditRostersForm()
 
         if not season.boards:
-            self.message_user(request, 'Number of boards must be specified for %s' % season.name, messages.ERROR)
+            self.message_user(request, 'Number of boards must be specified for %s' % season.name,
+                              messages.ERROR)
             return redirect('admin:tournament_season_changelist')
         board_numbers = list(range(1, season.boards + 1))
         teams = list(Team.objects.filter(season=season).order_by('number').prefetch_related(
-            Prefetch('teammember_set', queryset=TeamMember.objects.select_related('player').nocache())
+            Prefetch('teammember_set',
+                     queryset=TeamMember.objects.select_related('player').nocache())
         ).nocache())
-        team_members = TeamMember.objects.filter(team__season=season).select_related('player').nocache()
-        alternates = Alternate.objects.filter(season_player__season=season).select_related('season_player__player').nocache()
+        team_members = TeamMember.objects.filter(team__season=season).select_related(
+            'player').nocache()
+        alternates = Alternate.objects.filter(season_player__season=season).select_related(
+            'season_player__player').nocache()
         alternates_by_board = [(n, sorted(
-                                          alternates.filter(board_number=n).select_related('season_player__registration').nocache(),
-                                          key=lambda alt: alt.priority_date()
-                                         )) for n in board_numbers]
+            alternates.filter(board_number=n).select_related(
+                'season_player__registration').nocache(),
+            key=lambda alt: alt.priority_date()
+        )) for n in board_numbers]
 
-        season_player_objs = SeasonPlayer.objects.filter(season=season, is_active=True).select_related('player', 'registration').nocache()
+        season_player_objs = SeasonPlayer.objects.filter(season=season,
+                                                         is_active=True).select_related('player',
+                                                                                        'registration').nocache()
         season_players = set(sp.player for sp in season_player_objs)
         team_players = set(tm.player for tm in team_members)
         alternate_players = set(alt.season_player.player for alt in alternates)
         old_alternates = season.last_season_alternates()
 
         alternate_buckets = list(AlternateBucket.objects.filter(season=season))
-        unassigned_players = list(sorted(season_players - team_players - alternate_players, key=lambda p: p.rating_for(league), reverse=True))
+        unassigned_players = list(sorted(season_players - team_players - alternate_players,
+                                         key=lambda p: p.rating_for(league), reverse=True))
         if len(alternate_buckets) == season.boards:
             # Sort unassigned players by alternate buckets
-            unassigned_by_board = [(n, [p for p in unassigned_players if find(alternate_buckets, board_number=n).contains(p.rating_for(league))]) for n in board_numbers]
+            unassigned_by_board = [(n, [p for p in unassigned_players if
+                                        find(alternate_buckets, board_number=n).contains(
+                                            p.rating_for(league))]) for n in board_numbers]
         else:
             # Season doesn't have buckets yet. Sort by player soup
-            sorted_players = list(sorted((p for p in season_players if p.rating_for(league) is not None), key=lambda p: p.rating_for(league), reverse=True))
+            sorted_players = list(
+                sorted((p for p in season_players if p.rating_for(league) is not None),
+                       key=lambda p: p.rating_for(league), reverse=True))
             player_count = len(sorted_players)
             unassigned_by_board = [(n, []) for n in board_numbers]
             if player_count > 0:
-                max_ratings = [(n, sorted_players[len(sorted_players) * (n - 1) // season.boards].rating_for(league)) for n in board_numbers]
+                max_ratings = [(n, sorted_players[
+                    len(sorted_players) * (n - 1) // season.boards].rating_for(league)) for n in
+                               board_numbers]
                 for p in unassigned_players:
                     board_num = 1
                     for n, max_rating in max_ratings:
@@ -1097,8 +1205,10 @@ class SeasonAdmin(_BaseAdmin):
     def lone_manage_players_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
 
-        active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by('player__lichess_username')
-        inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by('player__lichess_username')
+        active_players = SeasonPlayer.objects.filter(season=season, is_active=True).order_by(
+            'player__lichess_username')
+        inactive_players = SeasonPlayer.objects.filter(season=season, is_active=False).order_by(
+            'player__lichess_username')
 
         projected_active = {sp.player for sp in active_players}
 
@@ -1121,10 +1231,11 @@ class SeasonAdmin(_BaseAdmin):
             def show(avail):
                 return avail.player in projected_active and avail.player not in players_with_byes
 
-            unavailables = [avail for avail in r.playeravailability_set.filter(is_available=False).order_by('player__lichess_username') if show(avail)]
+            unavailables = [avail for avail in
+                            r.playeravailability_set.filter(is_available=False).order_by(
+                                'player__lichess_username') if show(avail)]
 
             return r, regs, wds, byes, unavailables
-
 
         rounds = Round.objects.filter(season=season, is_completed=False).order_by('number')
         round_data = [get_data(r) for r in rounds]
@@ -1142,6 +1253,7 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/manage_lone_players.html', context)
+
 
 @admin.register(Round)
 class RoundAdmin(_BaseAdmin):
@@ -1163,16 +1275,19 @@ class RoundAdmin(_BaseAdmin):
 
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Pairings can only be generated one round at a time', messages.ERROR)
+            self.message_user(request, 'Pairings can only be generated one round at a time',
+                              messages.ERROR)
             return
         return redirect('admin:generate_pairings', object_id=queryset[0].pk)
 
     def simulate_results(self, request, queryset):
         if not settings.DEBUG and not settings.STAGING:
-            self.message_user(request, 'Results can\'t be simulated in a live environment', messages.ERROR)
+            self.message_user(request, 'Results can\'t be simulated in a live environment',
+                              messages.ERROR)
             return
         if queryset.count() > 1:
-            self.message_user(request, 'Results can only be simulated one round at a time', messages.ERROR)
+            self.message_user(request, 'Results can only be simulated one round at a time',
+                              messages.ERROR)
             return
         round_ = queryset[0]
         simulation.simulate_round(round_)
@@ -1189,11 +1304,15 @@ class RoundAdmin(_BaseAdmin):
             if form.is_valid():
                 try:
                     if form.cleaned_data['run_in_background']:
-                        signals.do_generate_pairings.send(sender=self.__class__, round_id=round_.pk, overwrite=form.cleaned_data['overwrite_existing'])
-                        self.message_user(request, 'Generating pairings in background.', messages.INFO)
+                        signals.do_generate_pairings.send(sender=self.__class__, round_id=round_.pk,
+                                                          overwrite=form.cleaned_data[
+                                                              'overwrite_existing'])
+                        self.message_user(request, 'Generating pairings in background.',
+                                          messages.INFO)
                         return redirect('admin:review_pairings', object_id)
                     else:
-                        pairinggen.generate_pairings(round_, overwrite=form.cleaned_data['overwrite_existing'])
+                        pairinggen.generate_pairings(round_, overwrite=form.cleaned_data[
+                            'overwrite_existing'])
                         with reversion.create_revision():
                             reversion.set_user(request.user)
                             reversion.set_comment('Generated pairings.')
@@ -1204,13 +1323,17 @@ class RoundAdmin(_BaseAdmin):
                         return redirect('admin:review_pairings', object_id)
                 except pairinggen.PairingsExistException:
                     if not round_.publish_pairings:
-                        self.message_user(request, 'Unpublished pairings already exist.', messages.WARNING)
+                        self.message_user(request, 'Unpublished pairings already exist.',
+                                          messages.WARNING)
                         return redirect('admin:review_pairings', object_id)
-                    self.message_user(request, 'Pairings already exist for the selected round.', messages.ERROR)
+                    self.message_user(request, 'Pairings already exist for the selected round.',
+                                      messages.ERROR)
                 except pairinggen.PairingHasResultException:
-                    self.message_user(request, 'Pairings with results can\'t be overwritten.', messages.ERROR)
+                    self.message_user(request, 'Pairings with results can\'t be overwritten.',
+                                      messages.ERROR)
                 except pairinggen.PairingGenerationException as e:
-                    self.message_user(request, 'Error generating pairings. %s' % e.message, messages.ERROR)
+                    self.message_user(request, 'Error generating pairings. %s' % e.message,
+                                      messages.ERROR)
                 return redirect('admin:generate_pairings', object_id=round_.pk)
         else:
             form = forms.GeneratePairingsForm()
@@ -1235,26 +1358,33 @@ class RoundAdmin(_BaseAdmin):
             form = forms.ReviewPairingsForm(request.POST)
             if form.is_valid():
                 if 'publish' in form.data:
-                    signals.do_schedule_publish.send(sender=self, round_id=round_.id, eta=timezone.now())
+                    signals.do_schedule_publish.send(sender=self, round_id=round_.id,
+                                                     eta=timezone.now())
                     self.message_user(request, 'Pairings published.', messages.INFO)
                 elif 'schedule' in form.data:
                     publish_time = max(round_.start_date, timezone.now())
-                    signals.do_schedule_publish.send(sender=self, round_id=round_.id, eta=publish_time)
-                    self.message_user(request, 'Pairings scheduled to be published in %d minutes.' % ((publish_time - timezone.now()).total_seconds() / 60), messages.INFO)
+                    signals.do_schedule_publish.send(sender=self, round_id=round_.id,
+                                                     eta=publish_time)
+                    self.message_user(request,
+                                      'Pairings scheduled to be published in %d minutes.' % (
+                                              (publish_time - timezone.now()).total_seconds() / 60),
+                                      messages.INFO)
                 elif 'delete' in form.data:
                     try:
                         # Note: no reversion required for deleting things
                         pairinggen.delete_pairings(round_)
                         self.message_user(request, 'Pairings deleted.', messages.INFO)
                     except pairinggen.PairingHasResultException:
-                        self.message_user(request, 'Pairings with results can\'t be deleted.', messages.ERROR)
+                        self.message_user(request, 'Pairings with results can\'t be deleted.',
+                                          messages.ERROR)
                 return redirect('admin:tournament_round_changelist')
         else:
             form = forms.ReviewPairingsForm()
 
         if round_.season.league.competitor_type == 'team':
             team_pairings = round_.teampairing_set.order_by('pairing_order')
-            pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number').nocache() for team_pairing in team_pairings]
+            pairing_lists = [team_pairing.teamplayerpairing_set.order_by('board_number').nocache()
+                             for team_pairing in team_pairings]
             context = {
                 'has_permission': True,
                 'opts': self.model._meta,
@@ -1281,7 +1411,8 @@ class RoundAdmin(_BaseAdmin):
                 player_refcounts[b.player] = player_refcounts.get(b.player, 0) + 1
             duplicate_players = {k for k, v in list(player_refcounts.items()) if v > 1}
 
-            active_players = {sp.player for sp in SeasonPlayer.objects.filter(season=round_.season, is_active=True)}
+            active_players = {sp.player for sp in
+                              SeasonPlayer.objects.filter(season=round_.season, is_active=True)}
 
             def pairing_error(pairing):
                 if not request.user.is_staff:
@@ -1327,7 +1458,7 @@ class RoundAdmin(_BaseAdmin):
             return render(request, 'tournament/admin/review_lone_pairings.html', context)
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 @admin.register(PlayerLateRegistration)
 class PlayerLateRegistrationAdmin(_BaseAdmin):
     list_display = ('__str__', 'retroactive_byes', 'late_join_points')
@@ -1356,13 +1487,15 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
 
     def move_to_next_round(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, 'Late registrations can only be moved one at a time.', messages.ERROR)
+            self.message_user(request, 'Late registrations can only be moved one at a time.',
+                              messages.ERROR)
             return
         return redirect('admin:move_latereg', object_id=queryset[0].pk)
 
     def move_latereg_view(self, request, object_id):
         reg = get_object_or_404(PlayerLateRegistration, pk=object_id)
-        if not request.user.has_perm('tournament.change_playerlateregistration', reg.round.season.league):
+        if not request.user.has_perm('tournament.change_playerlateregistration',
+                                     reg.round.season.league):
             raise PermissionDenied
 
         workflow = MoveLateRegWorkflow(reg)
@@ -1375,7 +1508,8 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
                 if prev_round == reg.round.number:
                     workflow.run(update_fields)
                     reg.refresh_from_db()
-                    self.message_user(request, 'Late reg moved to round %d.' % (reg.round.number), messages.INFO)
+                    self.message_user(request, 'Late reg moved to round %d.' % (reg.round.number),
+                                      messages.INFO)
                 return redirect('admin:tournament_playerlateregistration_changelist')
         else:
             form = forms.MoveLateRegForm(reg=reg)
@@ -1393,7 +1527,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
         return render(request, 'tournament/admin/move_latereg.html', context)
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 @admin.register(PlayerWithdrawal)
 class PlayerWithdrawalAdmin(_BaseAdmin):
     list_display = ('__str__',)
@@ -1403,7 +1537,8 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerBye)
 class PlayerByeAdmin(_BaseAdmin):
     list_display = ('__str__', 'type')
@@ -1414,7 +1549,8 @@ class PlayerByeAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerWarning)
 class PlayerWarningAdmin(_BaseAdmin):
     list_display = ('__str__', 'type')
@@ -1424,12 +1560,14 @@ class PlayerWarningAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email', 'slack_user_id')
     list_filter = ('is_active',)
-    readonly_fields = ('rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
+    readonly_fields = (
+    'rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile',)
     actions = ['update_selected_player_ratings']
 
@@ -1448,21 +1586,25 @@ class PlayerAdmin(_BaseAdmin):
         return fields
 
     def update_selected_player_ratings(self, request, queryset):
-#         try:
+        #         try:
         usernames = [p.lichess_username for p in queryset.all()]
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
             p = Player.objects.get(lichess_username__iexact=user_meta['id'])
             p.update_profile(user_meta)
         self.message_user(request, 'Rating(s) updated', messages.INFO)
-#         except:
-#             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
+
+    #         except:
+    #             self.message_user(request, 'Error updating rating(s) from lichess API', messages.ERROR)
 
     def related_objects_for_comments(self, request, object_id):
-        sps = SeasonPlayer.objects.filter(player_id=object_id, season__league_id__in=self.authorized_leagues(request.user)) \
-                                  .select_related('season').nocache()
+        sps = SeasonPlayer.objects.filter(player_id=object_id,
+                                          season__league_id__in=self.authorized_leagues(
+                                              request.user)) \
+            .select_related('season').nocache()
         return [(sp.season.name, sp) for sp in sps]
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LeagueModerator)
 class LeagueModeratorAdmin(_BaseAdmin):
     list_display = ('__str__', 'is_active', 'send_contact_emails')
@@ -1471,7 +1613,8 @@ class LeagueModeratorAdmin(_BaseAdmin):
     raw_id_fields = ('player',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 class TeamMemberInline(admin.TabularInline):
     model = TeamMember
     extra = 0
@@ -1479,7 +1622,8 @@ class TeamMemberInline(admin.TabularInline):
     raw_id_fields = ('player',)
     exclude = ('player_rating',)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Team)
 class TeamAdmin(_BaseAdmin):
     list_display = ('name', 'season')
@@ -1505,19 +1649,24 @@ class TeamAdmin(_BaseAdmin):
         skipped = 0
         for team in queryset.select_related('season').nocache():
             if not team.season.is_active or team.season.is_completed:
-                self.message_user(request, 'The team season must be active and not completed in order to create channels.', messages.ERROR)
+                self.message_user(request,
+                                  'The team season must be active and not completed in order to create channels.',
+                                  messages.ERROR)
                 return
             if len(team.season.tag) > 3:
-                self.message_user(request, 'The team season tag is too long to create a channel.', messages.ERROR)
+                self.message_user(request, 'The team season tag is too long to create a channel.',
+                                  messages.ERROR)
                 return
             if team.slack_channel == '':
                 team_ids.append(team.pk)
             else:
                 skipped += 1
         signals.do_create_team_channel.send(sender=self, team_ids=team_ids)
-        self.message_user(request, 'Creating %d channels. %d skipped.' % (len(team_ids), skipped), messages.INFO)
+        self.message_user(request, 'Creating %d channels. %d skipped.' % (len(team_ids), skipped),
+                          messages.INFO)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(TeamMember)
 class TeamMemberAdmin(_BaseAdmin):
     list_display = ('__str__', 'team')
@@ -1528,7 +1677,8 @@ class TeamMemberAdmin(_BaseAdmin):
     league_id_field = 'team__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(TeamScore)
 class TeamScoreAdmin(_BaseAdmin):
     list_display = ('team', 'match_points', 'game_points')
@@ -1538,7 +1688,8 @@ class TeamScoreAdmin(_BaseAdmin):
     league_id_field = 'team__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Alternate)
 class AlternateAdmin(_BaseAdmin):
     list_display = ('__str__', 'board_number', 'status')
@@ -1549,7 +1700,8 @@ class AlternateAdmin(_BaseAdmin):
     league_id_field = 'season_player__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(AlternateAssignment)
 class AlternateAssignmentAdmin(_BaseAdmin):
     list_display = ('__str__', 'player')
@@ -1559,7 +1711,8 @@ class AlternateAssignmentAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(AlternateBucket)
 class AlternateBucketAdmin(_BaseAdmin):
     list_display = ('__str__', 'season')
@@ -1568,7 +1721,8 @@ class AlternateBucketAdmin(_BaseAdmin):
     league_id_field = 'season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(AlternateSearch)
 class AlternateSearchAdmin(_BaseAdmin):
     list_display = ('__str__', 'status')
@@ -1577,14 +1731,16 @@ class AlternateSearchAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(AlternatesManagerSetting)
 class AlternatesManagerSettingAdmin(_BaseAdmin):
     list_display = ('__str__',)
     league_id_field = 'league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(TeamPairing)
 class TeamPairingAdmin(_BaseAdmin):
     list_display = ('white_team_name', 'black_team_name', 'season_name', 'round_number')
@@ -1594,7 +1750,8 @@ class TeamPairingAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 class PlayerPresenceInline(admin.TabularInline):
     model = PlayerPresence
     extra = 0
@@ -1603,7 +1760,8 @@ class PlayerPresenceInline(admin.TabularInline):
     can_delete = False
     max_num = 0
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'scheduled_time', 'game_link_url')
@@ -1618,7 +1776,8 @@ class PlayerPairingAdmin(_BaseAdmin):
         for pairing in queryset.all():
             round_ = pairing.get_round()
             if round_ is not None:
-                signals.notify_players_late_pairing.send(sender=self, round_=round_, pairing=pairing)
+                signals.notify_players_late_pairing.send(sender=self, round_=round_,
+                                                         pairing=pairing)
                 count += 1
         self.message_user(request, 'Notifications sent for %d pairings.' % count, messages.INFO)
 
@@ -1626,8 +1785,11 @@ class PlayerPairingAdmin(_BaseAdmin):
         queryset = super(_BaseAdmin, self).get_queryset(request)
         if self.has_assigned_perm(request.user, 'change'):
             return queryset
-        return queryset.filter(teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(request.user)) \
-             | queryset.filter(loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
+        return queryset.filter(
+            teamplayerpairing__team_pairing__round__season__league_id__in=self.authorized_leagues(
+                request.user)) \
+               | queryset.filter(
+            loneplayerpairing__round__season__league_id__in=self.authorized_leagues(request.user))
 
     def has_add_permission(self, request):
         return self.has_assigned_perm(request.user, 'add')
@@ -1660,12 +1822,14 @@ class PlayerPairingAdmin(_BaseAdmin):
         related_objects += list(LonePlayerPairing.objects.filter(id=object_id).nocache())
         return related_objects
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(TeamPlayerPairing)
 class TeamPlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'team_pairing', 'board_number', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username',
-                     'team_pairing__white_team__name', 'team_pairing__black_team__name', 'game_link')
+                     'team_pairing__white_team__name', 'team_pairing__black_team__name',
+                     'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
     league_id_field = 'team_pairing__round__season__league_id'
@@ -1679,7 +1843,8 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
     def related_objects_for_comments(self, request, object_id):
         return list(PlayerPairing.objects.filter(id=object_id).nocache())
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LonePlayerPairing)
 class LonePlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'round', 'game_link_url')
@@ -1697,10 +1862,12 @@ class LonePlayerPairingAdmin(_BaseAdmin):
     def related_objects_for_comments(self, request, object_id):
         return list(PlayerPairing.objects.filter(id=object_id).nocache())
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(_BaseAdmin):
-    list_display = ('review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating', 'date_created')
+    list_display = (
+    'review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating', 'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season', 'section_preference__name')
@@ -1715,12 +1882,15 @@ class RegistrationAdmin(_BaseAdmin):
         return obj.section_preference.name if obj.section_preference else ''
 
     def review(self, obj):
-        _url = reverse('admin:review_registration', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
+        _url = reverse('admin:review_registration',
+                       args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
         return '<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username)
+
     review.allow_tags = True
 
     def edit(self, obj):
         return 'Edit'
+
     edit.allow_tags = True
 
     def valid(self, obj):
@@ -1731,6 +1901,7 @@ class RegistrationAdmin(_BaseAdmin):
         elif obj.validation_ok == False:
             return '<img src="%s">' % static('admin/img/icon-no.svg')
         return ''
+
     valid.allow_tags = True
 
     def get_urls(self):
@@ -1756,7 +1927,8 @@ class RegistrationAdmin(_BaseAdmin):
 
     def approve(self, request, queryset):
         if not request.user.has_perm('tournament.invite_to_slack'):
-            self.message_user(request, 'You don\'t have permissions to invite users to slack.', messages.ERROR)
+            self.message_user(request, 'You don\'t have permissions to invite users to slack.',
+                              messages.ERROR)
             return redirect('admin:tournament_registration_changelist')
         count = 0
         for reg in queryset:
@@ -1773,7 +1945,8 @@ class RegistrationAdmin(_BaseAdmin):
                     retroactive_byes = None
                     late_join_points = None
 
-                workflow.approve_reg(request, None, send_confirm_email, invite_to_slack, default_section, retroactive_byes, late_join_points)
+                workflow.approve_reg(request, None, send_confirm_email, invite_to_slack,
+                                     default_section, retroactive_byes, late_join_points)
                 count += 1
 
         self.message_user(request, '%d approved.' % count, messages.INFO)
@@ -1790,13 +1963,17 @@ class RegistrationAdmin(_BaseAdmin):
             if form.is_valid():
                 params = '?_changelist_filters=' + urlquote(changelist_filters)
                 if 'approve' in form.data and reg.status == 'pending':
-                    return redirect_with_params('admin:approve_registration', object_id=object_id, params=params)
+                    return redirect_with_params('admin:approve_registration', object_id=object_id,
+                                                params=params)
                 elif 'reject' in form.data and reg.status == 'pending':
-                    return redirect_with_params('admin:reject_registration', object_id=object_id, params=params)
+                    return redirect_with_params('admin:reject_registration', object_id=object_id,
+                                                params=params)
                 elif 'edit' in form.data:
-                    return redirect_with_params('admin:tournament_registration_change', object_id, params=params)
+                    return redirect_with_params('admin:tournament_registration_change', object_id,
+                                                params=params)
                 else:
-                    return redirect_with_params('admin:tournament_registration_changelist', params=params)
+                    return redirect_with_params('admin:tournament_registration_changelist',
+                                                params=params)
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ReviewRegistrationForm()
@@ -1831,23 +2008,28 @@ class RegistrationAdmin(_BaseAdmin):
                 if 'confirm' in form.data:
                     workflow = ApproveRegistrationWorkflow(reg)
                     workflow.approve_reg(
-                                         request,
-                                         self,
-                                         form.cleaned_data['send_confirm_email'],
-                                         form.cleaned_data['invite_to_slack'],
-                                         form.cleaned_data.get('section', reg.season),
-                                         form.cleaned_data.get('retroactive_byes'),
-                                         form.cleaned_data.get('late_join_points'))
-                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
+                        request,
+                        self,
+                        form.cleaned_data['send_confirm_email'],
+                        form.cleaned_data['invite_to_slack'],
+                        form.cleaned_data.get('section', reg.season),
+                        form.cleaned_data.get('retroactive_byes'),
+                        form.cleaned_data.get('late_join_points'))
+                    return redirect_with_params('admin:tournament_registration_changelist',
+                                                params='?' + changelist_filters)
                 else:
-                    return redirect_with_params('admin:review_registration', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect_with_params('admin:review_registration', object_id,
+                                                params='?_changelist_filters=' + urlquote(
+                                                    changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ApproveRegistrationForm(registration=reg)
 
-        next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by('number').first()
+        next_round = Round.objects.filter(season=reg.season, publish_pairings=False).order_by(
+            'number').first()
 
-        mod = LeagueModerator.objects.filter(player__lichess_username__iexact=reg.lichess_username).first()
+        mod = LeagueModerator.objects.filter(
+            player__lichess_username__iexact=reg.lichess_username).first()
         no_email_change = mod is not None and mod.player.email and mod.player.email != reg.email
         confirm_email = mod.player.email if no_email_change else reg.email
 
@@ -1888,11 +2070,16 @@ class RegistrationAdmin(_BaseAdmin):
                         reg.status_changed_date = timezone.now()
                         reg.save()
 
-                    self.message_user(request, 'Registration for "%s" rejected.' % reg.lichess_username, messages.INFO)
-                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
+                    self.message_user(request,
+                                      'Registration for "%s" rejected.' % reg.lichess_username,
+                                      messages.INFO)
+                    return redirect_with_params('admin:tournament_registration_changelist',
+                                                params='?' + changelist_filters)
                 else:
                     return redirect('admin:review_registration', object_id)
-                    return redirect_with_params('admin:review_registration', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect_with_params('admin:review_registration', object_id,
+                                                params='?_changelist_filters=' + urlquote(
+                                                    changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.RejectRegistrationForm(registration=reg)
@@ -1908,6 +2095,7 @@ class RegistrationAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/reject_registration.html', context)
+
 
 class InSlackFilter(SimpleListFilter):
     title = 'is in slack'
@@ -1926,7 +2114,8 @@ class InSlackFilter(SimpleListFilter):
             return queryset.exclude(player__slack_user_id='')
         return queryset
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(SeasonPlayer)
 class SeasonPlayerAdmin(_BaseAdmin):
     list_display = ('player', 'season', 'is_active', 'in_slack')
@@ -1938,6 +2127,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
 
     def in_slack(self, sp):
         return bool(sp.player.slack_user_id)
+
     in_slack.boolean = True
 
     def get_urls(self):
@@ -1953,11 +2143,15 @@ class SeasonPlayerAdmin(_BaseAdmin):
         slack_users = slackapi.get_user_list()
         by_email = {u.email: u.id for u in slack_users}
 
-        for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related('player').nocache():
+        for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related(
+            'player').nocache():
             uid = by_email.get(sp.player.email)
             if uid:
-                token = LoginToken.objects.create(slack_user_id=uid, username_hint=sp.player.lichess_username, expires=timezone.now() + timedelta(days=30))
-                url = reverse('by_league:login_with_token', args=[sp.season.league.tag, token.secret_token])
+                token = LoginToken.objects.create(slack_user_id=uid,
+                                                  username_hint=sp.player.lichess_username,
+                                                  expires=timezone.now() + timedelta(days=30))
+                url = reverse('by_league:login_with_token',
+                              args=[sp.season.league.tag, token.secret_token])
                 url = request.build_absolute_uri(url)
                 text = 'Reminder: You need to link your Slack and Lichess accounts. <%s|Click here> to do that now. Contact a mod if you need help.' % url
                 slackapi.send_message(uid, text)
@@ -1965,10 +2159,13 @@ class SeasonPlayerAdmin(_BaseAdmin):
         return redirect('admin:tournament_seasonplayer_changelist')
 
     def bulk_email(self, request, queryset):
-        return redirect('admin:bulk_email_by_players', object_ids=','.join((str(sp.id) for sp in queryset)))
+        return redirect('admin:bulk_email_by_players',
+                        object_ids=','.join((str(sp.id) for sp in queryset)))
 
     def bulk_email_view(self, request, object_ids):
-        season_players = SeasonPlayer.objects.filter(id__in=[int(i) for i in object_ids.split(',')]).select_related('season', 'player').nocache()
+        season_players = SeasonPlayer.objects.filter(
+            id__in=[int(i) for i in object_ids.split(',')]).select_related('season',
+                                                                           'player').nocache()
         seasons = {sp.season for sp in season_players}
         for season in seasons:
             if not request.user.has_perm('tournament.bulk_email', season.league):
@@ -1977,7 +2174,8 @@ class SeasonPlayerAdmin(_BaseAdmin):
         if request.method == 'POST':
             form = forms.BulkEmailForm(len(season_players), request.POST)
             if form.is_valid() and form.cleaned_data['confirm_send']:
-                email_addresses = {sp.player.email for sp in season_players if sp.player.email != ''}
+                email_addresses = {sp.player.email for sp in season_players if
+                                   sp.player.email != ''}
                 email_messages = []
                 for addr in email_addresses:
                     message = EmailMultiAlternatives(
@@ -1992,7 +2190,8 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 conn.open()
                 conn.send_messages(email_messages)
                 conn.close()
-                self.message_user(request, 'Emails sent to %d players.' % len(season_players), messages.INFO)
+                self.message_user(request, 'Emails sent to %d players.' % len(season_players),
+                                  messages.INFO)
                 return redirect('admin:tournament_seasonplayer_changelist')
         else:
             form = forms.BulkEmailForm(len(season_players))
@@ -2008,7 +2207,8 @@ class SeasonPlayerAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/bulk_email.html', context)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LonePlayerScore)
 class LonePlayerScoreAdmin(_BaseAdmin):
     list_display = ('season_player', 'points', 'late_join_points')
@@ -2018,7 +2218,8 @@ class LonePlayerScoreAdmin(_BaseAdmin):
     league_id_field = 'season_player__season__league_id'
     league_competitor_type = 'individual'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerAvailability)
 class PlayerAvailabilityAdmin(_BaseAdmin):
     list_display = ('player', 'round', 'is_available')
@@ -2027,14 +2228,16 @@ class PlayerAvailabilityAdmin(_BaseAdmin):
     raw_id_fields = ('player', 'round')
     league_id_field = 'round__season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(SeasonPrize)
 class SeasonPrizeAdmin(_BaseAdmin):
     list_display = ('season', 'rank', 'max_rating')
     search_fields = ('season__name',)
     league_id_field = 'season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(SeasonPrizeWinner)
 class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
@@ -2042,7 +2245,8 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
     raw_id_fields = ('season_prize', 'player')
     league_id_field = 'season_prize__season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(GameNomination)
 class GameNominationAdmin(_BaseAdmin):
     list_display = ('__str__',)
@@ -2050,7 +2254,8 @@ class GameNominationAdmin(_BaseAdmin):
     raw_id_fields = ('nominating_player', 'pairing')
     league_id_field = 'season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(GameSelection)
 class GameSelectionAdmin(_BaseAdmin):
     list_display = ('__str__',)
@@ -2058,33 +2263,38 @@ class GameSelectionAdmin(_BaseAdmin):
     raw_id_fields = ('pairing',)
     league_id_field = 'season__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(AvailableTime)
 class AvailableTimeAdmin(_BaseAdmin):
     list_display = ('player', 'time', 'league')
     search_fields = ('player__lichess_username',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(NavItem)
 class NavItemAdmin(_BaseAdmin):
     list_display = ('__str__', 'parent')
     search_fields = ('text',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(ApiKey)
 class ApiKeyAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PrivateUrlAuth)
 class PrivateUrlAuthAdmin(_BaseAdmin):
     list_display = ('__str__', 'expires')
     search_fields = ('authenticated_user',)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(Document)
 class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
@@ -2094,9 +2304,11 @@ class DocumentAdmin(_BaseAdmin):
         queryset = super(_BaseAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return queryset
-        filtered_queryset = queryset.filter(leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
-                          | queryset.filter(seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
-                          | queryset.filter(owner=request.user)
+        filtered_queryset = queryset.filter(
+            leaguedocument__league_id__in=self.authorized_leagues(request.user)) \
+                            | queryset.filter(
+            seasondocument__season__league_id__in=self.authorized_leagues(request.user)) \
+                            | queryset.filter(owner=request.user)
         if self.has_assigned_perm(request.user, 'change'):
             filtered_queryset |= queryset.filter(allow_editors=True)
         return filtered_queryset
@@ -2111,11 +2323,13 @@ class DocumentAdmin(_BaseAdmin):
 
     def has_league_perm(self, user, action, obj):
         if obj is None:
-            return bool(self.authorized_leagues(user)) or Document.objects.filter(owner=user).exists()
+            return bool(self.authorized_leagues(user)) or Document.objects.filter(
+                owner=user).exists()
         else:
             return user.is_superuser or obj.owned_by(user) \
-                or self.get_league_id(obj) in self.authorized_leagues(user) \
-                or action == 'change' and obj.allow_editors and self.has_assigned_perm(user, 'change')
+                   or self.get_league_id(obj) in self.authorized_leagues(user) \
+                   or action == 'change' and obj.allow_editors and self.has_assigned_perm(user,
+                                                                                          'change')
 
     def has_change_permission(self, request, obj=None):
         return self.has_league_perm(request.user, 'change', obj)
@@ -2133,7 +2347,8 @@ class DocumentAdmin(_BaseAdmin):
             return ()
         return ('allow_editors', 'owner')
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LeagueDocument)
 class LeagueDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'league', 'tag', 'type', 'url')
@@ -2143,9 +2358,11 @@ class LeagueDocumentAdmin(_BaseAdmin):
     def url(self, obj):
         _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
         return '<a href="%s">%s</a>' % (_url, _url)
+
     url.allow_tags = True
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(SeasonDocument)
 class SeasonDocumentAdmin(_BaseAdmin):
     list_display = ('document', 'season', 'tag', 'type', 'url')
@@ -2153,34 +2370,41 @@ class SeasonDocumentAdmin(_BaseAdmin):
     league_id_field = 'season__league_id'
 
     def url(self, obj):
-        _url = reverse('by_league:by_season:document', args=[obj.season.league.tag, obj.season.tag, obj.tag])
+        _url = reverse('by_league:by_season:document',
+                       args=[obj.season.league.tag, obj.season.tag, obj.tag])
         return '<a href="%s">%s</a>' % (_url, _url)
+
     url.allow_tags = True
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(LeagueChannel)
 class LeagueChannelAdmin(_BaseAdmin):
     list_display = ('league', 'type', 'slack_channel')
     search_fields = ('league__name', 'slack_channel')
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(ScheduledEvent)
 class ScheduledEventAdmin(_BaseAdmin):
     list_display = ('type', 'offset', 'relative_to', 'league', 'season')
     search_fields = ('league__name', 'season__name')
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerNotificationSetting)
 class PlayerNotificationSettingAdmin(_BaseAdmin):
-    list_display = ('player', 'type', 'league', 'offset', 'enable_lichess_mail', 'enable_slack_im', 'enable_slack_mpim')
+    list_display = ('player', 'type', 'league', 'offset', 'enable_lichess_mail', 'enable_slack_im',
+                    'enable_slack_mpim')
     list_filter = ('league', 'type')
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('player',)
     league_id_field = 'league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(ScheduledNotification)
 class ScheduledNotificationAdmin(_BaseAdmin):
     list_display = ('setting', 'pairing', 'notification_time')
@@ -2189,7 +2413,8 @@ class ScheduledNotificationAdmin(_BaseAdmin):
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 @admin.register(ModRequest)
 class ModRequestAdmin(_BaseAdmin):
     list_display = ('review', 'type', 'status', 'season', 'date_created')
@@ -2204,12 +2429,15 @@ class ModRequestAdmin(_BaseAdmin):
         return super(ModRequestAdmin, self).changelist_view(request, extra_context=extra_context)
 
     def review(self, obj):
-        _url = reverse('admin:tournament_modrequest_review', args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
+        _url = reverse('admin:tournament_modrequest_review',
+                       args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
         return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username)
+
     review.allow_tags = True
 
     def edit(self, obj):
         return 'Edit'
+
     edit.allow_tags = True
 
     def get_urls(self):
@@ -2238,13 +2466,17 @@ class ModRequestAdmin(_BaseAdmin):
             if form.is_valid():
                 params = '?_changelist_filters=' + urlquote(changelist_filters)
                 if 'approve' in form.data and obj.status == 'pending':
-                    return redirect_with_params('admin:tournament_modrequest_approve', object_id=object_id, params=params)
+                    return redirect_with_params('admin:tournament_modrequest_approve',
+                                                object_id=object_id, params=params)
                 elif 'reject' in form.data and obj.status == 'pending':
-                    return redirect_with_params('admin:tournament_modrequest_reject', object_id=object_id, params=params)
+                    return redirect_with_params('admin:tournament_modrequest_reject',
+                                                object_id=object_id, params=params)
                 elif 'edit' in form.data:
-                    return redirect_with_params('admin:tournament_modrequest_change', object_id, params=params)
+                    return redirect_with_params('admin:tournament_modrequest_change', object_id,
+                                                params=params)
                 else:
-                    return redirect_with_params('admin:tournament_modrequest_changelist', params=params)
+                    return redirect_with_params('admin:tournament_modrequest_changelist',
+                                                params=params)
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ReviewModRequestForm()
@@ -2276,9 +2508,12 @@ class ModRequestAdmin(_BaseAdmin):
                 if 'confirm' in form.data:
                     obj.approve(request.user.username, form.cleaned_data['response'])
                     self.message_user(request, 'Request approved.', messages.INFO)
-                    return redirect_with_params('admin:tournament_modrequest_changelist', params='?' + changelist_filters)
+                    return redirect_with_params('admin:tournament_modrequest_changelist',
+                                                params='?' + changelist_filters)
                 else:
-                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id,
+                                                params='?_changelist_filters=' + urlquote(
+                                                    changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.ApproveModRequestForm()
@@ -2310,9 +2545,12 @@ class ModRequestAdmin(_BaseAdmin):
                 if 'confirm' in form.data:
                     obj.reject(request.user.username, form.cleaned_data['response'])
                     self.message_user(request, 'Request rejected.', messages.INFO)
-                    return redirect_with_params('admin:tournament_registration_changelist', params='?' + changelist_filters)
+                    return redirect_with_params('admin:tournament_registration_changelist',
+                                                params='?' + changelist_filters)
                 else:
-                    return redirect_with_params('admin:tournament_modrequest_review', object_id, params='?_changelist_filters=' + urlquote(changelist_filters))
+                    return redirect_with_params('admin:tournament_modrequest_review', object_id,
+                                                params='?_changelist_filters=' + urlquote(
+                                                    changelist_filters))
         else:
             changelist_filters = request.GET.get('_changelist_filters', '')
             form = forms.RejectModRequestForm()

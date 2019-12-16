@@ -5,7 +5,8 @@
             <h3>{{ document.name }}</h3>
         </div>{% if can_edit_document %}
         <div class="inline document-edit">
-            <a href="{% url 'admin:tournament_document_change' document.pk %}?_popup=1" id="change-document-{{ document.pk }}" class="large-popup-link" title="Change selected document">
+            <a href="{% url 'admin:tournament_document_change' document.pk %}?_popup=1"
+               id="change-document-{{ document.pk }}" class="large-popup-link" title="Change selected document">
                 <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
             </a>
         </div>{% endif %}

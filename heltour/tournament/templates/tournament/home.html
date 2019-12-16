@@ -8,20 +8,20 @@
         <div class="container" id="home-league-list">
             <div class="row">
                 {% if leagues %}
-                {% for l in leagues %}
-                <div class="col-sm-6 col-xs-12">
-                    <a href="{% leagueurl 'league_home' l.tag None %}" class="league-home-container"> 
-                        <div class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</div>
-                        <div class="league-home-details">
-                            <p class="league-home-desc">
-                            {{ l.description }}
-                            </p>
+                    {% for l in leagues %}
+                        <div class="col-sm-6 col-xs-12">
+                            <a href="{% leagueurl 'league_home' l.tag None %}" class="league-home-container">
+                                <div class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</div>
+                                <div class="league-home-details">
+                                    <p class="league-home-desc">
+                                        {{ l.description }}
+                                    </p>
+                                </div>
+                            </a>
                         </div>
-                    </a>
-                </div>
-                {% endfor %}
+                    {% endfor %}
                 {% else %}
-                <p>This site is currently being set up. Please check back later.</p>
+                    <p>This site is currently being set up. Please check back later.</p>
                 {% endif %}
             </div>
         </div>

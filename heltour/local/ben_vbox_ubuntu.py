@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 DEBUG = True
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/ben/gspread-creds.json'
 SLACK_API_TOKEN_FILE_PATH = '/home/ben/slack-token'

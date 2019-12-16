@@ -4,33 +4,35 @@
 {% block title %}Registration - {{ registration_season.section_group_name }} - {{ league.name }}{% endblock %}
 
 {% block css %}
-<link rel="stylesheet" href="{% static 'lib/css/bootstrap-toggle.min.css' %}">
+    <link rel="stylesheet" href="{% static 'lib/css/bootstrap-toggle.min.css' %}">
 {% endblock %}
 
 {% block js %}
-<script type="text/javascript" src="{% static 'lib/js/bootstrap-toggle.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'lib/js/bootstrap-toggle.min.js' %}"></script>
 {% endblock %}
 
 {% block content %}
-<div class="row row-condensed-xs">
-    <div class="col-md-12">
-        <div class="well" id="well-register">
-            <div class="well-head">
-                <h3>{{ registration_season.section_group_name }} Registration</h3>
-            </div>
-            <div class="well-body">
-                {% if registration_season.start_date %}
-                <p>The season {% if registration_season.is_started %}started{% else %}starts{% endif %} {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
-                {% endif %}
-                <form action="" method="post">
-                    {% csrf_token %}
-                    {% bootstrap_form form %}
-                    {% buttons %}
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    {% endbuttons %}
-                </form>
+    <div class="row row-condensed-xs">
+        <div class="col-md-12">
+            <div class="well" id="well-register">
+                <div class="well-head">
+                    <h3>{{ registration_season.section_group_name }} Registration</h3>
+                </div>
+                <div class="well-body">
+                    {% if registration_season.start_date %}
+                        <p>The season {% if registration_season.is_started %}started{% else %}starts{% endif %}
+                            {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends
+                                {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
+                    {% endif %}
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        {% buttons %}
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        {% endbuttons %}
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endblock %}

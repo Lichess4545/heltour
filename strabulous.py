@@ -25,7 +25,7 @@ from baste import (
 )
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 def update(all_repos, python_repos, python_package_name, python_version):
     """
     Update all of the dependencies to their latest versions.
@@ -37,16 +37,19 @@ def update(all_repos, python_repos, python_package_name, python_version):
         python_dependency(repo.name, python_version)
     python_dependency(python_package_name, python_version)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def createdb(database_name, database_user, get_password):
-    if confirm(colors.red("Show DB Password? You should only run this when others aren't looking over your shoulder. Run the command?")):
+    if confirm(colors.red(
+        "Show DB Password? You should only run this when others aren't looking over your shoulder. Run the command?")):
         print((colors.blue("Password: ") + colors.yellow(get_password())))
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         UbuntuPgCreateDbAndUser(database_name, database_user)()
 
 
-#-------------------------------------------------------------------------------
-def latest_live_media(live_media_path, local_media_path, password_file_name, live_ssh_username, live_domain):
+# -------------------------------------------------------------------------------
+def latest_live_media(live_media_path, local_media_path, password_file_name, live_ssh_username,
+                      live_domain):
     local_dir = local_media_path
     remote_dir = live_media_path
     if confirm(colors.red("This will overwrite local data, are you sure?")):
@@ -56,8 +59,10 @@ def latest_live_media(live_media_path, local_media_path, password_file_name, liv
             local_directory=local_dir
         )()
 
-#-------------------------------------------------------------------------------
-def latest_live_db(live_backup_script_path, live_latest_sql_file_path, database_name, database_user, get_password):
+
+# -------------------------------------------------------------------------------
+def latest_live_db(live_backup_script_path, live_latest_sql_file_path, database_name, database_user,
+                   get_password):
     if confirm(colors.red("This will overwrite local data, are you sure?")):
         if confirm(colors.red("Create a new backup?")):
             run(live_backup_script_path)
@@ -67,7 +72,7 @@ def latest_live_db(live_backup_script_path, live_latest_sql_file_path, database_
         else:
             local_db = local_target
         with settings(warn_only=True):
-            if confirm(colors.red("Show password? You should only run this when others aren't looking over your shoulder. Show database password?")):
+            if confirm(colors.red(
+                "Show password? You should only run this when others aren't looking over your shoulder. Show database password?")):
                 print((colors.blue("Password: ") + colors.yellow(get_password())))
             PgLoadPlain(local_db, database_name, database_user)()
-

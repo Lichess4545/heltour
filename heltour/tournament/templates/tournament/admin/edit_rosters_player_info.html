@@ -1,25 +1,66 @@
 {% load staticfiles tournament_extras comments %}
 
 <table class="table-player-info">
-<tr><td>Rating:</td><td>{% player_rating player %}</td></tr>
-<tr><td>Exp Rating:</td><td>{% expected_rating season_player %}</td></tr>
-{% if reg %}
-<tr><td>Peak Rating:</td><td>{{ reg.peak_classical_rating }}</td></tr>
-<tr><td>Registration date:</td><td>{{ reg.date_created.date }}</td></tr>
-<tr><td>Friends:</td><td>{{ reg.friends }}</td></tr>
-<tr><td>Avoid:</td><td>{{ reg.avoid }}</td></tr>
-<tr><td>Alt Pref:</td><td class="{% if reg.alternate_preference == 'alternate' %}text-approved{% endif %}">{{ reg.get_alternate_preference_display }}</td></tr>
-{% endif %}
-<tr><td>Established rating:</td><td class="{% if not has_played_20_games %}text-rejected{% endif %}">{{ has_played_20_games|yesno:'Yes,No' }}</td></tr>
-<tr><td>In slack group:</td><td class="{% if not player.slack_user_id %}text-rejected{% endif %}">{{ player.slack_user_id|yesno:'Yes,No' }}</td></tr>
-<tr><td>Missed games:</td><td class="{% if season_player.games_missed >= 2 %}text-rejected{% endif %}">{{ season_player.games_missed }}</td></tr>
-{% if player.account_status != 'normal' %}
-<tr><td>Account status:</td><td class="text-rejected">{{ player.get_account_status_display }}</td></tr>
-{% endif %}
-{% get_comment_list for player as comments %}
-{% if comments %}
-<tr><td>{% render_comment_list for player %}</td></tr>
-{% endif %}
-<tr><td colspan="2"><input type="checkbox" class="captain-checkbox" id="captain" /><label for="captain">Captain</label></div></td></tr>
-<tr><td colspan="2"><input type="checkbox" class="vice-captain-checkbox" id="vice-captain" /><label for="vice-captain">Vice captain</label></td></tr>
+    <tr>
+        <td>Rating:</td>
+        <td>{% player_rating player %}</td>
+    </tr>
+    <tr>
+        <td>Exp Rating:</td>
+        <td>{% expected_rating season_player %}</td>
+    </tr>
+    {% if reg %}
+        <tr>
+            <td>Peak Rating:</td>
+            <td>{{ reg.peak_classical_rating }}</td>
+        </tr>
+        <tr>
+            <td>Registration date:</td>
+            <td>{{ reg.date_created.date }}</td>
+        </tr>
+        <tr>
+            <td>Friends:</td>
+            <td>{{ reg.friends }}</td>
+        </tr>
+        <tr>
+            <td>Avoid:</td>
+            <td>{{ reg.avoid }}</td>
+        </tr>
+        <tr>
+            <td>Alt Pref:</td>
+            <td class="{% if reg.alternate_preference == 'alternate' %}text-approved{% endif %}">{{ reg.get_alternate_preference_display }}</td>
+        </tr>
+    {% endif %}
+    <tr>
+        <td>Established rating:</td>
+        <td class="{% if not has_played_20_games %}text-rejected{% endif %}">{{ has_played_20_games|yesno:'Yes,No' }}</td>
+    </tr>
+    <tr>
+        <td>In slack group:</td>
+        <td class="{% if not player.slack_user_id %}text-rejected{% endif %}">{{ player.slack_user_id|yesno:'Yes,No' }}</td>
+    </tr>
+    <tr>
+        <td>Missed games:</td>
+        <td class="{% if season_player.games_missed >= 2 %}text-rejected{% endif %}">{{ season_player.games_missed }}</td>
+    </tr>
+    {% if player.account_status != 'normal' %}
+        <tr>
+            <td>Account status:</td>
+            <td class="text-rejected">{{ player.get_account_status_display }}</td>
+        </tr>
+    {% endif %}
+    {% get_comment_list for player as comments %}
+    {% if comments %}
+        <tr>
+            <td>{% render_comment_list for player %}</td>
+        </tr>
+    {% endif %}
+    <tr>
+        <td colspan="2"><input type="checkbox" class="captain-checkbox" id="captain"/><label
+                for="captain">Captain</label></div></td>
+    </tr>
+    <tr>
+        <td colspan="2"><input type="checkbox" class="vice-captain-checkbox" id="vice-captain"/><label
+                for="vice-captain">Vice captain</label></td>
+    </tr>
 </table>

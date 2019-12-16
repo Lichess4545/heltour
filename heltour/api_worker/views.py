@@ -6,7 +6,9 @@ from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
-def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format, retry_count=0):
+
+def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
+                         retry_count=0):
     url = "https://lichess.org/%s" % path
 
     try:
@@ -31,13 +33,15 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
         cache.set(redis_key, '', timeout=60)
     else:
         # Retry
-        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data, params, priority, max_retries, format, retry_count + 1)
+        worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data,
+                          params, priority, max_retries, format, retry_count + 1)
 
     if r is not None and r.status_code == 429:
         # Too many requests
         time.sleep(60)
     else:
         time.sleep(2)
+
 
 @csrf_exempt
 def lichess_api_call(request, path):
@@ -46,14 +50,17 @@ def lichess_api_call(request, path):
     max_retries = int(params.pop('max_retries', 3))
     format = params.pop('format', None)
     redis_key = get_random_string(length=16)
-    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method, request.body.decode('utf-8'), params, priority, max_retries, format)
+    worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method,
+                      request.body.decode('utf-8'), params, priority, max_retries, format)
     return HttpResponse(redis_key)
+
 
 @csrf_exempt
 def watch(request):
     game_ids = request.body.decode('utf-8').split(',')
     result = worker.watch_games(game_ids)
     return JsonResponse({'result': result})
+
 
 @csrf_exempt
 def watch_add(request):

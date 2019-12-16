@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 from datetime import timedelta
 
-
 ADMINS = []
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -34,7 +33,6 @@ ALLOWED_HOSTS = [
     'localhost',
 ]
 LINK_PROTOCOL = 'https'
-
 
 # Application definition
 
@@ -105,7 +103,6 @@ WSGI_APPLICATION = 'heltour.wsgi.application'
 
 SITE_ID = 1
 
-
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
@@ -118,7 +115,6 @@ DATABASES = {
         'PASSWORD': 'sown shuts combiner chattels',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -138,10 +134,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'heltour.tournament.auth.LeagueAuthBackend']
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend',
+                           'heltour.tournament.auth.LeagueAuthBackend']
 
 IMPERSONATE_REDIRECT_URL = '/'
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
@@ -156,12 +152,10 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Email
 # https://docs.djangoproject.com/en/1.10/topics/email/
 
 DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
-
 
 # Celery (tasks)
 
@@ -169,11 +163,11 @@ BROKER_URL = 'redis://localhost:6379/2'
 CELERY_DEFAULT_QUEUE = 'heltour.staging'
 
 CELERYBEAT_SCHEDULE = {
-#     'update-ratings': {
-#         'task': 'heltour.tournament.tasks.update_player_ratings',
-#         'schedule': timedelta(minutes=30),
-#         'args': ()
-#     },
+    #     'update-ratings': {
+    #         'task': 'heltour.tournament.tasks.update_player_ratings',
+    #         'schedule': timedelta(minutes=30),
+    #         'args': ()
+    #     },
     'update-tv-state': {
         'task': 'heltour.tournament.tasks.update_tv_state',
         'schedule': timedelta(minutes=5),
@@ -189,7 +183,7 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=30),
         'args': ()
     },
-   'run_scheduled_events': {
+    'run_scheduled_events': {
         'task': 'heltour.tournament.tasks.run_scheduled_events',
         'schedule': timedelta(minutes=10),
         'args': ()
@@ -213,7 +207,6 @@ CELERYBEAT_SCHEDULE = {
 
 CELERY_TIMEZONE = 'UTC'
 
-
 # Django-Redis
 
 CACHES = {
@@ -225,7 +218,6 @@ CACHES = {
         }
     }
 }
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
@@ -255,7 +247,7 @@ NOCAPTCHA = True
 RECAPTCHA_USE_SSL = True
 
 LOGIN_URL = '/admin/login/'
-SESSION_COOKIE_AGE = 4838400 # 8 weeks
+SESSION_COOKIE_AGE = 4838400  # 8 weeks
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '::1']
@@ -290,6 +282,7 @@ LICHESS_OAUTH_CLIENTSECRET = ''
 
 # Testing overrides
 import sys
+
 TESTING = 'test' in sys.argv
 if TESTING:
     CACHEOPS = {}
@@ -297,15 +290,17 @@ if TESTING:
 # Host-based settings overrides.
 import platform
 import re
+
 try:
     hostname = platform.node().split('.')[0]
-    exec('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
+    exec ('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
 except ImportError:
-    pass # ignore missing local settings
+    pass  # ignore missing local settings
 
 # Allow live settings (which aren't in the repository) to override the development settings.
 import os
 import json
+
 if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
     overrides = json.loads(open("/home/lichess4545/etc/heltour/staging.json", "r").read())
     DATABASES = overrides.get("DATABASES", DATABASES)
@@ -314,11 +309,14 @@ if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
     EMAIL_PORT = overrides.get("EMAIL_PORT", locals().get('EMAIL_PORT'))
     EMAIL_USE_TLS = overrides.get("EMAIL_USE_TLS", locals().get('EMAIL_USE_TLS'))
     EMAIL_HOST_USER = overrides.get("EMAIL_HOST_USER", locals().get('EMAIL_HOST_USER'))
-    EMAIL_HOST_PASSWORD = str(overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD')))
+    EMAIL_HOST_PASSWORD = str(
+        overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD')))
     SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
     DEFAULT_FROM_EMAIL = overrides.get("DEFAULT_FROM_EMAIL", locals().get('DEFAULT_FROM_EMAIL'))
-    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH", GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
-    SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH", SLACK_API_TOKEN_FILE_PATH)
+    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH",
+                                                        GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
+    SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH",
+                                              SLACK_API_TOKEN_FILE_PATH)
     SLACK_WEBHOOK_FILE_PATH = overrides.get("SLACK_WEBHOOK_FILE_PATH", SLACK_WEBHOOK_FILE_PATH)
     LICHESS_CREDS_FILE_PATH = overrides.get("LICHESS_CREDS_FILE_PATH", LICHESS_CREDS_FILE_PATH)
     FCM_API_KEY_FILE_PATH = overrides.get("FCM_API_KEY_FILE_PATH", FCM_API_KEY_FILE_PATH)
@@ -328,4 +326,5 @@ if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
     RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)
     RECAPTCHA_PRIVATE_KEY = overrides.get("RECAPTCHA_PRIVATE_KEY", RECAPTCHA_PRIVATE_KEY)
     LICHESS_OAUTH_CLIENTID = overrides.get("LICHESS_OAUTH_CLIENTID", LICHESS_OAUTH_CLIENTID)
-    LICHESS_OAUTH_CLIENTSECRET = overrides.get("LICHESS_OAUTH_CLIENTSECRET", LICHESS_OAUTH_CLIENTSECRET)
+    LICHESS_OAUTH_CLIENTSECRET = overrides.get("LICHESS_OAUTH_CLIENTSECRET",
+                                               LICHESS_OAUTH_CLIENTSECRET)

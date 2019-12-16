@@ -1,8 +1,8 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
-<table>
-    <thead>
+    <table>
+        <thead>
         <tr>
             <th>Forfeit</th>
             <th>Average rating</th>
@@ -17,24 +17,24 @@
             <th>Games on lichess</th>
             <th>Round start date</th>
         </tr>
-    </thead>
-    <tbody>
+        </thead>
+        <tbody>
         {% for row in rows %}
-        <tr>
-            <td>{{ row.forfeit }}</td>
-            <td>{{ row.average_rating }}</td>
-            <td>{{ row.rating_delta }}</td>
-            <td>{{ row.timezone_delta }}</td>
-            <td>{{ row.round_joined }}</td>
-            <td>{{ row.player_games_played }}</td>
-            <td>{{ row.player_games_forfeited }}</td>
-            <td>{{ row.player_byes }}</td>
-            <td>{{ row.player_seasons_participated }}</td>
-            <td>{{ row.player_team_seasons_participated }}</td>
-            <td>{{ row.player_games_on_lichess }}</td>
-            <td>{{ row.round_start_date|date }}</td>
-        </tr>
+            <tr>
+                <td>{{ row.forfeit }}</td>
+                <td>{{ row.average_rating }}</td>
+                <td>{{ row.rating_delta }}</td>
+                <td>{{ row.timezone_delta }}</td>
+                <td>{{ row.round_joined }}</td>
+                <td>{{ row.player_games_played }}</td>
+                <td>{{ row.player_games_forfeited }}</td>
+                <td>{{ row.player_byes }}</td>
+                <td>{{ row.player_seasons_participated }}</td>
+                <td>{{ row.player_team_seasons_participated }}</td>
+                <td>{{ row.player_games_on_lichess }}</td>
+                <td>{{ row.round_start_date|date }}</td>
+            </tr>
         {% endfor %}
-    </tbody>
-</table>
+        </tbody>
+    </table>
 {% endblock %}

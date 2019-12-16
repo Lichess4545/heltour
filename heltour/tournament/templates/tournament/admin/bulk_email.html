@@ -2,41 +2,41 @@
 {% load staticfiles %}
 
 {% block extrahead %}{{ block.super }}
-<script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-<script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
-<script type="text/javascript" src="/static/ckeditor/ckeditor/ckeditor.js"></script>
-<script type="text/javascript" src="/static/ckeditor/ckeditor-init.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+    <script type="text/javascript" src="/static/ckeditor/ckeditor/ckeditor.js"></script>
+    <script type="text/javascript" src="/static/ckeditor/ckeditor-init.js"></script>
 {% endblock %}
 
 {% block content %}
-<form action="" method="post">
-    {% csrf_token %}
-    {{ form.errors }}
-    <div class="aligned">
-        <div class="form-row">
-            {{ form.subject.label_tag }}
-            {{ form.subject }}
-        </div>
-        <div class="form-row">
-            {{ form.html_content.label_tag }}
-            {{ form.html_content }}
-        </div>
-        <div class="form-row">
-            {{ form.text_content.label_tag }}
-            {{ form.text_content }}
-        </div>
-        <div class="form-row">
-            <div class="checkbox-row">
-                {{ form.confirm_send }}
-                <label for="{{ form.confirm_send.id_for_label }}" class="vCheckboxLabel">
-                    {{ form.confirm_send.label }}
-                </label>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.errors }}
+        <div class="aligned">
+            <div class="form-row">
+                {{ form.subject.label_tag }}
+                {{ form.subject }}
+            </div>
+            <div class="form-row">
+                {{ form.html_content.label_tag }}
+                {{ form.html_content }}
+            </div>
+            <div class="form-row">
+                {{ form.text_content.label_tag }}
+                {{ form.text_content }}
+            </div>
+            <div class="form-row">
+                <div class="checkbox-row">
+                    {{ form.confirm_send }}
+                    <label for="{{ form.confirm_send.id_for_label }}" class="vCheckboxLabel">
+                        {{ form.confirm_send.label }}
+                    </label>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="submit-row">
-        <input class="default" value="Send" name="confirm" type="submit">
-    </div>
-</form>
+        <div class="submit-row">
+            <input class="default" value="Send" name="confirm" type="submit">
+        </div>
+    </form>
 {% endblock %}

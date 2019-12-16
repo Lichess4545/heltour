@@ -1,136 +1,144 @@
 section {
-  display: inline-block;
-  margin: 0 5px 20px 0;
-  background: #f3f3f3;
-  padding: 0 0 0 0;
-  border: 1px solid #ccc;
-  line-height: 20px;
-  vertical-align: middle;
+    display: inline-block;
+    margin: 0 5px 20px 0;
+    background: #f3f3f3;
+    padding: 0 0 0 0;
+    border: 1px solid #ccc;
+    line-height: 20px;
+    vertical-align: middle;
 }
+
 section .gameLabel {
-  margin: 0;
-  padding: 5px 0 5px 0;
-  font-weight: bold;
-  min-height: 30px;
-  text-align: center;
+    margin: 0;
+    padding: 5px 0 5px 0;
+    font-weight: bold;
+    min-height: 30px;
+    text-align: center;
 }
+
 section .gameLabel a {
-  color: #666;
+    color: #666;
 }
+
 section .gameLabel .team-name {
-	display: inline-block;
-	max-width: 190px;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	overflow: hidden;
-	vertical-align: top;
+    display: inline-block;
+    max-width: 190px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    vertical-align: top;
 }
 
 .tv-game-menu {
-	visibility: hidden;
+    visibility: hidden;
     opacity: 0;
-  	transition: visibility 0s 0.5s, opacity 0.5s linear;
-  	
-	float: right;
-	margin-right: -24px;
-	margin-top: -1px;
-	width: 24px;
-	height: 24px;
-  	background: #f3f3f3;
-  	border: 1px solid #ccc;
+    transition: visibility 0s 0.5s, opacity 0.5s linear;
+
+    float: right;
+    margin-right: -24px;
+    margin-top: -1px;
+    width: 24px;
+    height: 24px;
+    background: #f3f3f3;
+    border: 1px solid #ccc;
 }
 
 section:hover .tv-game-menu,
 .tv-game-menu.open {
-	visibility: visible;
+    visibility: visible;
     opacity: 1;
     transition: none;
 }
 
 @media (max-width: 767px) {
-	.tv-game-menu {
-		visibility: visible;
-	    opacity: 1;
-	    transition: none;
-	}	
+    .tv-game-menu {
+        visibility: visible;
+        opacity: 1;
+        transition: none;
+    }
 }
 
 .tv-game-menu > a {
-	color: #666;
-	display: block;
-	width: 24px;
-	height: 24px;
-	padding-right: 4px;
-	text-align: center;
+    color: #666;
+    display: block;
+    width: 24px;
+    height: 24px;
+    padding-right: 4px;
+    text-align: center;
 }
 
 .games-well > .well-body > :last-child {
-	margin-bottom: -17px;
+    margin-bottom: -17px;
 }
 
 #no-games, #no-filter-games {
-	margin-bottom: 15px;
+    margin-bottom: 15px;
 }
 
 #schedule {
-	margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 #schedule thead tr:first-child th {
-	padding-top: 18px;
+    padding-top: 18px;
 }
 
 #schedule thead:first-child tr:first-child th {
-	padding-top: 8px;
+    padding-top: 8px;
 }
 
 #schedule .team-row td,
 #schedule .board-row td {
-	padding-top: 0;
-	border-top: none;
+    padding-top: 0;
+    border-top: none;
 }
 
 #more-schedule {
-	margin-top: 10px;
+    margin-top: 10px;
 }
 
 .chessground.tiny {
-  width: 225px;
-  height: 225px;
+    width: 225px;
+    height: 225px;
 }
+
 .chessground.small {
-  width: 300px;
-  height: 300px;
+    width: 300px;
+    height: 300px;
 }
+
 .chessground.normal {
-  width: 512px;
-  height: 512px;
+    width: 512px;
+    height: 512px;
 }
+
 .cg-board-wrap svg {
-  opacity: 0.6;
-  overflow: hidden;
-  position: relative;
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
+    opacity: 0.6;
+    overflow: hidden;
+    position: relative;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
 }
+
 .cg-board svg * {
-  transition: 0.35s;
+    transition: 0.35s;
 }
+
 .cg-board svg image {
-  opacity: 0.5;
+    opacity: 0.5;
 }
 
 .cg-board-wrap coords {
-  color: #848484;
+    color: #848484;
 }
 
 @media (min-width: 768px) {
-	.game-col {
-	  height: 420px;
-	  line-height: 420px;
-	}
+    .game-col {
+        height: 420px;
+        line-height: 420px;
+    }
 }

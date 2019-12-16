@@ -8,30 +8,41 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
 @receiver(post_save, sender=ModRequest, dispatch_uid='heltour.tournament.automod')
 def mod_request_saved(instance, created, **kwargs):
     if created:
-        signals.mod_request_created.send(sender=MOD_REQUEST_SENDER[instance.type], instance=instance)
+        signals.mod_request_created.send(sender=MOD_REQUEST_SENDER[instance.type],
+                                         instance=instance)
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_late_response'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_created(instance, **kwargs):
     # Figure out which round to use
     if not instance.round or instance.round.publish_pairings:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True,
+                                                                             is_completed=False).first()
         instance.save()
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['request_continuation'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['request_continuation'],
+          dispatch_uid='heltour.tournament.automod')
 def request_continuation_created(instance, **kwargs):
     # Figure out which round to use
     if not instance.round or instance.round.publish_pairings:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(
+            publish_pairings=False).first()
         instance.save()
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['withdraw'],
+          dispatch_uid='heltour.tournament.automod')
 def withdraw_created(instance, **kwargs):
     # Figure out which round to add the withdrawal on
     if not instance.round or instance.round.publish_pairings:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(
+            publish_pairings=False).first()
         instance.save()
 
     # Check that the requester is part of the season
@@ -46,7 +57,9 @@ def withdraw_created(instance, **kwargs):
 
     instance.approve(response='You\'ve been withdrawn for round %d.' % instance.round.number)
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['withdraw'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['withdraw'],
+          dispatch_uid='heltour.tournament.automod')
 def withdraw_approved(instance, **kwargs):
     if not instance.round:
         return
@@ -56,35 +69,47 @@ def withdraw_approved(instance, **kwargs):
         reversion.set_comment('Withdraw request approved by %s' % instance.status_changed_by)
         PlayerWithdrawal.objects.get_or_create(player=instance.requester, round=instance.round)
 
+
 @receiver(signals.automod_unresponsive, dispatch_uid='heltour.tournament.automod')
 def automod_unresponsive(round_, **kwargs):
-    groups = { 'warning': [], 'yellow': [], 'red': [] }
-    for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(white=None).exclude(black=None):
-        #verify that neither player is previously marked unavailable
+    groups = {'warning': [], 'yellow': [], 'red': []}
+    for p in round_.pairings.filter(game_link='', result='', scheduled_time=None).exclude(
+        white=None).exclude(black=None):
+        # verify that neither player is previously marked unavailable
         if round_.season.league.competitor_type == 'team':
-            white_unavail = PlayerAvailability.objects.filter(round=round_, player=p.white, is_available=False).exists()
-            black_unavail = PlayerAvailability.objects.filter(round=round_, player=p.black, is_available=False).exists()
+            white_unavail = PlayerAvailability.objects.filter(round=round_, player=p.white,
+                                                              is_available=False).exists()
+            black_unavail = PlayerAvailability.objects.filter(round=round_, player=p.black,
+                                                              is_available=False).exists()
             if white_unavail or black_unavail:
                 continue
-        #check who is not present
+        # check who is not present
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
         if not white_present:
             player_unresponsive(round_, p, p.white, groups)
             if black_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.black, opponent=p.white, pairing=p)
+                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
+                                                          round_=round_, player=p.black,
+                                                          opponent=p.white, pairing=p)
             time.sleep(1)
         if not black_present:
             player_unresponsive(round_, p, p.black, groups)
             if white_present:
-                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive, round_=round_, player=p.white, opponent=p.black, pairing=p)
+                signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
+                                                          round_=round_, player=p.white,
+                                                          opponent=p.black, pairing=p)
             time.sleep(1)
-    signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_, warnings=groups['warning'], yellows=groups['yellow'], reds=groups['red'])
+    signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_,
+                                          warnings=groups['warning'], yellows=groups['yellow'],
+                                          reds=groups['red'])
+
 
 def player_unresponsive(round_, pairing, player, groups):
     season = round_.season
     league = season.league
-    has_warning = PlayerWarning.objects.filter(player=player, round__season=season, type='unresponsive').exists()
+    has_warning = PlayerWarning.objects.filter(player=player, round__season=season,
+                                               type='unresponsive').exists()
     if not has_warning and league.get_leaguesetting().warning_for_late_response:
         with reversion.create_revision():
             reversion.set_comment('Automatic warning for unresponsiveness')
@@ -103,16 +128,21 @@ def player_unresponsive(round_, pairing, player, groups):
         avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
         avail.is_available = False
         avail.save()
-    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player, punishment=punishment, allow_continue=allow_continue, pairing=pairing)
+    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player,
+                                     punishment=punishment, allow_continue=allow_continue,
+                                     pairing=pairing)
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_late_response_approved(instance, **kwargs):
     if not instance.pairing:
         return
 
     with reversion.create_revision():
         reversion.set_comment('Late response appeal approved by %s' % instance.status_changed_by)
-        warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round, type='unresponsive').first()
+        warning = PlayerWarning.objects.filter(player=instance.requester, round=instance.round,
+                                               type='unresponsive').first()
         if warning:
             warning.delete()
         else:
@@ -131,15 +161,20 @@ def automod_noshow(pairing, **kwargs):
     if black_online and not white_online:
         player_noshow(pairing, pairing.black, pairing.white)
 
+
 def player_noshow(pairing, player, opponent):
     round_ = pairing.get_round()
-    signals.notify_noshow.send(sender=automod_unresponsive, round_=round_, player=player, opponent=opponent)
+    signals.notify_noshow.send(sender=automod_unresponsive, round_=round_, player=player,
+                               opponent=opponent)
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_win_noshow'],
+          dispatch_uid='heltour.tournament.automod')
 def claim_win_noshow_created(instance, **kwargs):
     # Figure out which round to add the claim on
     if not instance.round:
-        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
+        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False,
+                                                                             publish_pairings=True).first()
         instance.save()
     if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
@@ -163,11 +198,13 @@ def claim_win_noshow_created(instance, **kwargs):
     opponent = p.white if p.white != instance.requester else p.black
 
     if p.get_player_presence(instance.requester).online_for_game \
-       and not p.get_player_presence(opponent).online_for_game \
-       and timezone.now() > p.scheduled_time + timedelta(minutes=21):
+        and not p.get_player_presence(opponent).online_for_game \
+        and timezone.now() > p.scheduled_time + timedelta(minutes=21):
         instance.approve(response='You\'ve been given a win by forfeit.')
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'],
+          dispatch_uid='heltour.tournament.automod')
 def claim_win_noshow_approved(instance, **kwargs):
     if not instance.pairing:
         return
@@ -191,19 +228,26 @@ def claim_win_noshow_approved(instance, **kwargs):
         return
     punishment = 'You have been given a %s card.' % card_color
     allow_continue = card_color != 'red' and instance.season.league.competitor_type != 'team'
-    signals.notify_noshow_claim.send(sender=claim_win_noshow_approved, round_=instance.round, player=opponent, punishment=punishment, allow_continue=allow_continue)
+    signals.notify_noshow_claim.send(sender=claim_win_noshow_approved, round_=instance.round,
+                                     player=opponent, punishment=punishment,
+                                     allow_continue=allow_continue)
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_noshow'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_noshow_created(instance, **kwargs):
     # Figure out which round to use
     if not instance.round:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True,
+                                                                             is_completed=False).first()
         instance.save()
     if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_noshow'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_noshow'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_noshow_approved(instance, **kwargs):
     if not instance.pairing:
         return
@@ -216,16 +260,18 @@ def appeal_noshow_approved(instance, **kwargs):
         instance.pairing.result = ''
         instance.pairing.save()
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'],
+          dispatch_uid='heltour.tournament.automod')
 def claim_draw_scheduling_created(instance, **kwargs):
     # Figure out which round to add the claim on
     if not instance.round:
-        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False, publish_pairings=True).first()
+        instance.round = instance.season.round_set.order_by('number').filter(is_completed=False,
+                                                                             publish_pairings=True).first()
         instance.save()
     if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
-
 
     # Check that the requester is part of the season
     sp = SeasonPlayer.objects.filter(player=instance.requester, season=instance.season).first()
@@ -238,16 +284,20 @@ def claim_draw_scheduling_created(instance, **kwargs):
         return
 
     if not instance.pairing:
-        instance.reject(response='You don\'t currently have a pairing you can claim a scheduling draw for.')
+        instance.reject(
+            response='You don\'t currently have a pairing you can claim a scheduling draw for.')
         return
-    
+
     if instance.pairing.result:
-        instance.reject(response='You can\'t claim a scheduling draw for a game which already has a set result.')
+        instance.reject(
+            response='You can\'t claim a scheduling draw for a game which already has a set result.')
         return
 
     add_system_comment(instance.pairing, 'Scheduling draw claim made by %s' % instance.requester)
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_draw_scheduling'],
+          dispatch_uid='heltour.tournament.automod')
 def claim_scheduling_draw_approved(instance, **kwargs):
     if not instance.pairing:
         return
@@ -260,21 +310,26 @@ def claim_scheduling_draw_approved(instance, **kwargs):
         p.result = '1/2Z-1/2Z'
         p.save()
     add_system_comment(p, comment_)
-    signals.notify_scheduling_draw_claim.send(sender=claim_scheduling_draw_approved, round_=instance.round, player=opponent)
+    signals.notify_scheduling_draw_claim.send(sender=claim_scheduling_draw_approved,
+                                              round_=instance.round, player=opponent)
 
-@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+
+@receiver(signals.mod_request_created, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_scheduling_draw_created(instance, **kwargs):
     # Figure out which round to use    
     if not instance.round:
-        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True, is_completed=False).first()
+        instance.round = instance.season.round_set.order_by('number').filter(publish_pairings=True,
+                                                                             is_completed=False).first()
         instance.save()
     if not instance.pairing and instance.round:
         instance.pairing = instance.round.pairing_for(instance.requester)
         instance.save()
-    add_system_comment(instance.pairing,'Scheduling draw appeal by %s' % instance.requester)
+    add_system_comment(instance.pairing, 'Scheduling draw appeal by %s' % instance.requester)
 
 
-@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'], dispatch_uid='heltour.tournament.automod')
+@receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_draw_scheduling'],
+          dispatch_uid='heltour.tournament.automod')
 def appeal_scheduling_draw_approved(instance, **kwargs):
     if not instance.pairing:
         return
@@ -284,7 +339,7 @@ def appeal_scheduling_draw_approved(instance, **kwargs):
         reversion.set_comment(comment_)
         instance.pairing.result = ''
         instance.pairing.save()
-    add_system_comment(instance.pairing,comment_)
+    add_system_comment(instance.pairing, comment_)
 
 
 def give_card(round_, player, type_):
@@ -294,7 +349,8 @@ def give_card(round_, player, type_):
         if not sp:
             logger.error('Season player did not exist for %s %s' % (round_.season, player))
             return None
-        already_has_card = PlayerWarning.objects.filter(player=player, round=round_, type__startswith='card').exists()
+        already_has_card = PlayerWarning.objects.filter(player=player, round=round_,
+                                                        type__startswith='card').exists()
         card = PlayerWarning.objects.create(player=player, round=round_, type=type_)
         if not already_has_card:
             sp.games_missed += 1
@@ -302,6 +358,7 @@ def give_card(round_, player, type_):
                 reversion.set_comment('Automatic %s %s' % (sp.card_color, card.get_type_display()))
                 sp.save()
         return sp.card_color
+
 
 def revoke_card(round_, player, type_):
     with transaction.atomic():
@@ -313,7 +370,8 @@ def revoke_card(round_, player, type_):
         if not card:
             return
         card.delete()
-        has_other_card = PlayerWarning.objects.filter(player=player, round=round_, type__startswith='card').exists()
+        has_other_card = PlayerWarning.objects.filter(player=player, round=round_,
+                                                      type__startswith='card').exists()
         if not has_other_card and sp.games_missed > 0:
             sp.games_missed -= 1
             with reversion.create_revision():

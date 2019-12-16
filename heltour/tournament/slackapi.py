@@ -5,9 +5,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def _get_slack_token():
     with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
         return fin.read().strip()
+
 
 def _get_slack_webhook():
     try:
@@ -15,6 +17,7 @@ def _get_slack_webhook():
             return fin.read().strip()
     except (IOError, IndexError):
         return None
+
 
 def invite_user(email):
     url = 'https://slack.com/api/users.admin.invite'
@@ -27,8 +30,11 @@ def invite_user(email):
             raise AlreadyInTeam
         raise SlackError(json['error'])
 
-SlackUser = namedtuple('SlackUser', ['id', 'name_deprecated', 'real_name', 'display_name', 'email', 'tz_offset'])
+
+SlackUser = namedtuple('SlackUser',
+                       ['id', 'name_deprecated', 'real_name', 'display_name', 'email', 'tz_offset'])
 SlackGroup = namedtuple('SlackGroup', ['id', 'name'])
+
 
 def get_user_list():
     url = 'https://slack.com/api/users.list'
@@ -36,7 +42,10 @@ def get_user_list():
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
-    return [SlackUser(m['id'], m.get('name'), m['profile'].get('real_name'), m['profile'].get('display_name'), m['profile'].get('email', ''), m.get('tz_offset')) for m in json['members']]
+    return [SlackUser(m['id'], m.get('name'), m['profile'].get('real_name'),
+                      m['profile'].get('display_name'), m['profile'].get('email', ''),
+                      m.get('tz_offset')) for m in json['members']]
+
 
 def get_user(user_id):
     url = 'https://slack.com/api/users.info'
@@ -45,7 +54,10 @@ def get_user(user_id):
     if not json['ok']:
         raise SlackError(json['error'])
     m = json['user']
-    return SlackUser(m['id'], m.get('name'), m['profile'].get('real_name'), m['profile'].get('display_name'), m['profile'].get('email', ''), m.get('tz_offset'))
+    return SlackUser(m['id'], m.get('name'), m['profile'].get('real_name'),
+                     m['profile'].get('display_name'), m['profile'].get('email', ''),
+                     m.get('tz_offset'))
+
 
 def send_message(channel, text):
     url = _get_slack_webhook()
@@ -55,13 +67,15 @@ def send_message(channel, text):
             print('[%s]: %s' % (channel, text))
         logger.error('Could not send slack message to %s' % channel)
         return
-    r = requests.post(url, json={'text': 'forward to %s' % channel, 'attachments': [{'text': text}]})
+    r = requests.post(url,
+                      json={'text': 'forward to %s' % channel, 'attachments': [{'text': text}]})
     if r.text == '' or r.text == 'ok':
         # OK
         logger.info('Slack [%s]: %s' % (channel, text))
     else:
         # Unexpected error
         logger.error('Could not send slack message to %s, error %s' % (channel, r.text))
+
 
 def send_control_message(text):
     url = _get_slack_webhook()
@@ -79,6 +93,7 @@ def send_control_message(text):
         # Unexpected error
         logger.error('Could not send slack control message, error %s' % r.text)
 
+
 def create_group(group_name):
     url = 'https://slack.com/api/groups.create'
     r = requests.get(url, params={'token': _get_slack_token(), 'name': group_name})
@@ -90,12 +105,15 @@ def create_group(group_name):
     g = json['group']
     return SlackGroup(g['id'], g['name'])
 
+
 def invite_to_group(group_id, user_id):
     url = 'https://slack.com/api/groups.invite'
-    r = requests.get(url, params={'token': _get_slack_token(), 'channel': group_id, 'user': user_id})
+    r = requests.get(url,
+                     params={'token': _get_slack_token(), 'channel': group_id, 'user': user_id})
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
+
 
 def set_group_topic(group_id, topic):
     url = 'https://slack.com/api/groups.setTopic'
@@ -104,6 +122,7 @@ def set_group_topic(group_id, topic):
     if not json['ok']:
         raise SlackError(json['error'])
 
+
 def leave_group(group_id):
     url = 'https://slack.com/api/groups.leave'
     r = requests.get(url, params={'token': _get_slack_token(), 'channel': group_id})
@@ -111,14 +130,18 @@ def leave_group(group_id):
     if not json['ok']:
         raise SlackError(json['error'])
 
+
 class SlackError(Exception):
     pass
+
 
 class AlreadyInvited(SlackError):
     pass
 
+
 class AlreadyInTeam(SlackError):
     pass
+
 
 class NameTaken(SlackError):
     pass

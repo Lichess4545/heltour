@@ -1,28 +1,28 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 
 {% block content %}
-<form action="" method="post">
-    {% csrf_token %}
-    <div class="aligned">
-        <div class="form-row">
-            <div class="checkbox-row">
-                {{ form.overwrite_existing }}
-                <label for="{{ form.overwrite_existing.id_for_label }}" class="vCheckboxLabel">
-                    {{ form.overwrite_existing.label }}
-                </label>
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="aligned">
+            <div class="form-row">
+                <div class="checkbox-row">
+                    {{ form.overwrite_existing }}
+                    <label for="{{ form.overwrite_existing.id_for_label }}" class="vCheckboxLabel">
+                        {{ form.overwrite_existing.label }}
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="checkbox-row">
+                    {{ form.run_in_background }}
+                    <label for="{{ form.run_in_background.id_for_label }}" class="vCheckboxLabel">
+                        {{ form.run_in_background.label }}
+                    </label>
+                </div>
             </div>
         </div>
-        <div class="form-row">
-            <div class="checkbox-row">
-                {{ form.run_in_background }}
-                <label for="{{ form.run_in_background.id_for_label }}" class="vCheckboxLabel">
-                    {{ form.run_in_background.label }}
-                </label>
-            </div>
+        <div class="submit-row">
+            <input class="default" value="Generate" name="confirm" type="submit">
         </div>
-    </div>
-    <div class="submit-row">
-        <input class="default" value="Generate" name="confirm" type="submit">
-    </div>
-</form>
+    </form>
 {% endblock %}

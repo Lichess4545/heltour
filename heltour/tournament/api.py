@@ -9,6 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
 from django.core.urlresolvers import reverse
 
+
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
 # where "abc123" is the secret token of an API key in the database
@@ -21,7 +22,9 @@ def require_api_token(view_func):
         if match is None or len(ApiKey.objects.filter(secret_token=match.group(1))) == 0:
             return HttpResponse('Unauthorized', status=401)
         return view_func(request, *args, **kwargs)
+
     return _wrapped_view_func
+
 
 @require_GET
 @require_api_token
@@ -56,6 +59,7 @@ def find_pairing(request):
     league = League.objects.filter(tag=league_tag).first()
     return JsonResponse({'pairings': [_export_pairing(p, league) for p in pairings]})
 
+
 def _export_pairing(p, league):
     if isinstance(p, TeamPlayerPairing):
         return {
@@ -87,6 +91,7 @@ def _export_pairing(p, league):
             'result': p.result,
             'datetime': p.scheduled_time,
         }
+
 
 @csrf_exempt
 @require_POST
@@ -146,16 +151,21 @@ def update_pairing(request):
                          'game_link_changed': initial_game_link != pairing.game_link,
                          'result_changed': initial_result != pairing.result})
 
+
 def _get_active_rounds(league_tag, season_tag):
-    rounds = Round.objects.filter(season__is_active=True, publish_pairings=True, is_completed=False).order_by('-season__start_date', '-season__id', '-number')
+    rounds = Round.objects.filter(season__is_active=True, publish_pairings=True,
+                                  is_completed=False).order_by('-season__start_date', '-season__id',
+                                                               '-number')
     if league_tag is not None:
         rounds = rounds.filter(season__league__tag=league_tag)
     if season_tag is not None:
         rounds = rounds.filter(season__tag=season_tag)
     return rounds
 
+
 def _get_next_round(league_tag, season_tag, round_num):
-    rounds = Round.objects.filter(season__is_active=True, is_completed=False).order_by('-season__start_date', '-season__id', 'number')
+    rounds = Round.objects.filter(season__is_active=True, is_completed=False).order_by(
+        '-season__start_date', '-season__id', 'number')
     if league_tag is not None:
         rounds = rounds.filter(season__league__tag=league_tag)
     if season_tag is not None:
@@ -167,17 +177,21 @@ def _get_next_round(league_tag, season_tag, round_num):
     else:
         return season.round_set.filter(number=round_num)[0]
 
+
 def _get_pairings(round_, player=None, white=None, black=None, scheduled=None):
     pairings = _filter_pairings(TeamPlayerPairing.objects.filter(team_pairing__round=round_)
-                                    .select_related('white', 'black', 'team_pairing__round__season__league',
-                                                    'team_pairing__white_team', 'team_pairing__black_team')
-                                    .nocache(),
+                                .select_related('white', 'black',
+                                                'team_pairing__round__season__league',
+                                                'team_pairing__white_team',
+                                                'team_pairing__black_team')
+                                .nocache(),
                                 player, white, black, scheduled)
     pairings += _filter_pairings(LonePlayerPairing.objects.filter(round=round_)
-                                    .select_related('white', 'black', 'round__season__league')
-                                    .nocache(),
-                                player, white, black, scheduled)
+                                 .select_related('white', 'black', 'round__season__league')
+                                 .nocache(),
+                                 player, white, black, scheduled)
     return pairings
+
 
 def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=None):
     pairings = pairings.exclude(white=None).exclude(black=None)
@@ -186,14 +200,17 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
         black_pairings = pairings.filter(black__lichess_username__iexact=player)
         pairings = white_pairings | black_pairings
     if white is not None:
-        pairings = pairings.filter(white__lichess_username__iexact=white) | pairings.filter(white__slack_user_id__iexact=white)
+        pairings = pairings.filter(white__lichess_username__iexact=white) | pairings.filter(
+            white__slack_user_id__iexact=white)
     if black is not None:
-        pairings = pairings.filter(black__lichess_username__iexact=black) | pairings.filter(black__slack_user_id__iexact=black)
+        pairings = pairings.filter(black__lichess_username__iexact=black) | pairings.filter(
+            black__slack_user_id__iexact=black)
     if scheduled == True:
         pairings = pairings.exclude(result='', scheduled_time=None)
     if scheduled == False:
         pairings = pairings.filter(result='', scheduled_time=None)
     return list(pairings)
+
 
 @require_GET
 @require_api_token
@@ -215,21 +232,26 @@ def get_roster(request):
 
         season = seasons[0]
     except IndexError:
-        return JsonResponse({'season_tag': None, 'players': None, 'teams': None, 'error': 'no_matching_rounds'})
+        return JsonResponse(
+            {'season_tag': None, 'players': None, 'teams': None, 'error': 'no_matching_rounds'})
 
     if season.league.competitor_type == 'team':
         return _team_roster(season)
     else:
         return _lone_roster(season)
 
+
 def _team_roster(season):
     league = season.league
     teams = season.team_set.order_by('number').all()
 
-    all_alternates = sorted(Alternate.objects.filter(season_player__season=season).select_related('season_player__player', 'season_player__registration').nocache(),
+    all_alternates = sorted(Alternate.objects.filter(season_player__season=season).select_related(
+        'season_player__player', 'season_player__registration').nocache(),
                             key=lambda alt: alt.priority_date())
-    all_teammembers = TeamMember.objects.filter(team__season=season).select_related('player').order_by('board_number').nocache()
-    players = sorted({alt.season_player.player for alt in all_alternates} | {tm.player for tm in all_teammembers})
+    all_teammembers = TeamMember.objects.filter(team__season=season).select_related(
+        'player').order_by('board_number').nocache()
+    players = sorted({alt.season_player.player for alt in all_alternates} | {tm.player for tm in
+                                                                             all_teammembers})
 
     return JsonResponse({
         'league': season.league.tag,
@@ -250,9 +272,11 @@ def _team_roster(season):
         } for team in teams],
         'alternates': [{
             'board_number': board_number,
-            'usernames': [alt.season_player.player.lichess_username for alt in all_alternates if alt.board_number == board_number]
+            'usernames': [alt.season_player.player.lichess_username for alt in all_alternates if
+                          alt.board_number == board_number]
         } for board_number in season.board_number_list()]
     })
+
 
 def _lone_roster(season):
     season_players = season.seasonplayer_set.select_related('player').nocache()
@@ -273,6 +297,7 @@ def _lone_roster(season):
             'board': player_board.get(season_player.player, None)
         } for season_player in season_players]
     })
+
 
 @csrf_exempt
 @require_POST
@@ -311,14 +336,19 @@ def assign_alternate(request):
     if round_.is_completed:
         return JsonResponse({'updated': 0, 'error': 'round_over'})
 
-    alternate = Alternate.objects.filter(season_player__season=season, season_player__player=player, board_number=board_num).first()
-    member_playing_up = team.teammember_set.filter(player=player, board_number__gte=board_num).first()
+    alternate = Alternate.objects.filter(season_player__season=season, season_player__player=player,
+                                         board_number=board_num).first()
+    member_playing_up = team.teammember_set.filter(player=player,
+                                                   board_number__gte=board_num).first()
     if alternate is None and member_playing_up is None:
         return JsonResponse({'updated': 0, 'error': 'not_an_alternate'})
 
-    AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num, defaults={'player': player, 'replaced_player': None})
+    AlternateAssignment.objects.update_or_create(round=round_, team=team, board_number=board_num,
+                                                 defaults={'player': player,
+                                                           'replaced_player': None})
 
     return JsonResponse({'updated': 1})
+
 
 @csrf_exempt
 @require_POST
@@ -353,9 +383,11 @@ def set_availability(request):
     if round_.is_completed:
         return JsonResponse({'updated': 0, 'error': 'round_over'})
 
-    PlayerAvailability.objects.update_or_create(round=round_, player=player, defaults={'is_available': is_available})
+    PlayerAvailability.objects.update_or_create(round=round_, player=player,
+                                                defaults={'is_available': is_available})
 
     return JsonResponse({'updated': 1})
+
 
 @require_GET
 @require_api_token
@@ -368,9 +400,11 @@ def get_league_moderators(request):
     if not league_tag:
         return HttpResponse('Bad request', status=400)
 
-    moderator_names = [lm.player.lichess_username for lm in LeagueModerator.objects.filter(league__tag=league_tag, is_active=True)]
+    moderator_names = [lm.player.lichess_username for lm in
+                       LeagueModerator.objects.filter(league__tag=league_tag, is_active=True)]
 
     return JsonResponse({'moderators': moderator_names})
+
 
 @require_GET
 @require_api_token
@@ -395,9 +429,10 @@ def league_document(request):
         content = strip_tags(content)
 
     return JsonResponse({
-         'name': document.name,
-         'content': content
-     })
+        'name': document.name,
+        'content': content
+    })
+
 
 @require_GET
 @require_api_token
@@ -411,9 +446,11 @@ def link_slack(request):
     if not user_id:
         return HttpResponse('Bad request', status=400)
 
-    token = LoginToken.objects.create(slack_user_id=user_id, username_hint=display_name, expires=timezone.now() + timedelta(days=30))
+    token = LoginToken.objects.create(slack_user_id=user_id, username_hint=display_name,
+                                      expires=timezone.now() + timedelta(days=30))
     league = League.objects.filter(is_default=True).first()
-    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by('-season__start_date').first()
+    sp = SeasonPlayer.objects.filter(player__lichess_username__iexact=display_name).order_by(
+        '-season__start_date').first()
     if sp:
         league = sp.season.league
     url = reverse('by_league:login_with_token', args=[league.tag, token.secret_token])
@@ -423,11 +460,13 @@ def link_slack(request):
 
     return JsonResponse({'url': url, 'already_linked': already_linked, 'expires': token.expires})
 
+
 @require_GET
 @require_api_token
 def get_slack_user_map(request):
-    users = { p.lichess_username: p.slack_user_id for p in Player.objects.exclude(slack_user_id='') }
+    users = {p.lichess_username: p.slack_user_id for p in Player.objects.exclude(slack_user_id='')}
     return JsonResponse({'users': users})
+
 
 @csrf_exempt
 @require_POST
@@ -446,8 +485,10 @@ def player_contact(request):
     updated = 0
     time = timezone.now()
     for r in rounds:
-        pairings = r.pairings.filter(white__lichess_username__iexact=sender, black__lichess_username__iexact=recip) | \
-                   r.pairings.filter(white__lichess_username__iexact=recip, black__lichess_username__iexact=sender)
+        pairings = r.pairings.filter(white__lichess_username__iexact=sender,
+                                     black__lichess_username__iexact=recip) | \
+                   r.pairings.filter(white__lichess_username__iexact=recip,
+                                     black__lichess_username__iexact=sender)
         for p in pairings:
             presence = p.get_player_presence(Player.objects.get(lichess_username__iexact=sender))
             if not presence.first_msg_time:
@@ -457,6 +498,7 @@ def player_contact(request):
             updated += 1
 
     return JsonResponse({'updated': updated})
+
 
 @csrf_exempt
 @require_POST
@@ -493,6 +535,7 @@ def game_warning(request):
 
     return JsonResponse({'updated': 1})
 
+
 @require_GET
 def get_season_games(request):
     # No API token required - this one is public
@@ -515,7 +558,8 @@ def get_season_games(request):
         seasons = seasons.filter(is_active=True)
 
     for s in seasons:
-        for p in s.pairings.select_related('white', 'black', 'teamplayerpairing__team_pairing__round',
+        for p in s.pairings.select_related('white', 'black',
+                                           'teamplayerpairing__team_pairing__round',
                                            'teamplayerpairing__team_pairing__white_team',
                                            'teamplayerpairing__team_pairing__black_team'):
             game_id = get_gameid_from_gamelink(p.game_link)

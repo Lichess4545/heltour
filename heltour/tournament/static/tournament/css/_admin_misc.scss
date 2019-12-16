@@ -1,19 +1,24 @@
 .text-approved {
-  color: #0000ff;
+    color: #0000ff;
 }
+
 .text-rejected {
-  color: #cc0000;
+    color: #cc0000;
 }
+
 .text-pending {
 }
+
 .text-season {
-  font-weight: bold;
+    font-weight: bold;
 }
+
 .text-email {
-  font-weight: bold;
+    font-weight: bold;
 }
+
 .text-username {
-  font-weight: bold;
+    font-weight: bold;
 }
 
 .aligned-text label {
@@ -26,79 +31,80 @@
 }
 
 .notes {
-	width: 400px;
-	height: 120px;
-	margin-bottom: 20px;
+    width: 400px;
+    height: 120px;
+    margin-bottom: 20px;
 }
 
 .action-checkbox {
-	padding: 10px;
+    padding: 10px;
 }
+
 .action-checkbox label {
-	color: black;
-	padding-left: 5px;
+    color: black;
+    padding-left: 5px;
 }
 
 .actions {
-	margin-bottom: 10px;
+    margin-bottom: 10px;
 }
 
 .create-link {
-	display: block;
-	margin-top: 10px;
-	margin-bottom: 10px;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .inline-create-link {
-	margin-right: 10px;
+    margin-right: 10px;
 }
 
 .row-error {
-	background-color: #fffcab;
+    background-color: #fffcab;
 }
 
 .inline {
-	display: inline-block;
-	vertical-align: top;
+    display: inline-block;
+    vertical-align: top;
 }
 
 #scheduled-actions {
-	margin-left: 40px;
+    margin-left: 40px;
 }
 
 #scheduled-actions table tbody tr td:nth-child(1),
 #scheduled-actions table tbody tr td:nth-child(2) {
-	padding-right: 20px;
+    padding-right: 20px;
 }
 
 #scheduled-actions .current-round-actions .action-register,
 #scheduled-actions .current-round-actions .action-withdraw {
-	color: #999;
+    color: #999;
 }
 
 #scheduled-actions .current-round-actions .action-register .change-link,
 #scheduled-actions .current-round-actions .action-withdraw .change-link {
-	display: none;
+    display: none;
 }
 
 td > dl {
-	margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .select2-container.django-select2 {
-	width: auto;
+    width: auto;
 }
 
 .move-link {
-	display: inline-block;
-	background: url(/static/admin/img/selector-icons.svg);
-	background-position: 0px 80px;
-	width: 16px;
-	height: 16px;
-	margin-top: 2px;
-	vertical-align: bottom;
+    display: inline-block;
+    background: url(/static/admin/img/selector-icons.svg);
+    background-position: 0px 80px;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    vertical-align: bottom;
 }
 
 .delete-link {
-	vertical-align: top;
+    vertical-align: top;
 }

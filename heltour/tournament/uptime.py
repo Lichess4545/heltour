@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 _start_time = timezone.now()
 
+
 class UptimeIndicator(object):
     def __init__(self, name, ping_interval):
         self.name = name
@@ -20,5 +21,6 @@ class UptimeIndicator(object):
     @property
     def is_down(self):
         return timezone.now() - self.ping_interval > _start_time and not self.is_up
+
 
 celery = UptimeIndicator('celery_up', ping_interval=timedelta(minutes=15))

@@ -5,9 +5,11 @@ from heltour.tournament import pairinggen
 
 sysrand = random.SystemRandom()
 
+
 def simulate_round(round_):
     forfeit_chance = 0.10
     forfeit_results = ['1X-0F', '1/2Z-1/2Z', '0F-1X', '0F-0F']
+
     def result_chances(rating_delta):
         rating_delta_index = int(min(math.floor(abs(rating_delta) / 100.0), 5))
         chances_by_rating_delta = [
@@ -22,6 +24,7 @@ def simulate_round(round_):
         if rating_delta < 0:
             chances = tuple(reversed(chances))
         return chances
+
     for p in round_.pairings.select_related('white', 'black'):
         if sysrand.random() < forfeit_chance:
             p.result = sysrand.choice(forfeit_results)
@@ -36,6 +39,7 @@ def simulate_round(round_):
                 p.result = '1-0'
         p.save()
 
+
 def simulate_season(season):
     # Reset all season data
     print('Clearing season data')
@@ -47,7 +51,8 @@ def simulate_season(season):
     TeamPlayerPairing.objects.filter(team_pairing__round__season=season).delete()
     LonePlayerScore.objects.filter(season_player__season=season).delete()
     TeamScore.objects.filter(team__season=season).delete()
-    latereg_players = {latereg.player_id for latereg in PlayerLateRegistration.objects.filter(round__season=season)}
+    latereg_players = {latereg.player_id for latereg in
+                       PlayerLateRegistration.objects.filter(round__season=season)}
     for sp in season.seasonplayer_set.all():
         if sp.player_id in latereg_players:
             sp.delete()

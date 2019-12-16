@@ -168,21 +168,25 @@ test_hourly_backups = """
 /home/lichess4545/backups/heltour-sql/hourly/heltour-2015-09-14-2221.sql.bz2
 """
 
-DEBUG=False
-#-------------------------------------------------------------------------------
+DEBUG = False
+
+
+# -------------------------------------------------------------------------------
 def run(command):
     if DEBUG:
         print(command)
     else:
         return subprocess.getoutput(command)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def find_backups(target_directory, pattern="*.sql.bz2"):
     """Returns the set of backups from a given directory that match a pattern.
     """
     return run("find %s -name \"%s\"" % (target_directory, pattern))
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def parse_backups(backup_string, date_format="%Y-%m-%d-%H%M"):
     """Use this to parse the output of a find command.
 
@@ -199,13 +203,17 @@ def parse_backups(backup_string, date_format="%Y-%m-%d-%H%M"):
     return sorted(paths)
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 def monthly_cutoff(months_ago):
     now = datetime.datetime.now()
     start_of_month = now.replace(day=1, hour=0, minute=0)
-    return (start_of_month - datetime.timedelta(days=28*(months_ago-1))).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return (start_of_month - datetime.timedelta(days=28 * (months_ago - 1))).replace(day=1, hour=0,
+                                                                                     minute=0,
+                                                                                     second=0,
+                                                                                     microsecond=0)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def weekly_cutoff(weeks_ago):
     now = datetime.datetime.now()
     start_of_week = now
@@ -214,22 +222,26 @@ def weekly_cutoff(weeks_ago):
 
     return start_of_week - datetime.timedelta(weeks=weeks_ago)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def daily_cutoff(days_ago):
     now = datetime.datetime.now()
     return now - datetime.timedelta(days=days_ago)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def hourly_cutoff(hours_ago):
     now = datetime.datetime.now()
     return now - datetime.timedelta(hours=hours_ago)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def beginning_of_month():
     now = datetime.datetime.now()
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def beginning_of_week():
     now = datetime.datetime.now()
     start_of_week = now
@@ -237,24 +249,29 @@ def beginning_of_week():
         start_of_week -= datetime.timedelta(days=1)
     return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def beginning_of_day():
     now = datetime.datetime.now()
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def remove_backups(files, cutoff_time):
     """Use this tool to remove backups older than given input from a directory.
     """
+
     def older_than(item):
         item_time, item = item
         return item_time < cutoff_time
+
     files_to_remove = filter(older_than, files)
     for item in files_to_remove:
         date_time, file_path = item
         run("rm %s" % file_path)
 
-#-------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
 def add_to_backups(current_files, potential_files, cutoff_time, target_dir):
     """Copies the appropriate file into this backup rotation.
     """
@@ -305,33 +322,33 @@ if __name__ == "__main__":
     remove_backups(monthly_backups, monthly_cutoff(12))
     if DEBUG: print(beginning_of_month())
     add_to_backups(
-            monthly_backups,
-            hourly_backups,
-            beginning_of_month(),
-            "/home/lichess4545/backups/heltour-sql/monthly/",
-        )
+        monthly_backups,
+        hourly_backups,
+        beginning_of_month(),
+        "/home/lichess4545/backups/heltour-sql/monthly/",
+    )
 
     if DEBUG: print("weekly")
     if DEBUG: print(beginning_of_week())
     remove_backups(weekly_backups, weekly_cutoff(8))
     add_to_backups(
-            weekly_backups,
-            hourly_backups,
-            beginning_of_week(),
-            "/home/lichess4545/backups/heltour-sql/weekly/",
-        )
+        weekly_backups,
+        hourly_backups,
+        beginning_of_week(),
+        "/home/lichess4545/backups/heltour-sql/weekly/",
+    )
 
     if DEBUG: print("daily")
     if DEBUG: print(beginning_of_day())
     remove_backups(daily_backups, daily_cutoff(14))
     add_to_backups(
-            daily_backups,
-            hourly_backups,
-            beginning_of_day(),
-            "/home/lichess4545/backups/heltour-sql/daily/"
-        )
+        daily_backups,
+        hourly_backups,
+        beginning_of_day(),
+        "/home/lichess4545/backups/heltour-sql/daily/"
+    )
 
     if DEBUG: print("hourly")
-    remove_backups(hourly_backups, hourly_cutoff(5*24))
+    remove_backups(hourly_backups, hourly_cutoff(5 * 24))
 
-    #print parse_backups(test_hourly_backups, date_format=hourly_format)
+    # print parse_backups(test_hourly_backups, date_format=hourly_format)

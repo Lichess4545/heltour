@@ -6,23 +6,25 @@
 {% block nav_faq %}{% if is_faq %}active{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row row-condensed-xs">
-    <div class="col-md-12">
-        <div class="well">
-            <div class="well-head">
-                <div class="inline">
-                    <h3>{{ document.name }}</h3>
-                </div>{% if can_edit %}
-                <div class="inline document-edit">
-                    <a href="{% url 'admin:tournament_document_change' document.pk %}?_popup=1" id="change-document-{{ document.pk }}" class="large-popup-link" title="Change selected document">
-                        <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-                    </a>
-                </div>{% endif %}
-            </div>
-            <div class="well-body">
-                <div class="document-content">{{ document.content|safe }}</div>
+    <div class="row row-condensed-xs">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    <div class="inline">
+                        <h3>{{ document.name }}</h3>
+                    </div>{% if can_edit %}
+                    <div class="inline document-edit">
+                        <a href="{% url 'admin:tournament_document_change' document.pk %}?_popup=1"
+                           id="change-document-{{ document.pk }}" class="large-popup-link"
+                           title="Change selected document">
+                            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                        </a>
+                    </div>{% endif %}
+                </div>
+                <div class="well-body">
+                    <div class="document-content">{{ document.content|safe }}</div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endblock %}
