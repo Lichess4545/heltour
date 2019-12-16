@@ -139,7 +139,7 @@ class RegisterTestCase(TestCase):
 
     def test_require_login(self):
         response = self.client.get(reverse('by_league:by_season:register', args=['team', 'team']))
-        self.assertRedirects(response, reverse('by_league:login', args=['team']))
+        self.assertRedirects(response, reverse('by_league:login', args=['team']), fetch_redirect_response=False)
 
     def test_template(self):
         self.client.login(username='Player1', password='test')
