@@ -28,8 +28,12 @@ SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'staging.lichess4545.tv',
-    'staging.lichess4545.com',
+    'www.lichess4545.tv',
+    'lichess4545.tv',
+    'www.lichess4545.com',
+    'lichess4545.com',
+    'heltour.lakin.ca',
+    'heltour.lakin.ca',
     'localhost',
 ]
 LINK_PROTOCOL = 'https'
@@ -66,7 +70,7 @@ INSTALLED_APPS = [
 
 COMMENTS_APP = 'heltour.comments'
 
-API_WORKER_HOST = 'http://localhost:8780'
+API_WORKER_HOST = 'http://localhost:8880'
 
 MIDDLEWARE_CLASSES = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -111,8 +115,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'HOST': 'localhost',
-        'NAME': 'heltour_lichess4545_staging',
-        'USER': 'heltour_lichess4545_staging',
+        'NAME': 'heltour_lichess4545',
+        'USER': 'heltour_lichess4545',
         'PASSWORD': 'sown shuts combiner chattels',
     }
 }
@@ -160,15 +164,15 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
 
 # Celery (tasks)
 
-BROKER_URL = 'redis://localhost:6379/2'
-CELERY_DEFAULT_QUEUE = 'heltour.staging'
+BROKER_URL = 'redis://localhost:6379/1'
+CELERY_DEFAULT_QUEUE = 'heltour.live'
 
 CELERYBEAT_SCHEDULE = {
-    #     'update-ratings': {
-    #         'task': 'heltour.tournament.tasks.update_player_ratings',
-    #         'schedule': timedelta(minutes=30),
-    #         'args': ()
-    #     },
+    'update-ratings': {
+        'task': 'heltour.tournament.tasks.update_player_ratings',
+        'schedule': timedelta(minutes=15),
+        'args': ()
+    },
     'update-tv-state': {
         'task': 'heltour.tournament.tasks.update_tv_state',
         'schedule': timedelta(minutes=5),
@@ -213,7 +217,7 @@ CELERY_TIMEZONE = 'UTC'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
+        "LOCATION": "redis://127.0.0.1:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -267,12 +271,14 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 CACHEOPS_REDIS = {
     'host': 'localhost',
     'port': 6379,
-    'db': 2,
+    'db': 1,
 }
 CACHEOPS_DEGRADE_ON_FAILURE = True
 CACHEOPS = {
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
 }
+
+TEAMGEN_PROCESSES_NUMBER = 8
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
@@ -285,58 +291,9 @@ SLACK_APP_TOKEN = ''
 SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
 CHESSTER_USER_ID = 'U0VCPUT7T'
 
-LICHESS_DOMAIN = 'https://lichess.dev/'
+LICHESS_DOMAIN = 'https://lichess.org/'
 LICHESS_OAUTH_ACCOUNT_URL = 'https://lichess.org/api/account'
 LICHESS_OAUTH_AUTHORIZE_URL = 'https://oauth.lichess.org/oauth/authorize'
 LICHESS_OAUTH_TOKEN_URL = 'https://oauth.lichess.org/oauth'
 LICHESS_OAUTH_CLIENTID = ''
 LICHESS_OAUTH_CLIENTSECRET = ''
-
-# Testing overrides
-import sys
-
-TESTING = 'test' in sys.argv
-if TESTING:
-    CACHEOPS = {}
-
-# Host-based settings overrides.
-import platform
-import re
-
-try:
-    hostname = platform.node().split('.')[0]
-    exec ('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
-except ImportError:
-    pass  # ignore missing local settings
-
-# Allow live settings (which aren't in the repository) to override the development settings.
-import os
-import json
-
-if os.path.exists("/home/lichess4545/etc/heltour/staging.json"):
-    overrides = json.loads(open("/home/lichess4545/etc/heltour/staging.json", "r").read())
-    DATABASES = overrides.get("DATABASES", DATABASES)
-    ADMINS = overrides.get("ADMINS", locals().get('ADMINS'))
-    EMAIL_HOST = overrides.get("EMAIL_HOST", locals().get('EMAIL_HOST'))
-    EMAIL_PORT = overrides.get("EMAIL_PORT", locals().get('EMAIL_PORT'))
-    EMAIL_USE_TLS = overrides.get("EMAIL_USE_TLS", locals().get('EMAIL_USE_TLS'))
-    EMAIL_HOST_USER = overrides.get("EMAIL_HOST_USER", locals().get('EMAIL_HOST_USER'))
-    EMAIL_HOST_PASSWORD = str(
-        overrides.get("EMAIL_HOST_PASSWORD", locals().get('EMAIL_HOST_PASSWORD')))
-    SERVER_EMAIL = overrides.get("SERVER_EMAIL", locals().get('SERVER_EMAIL'))
-    DEFAULT_FROM_EMAIL = overrides.get("DEFAULT_FROM_EMAIL", locals().get('DEFAULT_FROM_EMAIL'))
-    GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = overrides.get("GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH",
-                                                        GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
-    SLACK_API_TOKEN_FILE_PATH = overrides.get("SLACK_API_TOKEN_FILE_PATH",
-                                              SLACK_API_TOKEN_FILE_PATH)
-    SLACK_WEBHOOK_FILE_PATH = overrides.get("SLACK_WEBHOOK_FILE_PATH", SLACK_WEBHOOK_FILE_PATH)
-    LICHESS_CREDS_FILE_PATH = overrides.get("LICHESS_CREDS_FILE_PATH", LICHESS_CREDS_FILE_PATH)
-    FCM_API_KEY_FILE_PATH = overrides.get("FCM_API_KEY_FILE_PATH", FCM_API_KEY_FILE_PATH)
-    SLACK_APP_TOKEN = overrides.get("SLACK_APP_TOKEN", SLACK_APP_TOKEN)
-    MEDIA_ROOT = overrides.get("MEDIA_ROOT", MEDIA_ROOT)
-    SECRET_KEY = overrides.get("SECRET_KEY", SECRET_KEY)
-    RECAPTCHA_PUBLIC_KEY = overrides.get("RECAPTCHA_PUBLIC_KEY", RECAPTCHA_PUBLIC_KEY)
-    RECAPTCHA_PRIVATE_KEY = overrides.get("RECAPTCHA_PRIVATE_KEY", RECAPTCHA_PRIVATE_KEY)
-    LICHESS_OAUTH_CLIENTID = overrides.get("LICHESS_OAUTH_CLIENTID", LICHESS_OAUTH_CLIENTID)
-    LICHESS_OAUTH_CLIENTSECRET = overrides.get("LICHESS_OAUTH_CLIENTSECRET",
-                                               LICHESS_OAUTH_CLIENTSECRET)
