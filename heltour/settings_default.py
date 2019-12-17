@@ -240,6 +240,7 @@ STATIC_PRECOMPILER_COMPILERS = (
         "sourcemap_enabled": True
     }),
 )
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 BOOTSTRAP3 = {
     'set_placeholder': False
