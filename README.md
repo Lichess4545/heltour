@@ -7,7 +7,7 @@ League management software for the Lichess4545 league.
 * Postgres (Ubuntu packages postgresql and postgresql-server-dev-9.5)
 * Fabric (pip install fabric)
 * Virtualenv (Ubuntu package virtualenv)
-* Mercurial (for Baste installation)
+* [Sass](https://sass-lang.com/install)
 
 # install
 These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.

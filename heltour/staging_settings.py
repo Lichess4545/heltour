@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'captcha',
     'select2',
     'impersonate',
+    'static_precompiler',
 ]
 
 COMMENTS_APP = 'heltour.comments'
@@ -224,6 +225,17 @@ CACHES = {
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static'
+STATIC_PRECOMPILER_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'static_precompiler.finders.StaticPrecompilerFinder',
+)
+STATIC_PRECOMPILER_COMPILERS = (
+    ('static_precompiler.compilers.SCSS', {
+        "sourcemap_enabled": True
+    }),
+)
 
 BOOTSTRAP3 = {
     'set_placeholder': False
