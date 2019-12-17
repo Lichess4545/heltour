@@ -106,6 +106,7 @@ up = update  # defines 'up' as the shortcut for 'update'
 # -------------------------------------------------------------------------------
 def deploylive():
     manage_py = project_relative("manage.py")
+    local("python %s compilestatic" % manage_py)
     local("python %s collectstatic --noinput" % manage_py)
     if confirm(colors.red(
         "This will deploy to the live server (LIVE ENV) and restart the server. Are you sure?")):
@@ -140,6 +141,7 @@ def deploylive():
 # -------------------------------------------------------------------------------
 def deploystaging():
     manage_py = project_relative("manage_staging.py")
+    local("python %s compilestatic" % manage_py)
     local("python %s collectstatic --noinput" % manage_py)
     if confirm(colors.red(
         "This will deploy to the live server (STAGING ENV) and restart the server. Are you sure?")):

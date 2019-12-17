@@ -18,6 +18,8 @@ DATABASES = {
     }
 }
 
+STATIC_PRECOMPILER_DISABLE_AUTO_COMPILE = True
+
 # Celery
 BROKER_URL = 'redis://localhost:6379/2'
 CELERY_DEFAULT_QUEUE = 'heltour.staging'

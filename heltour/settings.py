@@ -15,14 +15,17 @@ import re
 import sys
 
 TESTING = 'test' in sys.argv
+LIVE = os.environ.get('HELTOUR_ENV', '').upper() == 'LIVE'
 STAGING = os.environ.get('HELTOUR_ENV', '').upper() == 'STAGING'
 TRAVIS = 'TRAVIS' in os.environ
 
-if sum([TESTING, STAGING, TRAVIS]) > 1:
-    raise Exception('At most one of TESTING, STAGING, TRAVIS expected to be true')
+if sum([TESTING, LIVE, STAGING, TRAVIS]) > 1:
+    raise Exception('At most one of TESTING, LIVE, STAGING, TRAVIS expected to be true')
 
 if TESTING:
     from .settings_testing import *
+elif LIVE:
+    from .settings_live import *
 elif STAGING:
     from .settings_staging import *
 elif TRAVIS:
