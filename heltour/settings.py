@@ -18,15 +18,12 @@ TESTING = 'test' in sys.argv
 STAGING = os.environ.get('HELTOUR_ENV', '').upper() == 'STAGING'
 TRAVIS = 'TRAVIS' in os.environ
 
-if sum([TESTING, STAGING, TRAVIS]) > 1:
-    raise Exception('At most one of TESTING, STAGING, TRAVIS expected to be true')
-
-if TESTING:
+if TRAVIS:
+    from .settings_travis import *
+elif TESTING:
     from .settings_testing import *
 elif STAGING:
     from .settings_staging import *
-elif TRAVIS:
-    from .settings_travis import *
 else:
     from .settings_default import *
 
