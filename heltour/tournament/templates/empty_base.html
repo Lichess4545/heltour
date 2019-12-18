@@ -14,7 +14,7 @@
             {% block iconpath %}{% static 'tournament/img/favicon.png' %}{% endblock %}"/>
     {% block common_css %}
         <link href="{% static "lib/css/bootstrap.min.css" %}" rel="stylesheet">
-        <link href="{% static "tournament/css/main.scss"|compile %}" rel="stylesheet">
+        <link href="{% static "tournament/css/main.scss"|compile_if_debug %}" rel="stylesheet">
     {% endblock %}
     {% block css %}{% endblock %}
     {% block head_js %}{% endblock %}

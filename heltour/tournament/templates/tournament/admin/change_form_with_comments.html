@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_urls static compile_static admin_modify comments %}
+{% load i18n admin_urls static compile_static tournament_extras admin_modify comments %}
 
 {% block extrahead %}{{ block.super }}
     <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
@@ -9,7 +9,7 @@
 
 {% block extrastyle %}{{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}"/>
-    <link rel="stylesheet" type="text/css" href="{% static "tournament/css/admin.scss"|compile %}"/>{% endblock %}
+    <link rel="stylesheet" type="text/css" href="{% static "tournament/css/admin.scss"|compile_if_debug %}"/>{% endblock %}
 
 {% block coltype %}colM{% endblock %}
 
