@@ -303,7 +303,8 @@ class Season(_BaseModel):
                     key=lambda s: s.final_standings_sort_key(), reverse=True)
                 for prize in self.seasonprize_set.all():
                     eligible_players = [s.season_player.player for s in player_scores if
-                                        prize.max_rating is None or s.season_player.seed_rating < prize.max_rating]
+                                        prize.max_rating is None or (
+                                                s.season_player.seed_rating is not None and s.season_player.seed_rating < prize.max_rating)]
                     if prize.rank <= len(eligible_players):
                         SeasonPrizeWinner.objects.create(season_prize=prize,
                                                          player=eligible_players[prize.rank - 1])
@@ -329,8 +330,8 @@ class Season(_BaseModel):
                 def increment_score(round_opponent, round_points, round_opponent_points,
                                     round_wins):
                     playoff_score, match_count, match_points, game_points, games_won, _, _, _, _ = \
-                    score_dict[(team.pk, last_round.number)] if last_round is not None else (
-                    0, 0, 0, 0, 0, 0, 0, None, 0)
+                        score_dict[(team.pk, last_round.number)] if last_round is not None else (
+                            0, 0, 0, 0, 0, 0, 0, None, 0)
                     round_match_points = 0
                     if round_opponent is None:
                         if not is_playoffs:
@@ -407,7 +408,7 @@ class Season(_BaseModel):
                                 (round_state.round_opponent, last_round.number)].match_points
                         elif round_state.round_match_points == 1:
                             score.sb_score += score_dict[(
-                            round_state.round_opponent, last_round.number)].match_points / 2.0
+                                round_state.round_opponent, last_round.number)].match_points / 2.0
                         if opponent in tied_team_set:
                             score.head_to_head += round_state.round_match_points
             score.save()
@@ -429,7 +430,7 @@ class Season(_BaseModel):
                 def increment_score(round_opponent, round_score, round_played):
                     total, mm_total, cumul, perf, _, _ = score_dict[
                         (sp.player_id, last_round.number)] if last_round is not None else (
-                    0, 0, 0, PerfRatingCalc(), None, False)
+                        0, 0, 0, PerfRatingCalc(), None, False)
                     total += round_score
                     cumul += total
                     if round_played:
@@ -612,7 +613,7 @@ class PerfRatingCalc():
 
     def debug(self):
         return '%.1f / %d [%s]' % (
-        self._score, self._game_count, ', '.join((str(r) for r in self._opponent_ratings)))
+            self._score, self._game_count, ', '.join((str(r) for r in self._opponent_ratings)))
 
 
 # -------------------------------------------------------------------------------
@@ -1150,7 +1151,7 @@ class TeamMember(_BaseModel):
 
     def __str__(self):
         return "%s%s" % (
-        self.player, ' (C)' if self.is_captain else ' (V)' if self.is_vice_captain else '')
+            self.player, ' (C)' if self.is_captain else ' (V)' if self.is_vice_captain else '')
 
 
 # -------------------------------------------------------------------------------
@@ -1173,8 +1174,9 @@ class TeamScore(_BaseModel):
 
     def pairing_sort_key(self):
         return (
-        self.playoff_score, self.match_points, self.game_points, self.head_to_head, self.games_won,
-        self.sb_score, self.team.seed_rating)
+            self.playoff_score, self.match_points, self.game_points, self.head_to_head,
+            self.games_won,
+            self.sb_score, self.team.seed_rating)
 
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()
@@ -1876,7 +1878,7 @@ class LonePlayerScore(_BaseModel):
 
     def pairing_sort_key(self):
         return (
-        self.points + self.late_join_points, self.season_player.player_rating_display() or 0)
+            self.points + self.late_join_points, self.season_player.player_rating_display() or 0)
 
     def intermediate_standings_sort_key(self):
         return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3,
@@ -2071,7 +2073,7 @@ class AlternateBucket(_BaseModel):
         if rating is None:
             return self.min_rating is None
         return (self.min_rating is None or rating > self.min_rating) and (
-                self.max_rating is None or rating <= self.max_rating)
+            self.max_rating is None or rating <= self.max_rating)
 
     def __str__(self):
         return "Board %d (%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
@@ -2116,11 +2118,11 @@ class AlternateSearch(_BaseModel):
                                                               game_link='').nocache().first()
             return player_pairing is not None and \
                    (player_pairing.white_team() == self.team and (
-                           not player_pairing.white or not player_pairing.white.is_available_for(
-                           self.round)) or \
+                       not player_pairing.white or not player_pairing.white.is_available_for(
+                       self.round)) or \
                     player_pairing.black_team() == self.team and (
-                            not player_pairing.black or not player_pairing.black.is_available_for(
-                            self.round)))
+                        not player_pairing.black or not player_pairing.black.is_available_for(
+                        self.round)))
         else:
             player = None
             aa = AlternateAssignment.objects.filter(round=self.round, team=self.team,
@@ -2488,9 +2490,10 @@ class PlayerNotificationSetting(_BaseModel):
                 return obj
         obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
         obj.enable_slack_im = type_ in (
-        'round_started', 'before_game_time', 'game_time', 'unscheduled_game', 'alternate_needed')
+            'round_started', 'before_game_time', 'game_time', 'unscheduled_game',
+            'alternate_needed')
         obj.enable_slack_mpim = type_ in (
-        'round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+            'round_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
