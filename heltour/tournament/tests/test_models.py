@@ -1,48 +1,6 @@
 from django.test import TestCase
-from heltour.tournament.models import *
 from datetime import datetime
-from django.utils import timezone
-
-
-def createCommonLeagueData():
-    team_count = 4
-    round_count = 3
-    board_count = 2
-
-    league = League.objects.create(name='Team League', tag='teamleague', competitor_type='team',
-                                   rating_type='classical')
-    season = Season.objects.create(league=league, name='Test Season', tag='teamseason',
-                                   rounds=round_count, boards=board_count)
-    league2 = League.objects.create(name='Lone League', tag='loneleague', competitor_type='lone',
-                                    rating_type='classical')
-    season2 = Season.objects.create(league=league2, name='Test Season', tag='loneseason',
-                                    rounds=round_count)
-
-    player_num = 1
-    for n in range(1, team_count + 1):
-        team = Team.objects.create(season=season, number=n, name='Team %s' % n)
-        TeamScore.objects.create(team=team)
-        for b in range(1, board_count + 1):
-            player = Player.objects.create(lichess_username='Player%d' % player_num)
-            sp = SeasonPlayer.objects.create(season=season2, player=player)
-            LonePlayerScore.objects.create(season_player=sp)
-            player_num += 1
-            TeamMember.objects.create(team=team, player=player, board_number=b)
-
-
-def set_rating(player, rating, rating_type='classical'):
-    player.profile = {'perfs': {rating_type: {'rating': rating}}}
-
-
-def create_reg(season, name):
-    return Registration.objects.create(season=season, status='pending', lichess_username=name,
-                                       slack_username=name,
-                                       email='a@test.com', classical_rating=1500,
-                                       peak_classical_rating=1600,
-                                       has_played_20_games=True, already_in_slack_group=True,
-                                       previous_season_alternate='new',
-                                       can_commit=True, agreed_to_rules=True,
-                                       alternate_preference='full_time')
+from .testutils import *
 
 
 class SeasonTestCase(TestCase):
@@ -61,12 +19,12 @@ class SeasonTestCase(TestCase):
         self.assertEqual(6, season.round_set.count())
 
     def test_season_save_prize_creation(self):
-        season = Season.objects.get(tag='teamseason')
+        season = get_season('team')
         self.assertEqual(1, season.seasonprize_set.filter(rank=1).count())
         self.assertEqual(1, season.seasonprize_set.filter(rank=2).count())
         self.assertEqual(1, season.seasonprize_set.filter(rank=3).count())
 
-        season2 = Season.objects.get(tag='loneseason')
+        season2 = get_season('lone')
         self.assertEqual(2, season2.seasonprize_set.filter(rank=1).count())
         self.assertEqual(1, season2.seasonprize_set.filter(rank=2).count())
         self.assertEqual(1, season2.seasonprize_set.filter(rank=3).count())
@@ -106,7 +64,7 @@ class SeasonTestCase(TestCase):
         self.assertEqual([1, 2, 3, 4], season.board_number_list())
 
     def test_season_calculate_team_scores(self):
-        season = Season.objects.get(tag='teamseason')
+        season = get_season('team')
         rounds = list(season.round_set.order_by('number'))
         teams = list(season.team_set.order_by('number'))
 
@@ -135,7 +93,7 @@ class SeasonTestCase(TestCase):
                           (1, 1, 1.5, 1, 1, 0.5)], score_matrix())
 
     def test_season_calculate_lone_scores(self):
-        season = Season.objects.get(tag='loneseason')
+        season = get_season('lone')
         rounds = list(season.round_set.order_by('number'))
         season_players = list(season.seasonplayer_set.order_by('player__lichess_username'))[:4]
         players = [sp.player for sp in season_players]
@@ -329,7 +287,7 @@ class LonePlayerPairingTestCase(TestCase):
         createCommonLeagueData()
 
     def test_loneplayerpairing_save_and_delete(self):
-        season = Season.objects.get(tag='loneseason')
+        season = get_season('lone')
         round1 = season.round_set.get(number=1)
         sp1 = season.seasonplayer_set.all()[0]
         sp2 = season.seasonplayer_set.all()[1]
@@ -362,7 +320,7 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertEqual(0, score2.points)
 
     def test_loneplayerpairing_refresh_ranks(self):
-        season = Season.objects.get(tag='loneseason')
+        season = get_season('lone')
         round1 = season.round_set.get(number=1)
         round2 = season.round_set.get(number=2)
         sps = season.seasonplayer_set.all()
@@ -421,7 +379,7 @@ class RegistrationTestCase(TestCase):
         createCommonLeagueData()
 
     def test_registration_previous(self):
-        season = Season.objects.all()[0]
+        season = get_season('team')
         reg = create_reg(season, 'testuser')
 
         self.assertEqual([], list(reg.previous_registrations()))
@@ -431,7 +389,7 @@ class RegistrationTestCase(TestCase):
         self.assertEqual([reg], list(reg2.previous_registrations()))
 
     def test_registration_other_seasons(self):
-        season = Season.objects.all()[0]
+        season = get_season('team')
         season2 = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4,
                                         boards=6)
 
@@ -447,7 +405,7 @@ class AlternateTestCase(TestCase):
         createCommonLeagueData()
 
     def test_alternate_update_board_number(self):
-        season = Season.objects.get(tag='teamseason')
+        season = get_season('team')
         season.boards = 3
         season.save()
 
@@ -486,7 +444,7 @@ class AlternateTestCase(TestCase):
         self.assertEqual(3, alt.board_number)
 
     def test_priority_date(self):
-        season = Season.objects.get(tag='teamseason')
+        season = get_season('team')
         player = Player.objects.all()[0]
         sp = SeasonPlayer.objects.create(season=season, player=player)
         alt = Alternate.objects.create(season_player=sp, board_number=1)
@@ -560,7 +518,7 @@ class PlayerByeTestCase(TestCase):
         createCommonLeagueData()
 
     def test_playerbye_save_and_delete(self):
-        season = Season.objects.get(tag='loneseason')
+        season = get_season('lone')
         round1 = season.round_set.get(number=1)
         sp = season.seasonplayer_set.all()[0]
         score = sp.loneplayerscore
@@ -593,7 +551,7 @@ class PlayerByeTestCase(TestCase):
         self.assertEqual(0, score.points)
 
     def test_playerbye_refresh_rank(self):
-        season = Season.objects.get(tag='loneseason')
+        season = get_season('lone')
         round1 = season.round_set.get(number=1)
         sp1 = season.seasonplayer_set.all()[0]
         sp2 = season.seasonplayer_set.all()[1]
