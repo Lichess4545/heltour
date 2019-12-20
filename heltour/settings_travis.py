@@ -1,4 +1,4 @@
-from .settings_default import *
+from .settings_testing import *
 
 DATABASES = {
     'default': {
@@ -8,5 +8,3 @@ DATABASES = {
         'USER': 'postgres',
     }
 }
-CACHEOPS = {}
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
