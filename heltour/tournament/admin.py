@@ -23,6 +23,7 @@ from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from heltour.tournament.workflows import *
 from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
@@ -1884,25 +1885,16 @@ class RegistrationAdmin(_BaseAdmin):
     def review(self, obj):
         _url = reverse('admin:review_registration',
                        args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
-        return '<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username)
-
-    review.allow_tags = True
-
-    def edit(self, obj):
-        return 'Edit'
-
-    edit.allow_tags = True
+        return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
         if obj.validation_warning == True:
-            return '<img src="%s">' % static('admin/img/icon-alert.svg')
+            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
         elif obj.validation_ok == True:
-            return '<img src="%s">' % static('admin/img/icon-yes.svg')
+            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
         elif obj.validation_ok == False:
-            return '<img src="%s">' % static('admin/img/icon-no.svg')
+            return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
         return ''
-
-    valid.allow_tags = True
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
@@ -2357,9 +2349,7 @@ class LeagueDocumentAdmin(_BaseAdmin):
 
     def url(self, obj):
         _url = reverse('by_league:document', args=[obj.league.tag, obj.tag])
-        return '<a href="%s">%s</a>' % (_url, _url)
-
-    url.allow_tags = True
+        return mark_safe('<a href="%s">%s</a>' % (_url, _url))
 
 
 # -------------------------------------------------------------------------------
@@ -2372,9 +2362,7 @@ class SeasonDocumentAdmin(_BaseAdmin):
     def url(self, obj):
         _url = reverse('by_league:by_season:document',
                        args=[obj.season.league.tag, obj.season.tag, obj.tag])
-        return '<a href="%s">%s</a>' % (_url, _url)
-
-    url.allow_tags = True
+        return mark_safe('<a href="%s">%s</a>' % (_url, _url))
 
 
 # -------------------------------------------------------------------------------
@@ -2431,14 +2419,10 @@ class ModRequestAdmin(_BaseAdmin):
     def review(self, obj):
         _url = reverse('admin:tournament_modrequest_review',
                        args=[obj.pk]) + "?" + self.get_preserved_filters(self.request)
-        return '<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username)
-
-    review.allow_tags = True
+        return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.requester.lichess_username))
 
     def edit(self, obj):
         return 'Edit'
-
-    edit.allow_tags = True
 
     def get_urls(self):
         urls = super(ModRequestAdmin, self).get_urls()
