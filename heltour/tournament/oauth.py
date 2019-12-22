@@ -1,69 +1,133 @@
+import base64
+import json
+import requests
 from django.contrib.auth import login
+from django.core import signing
 from django.http.response import HttpResponse
 from django.shortcuts import redirect, reverse
 from heltour.tournament.models import *
-import requests
-import reversion
+from heltour.tournament import lichessapi
 
-SCOPES = [
+_SCOPES = [
     'email:read',
     'challenge:read',
     'challenge:write'
 ]
 
 
-def get_redirect_uri(request):
-    return request.build_absolute_uri(reverse('lichess_auth'))
-
-
-def redirect_for_authorization(request, league_tag):
+def redirect_for_authorization(request, league_tag, secret_token):
     # Redirect to lichess's OAuth2 consent screen
     # We don't care if anyone else initiates a request, so we can use the state variable to store
     # the league tag so we can redirect properly
+    state = {
+        'league': league_tag,
+        'token': secret_token
+    }
     auth = f'{settings.LICHESS_OAUTH_AUTHORIZE_URL}' + \
            f'?response_type=code' + \
            f'&client_id={settings.LICHESS_OAUTH_CLIENTID}' + \
-           f'&redirect_uri={get_redirect_uri(request)}' + \
-           f'&scope={" ".join(SCOPES)}' + \
-           f'&state={league_tag}'
+           f'&redirect_uri={_get_redirect_uri(request)}' + \
+           f'&scope={" ".join(_SCOPES)}' + \
+           f'&state={_encode_state(state)}'
     return redirect(auth)
 
 
-def get_auth_headers(access_token):
-    return {'Authorization': f'Bearer {access_token}'}
+def login_with_code(request, code, encoded_state):
+    state = _decode_state(encoded_state)
+    oauth_token = _get_oauth_token(request, code)
+    username = _get_account_username(oauth_token)
+    oauth_token.account_username = username
+    oauth_token.account_email = _get_account_email(oauth_token)
+    player = Player.get_or_create(username)
+
+    # Ensure the player's profile is present so we can display ratings, etc.
+    _ensure_profile_present(player)
+
+    # At this point all http requests are successful, so we can start persisting everything
+    oauth_token.save()
+    player.oauth_token = oauth_token
+    player.save()
+
+    user = User.objects.filter(username__iexact=username).first()
+    if not user:
+        # Create the user with a password no one will ever use; it can always be manually reset if needed
+        with reversion.create_revision():
+            reversion.set_comment('Create user from lichess OAuth2 login')
+            user = User.objects.create_user(username=username, password=create_api_token())
+    user.backend = 'django.contrib.auth.backends.ModelBackend'
+    login(request, user)
+
+    # Slack linking?
+    if state['token']:
+        token = LoginToken.objects.filter(secret_token=state['token']).first()
+        if token and not token.is_expired() and token.slack_user_id:
+            Player.link_slack_account(username, token.slack_user_id)
+            request.session['slack_linked'] = True
+
+    # Success. Now redirect
+    redir_url = request.session.get('login_redirect')
+    if redir_url:
+        request.session['login_redirect'] = None
+        return redirect(redir_url)
+    else:
+        return redirect('by_league:user_dashboard', state['league'])
 
 
-def login_with_code(request, code, state):
-    # Get the OAuth2 token given the provided code
+def _ensure_profile_present(player):
+    if not player.profile:
+        user_meta = lichessapi.get_user_meta(player.lichess_username, priority=100)
+        player.update_profile(user_meta)
+
+
+def _get_account_username(oauth_token):
+    response = requests.get(settings.LICHESS_OAUTH_ACCOUNT_URL,
+                            headers=_get_auth_headers(oauth_token.access_token))
+    if response.status_code != 200:
+        return HttpResponse(f'Received {response.status_code} from account endpoint', 401)
+    return response.json()['username']
+
+
+def _get_account_email(oauth_token):
+    response = requests.get(settings.LICHESS_OAUTH_EMAIL_URL,
+                            headers=_get_auth_headers(oauth_token.access_token))
+    if response.status_code != 200:
+        return HttpResponse(f'Received {response.status_code} from email endpoint', 401)
+    return response.json()['email']
+
+
+def _get_oauth_token(request, code):
     token_response = requests.post(settings.LICHESS_OAUTH_TOKEN_URL, {
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': get_redirect_uri(request),
+        'redirect_uri': _get_redirect_uri(request),
         'client_id': settings.LICHESS_OAUTH_CLIENTID,
         'client_secret': settings.LICHESS_OAUTH_CLIENTSECRET
     })
     if token_response.status_code != 200:
         return HttpResponse(f'Received {token_response.status_code} from token endpoint', 401)
-    access_token = token_response.json()['access_token']
+    token_json = token_response.json()
+    return OauthToken(access_token=token_json['access_token'],
+                      token_type=token_json['token_type'],
+                      expires=timezone.now() + timedelta(
+                          seconds=token_json['expires_in']),
+                      refresh_token=token_json.get('refresh_token'),
+                      scope=token_json.get('scope', ' '.join(_SCOPES)))
 
-    # Read the user account information to get their username
-    # TODO: Maybe we can update their Player.profile?
-    # TODO: Eventually we should persist oauth tokens for creating challenges etc.
-    # TODO: Fetch and store their verified email for slack account linking
-    account_response = requests.get(settings.LICHESS_OAUTH_ACCOUNT_URL,
-                                    headers=get_auth_headers(access_token))
-    if account_response.status_code != 200:
-        return HttpResponse(f'Received {account_response.status_code} from account endpoint', 401)
-    lichess_username = account_response.json()['id']
 
-    user = User.objects.filter(username__iexact=lichess_username).first()
-    if not user:
-        # Create the user with a password no one will ever use; it can always be manually reset if needed
-        with reversion.create_revision():
-            reversion.set_comment('Create user from lichess OAuth2 login')
-            user = User.objects.create_user(username=lichess_username, password=create_api_token())
-    user.backend = 'django.contrib.auth.backends.ModelBackend'
-    login(request, user)
+def _get_redirect_uri(request):
+    return request.build_absolute_uri(reverse('lichess_auth'))
 
-    league_tag = state
-    return redirect('by_league:user_dashboard', league_tag)
+
+def _encode_state(state):
+    encoded = base64.urlsafe_b64encode(json.dumps(state).encode('utf8'))
+    # This state isn't actually security critical, but it's just good practice to sign
+    return signing.Signer().sign(encoded)
+
+
+def _decode_state(state):
+    encoded = signing.Signer().unsign(state)
+    return json.loads(base64.urlsafe_b64decode(encoded).decode('utf8'))
+
+
+def _get_auth_headers(access_token):
+    return {'Authorization': f'Bearer {access_token}'}

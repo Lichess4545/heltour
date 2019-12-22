@@ -49,6 +49,7 @@ class Command(BaseCommand):
         ApiKey.objects.all().delete()
         PrivateUrlAuth.objects.all().delete()
         LoginToken.objects.all().delete()
+        OauthToken.objects.all().delete()
         # TODO: could probably selectively delete these, but meh.
         SeasonDocument.objects.all().delete()
         LeagueDocument.objects.all().delete()

@@ -1568,7 +1568,7 @@ class PlayerAdmin(_BaseAdmin):
     list_filter = ('is_active',)
     readonly_fields = (
     'rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
-    exclude = ('profile',)
+    exclude = ('profile', 'oauth_token')
     actions = ['update_selected_player_ratings']
 
     def has_delete_permission(self, request, obj=None):

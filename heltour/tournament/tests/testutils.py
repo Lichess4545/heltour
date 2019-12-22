@@ -34,6 +34,10 @@ def season_url(league_type, page_name):
                    args=[league_tag(league_type), season_tag(league_type)])
 
 
+def get_league(league_type):
+    return League.objects.get(tag='%sleague' % league_type)
+
+
 def get_season(league_type):
     return Season.objects.get(tag='%sseason' % league_type)
 

@@ -304,7 +304,7 @@ class Season(_BaseModel):
                 for prize in self.seasonprize_set.all():
                     eligible_players = [s.season_player.player for s in player_scores if
                                         prize.max_rating is None or (
-                                                s.season_player.seed_rating is not None and s.season_player.seed_rating < prize.max_rating)]
+                                            s.season_player.seed_rating is not None and s.season_player.seed_rating < prize.max_rating)]
                     if prize.rank <= len(eligible_players):
                         SeasonPrizeWinner.objects.create(season_prize=prize,
                                                          player=eligible_players[prize.rank - 1])
@@ -692,6 +692,24 @@ class Section(_BaseModel):
         return '%s - %s' % (self.name, self.section_group.name)
 
 
+# -------------------------------------------------------------------------------
+class OauthToken(_BaseModel):
+    access_token = models.CharField(max_length=255)
+    token_type = models.CharField(max_length=255)
+    expires = models.DateTimeField()
+    refresh_token = models.CharField(max_length=255, blank=True)
+    scope = models.TextField(blank=True)
+
+    account_username = models.CharField(max_length=255)
+    account_email = models.CharField(max_length=255, blank=True)
+
+    def is_expired(self):
+        return self.expires < timezone.now()
+
+    def __str__(self):
+        return self.account_username
+
+
 username_validator = RegexValidator('^[\w-]+$')
 
 ACCOUNT_STATUS_OPTIONS = (
@@ -716,6 +734,7 @@ class Player(_BaseModel):
     timezone_offset = models.DurationField(blank=True, null=True)
     account_status = models.CharField(default='normal', max_length=31,
                                       choices=ACCOUNT_STATUS_OPTIONS)
+    oauth_token = models.ForeignKey(OauthToken, null=True)
 
     profile = JSONField(blank=True, null=True)
 

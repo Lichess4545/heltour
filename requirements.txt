@@ -4,6 +4,7 @@ fabric3==1.14.post1
 psycopg2-binary==2.7.6.1
 django-debug-toolbar==1.11
 requests[security]==2.21.0
+responses==0.10.9
 django-bootstrap3==11.0.0
 gspread==0.4.1
 oauth2client==2.2.0

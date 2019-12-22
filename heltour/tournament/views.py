@@ -2049,8 +2049,8 @@ class NotificationsView(SeasonView, LoginRequiredMixin):
 
 
 class LoginView(LeagueView):
-    def view(self):
-        return oauth.redirect_for_authorization(self.request, self.league.tag)
+    def view(self, secret_token=None):
+        return oauth.redirect_for_authorization(self.request, self.league.tag, secret_token)
 
 
 class OAuthCallbackView(View):
