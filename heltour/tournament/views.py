@@ -67,7 +67,7 @@ class BaseView(View):
 
     def read_user_data(self):
         self.dark_mode = False
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             player_setting = PlayerSetting.objects \
                 .filter(player__lichess_username__iexact=self.request.user.username).first()
             if player_setting:
@@ -131,7 +131,7 @@ class SeasonView(LeagueView):
 
 class LoginRequiredMixin:
     def _preprocess(self):
-        if not self.request.user.is_authenticated():
+        if not self.request.user.is_authenticated:
             self.request.session['login_redirect'] = self.request.build_absolute_uri()
             return redirect('by_league:login', self.league.tag)
         self.extra_context['player'] = self.player
@@ -1363,7 +1363,7 @@ class LeagueDashboardView(LeagueView):
 
 class UserDashboardView(LeagueView):
     def view(self):
-        if not self.request.user.is_authenticated():
+        if not self.request.user.is_authenticated:
             return redirect('by_league:league_home', self.league.tag)
 
         player = Player.get_or_create(self.request.user.username)
@@ -1856,7 +1856,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
 
     def set_league_and_season(self, league_tag, season_tag):
         self.league = _get_league(league_tag)
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             league_seasons = self.league.season_set.filter(is_completed=False)
             active_sp = self.player.seasonplayer_set.filter(season__in=league_seasons,
                                                             is_active=True) \
@@ -2117,7 +2117,7 @@ class TvJsonView(LeagueView):
 class ToggleDarkModeView(BaseView):
     def view(self):
         original_value = False
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             player = Player.get_or_create(self.request.user.username)
             player_setting, _ = PlayerSetting.objects.get_or_create(player=player)
             original_value = player_setting.dark_mode
