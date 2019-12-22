@@ -2322,7 +2322,7 @@ class Document(_BaseModel):
     allow_editors = models.BooleanField(default=False, verbose_name='Allow designated editors')
     owner = select2.fields.ForeignKey(User, ajax=True, search_field='username',
                                       limit_choices_to=models.Q(is_staff=True),
-                                      on_delete=models.CASCADE)
+                                      on_delete=models.PROTECT)
 
     def owned_by(self, user):
         return self.owner == user
