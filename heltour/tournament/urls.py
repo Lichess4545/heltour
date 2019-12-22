@@ -72,7 +72,7 @@ season_urlpatterns = [
 league_urlpatterns = [
     url(r'^$', views.LeagueHomeView.as_view(), name='league_home'),
     url(r'^', include(season_urlpatterns)),
-    url(r'^season/(?P<season_tag>[\w-]+)/', include(season_urlpatterns, 'by_season')),
+    url(r'^season/(?P<season_tag>[\w-]+)/', include((season_urlpatterns, 'tournament'), 'by_season')),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
     url(r'^contact/$', views.ContactView.as_view(), name='contact'),
     url(r'^contact_success/$', views.ContactSuccessView.as_view(), name='contact_success'),
@@ -108,14 +108,14 @@ urlpatterns = [
     url(r'^toggle/darkmode/$', views.ToggleDarkModeView.as_view(), name='toggle_darkmode'),
     url(r'^player/(?P<username>[\w-]+)/calendar.ics$', views.ICalPlayerView.as_view(),
         name='player_icalendar'),
-    url(r'^api/', include(api_urlpatterns, 'api')),
-    url(r'^app/', include(app_urlpatterns, 'app')),
+    url(r'^api/', include((api_urlpatterns, 'tournament'), 'api')),
+    url(r'^app/', include((app_urlpatterns, 'tournament'), 'app')),
     url(r'^auth/slack/$', auth.SlackAuth.as_view(), name='slack_auth'),
     url(r'^auth/lichess/$', views.OAuthCallbackView.as_view(), name='lichess_auth'),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^select2/', include('select2.urls')),
-    url(r'^(?P<league_tag>[\w-]+)/', include(league_urlpatterns, 'by_league')),
+    url(r'^(?P<league_tag>[\w-]+)/', include((league_urlpatterns, 'tournament'), 'by_league')),
 ]
 
 if settings.DEBUG:
