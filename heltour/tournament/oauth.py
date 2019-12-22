@@ -120,14 +120,12 @@ def _get_redirect_uri(request):
 
 
 def _encode_state(state):
-    encoded = base64.urlsafe_b64encode(json.dumps(state).encode('utf8'))
     # This state isn't actually security critical, but it's just good practice to sign
-    return signing.Signer().sign(encoded)
+    return signing.dumps(state)
 
 
 def _decode_state(state):
-    encoded = signing.Signer().unsign(state)
-    return json.loads(base64.urlsafe_b64decode(encoded).decode('utf8'))
+    return signing.loads(state)
 
 
 def _get_auth_headers(access_token):
