@@ -127,7 +127,7 @@ def do_alternate_search(season, round_, board_number, setting):
     alternates_not_contacted = sorted(
         Alternate.objects.filter(season_player__season=season, board_number=board_number,
                                  status='waiting') \
-        .select_related('season_player__registration', 'season_player__player').nocache(), \
+            .select_related('season_player__registration', 'season_player__player').nocache(), \
         key=lambda a: a.priority_date())
 
     if len(players_that_need_replacements) == 0:

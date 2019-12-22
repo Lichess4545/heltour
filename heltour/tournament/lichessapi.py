@@ -39,7 +39,7 @@ def _apicall(url, timeout=120, check_interval=0.1, post_data=None):
 
 def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (
-    settings.API_WORKER_HOST, lichess_username, priority, max_retries)
+        settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -48,7 +48,7 @@ def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=120):
 
 def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/users?with_moves=1&priority=%s&max_retries=%s' % (
-    settings.API_WORKER_HOST, priority, max_retries)
+        settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
         batch = lichess_usernames[:300]
         result = _apicall(url, timeout, post_data=','.join(batch))
@@ -61,7 +61,7 @@ def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=1
 
 def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/users/status?priority=%s&max_retries=%s' % (
-    settings.API_WORKER_HOST, priority, max_retries)
+        settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
         batch = lichess_usernames[:40]
         result = _apicall('%s&ids=%s' % (url, ','.join(batch)), timeout)
@@ -77,7 +77,7 @@ def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority
     page = 1
     while True:
         url = '%s/lichessapi/api/user?team=%s&nb=100&page=%s&priority=%s&max_retries=%s' % (
-        settings.API_WORKER_HOST, lichess_team_name, page, priority, max_retries)
+            settings.API_WORKER_HOST, lichess_team_name, page, priority, max_retries)
         result = _apicall(url, timeout)
         if result == '':
             break
@@ -97,7 +97,7 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=120):
     if result is not None:
         return result
     url = '%s/lichessapi/game/export/%s.pgn?priority=%s&max_retries=%s' % (
-    settings.API_WORKER_HOST, gameid, priority, max_retries)
+        settings.API_WORKER_HOST, gameid, priority, max_retries)
     result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -107,7 +107,7 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=120):
 
 def get_game_meta(gameid, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/game/export/%s?priority=%s&max_retries=%s&format=application/json' % (
-    settings.API_WORKER_HOST, gameid, priority, max_retries)
+        settings.API_WORKER_HOST, gameid, priority, max_retries)
     result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -116,7 +116,7 @@ def get_game_meta(gameid, priority=0, max_retries=3, timeout=120):
 
 def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, timeout=120):
     url = '%s/lichessapi/api/games/user/%s?max=%s&ongoing=true&priority=%s&max_retries=%s&format=application/x-ndjson' % (
-    settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
+        settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
     result = _apicall(url, timeout)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -183,7 +183,7 @@ def send_mail(lichess_username, subject, text):
                                       headers=_headers, cookies=login_cookies)
         if mail_response.status_code != 200:
             logger.error('Received status %s when trying to send mail on lichess: %s' % (
-            mail_response.status_code, mail_response.text))
+                mail_response.status_code, mail_response.text))
             return False
         mail_json = mail_response.json()
         if 'ok' not in mail_json or mail_json['ok'] != True:
@@ -207,7 +207,7 @@ def get_peak_rating(lichess_username, perf_type):
             headers=_headers)
         if response.status_code != 200:
             logger.error('Received status %s when trying to retrieve peak rating on lichess: %s' % (
-            response.status_code, response.text))
+                response.status_code, response.text))
             return None
 
         return response.json()['stat']['highest']['int']

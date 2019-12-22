@@ -51,7 +51,7 @@ def league_comment(league, comment, **kwargs):
     admin_url = abs_url(
         reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
     message = '%s commented on %s <%s|%s>:\n>>> %s' % (
-    comment.user_name, comment.content_type.name, admin_url, obj, comment.comment)
+        comment.user_name, comment.content_type.name, admin_url, obj, comment.comment)
     if league.get_leaguesetting().notify_for_comments:
         _send_notification('mod', league, message)
 
@@ -70,8 +70,8 @@ def registration_saved(instance, created, **kwargs):
     pending_count = instance.season.registration_set.filter(status='pending',
                                                             season=instance.season).count()
     message = '@%s (%s) has <%s|registered> for %s. <%s|%d pending>' % (
-    instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url,
-    pending_count)
+        instance.lichess_username, instance.classical_rating, reg_url, league.name, list_url,
+        pending_count)
 
     pre_season = instance.season.start_date and timezone.now() < instance.season.start_date
     setting = league.get_leaguesetting()
@@ -97,7 +97,7 @@ def withdrawal_saved(instance, created, **kwargs):
     league = instance.round.season.league
     manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
     message = '@%s <%s|withdrawn> for round %d' % (
-    instance.player, manage_url, instance.round.number)
+        instance.player, manage_url, instance.round.number)
     if league.get_leaguesetting().notify_for_latereg_and_withdraw:
         _send_notification('mod', league, message)
 
@@ -140,10 +140,11 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
                 reverse('by_league:player_profile', args=[league.tag, instance.lichess_username]))
         if old_value == 'normal':
             message = '@%s marked as %s on <%s|lichess>. <%s|Player profile>' % (
-            _slack_user(instance), new_value, lichess_profile_url, player_profile_url)
+                _slack_user(instance), new_value, lichess_profile_url, player_profile_url)
         else:
             message = '@%s <%s|lichess> account status changed from %s to %s. <%s|Player profile>' % (
-            _slack_user(instance), lichess_profile_url, old_value, new_value, player_profile_url)
+                _slack_user(instance), lichess_profile_url, old_value, new_value,
+                player_profile_url)
         _send_notification('mod', league, message)
 
 
@@ -155,8 +156,9 @@ def notify_mods_unscheduled(round_, **kwargs):
         message = '%s - All games are scheduled.' % round_
     else:
         pairing_strs = (
-        '@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in
-        unscheduled_pairings)
+            '@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for
+        p in
+            unscheduled_pairings)
         message = '%s - The following games are unscheduled: %s' % (round_, ', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
@@ -169,10 +171,11 @@ def notify_mods_no_result(round_, **kwargs):
         message = '%s - All games have results.' % round_
     else:
         pairing_strs = (
-        '@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for p in
-        no_result_pairings)
+            '@%s vs @%s' % (p.white.lichess_username.lower(), p.black.lichess_username.lower()) for
+        p in
+            no_result_pairings)
         message = '%s - The following games are missing results: %s' % (
-        round_, ', '.join(pairing_strs))
+            round_, ', '.join(pairing_strs))
     _send_notification('mod', round_.season.league, message)
 
 
@@ -228,7 +231,7 @@ def starting_round_transition(season, msg_list, **kwargs):
 def publish_scheduled(round_id, eta, **kwargs):
     round_ = Round.objects.get(id=round_id)
     message = '%s pairings will be published in %d minutes.' % (
-    round_, (eta - timezone.now()).total_seconds() / 60)
+        round_, (eta - timezone.now()).total_seconds() / 60)
     _send_notification('mod', round_.season.league, message)
 
 
@@ -297,7 +300,7 @@ def alternate_search_all_contacted(season, team, board_number, round_, number_co
     league = season.league
     # Broadcast a message to both team captains
     message = '%sI have messaged every eligible alternate for board %d of "%s". Still waiting for responses from %d.' % (
-    _captains_ping(team, round_), board_number, team.name, number_contacted)
+        _captains_ping(team, round_), board_number, team.name, number_contacted)
     _send_notification('captains', league, message)
 
 
@@ -366,7 +369,8 @@ def _notify_alternate_and_opponent(league, aa):
         message_to_alternate = ('@%s: You are playing on board %d of "%s".%s\n' \
                                 + 'I am still searching for another alternate for you to play, please be patient.') \
                                % (
-                               _slack_user(aa.player), aa.board_number, aa.team.name, captain_text)
+                                   _slack_user(aa.player), aa.board_number, aa.team.name,
+                                   captain_text)
         _message_user(league, _slack_user(aa.player), message_to_alternate)
         return None
 
@@ -499,7 +503,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'opponent': black,
         'color': 'white',
         'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (
-        '@chesster,' if use_mpim else '@', black)
+            '@chesster,' if use_mpim else '@', black)
     }
     white_params.update(common_params)
     black_params = {
@@ -507,7 +511,7 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'opponent': white,
         'color': 'black',
         'slack_url': 'https://lichess4545.slack.com/messages/%s%s/' % (
-        '@chesster,' if use_mpim else '@', white)
+            '@chesster,' if use_mpim else '@', white)
     }
     black_params.update(common_params)
 
@@ -699,7 +703,7 @@ def game_warning(pairing, warning, **kwargs):
 def mod_request_created(instance, **kwargs):
     review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
     message = '<@%s> created a request: <%s|%s>' % (
-    _slack_user(instance.requester), review_url, instance.get_type_display())
+        _slack_user(instance.requester), review_url, instance.get_type_display())
     _send_notification('mod', instance.season.league, message)
 
 
@@ -717,7 +721,7 @@ def mod_request_approved(instance, **kwargs):
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been approved.' % (
-    instance.season, instance.get_type_display())
+        instance.season, instance.get_type_display())
     if instance.response:
         message += ' %s' % instance.response
     _message_user(instance.season.league, _slack_user(instance.requester), message)
@@ -737,7 +741,7 @@ def mod_request_rejected(instance, **kwargs):
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been declined.' % (
-    instance.season, instance.get_type_display())
+        instance.season, instance.get_type_display())
     if instance.response:
         message += ' %s' % instance.response
     _message_user(instance.season.league, _slack_user(instance.requester), message)
@@ -802,7 +806,7 @@ def notify_noshow(round_, player, opponent, **kwargs):
     claim_url = abs_url(reverse('by_league:by_season:modrequest',
                                 args=[league.tag, season.tag, 'claim_win_noshow']))
     message = 'Notice: It appears your opponent, <@%s>, has not shown up for your scheduled game time in %s. ' % (
-    _slack_user(opponent), league.name) \
+        _slack_user(opponent), league.name) \
               + 'To claim a win by forfeit, <%s|click here>.' % claim_url
     _message_user(league, _slack_user(player), message)
 

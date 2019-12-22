@@ -77,12 +77,13 @@ class RegistrationForm(forms.ModelForm):
                                                                coerce=lambda x: x == 'True',
                                                                label=_(
                                                                    'Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (
-                                                                   time_control,
-                                                                   league.rating_type)))
+                                                                       time_control,
+                                                                       league.rating_type)))
         else:
             start_time = '' if self.season.start_date is None else \
                 ' on %s at %s UTC' % (
-                self.season.start_date.strftime('%b %-d'), self.season.start_date.strftime('%H:%M'))
+                    self.season.start_date.strftime('%b %-d'),
+                    self.season.start_date.strftime('%H:%M'))
             self.fields['can_commit'] = forms.TypedChoiceField(required=True,
                                                                choices=YES_NO_OPTIONS,
                                                                widget=forms.RadioSelect,
@@ -90,8 +91,9 @@ class RegistrationForm(forms.ModelForm):
                                                                label=_(
                                                                    'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
                                                                    % (
-                                                                   self.season.rounds, time_control,
-                                                                   start_time)))
+                                                                       self.season.rounds,
+                                                                       time_control,
+                                                                       start_time)))
         # Friends and avoid
         if league.competitor_type == 'team':
             self.fields['friends'] = forms.CharField(required=False, label=_(
@@ -388,7 +390,7 @@ class TeamSpamForm(forms.Form):
         super(TeamSpamForm, self).__init__(*args, **kwargs)
 
         self.fields['confirm_send'].label = 'Yes, I\'m sure - send spam to %d teams in %s' % (
-        season.team_set.count(), season.name)
+            season.team_set.count(), season.name)
 
 
 class TvFilterForm(forms.Form):

@@ -29,7 +29,7 @@ class RoundTransitionWorkflow():
         round_to_close = self.round_to_close
         round_to_open = self.round_to_open
         return self.season if not self.season.is_completed and round_to_open is None and (
-                round_to_close is None or round_to_close.number == self.season.rounds) else None
+            round_to_close is None or round_to_close.number == self.season.rounds) else None
 
     def run(self, complete_round=False, complete_season=False, update_board_order=False,
             generate_pairings=False, background=False, user=None):
@@ -96,12 +96,12 @@ class RoundTransitionWorkflow():
             hours=1):
             time_from_now = self._time_from_now(round_to_close.end_date - timezone.now())
             msg_list.append(('The round %d end date is %s from now.' % (
-            round_to_close.number, time_from_now), messages.WARNING))
+                round_to_close.number, time_from_now), messages.WARNING))
         elif round_to_open is not None and round_to_open.start_date is not None and round_to_open.start_date > timezone.now() + timedelta(
             hours=1):
             time_from_now = self._time_from_now(round_to_open.start_date - timezone.now())
             msg_list.append(('The round %d start date is %s from now.' % (
-            round_to_open.number, time_from_now), messages.WARNING))
+                round_to_open.number, time_from_now), messages.WARNING))
 
         if round_to_close is not None:
             incomplete_pairings = PlayerPairing.objects.filter(result='',
@@ -110,7 +110,7 @@ class RoundTransitionWorkflow():
                                                                loneplayerpairing__round=round_to_close).nocache()
             if len(incomplete_pairings) > 0:
                 msg_list.append(('Round %d has %d pairing(s) without a result.' % (
-                round_to_close.number, len(incomplete_pairings)), messages.WARNING))
+                    round_to_close.number, len(incomplete_pairings)), messages.WARNING))
 
         return msg_list
 
@@ -213,7 +213,7 @@ class UpdateBoardOrderWorkflow():
                                                                       'is_captain': m.is_captain,
                                                                       'is_vice_captain': m.is_vice_captain})
                         change_descriptions.append('changed board %d from "%s" to "%s"' % (
-                        board_number, old_order[board_number], m))
+                            board_number, old_order[board_number], m))
                 reversion.set_comment('Update board order - %s.' % ', '.join(change_descriptions))
 
     def calc_alternate_boundaries(self, ratings_by_board):

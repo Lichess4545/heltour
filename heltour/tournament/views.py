@@ -521,9 +521,9 @@ class PairingsView(SeasonView):
 
         # Show the legend if at least one the players in the visible pairings is unavailable
         show_legend = len(unavailable_players & (
-                {p[0].white for plist in pairing_lists for p in plist} | {p[0].black for plist in
-                                                                          pairing_lists for p in
-                                                                          plist})) > 0
+            {p[0].white for plist in pairing_lists for p in plist} | {p[0].black for plist in
+                                                                      pairing_lists for p in
+                                                                      plist})) > 0
 
         return {
             'round_number': round_number,
@@ -1100,7 +1100,7 @@ class StatsView(SeasonView):
                 if total == 0:
                     return board_num, tuple(counts), (0, 0, 0, 0), 0.0
                 percents = (
-                counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
+                    counts[0] / total, counts[1] / total, counts[2] / total, counts[3] / total)
                 return board_num, tuple(counts), percents, rating_delta / total
 
             _, total_counts, total_percents, total_rating_delta = count_results()
@@ -1666,11 +1666,11 @@ class TeamProfileView(LeagueView):
                         display_ratings[p.black] = p.black_rating
 
         prev_members = [(
-                        player, display_ratings.get(player, None) or player.rating_for(self.league),
-                        game_count) for player, game_count in sorted(list(game_counts.items()),
-                                                                     key=lambda i: i[
-                                                                         0].lichess_username.lower())
-                        if player not in member_players]
+            player, display_ratings.get(player, None) or player.rating_for(self.league),
+            game_count) for player, game_count in sorted(list(game_counts.items()),
+                                                         key=lambda i: i[
+                                                             0].lichess_username.lower())
+            if player not in member_players]
 
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
@@ -2034,7 +2034,7 @@ class NotificationsView(SeasonView, LoginRequiredMixin):
                     setting.enable_slack_im = form.cleaned_data[type_ + '_slack']
                     setting.enable_slack_mpim = form.cleaned_data[type_ + '_slack_wo']
                     setting.offset = timedelta(minutes=form.cleaned_data[type_ + '_offset']) if (
-                                                                                                        type_ + '_offset') in form.cleaned_data else None
+                                                                                                    type_ + '_offset') in form.cleaned_data else None
                     setting.save()
         else:
             form = NotificationsForm(self.league, player)
@@ -2161,12 +2161,12 @@ def _tv_json(league, board=None, team=None):
                 },
                 'board_number': game.teamplayerpairing.board_number,
                 'matches_filter': (
-                                          league is None and game_league.is_active or league == game_league) and
+                                      league is None and game_league.is_active or league == game_league) and
                                   (
-                                          board is None or board == game.teamplayerpairing.board_number) and
+                                      board is None or board == game.teamplayerpairing.board_number) and
                                   # TODO: Team filter can do weird things if there are multiple active seasons
                                   (
-                                          team is None or team == game.teamplayerpairing.white_team().number or team == game.teamplayerpairing.black_team().number)
+                                      team is None or team == game.teamplayerpairing.white_team().number or team == game.teamplayerpairing.black_team().number)
             }
         elif hasattr(game, 'loneplayerpairing'):
             game_season = game.loneplayerpairing.round.season
@@ -2183,7 +2183,7 @@ def _tv_json(league, board=None, team=None):
                 'league': game_league.tag,
                 'season': game_season.tag,
                 'matches_filter': (
-                                          league is None and game_league.is_active or league == game_league) and board is None and team is None
+                                      league is None and game_league.is_active or league == game_league) and board is None and team is None
             }
 
     current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(

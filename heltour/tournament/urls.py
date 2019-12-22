@@ -72,7 +72,8 @@ season_urlpatterns = [
 league_urlpatterns = [
     url(r'^$', views.LeagueHomeView.as_view(), name='league_home'),
     url(r'^', include(season_urlpatterns)),
-    url(r'^season/(?P<season_tag>[\w-]+)/', include((season_urlpatterns, 'tournament'), 'by_season')),
+    url(r'^season/(?P<season_tag>[\w-]+)/',
+        include((season_urlpatterns, 'tournament'), 'by_season')),
     url(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
     url(r'^contact/$', views.ContactView.as_view(), name='contact'),
     url(r'^contact_success/$', views.ContactSuccessView.as_view(), name='contact_success'),

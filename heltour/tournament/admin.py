@@ -796,7 +796,7 @@ class SeasonAdmin(_BaseAdmin):
 
             for player in player_list:
                 pairing = LonePlayerPairing.objects.filter(Q(white=player) | Q(black=player),
-                                                        round=last_round).first()
+                                                           round=last_round).first()
                 season_player = SeasonPlayer.objects.get(player=player, season=season)
                 comments = list(Comment.objects.filter(
                     (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
@@ -1011,7 +1011,7 @@ class SeasonAdmin(_BaseAdmin):
 
                                     change_descriptions.append(
                                         'changed board %d from "%s" to "%s"' % (
-                                        board_num, original_teammember, teammember))
+                                            board_num, original_teammember, teammember))
 
                                 if change['action'] == 'change-team' and not teams_locked:
                                     team_num = change['team_number']
@@ -1368,7 +1368,7 @@ class RoundAdmin(_BaseAdmin):
                                                      eta=publish_time)
                     self.message_user(request,
                                       'Pairings scheduled to be published in %d minutes.' % (
-                                              (publish_time - timezone.now()).total_seconds() / 60),
+                                          (publish_time - timezone.now()).total_seconds() / 60),
                                       messages.INFO)
                 elif 'delete' in form.data:
                     try:
@@ -1568,7 +1568,7 @@ class PlayerAdmin(_BaseAdmin):
     search_fields = ('lichess_username', 'email', 'slack_user_id')
     list_filter = ('is_active',)
     readonly_fields = (
-    'rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
+        'rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile', 'oauth_token')
     actions = ['update_selected_player_ratings']
 
@@ -1868,7 +1868,8 @@ class LonePlayerPairingAdmin(_BaseAdmin):
 @admin.register(Registration)
 class RegistrationAdmin(_BaseAdmin):
     list_display = (
-    'review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating', 'date_created')
+        'review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating',
+        'date_created')
     list_display_links = ()
     search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season', 'section_preference__name')

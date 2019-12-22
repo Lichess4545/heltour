@@ -111,7 +111,7 @@ def date_or_q(datetime, fmt=None):
 @register.filter
 def label_right(input_element):
     return mark_safe('%s<label for="id_%s">%s</label></td>' % (
-    input_element, input_element.name, input_element.label))
+        input_element, input_element.name, input_element.label))
 
 
 @register.filter
@@ -158,7 +158,7 @@ def date_el(datetime, arg=None):
     if not datetime:
         return ''
     return mark_safe('<time datetime="%s">%s</time>' % (
-    datetime.isoformat(), formats.date_format(datetime, arg)))
+        datetime.isoformat(), formats.date_format(datetime, arg)))
 
 
 @register.filter

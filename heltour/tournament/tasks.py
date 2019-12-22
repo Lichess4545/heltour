@@ -142,7 +142,7 @@ def _find_closest_rating(player, date, season):
         if p.game_id() is not None:
             game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
             player_meta = game_meta['players']['white'] if p.white == player else \
-            game_meta['players']['black']
+                game_meta['players']['black']
             if 'ratingDiff' in player_meta:
                 return player_meta['rating'] + player_meta['ratingDiff']
         return rating(p)
@@ -378,7 +378,7 @@ def validate_registration(self, reg_id):
         reg.has_played_20_games = not player.provisional_for(reg.season.league)
         if player.account_status != 'normal':
             fail_reason = 'The lichess user "%s" has the "%s" mark.' % (
-            reg.lichess_username, player.account_status)
+                reg.lichess_username, player.account_status)
         if reg.already_in_slack_group and not player.slack_user_id:
             reg.already_in_slack_group = False
     except lichessapi.ApiWorkerError:

@@ -254,7 +254,8 @@ def make_league(playerdata, boards, balance):
             if player.team == avoid.team:  # otherwise irrelevant
                 for swap_team in teams:
                     swap_ID = (
-                    avoid.team, avoid, swap_team, swap_team.get_player(avoid.board), avoid.board)
+                        avoid.team, avoid, swap_team, swap_team.get_player(avoid.board),
+                        avoid.board)
                     swap_score = testSwap(*swap_ID)
                     swaps.append((swap_score, swap_ID))
         swaps.sort()
