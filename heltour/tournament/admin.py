@@ -794,8 +794,8 @@ class SeasonAdmin(_BaseAdmin):
             retval = []
 
             for player in player_list:
-                pairing = LonePlayerPairing.objects.get(Q(white=player) | Q(black=player),
-                                                        round=last_round)
+                pairing = LonePlayerPairing.objects.filter(Q(white=player) | Q(black=player),
+                                                        round=last_round).first()
                 season_player = SeasonPlayer.objects.get(player=player, season=season)
                 comments = list(Comment.objects.filter(
                     (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
