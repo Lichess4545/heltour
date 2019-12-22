@@ -2,7 +2,6 @@ import json
 
 from django.test import TestCase, Client
 from heltour.tournament.models import *
-from django.core.urlresolvers import reverse
 
 
 def createCommonAPIData():

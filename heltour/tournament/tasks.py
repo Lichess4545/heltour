@@ -9,7 +9,7 @@ from heltour import settings
 import reversion
 from django.contrib import messages
 from math import ceil
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save

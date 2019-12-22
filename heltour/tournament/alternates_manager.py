@@ -1,5 +1,5 @@
 from heltour.tournament.models import *
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 import reversion
 from heltour.tournament.workflows import UpdateBoardOrderWorkflow
 

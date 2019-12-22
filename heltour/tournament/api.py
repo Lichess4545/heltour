@@ -7,7 +7,7 @@ from .models import *
 from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 
 # API methods expect an HTTP header in the form:

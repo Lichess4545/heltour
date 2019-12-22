@@ -3,7 +3,7 @@ from heltour import settings
 from collections import namedtuple
 from . import slackapi
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver

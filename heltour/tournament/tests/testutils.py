@@ -1,5 +1,5 @@
 from heltour.tournament.models import *
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 
 def set_rating(player, rating, rating_type='classical'):
@@ -40,6 +40,14 @@ def get_league(league_type):
 
 def get_season(league_type):
     return Season.objects.get(tag='%sseason' % league_type)
+
+
+def get_player(player_name):
+    return Player.objects.get(lichess_username__iexact=player_name)
+
+
+def get_round(league_type, round_number):
+    return Round.objects.get(season=get_season(league_type), number=round_number)
 
 
 def createCommonLeagueData():

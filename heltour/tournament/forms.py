@@ -7,7 +7,7 @@ from .models import *
 from django.core.exceptions import ValidationError
 from heltour import settings
 import captcha
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from heltour.tournament.workflows import ApproveRegistrationWorkflow
 
 YES_NO_OPTIONS = (

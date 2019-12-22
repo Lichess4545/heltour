@@ -17,7 +17,7 @@ from heltour import settings
 from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http.response import HttpResponse
 from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
