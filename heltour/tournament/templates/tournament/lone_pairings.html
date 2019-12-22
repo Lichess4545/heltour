@@ -98,7 +98,7 @@
                                                         class="visible-xs"></span> ({% white_rating pairing %})
                                                 </a>
                                                 {% if white_img %}
-                                                    <img src="{% static 'admin/img' %}/icon-{{ white_img }}.svg"
+                                                    <img src="{% static 'admin/img/icon-'|add:white_img|add:'.svg' %}"
                                                          title="{{ white_status }}"/>
                                                 {% endif %}
                                             </div>
@@ -122,7 +122,7 @@
                                                         class="visible-xs"></span> ({% black_rating pairing %})
                                                 </a>
                                                 {% if black_img %}
-                                                    <img src="{% static 'admin/img' %}/icon-{{ black_img }}.svg"
+                                                    <img src="{% static 'admin/img/icon-'|add:black_img|add:'.svg' %}"
                                                          title="{{ black_status }}"/>
                                                 {% endif %}
                                             </div>
