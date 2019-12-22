@@ -694,10 +694,10 @@ class Section(_BaseModel):
 
 # -------------------------------------------------------------------------------
 class OauthToken(_BaseModel):
-    access_token = models.CharField(max_length=255)
+    access_token = models.CharField(max_length=4096)
     token_type = models.CharField(max_length=255)
     expires = models.DateTimeField()
-    refresh_token = models.CharField(max_length=255, blank=True)
+    refresh_token = models.CharField(max_length=4096, blank=True)
     scope = models.TextField(blank=True)
 
     account_username = models.CharField(max_length=255)
