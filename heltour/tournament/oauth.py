@@ -37,7 +37,8 @@ def login_with_code(request, code, encoded_state):
     oauth_token = _get_oauth_token(request, code)
     username = _get_account_username(oauth_token)
     oauth_token.account_username = username
-    oauth_token.account_email = _get_account_email(oauth_token)
+    # TODO: This slows down login. Figure out what to do with this.
+    # oauth_token.account_email = _get_account_email(oauth_token)
     player = Player.get_or_create(username)
 
     # Ensure the player's profile is present so we can display ratings, etc.
