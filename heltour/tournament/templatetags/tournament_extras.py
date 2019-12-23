@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
 from heltour import settings
-from heltour.tournament.models import Player, Registration
+from heltour.tournament.models import Player, Registration, format_score
 from static_precompiler.utils import compile_static
 
 register = template.Library()
@@ -83,20 +83,7 @@ def highlightclass(highlights, player):
 
 @register.filter
 def formatscore(score):
-    if str(score) == '0.5':
-        return '\u00BD'
-    return str(score).replace('.0', '').replace('.5', '\u00BD')
-
-
-@register.filter
-def forfeitchar(score):
-    if score == 1:
-        return 'X'
-    elif score == 0.5:
-        return 'Z'
-    elif score == 0:
-        return 'F'
-    return ''
+    return format_score(score)
 
 
 @register.filter

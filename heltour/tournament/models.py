@@ -45,6 +45,23 @@ def add_system_comment(obj, text, user_name='System'):
                            comment=text, submit_date=timezone.now(), is_public=True)
 
 
+def format_score(score, game_played=None):
+    if score is None:
+        return ''
+    if str(score) == '0.5':
+        score_str = '\u00BD'
+    else:
+        score_str = str(score).replace('.0', '').replace('.5', '\u00BD')
+    if game_played is False:
+        if score == 1:
+            score_str += 'X'
+        elif score == 0.5:
+            score_str += 'Z'
+        elif score == 0:
+            score_str += 'F'
+    return score_str
+
+
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
 
@@ -1603,8 +1620,14 @@ class TeamPlayerPairing(PlayerPairing):
     def white_team_score(self):
         return self.white_score() if self.board_number % 2 == 1 else self.black_score()
 
+    def white_team_score_str(self):
+        return format_score(self.white_score(), self.game_played())
+
     def black_team_score(self):
         return self.black_score() if self.board_number % 2 == 1 else self.white_score()
+
+    def black_team_score_str(self):
+        return format_score(self.black_score(), self.game_played())
 
     def white_team_match_score(self):
         return self.team_pairing.white_points if self.board_number % 2 == 1 else self.team_pairing.black_points

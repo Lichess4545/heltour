@@ -153,18 +153,8 @@
                                                     <a href="{{ pairing.game_link }}">
                                                 {% endif %}
                                                 {% spaceless %}
-                                                    <span>
-                                {% if pairing.white_team_score != None %}
-                                    {{ pairing.white_team_score|formatscore }}{% if not pairing.game_played %}
-                                        {{ pairing.white_team_score|forfeitchar }}{% endif %}
-                                {% endif %}
-                            </span>
-                                                    <span>
-                                {% if pairing.black_team_score != None %}
-                                    {{ pairing.black_team_score|formatscore }}{% if not pairing.game_played %}
-                                        {{ pairing.black_team_score|forfeitchar }}{% endif %}
-                                {% endif %}
-                            </span>
+                                                    <span>{{ pairing.white_team_score_str }}</span>
+                                                    <span>{{ pairing.black_team_score_str }}</span>
                                                 {% endspaceless %}
                                                 {% if pairing.game_link %}
                                                     </a>
