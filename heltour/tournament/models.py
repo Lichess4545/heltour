@@ -1621,13 +1621,13 @@ class TeamPlayerPairing(PlayerPairing):
         return self.white_score() if self.board_number % 2 == 1 else self.black_score()
 
     def white_team_score_str(self):
-        return format_score(self.white_score(), self.game_played())
+        return format_score(self.white_team_score(), self.game_played())
 
     def black_team_score(self):
         return self.black_score() if self.board_number % 2 == 1 else self.white_score()
 
     def black_team_score_str(self):
-        return format_score(self.black_score(), self.game_played())
+        return format_score(self.black_team_score(), self.game_played())
 
     def white_team_match_score(self):
         return self.team_pairing.white_points if self.board_number % 2 == 1 else self.team_pairing.black_points
