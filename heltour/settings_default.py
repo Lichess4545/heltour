@@ -63,7 +63,6 @@ INSTALLED_APPS = [
     'django_comments',
     'heltour.comments',
     'captcha',
-    'select2',
     'impersonate',
     'static_precompiler',
 ]

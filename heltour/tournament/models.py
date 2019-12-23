@@ -8,7 +8,6 @@ from django import forms as django_forms
 from collections import namedtuple, defaultdict
 import re
 from django.core.exceptions import ValidationError
-import select2.fields
 from heltour.tournament import signals
 import logging
 from django.contrib.auth.models import User
@@ -859,8 +858,7 @@ class PlayerSetting(_BaseModel):
 # -------------------------------------------------------------------------------
 class LeagueModerator(_BaseModel):
     league = models.ForeignKey(League, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     is_active = models.BooleanField(default=True)
     send_contact_emails = models.BooleanField(default=True)
@@ -882,8 +880,7 @@ ROUND_CHANGE_OPTIONS = (
 # -------------------------------------------------------------------------------
 class PlayerLateRegistration(_BaseModel):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     retroactive_byes = models.PositiveIntegerField(default=0)
     late_join_points = ScoreField(default=0)
 
@@ -932,8 +929,7 @@ class PlayerLateRegistration(_BaseModel):
 # -------------------------------------------------------------------------------
 class PlayerWithdrawal(_BaseModel):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('round', 'player')
@@ -979,8 +975,7 @@ BYE_TYPE_OPTIONS = (
 # -------------------------------------------------------------------------------
 class PlayerBye(_BaseModel):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     type = models.CharField(max_length=31, choices=BYE_TYPE_OPTIONS)
     player_rank = models.PositiveIntegerField(blank=True, null=True)
     player_rating = models.PositiveIntegerField(blank=True, null=True)
@@ -1125,8 +1120,7 @@ BOARD_NUMBER_OPTIONS = (
 # -------------------------------------------------------------------------------
 class TeamMember(_BaseModel):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     is_captain = models.BooleanField(default=False)
     is_vice_captain = models.BooleanField(default=False)
@@ -1377,12 +1371,12 @@ TV_STATE_OPTIONS = (
 
 # -------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
-    white = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                      blank=True, null=True, related_name="pairings_as_white",
-                                      on_delete=models.CASCADE)
-    black = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                      blank=True, null=True, related_name="pairings_as_black",
-                                      on_delete=models.CASCADE)
+    white = models.ForeignKey(Player,
+                              blank=True, null=True, related_name="pairings_as_white",
+                              on_delete=models.CASCADE)
+    black = models.ForeignKey(Player,
+                              blank=True, null=True, related_name="pairings_as_black",
+                              on_delete=models.CASCADE)
     white_rating = models.PositiveIntegerField(blank=True, null=True)
     black_rating = models.PositiveIntegerField(blank=True, null=True)
 
@@ -1737,8 +1731,7 @@ class Registration(_BaseModel):
 # -------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
@@ -1930,8 +1923,7 @@ def lone_player_pairing_rank_dict(season):
 # -------------------------------------------------------------------------------
 class PlayerAvailability(_BaseModel):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     is_available = models.BooleanField(default=True)
 
     class Meta:
@@ -2031,12 +2023,11 @@ class AlternateAssignment(_BaseModel):
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
-    replaced_player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                                null=True, blank=True, on_delete=models.SET_NULL,
-                                                related_name='alternate_replacements')
+    replaced_player = models.ForeignKey(Player,
+                                        null=True, blank=True, on_delete=models.SET_NULL,
+                                        related_name='alternate_replacements')
 
     class Meta:
         unique_together = ('round', 'team', 'board_number')
@@ -2215,8 +2206,7 @@ class SeasonPrize(_BaseModel):
 # -------------------------------------------------------------------------------
 class SeasonPrizeWinner(_BaseModel):
     season_prize = models.ForeignKey(SeasonPrize, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('season_prize', 'player')
@@ -2228,9 +2218,8 @@ class SeasonPrizeWinner(_BaseModel):
 # -------------------------------------------------------------------------------
 class GameNomination(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
-    nominating_player = select2.fields.ForeignKey(Player, ajax=True,
-                                                  search_field='lichess_username',
-                                                  on_delete=models.CASCADE)
+    nominating_player = models.ForeignKey(Player,
+                                          on_delete=models.CASCADE)
     game_link = models.URLField(validators=[game_link_validator])
     pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
 
@@ -2253,8 +2242,7 @@ class GameSelection(_BaseModel):
 
 class AvailableTime(_BaseModel):
     league = models.ForeignKey(League, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     time = models.DateTimeField()
 
 
@@ -2320,9 +2308,8 @@ class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()
     allow_editors = models.BooleanField(default=False, verbose_name='Allow designated editors')
-    owner = select2.fields.ForeignKey(User, ajax=True, search_field='username',
-                                      limit_choices_to=models.Q(is_staff=True),
-                                      on_delete=models.PROTECT)
+    owner = models.ForeignKey(User,
+                              limit_choices_to=models.Q(is_staff=True), on_delete=models.PROTECT)
 
     def owned_by(self, user):
         return self.owner == user
@@ -2478,8 +2465,7 @@ PLAYER_NOTIFICATION_TYPES = (
 
 # -------------------------------------------------------------------------------
 class PlayerNotificationSetting(_BaseModel):
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     type = models.CharField(max_length=255, choices=PLAYER_NOTIFICATION_TYPES)
     league = models.ForeignKey(League, on_delete=models.CASCADE)
     offset = models.DurationField(blank=True, null=True)
@@ -2565,8 +2551,7 @@ PLAYER_WARNING_TYPE_OPTIONS = (
 # -------------------------------------------------------------------------------
 class PlayerWarning(_BaseModel):
     round = models.ForeignKey(Round, null=True, blank=True, on_delete=models.CASCADE)
-    player = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                       on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
     type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
 
     class Meta:
@@ -2644,8 +2629,7 @@ class ModRequest(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     round = models.ForeignKey(Round, null=True, blank=True, on_delete=models.CASCADE)
     pairing = models.ForeignKey(PlayerPairing, null=True, blank=True, on_delete=models.CASCADE)
-    requester = select2.fields.ForeignKey(Player, ajax=True, search_field='lichess_username',
-                                          on_delete=models.CASCADE)
+    requester = models.ForeignKey(Player, on_delete=models.CASCADE)
     type = models.CharField(max_length=255, choices=MOD_REQUEST_TYPE_OPTIONS)
     status = models.CharField(max_length=31, choices=MOD_REQUEST_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)

@@ -115,7 +115,6 @@ urlpatterns = [
     url(r'^auth/lichess/$', views.OAuthCallbackView.as_view(), name='lichess_auth'),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
-    url(r'^select2/', include('select2.urls')),
     url(r'^(?P<league_tag>[\w-]+)/', include((league_urlpatterns, 'tournament'), 'by_league')),
 ]
 

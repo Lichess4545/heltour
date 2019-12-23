@@ -1466,6 +1466,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
+    autocomplete_fields = ('player',)
     actions = ['refresh_fields', 'move_to_next_round']
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
@@ -1535,6 +1536,7 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
+    autocomplete_fields = ('player',)
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -1546,6 +1548,7 @@ class PlayerByeAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
+    autocomplete_fields = ('player',)
     exclude = ('player_rating',)
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
@@ -1558,6 +1561,7 @@ class PlayerWarningAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
+    autocomplete_fields = ('player',)
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -1612,6 +1616,7 @@ class LeagueModeratorAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('league',)
     raw_id_fields = ('player',)
+    autocomplete_fields = ('player',)
     league_id_field = 'league_id'
 
 
@@ -1621,6 +1626,7 @@ class TeamMemberInline(admin.TabularInline):
     extra = 0
     ordering = ('board_number',)
     raw_id_fields = ('player',)
+    autocomplete_fields = ('player',)
     exclude = ('player_rating',)
 
 
@@ -1674,6 +1680,7 @@ class TeamMemberAdmin(_BaseAdmin):
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('team__season',)
     raw_id_fields = ('player',)
+    autocomplete_fields = ('player',)
     exclude = ('player_rating',)
     league_id_field = 'team__season__league_id'
     league_competitor_type = 'team'
@@ -1709,6 +1716,7 @@ class AlternateAssignmentAdmin(_BaseAdmin):
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
+    autocomplete_fields = ('player', 'replaced_player')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
@@ -1768,6 +1776,7 @@ class PlayerPairingAdmin(_BaseAdmin):
     list_display = ('__str__', 'scheduled_time', 'game_link_url')
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     raw_id_fields = ('white', 'black')
+    autocomplete_fields = ('white', 'black')
     inlines = [PlayerPresenceInline]
     exclude = ('white_rating', 'black_rating', 'tv_state')
     actions = ['send_pairing_notification']
@@ -1833,6 +1842,7 @@ class TeamPlayerPairingAdmin(_BaseAdmin):
                      'game_link')
     list_filter = ('team_pairing__round__season', 'team_pairing__round__number',)
     raw_id_fields = ('white', 'black', 'team_pairing')
+    autocomplete_fields = ('white', 'black')
     league_id_field = 'team_pairing__round__season__league_id'
     league_competitor_type = 'team'
 
@@ -1852,6 +1862,7 @@ class LonePlayerPairingAdmin(_BaseAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
+    autocomplete_fields = ('white', 'black')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -2115,6 +2126,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     search_fields = ('season__name', 'player__lichess_username')
     list_filter = ('season__league', 'season', 'is_active', InSlackFilter)
     raw_id_fields = ('player', 'registration')
+    autocomplete_fields = ('player',)
     league_id_field = 'season__league_id'
     actions = ['bulk_email', 'link_reminder']
 
@@ -2219,6 +2231,7 @@ class PlayerAvailabilityAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('player', 'round')
+    autocomplete_fields = ('player',)
     league_id_field = 'round__season__league_id'
 
 
@@ -2236,6 +2249,7 @@ class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
     search_fields = ('season_prize__name', 'player__lichess_username')
     raw_id_fields = ('season_prize', 'player')
+    autocomplete_fields = ('player',)
     league_id_field = 'season_prize__season__league_id'
 
 
@@ -2245,6 +2259,7 @@ class GameNominationAdmin(_BaseAdmin):
     list_display = ('__str__',)
     search_fields = ('season__name', 'nominating_player__lichess_username')
     raw_id_fields = ('nominating_player', 'pairing')
+    autocomplete_fields = ('nominating_player',)
     league_id_field = 'season__league_id'
 
 
@@ -2262,6 +2277,7 @@ class GameSelectionAdmin(_BaseAdmin):
 class AvailableTimeAdmin(_BaseAdmin):
     list_display = ('player', 'time', 'league')
     search_fields = ('player__lichess_username',)
+    autocomplete_fields = ('player',)
     league_id_field = 'league_id'
 
 
@@ -2292,6 +2308,7 @@ class PrivateUrlAuthAdmin(_BaseAdmin):
 class DocumentAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    autocomplete_fields = ('owner',)
 
     def get_queryset(self, request):
         queryset = super(_BaseAdmin, self).get_queryset(request)
@@ -2390,6 +2407,7 @@ class PlayerNotificationSettingAdmin(_BaseAdmin):
     list_filter = ('league', 'type')
     search_fields = ('player__lichess_username',)
     raw_id_fields = ('player',)
+    autocomplete_fields = ('player',)
     league_id_field = 'league_id'
 
 
@@ -2411,6 +2429,7 @@ class ModRequestAdmin(_BaseAdmin):
     list_filter = ('status', 'type', 'season')
     search_fields = ('requester__lichess_username',)
     raw_id_fields = ('round', 'requester', 'pairing')
+    autocomplete_fields = ('requester',)
     league_id_field = 'season__league_id'
 
     def changelist_view(self, request, extra_context=None):
