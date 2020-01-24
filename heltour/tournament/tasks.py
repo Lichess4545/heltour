@@ -15,6 +15,7 @@ from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
 from django.contrib.sites.models import Site
 import time
+import textwrap
 
 logger = get_task_logger(__name__)
 
@@ -492,22 +493,33 @@ def do_notify_slack_link(lichess_username, **kwargs):
 
 @app.task(bind=True)
 def create_team_channel(self, team_ids):
-    intro_message = 'Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!\n' \
-                    + 'You need to pick a team captain and a team name by {season_start}.\n' \
-                    + 'Once you\'ve chosen (or if you need help with anything), contact one of the moderators:\n' \
-                    + '{mods}'
+    intro_message = textwrap.dedent("""
+            Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!
+            You need to pick a team captain and a team name by {season_start}.
+            Once you've chosen (or if you need help with anything), contact one of the moderators:
+            {mods}
+
+            Here are some useful links for your team:
+            - <{pairings_url}|View your team pairings>
+            - <{calendar_url}|Import your team pairings to your calendar>""")
 
     for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
         pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team',
                                        args=[team.season.league.tag, team.season.tag, team.number]))
+        calendar_url = abs_url(reverse('by_league:by_season:pairings_by_team_icalendar',
+                                       args=[team.season.league.tag, team.season.tag,
+                                             team.number])).replace('https:', 'webcal:')
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
         mods_str = ' '.join(('<@%s>' % lm.player.lichess_username.lower() for lm in mods))
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime(
             '%b %-d')
-        intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start)
+        intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start,
+                                                       pairings_url=pairings_url,
+                                                       calendar_url=calendar_url)
         team_members = team.teammember_set.select_related('player').nocache()
         user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
+        topic = "Team Pairings: %s | Team Calendar: %s" % (pairings_url, calendar_url)
 
         try:
             group = slackapi.create_group(channel_name)
@@ -530,7 +542,7 @@ def create_team_channel(self, team_ids):
             team.slack_channel = group.id
             team.save()
 
-        slackapi.set_group_topic(group.id, pairings_url)
+        slackapi.set_group_topic(group.id, topic)
         time.sleep(1)
         slackapi.leave_group(group.id)
         time.sleep(1)
