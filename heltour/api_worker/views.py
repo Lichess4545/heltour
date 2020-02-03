@@ -6,13 +6,22 @@ from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
+def _get_lichess_api_token():
+    try:
+        with open(settings.LICHESS_API_TOKEN_FILE_PATH) as fin:
+            return fin.read().strip()
+    except IOError:
+        return None
 
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
                          retry_count=0):
     url = "https://lichess.org/%s" % path
+    token = _get_lichess_api_token()
 
     try:
         headers = {}
+        if token:
+            headers['Authorization'] = 'Bearer %s' % token
         if format:
             headers['Accept'] = format
         if method == 'POST':
@@ -50,8 +59,14 @@ def lichess_api_call(request, path):
     max_retries = int(params.pop('max_retries', 3))
     format = params.pop('format', None)
     redis_key = get_random_string(length=16)
+
+    # support either a form encoded body or a raw body
+    post_data = request.POST.dict()
+    if len(post_data) == 0:
+        post_data = request.body.decode('utf-8')
+
     worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method,
-                      request.body.decode('utf-8'), params, priority, max_retries, format)
+                      post_data, params, priority, max_retries, format)
     return HttpResponse(redis_key)
 
 

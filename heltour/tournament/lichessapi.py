@@ -123,6 +123,16 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
     return [json.loads(g) for g in result.split('\n') if g.strip()]
 
 
+# Sends a mail on lichess
+def send_mail(lichess_username, subject, text, priority=0, max_retries=3, timeout=120):
+    url = '%s/lichessapi/inbox/%s?priority=%s&max_retries=%s' % (
+        settings.API_WORKER_HOST, lichess_username, priority, max_retries)
+    post_data = {'text': '%s\n%s' % (subject, text)}
+    result = _apicall(url, timeout, post_data=post_data)
+    if result != 'ok':
+        raise ApiWorkerError('API failure')
+
+
 def watch_games(game_ids):
     try:
         url = '%s/watch/' % (settings.API_WORKER_HOST)
@@ -143,61 +153,6 @@ def add_watch(game_id):
 
 # HTTP headers used to send non-API requests to lichess
 _headers = {'Accept': 'application/vnd.lichess.v1+json'}
-
-
-# Gets authentication cookies for the lichess service account
-# Used to send lichess mails to players
-def _login_cookies():
-    login_cookies = cache.get('lichess_login_cookies')
-    if login_cookies is None:
-        # Read the credentials
-        with open(settings.LICHESS_CREDS_FILE_PATH) as creds_file:
-            lines = creds_file.readlines()
-            creds = {'username': lines[0].strip(), 'password': lines[1].strip()}
-
-        # Send a login request
-        login_response = requests.post(settings.LICHESS_DOMAIN + 'login', data=creds,
-                                       headers=_headers)
-        if login_response.status_code != 200:
-            logger.error(
-                'Received status %s when trying to log in to lichess' % login_response.status_code)
-            return None
-
-        # Save the cookies
-        login_cookies = dict(login_response.cookies)
-        cache.set('lichess_login_cookies', login_cookies, 60)  # Cache cookies for 1 minute
-    return login_cookies
-
-
-# Sends a mail on lichess
-def send_mail(lichess_username, subject, text):
-    # This doesn't actually use the API proper, so it doesn't need the worker
-    try:
-        login_cookies = _login_cookies()
-        if login_cookies is None:
-            return False
-
-        text = text + '\n\nThis is an automated message, do not reply.'
-        mail_data = {'username': lichess_username, 'subject': subject, 'text': text}
-        mail_response = requests.post(settings.LICHESS_DOMAIN + 'inbox/new', data=mail_data,
-                                      headers=_headers, cookies=login_cookies)
-        if mail_response.status_code != 200:
-            logger.error('Received status %s when trying to send mail on lichess: %s' % (
-                mail_response.status_code, mail_response.text))
-            return False
-        mail_json = mail_response.json()
-        if 'ok' not in mail_json or mail_json['ok'] != True:
-            logger.error('Error sending mail on lichess: %s' % (mail_response.text))
-            return False
-
-        return mail_json['id']
-    except Exception:
-        # Probably a configuration error
-        if settings.DEBUG:
-            print('Lichess mail to %s - [%s]:\n%s' % (lichess_username, subject, text))
-        logger.exception('Error sending lichess mail to %s' % lichess_username)
-        return False
-
 
 def get_peak_rating(lichess_username, perf_type):
     # This doesn't actually use the API proper, so it doesn't need the worker
