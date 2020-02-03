@@ -9,7 +9,7 @@ LICHESS_DOMAIN = 'https://listage.ovh/'
 JAVAFO_COMMAND = 'java -jar /home/ben/javafo.jar'
 LINK_PROTOCOL = 'http'
 
-INTERNAL_IPS = ['127.0.0.1', '192.168.56.101']
+INTERNAL_IPS = ['127.0.0.1', '192.168.56.101', 'localhost']
 ALLOWED_HOSTS = INTERNAL_IPS
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
