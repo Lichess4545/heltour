@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 def _get_lichess_api_token():
     try:
