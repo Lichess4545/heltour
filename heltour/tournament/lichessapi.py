@@ -129,9 +129,10 @@ def send_mail(lichess_username, subject, text, priority=0, max_retries=3, timeou
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     post_data = {'text': '%s\n%s' % (subject, text)}
     result = _apicall(url, timeout, post_data=post_data)
-    if result != 'ok':
+    if result == '':
         raise ApiWorkerError('API failure')
-
+    if result != 'ok':
+        logger.error('Error sending mail: %s' % result)
 
 def watch_games(game_ids):
     try:
