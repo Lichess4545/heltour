@@ -79,10 +79,10 @@
                                             </td>
                                             <td>
                                                 {% if pairing.white_team == team %}
-                                                    vs<a class="team-link"
+                                                    vs <a class="team-link"
                                                          href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team.name }}</a>
                                                 {% else %}
-                                                    vs<a class="team-link"
+                                                    vs <a class="team-link"
                                                          href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team.name }}</a>
                                                 {% endif %}
                                             </td>
