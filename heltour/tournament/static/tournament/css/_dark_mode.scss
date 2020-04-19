@@ -6,7 +6,10 @@
 body.dark {
     color: $gray-500;
     background-color: $gray-800;
-
+    section {
+        background: #2e3238;
+        border-color: #211f1f;
+    }
     @media (max-width: 767px) {
         background-color: $gray-900;
     }
