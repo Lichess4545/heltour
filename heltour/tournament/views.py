@@ -440,10 +440,7 @@ class PairingsView(SeasonView):
         else:
             return self.lone_view(round_number, team_number)
 
-    def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline,
-                       can_view_precenses):
-        if not can_view_precenses:
-            return (None, None)
+    def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline):
         pres = presences.get((player.pk, pairing.pk))
         if in_contact_period:
             if not pres or not pres.first_msg_time:
@@ -500,8 +497,7 @@ class PairingsView(SeasonView):
                 pairing,
                 presences,
                 in_contact_period,
-                contact_deadline,
-                can_change_pairing
+                contact_deadline
             )
 
         # Add presences
@@ -623,8 +619,7 @@ class PairingsView(SeasonView):
                 pairing,
                 presences,
                 in_contact_period,
-                contact_deadline,
-                can_change_pairing
+                contact_deadline
             )
 
         # Add errors
