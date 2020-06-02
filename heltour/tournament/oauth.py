@@ -8,6 +8,8 @@ from django.shortcuts import redirect, reverse
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi
 
+logger = logging.getLogger(__name__)
+
 _SCOPES = [
     'email:read',
     'challenge:read',
@@ -33,8 +35,14 @@ def redirect_for_authorization(request, league_tag, secret_token):
 
 
 def login_with_code(request, code, encoded_state):
+    if not code or not encoded_state:
+        logger.error('Missing code/state')
+        return redirect('home')
+
     state = _decode_state(encoded_state)
-    oauth_token = _get_oauth_token(request, code)
+    status, oauth_token = _get_oauth_token(request, code)
+    if status:
+        return HttpResponse(f'Received {status} from token endpoint', 401)
     username = _get_account_username(oauth_token)
     oauth_token.account_username = username
     # TODO: This slows down login. Figure out what to do with this.
@@ -105,9 +113,10 @@ def _get_oauth_token(request, code):
         'client_secret': settings.LICHESS_OAUTH_CLIENTSECRET
     })
     if token_response.status_code != 200:
-        return HttpResponse(f'Received {token_response.status_code} from token endpoint', 401)
+        logger.error(f'Received {token_response.status_code} from token endpoint: {token_response.text}')
+        return token_response.status_code, None
     token_json = token_response.json()
-    return OauthToken(access_token=token_json['access_token'],
+    return None, OauthToken(access_token=token_json['access_token'],
                       token_type=token_json['token_type'],
                       expires=timezone.now() + timedelta(
                           seconds=token_json['expires_in']),
