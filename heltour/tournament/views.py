@@ -441,6 +441,8 @@ class PairingsView(SeasonView):
             return self.lone_view(round_number, team_number)
 
     def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline):
+        if player is None:
+            return (None, 'no player')
         pres = presences.get((player.pk, pairing.pk))
         if in_contact_period:
             if not pres or not pres.first_msg_time:
