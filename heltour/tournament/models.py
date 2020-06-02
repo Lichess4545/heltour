@@ -2667,19 +2667,23 @@ class ModRequest(_BaseModel):
     response = models.TextField(blank=True)
 
     def approve(self, user='System', response=''):
-        self.status = 'approved'
-        self.status_changed_by = user
-        self.status_changed_date = timezone.now()
-        self.response = response
-        self.save()
+        with reversion.create_revision():
+            reversion.set_comment(f'Mod request approved by {user}')
+            self.status = 'approved'
+            self.status_changed_by = user
+            self.status_changed_date = timezone.now()
+            self.response = response
+            self.save()
         signals.mod_request_approved.send(sender=MOD_REQUEST_SENDER[self.type], instance=self)
 
     def reject(self, user='System', response=''):
-        self.status = 'rejected'
-        self.status_changed_by = user
-        self.status_changed_date = timezone.now()
-        self.response = response
-        self.save()
+        with reversion.create_revision():
+            reversion.set_comment(f'Mod request rejected by {user}')
+            self.status = 'rejected'
+            self.status_changed_by = user
+            self.status_changed_date = timezone.now()
+            self.response = response
+            self.save()
         signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self,
                                           response=response)
 
