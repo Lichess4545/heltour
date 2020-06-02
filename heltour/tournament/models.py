@@ -917,6 +917,9 @@ class PlayerLateRegistration(_BaseModel):
             rounds = self.round.season.round_set.all()
             for i in range(self.retroactive_byes):
                 round_number = self.round.number - i - 1
+                if round_number < 1:
+                    # Too many byes specified, we can just skip them
+                    break
                 round_ = find(rounds, number=round_number)
                 pairings = round_.loneplayerpairing_set.filter(
                     white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
