@@ -1,3 +1,4 @@
+import logging
 import requests
 import time
 from . import worker
@@ -6,6 +7,8 @@ from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 def _get_lichess_api_token():
     try:
@@ -18,6 +21,8 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
                          retry_count=0):
     url = "https://lichess.org/%s" % path
     token = _get_lichess_api_token()
+
+    logger.info('API call: %s' % url)
 
     try:
         headers = {}
@@ -32,17 +37,24 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
 
         if r.status_code == 200:
             # Success
+            logger.info('API success')
             cache.set(redis_key, r.text, timeout=60)
             time.sleep(2)
             return
-    except:
+
+        logger.warning('API status code %s: %s' % (r.status_code, r.text))
+
+    except Exception as e:
+        logger.error('API unexpected error %s: %s' % (path, e))
         r = None
 
     # Failure
     if retry_count >= max_retries:
+        logger.error('API exceeded maximum retries for %s' % path)
         cache.set(redis_key, '', timeout=60)
     else:
         # Retry
+        logger.warning('API queuing retry for %s' % path)
         worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data,
                           params, priority, max_retries, format, retry_count + 1)
 
