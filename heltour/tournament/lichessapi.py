@@ -8,7 +8,7 @@ from heltour import settings
 logger = logging.getLogger(__name__)
 
 
-def _apicall(url, timeout=120, check_interval=0.1, post_data=None):
+def _apicall(url, timeout=300, check_interval=0.1, post_data=None):
     # Make a request to the local API worker to put the result of a lichess API call into the redis cache
     if post_data:
         r = requests.post(url, data=post_data)
