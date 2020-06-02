@@ -351,7 +351,7 @@ def give_card(round_, player, type_):
             return None
         already_has_card = PlayerWarning.objects.filter(player=player, round=round_,
                                                         type__startswith='card').exists()
-        card = PlayerWarning.objects.get_or_create(player=player, round=round_, type=type_)
+        card, _ = PlayerWarning.objects.get_or_create(player=player, round=round_, type=type_)
         if not already_has_card:
             sp.games_missed += 1
             with reversion.create_revision():
