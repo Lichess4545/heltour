@@ -1337,7 +1337,7 @@ class RoundAdmin(_BaseAdmin):
                     self.message_user(request, 'Pairings with results can\'t be overwritten.',
                                       messages.ERROR)
                 except pairinggen.PairingGenerationException as e:
-                    self.message_user(request, 'Error generating pairings. %s' % e.message,
+                    self.message_user(request, 'Error generating pairings. %s' % e,
                                       messages.ERROR)
                 return redirect('admin:generate_pairings', object_id=round_.pk)
         else:

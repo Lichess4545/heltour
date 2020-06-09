@@ -86,7 +86,7 @@ class RoundTransitionWorkflow():
                             ('Pairings with results can\'t be overwritten.', messages.ERROR))
                     except pairinggen.PairingGenerationException as e:
                         msg_list.append(
-                            ('Error generating pairings. %s' % e.message, messages.ERROR))
+                            ('Error generating pairings. %s' % e, messages.ERROR))
         return msg_list
 
     @property
@@ -544,7 +544,7 @@ class ApproveRegistrationWorkflow():
                         logger.exception('Could not invite %s to slack' % reg.email)
                         if modeladmin:
                             modeladmin.message_user(request,
-                                                    'Could not invite %s to slack (%s)".' % (reg.email, e.message),
+                                                    'Could not invite %s to slack (%s)".' % (reg.email, e),
                                                     messages.ERROR)
                 elif modeladmin:
                     modeladmin.message_user(request,
