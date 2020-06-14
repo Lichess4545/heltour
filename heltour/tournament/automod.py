@@ -113,7 +113,7 @@ def player_unresponsive(round_, pairing, player, groups):
     if not has_warning and league.get_leaguesetting().warning_for_late_response:
         with reversion.create_revision():
             reversion.set_comment('Automatic warning for unresponsiveness')
-            PlayerWarning.objects.create(player=player, round=round_, type='unresponsive')
+            PlayerWarning.objects.get_or_create(player=player, round=round_, type='unresponsive')
         punishment = 'You may receive a yellow card.'
         allow_continue = league.competitor_type != 'team'
         groups['warning'].append(player)
@@ -351,7 +351,7 @@ def give_card(round_, player, type_):
             return None
         already_has_card = PlayerWarning.objects.filter(player=player, round=round_,
                                                         type__startswith='card').exists()
-        card = PlayerWarning.objects.create(player=player, round=round_, type=type_)
+        card, _ = PlayerWarning.objects.get_or_create(player=player, round=round_, type=type_)
         if not already_has_card:
             sp.games_missed += 1
             with reversion.create_revision():

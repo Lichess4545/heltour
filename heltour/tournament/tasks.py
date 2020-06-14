@@ -127,7 +127,7 @@ def _find_closest_rating(player, date, season):
         else:
             return p.black_rating
 
-    pairings_by_date = sorted([(pairing_date(p), p) for p in pairings])
+    pairings_by_date = sorted([(pairing_date(p), p) for p in pairings], key=lambda p: p[0])
     if len(pairings_by_date) == 0:
         # Try to find the seed rating
         sp = SeasonPlayer.objects.filter(season=season, player=player).first()

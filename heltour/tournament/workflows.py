@@ -1,3 +1,4 @@
+import logging
 import reversion
 from django.contrib import messages
 from heltour.tournament.models import *
@@ -7,6 +8,8 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from heltour import settings
 from . import alternates_manager
+
+logger = logging.getLogger(__name__)
 
 
 class RoundTransitionWorkflow():
@@ -83,7 +86,7 @@ class RoundTransitionWorkflow():
                             ('Pairings with results can\'t be overwritten.', messages.ERROR))
                     except pairinggen.PairingGenerationException as e:
                         msg_list.append(
-                            ('Error generating pairings. %s' % e.message, messages.ERROR))
+                            ('Error generating pairings. %s' % e, messages.ERROR))
         return msg_list
 
     @property
@@ -531,11 +534,18 @@ class ApproveRegistrationWorkflow():
         if invite_to_slack:
             try:
                 if request.user.has_perm('tournament.invite_to_slack'):
-                    slackapi.invite_user(reg.email, reg.lichess_username)
-                    if modeladmin:
-                        modeladmin.message_user(request,
-                                                'Slack invitation sent to "%s".' % reg.email,
-                                                messages.INFO)
+                    try:
+                        slackapi.invite_user(reg.email, reg.lichess_username)
+                        if modeladmin:
+                            modeladmin.message_user(request,
+                                                    'Slack invitation sent to "%s".' % reg.email,
+                                                    messages.INFO)
+                    except slackapi.SlackError as e:
+                        logger.exception('Could not invite %s to slack' % reg.email)
+                        if modeladmin:
+                            modeladmin.message_user(request,
+                                                    'Could not invite %s to slack (%s)".' % (reg.email, e),
+                                                    messages.ERROR)
                 elif modeladmin:
                     modeladmin.message_user(request,
                                             'You don\'t have permission to invite players to slack.',

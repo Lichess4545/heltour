@@ -798,10 +798,14 @@ class SeasonAdmin(_BaseAdmin):
                 pairing = LonePlayerPairing.objects.filter(Q(white=player) | Q(black=player),
                                                            round=last_round).first()
                 season_player = SeasonPlayer.objects.get(player=player, season=season)
-                comments = list(Comment.objects.filter(
-                    (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk)) |
-                    (Q(content_type=ct_season_player) & Q(object_pk=season_player.pk))
-                ))
+                comment_q = Q()
+                if pairing is not None:
+                    comment_q = comment_q | \
+                                (Q(content_type=ct_pairing) & Q(object_pk=pairing.pk))
+                if season_player is not None:
+                    comment_q = comment_q | \
+                                (Q(content_type=ct_season_player) & Q(object_pk=season_player.pk))
+                comments = list(Comment.objects.filter(comment_q))
                 retval.append((player, pairing, comments))
             return retval
 
@@ -1333,7 +1337,7 @@ class RoundAdmin(_BaseAdmin):
                     self.message_user(request, 'Pairings with results can\'t be overwritten.',
                                       messages.ERROR)
                 except pairinggen.PairingGenerationException as e:
-                    self.message_user(request, 'Error generating pairings. %s' % e.message,
+                    self.message_user(request, 'Error generating pairings. %s' % e,
                                       messages.ERROR)
                 return redirect('admin:generate_pairings', object_id=round_.pk)
         else:
