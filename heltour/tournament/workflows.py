@@ -531,7 +531,7 @@ class ApproveRegistrationWorkflow():
         if invite_to_slack:
             try:
                 if request.user.has_perm('tournament.invite_to_slack'):
-                    slackapi.invite_user(reg.email)
+                    slackapi.invite_user(reg.email, reg.lichess_username)
                     if modeladmin:
                         modeladmin.message_user(request,
                                                 'Slack invitation sent to "%s".' % reg.email,

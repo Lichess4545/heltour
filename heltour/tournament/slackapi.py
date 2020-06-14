@@ -19,9 +19,10 @@ def _get_slack_webhook():
         return None
 
 
-def invite_user(email):
+def invite_user(email, lichess_username):
     url = 'https://slack.com/api/users.admin.invite'
-    r = requests.get(url, params={'token': _get_slack_token(), 'email': email})
+    r = requests.get(url, params={'token': _get_slack_token(), 'email': email, 'real_name':
+        lichess_username})
     json = r.json()
     if not json['ok']:
         if json['error'] == 'already_invited':
