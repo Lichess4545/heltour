@@ -496,8 +496,7 @@ def create_team_channel(self, team_ids):
     intro_message = textwrap.dedent("""
             Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!
             You need to pick a team captain and a team name by {season_start}.
-            Once you've chosen (or if you need help with anything), contact one of the moderators:
-            {mods}
+            Once you've chosen (or if you need help with anything), contact one of the moderators using the command `@chesster summon mods` in #general (do not contact them directly.)
 
             Here are some useful links for your team:
             - <{pairings_url}|View your team pairings>
