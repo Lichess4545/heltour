@@ -137,20 +137,29 @@ body.dark {
         background-color: #514d67;
     }
 
-    .player-gold {
+    .standings-container p:first-child {
         background-color: #82773c;
     }
 
-    .player-silver {
+    .standings-container p:nth-child(2) {
         background-color: #7b7b7b;
     }
 
-    .player-bronze {
+    .standings-container p:nth-child(3) {
         background-color: #8a5622;
     }
 
-    .player-blue {
+    .standings-container p:nth-child(4) {
         background-color: #34546f;
+    }
+    .standings-container p {
+        display: inline;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .standings-container p:after {
+        content: '\A';
+        white-space:pre;
     }
 
     .legend-swatch {
