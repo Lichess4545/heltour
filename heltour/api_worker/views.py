@@ -39,8 +39,8 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
             logger.info('API 429, sleeping for a minute')
             time.sleep(60) # Abide by the API rules
 
-        if r.status >= 400 and r.status <= 500:
-            logger.info('API Client Error: %s: %s', r.status, r.text)
+        if r.status_code >= 400 and r.status_code <= 500:
+            logger.info('API Client Error: %s: %s', r.status_code, r.text)
             cache.set(redis_key, f'CLIENT-ERROR: {r.text}', timeout=60)
             time.sleep(2)
             return
