@@ -168,5 +168,5 @@ def get_peak_rating(lichess_username, perf_type):
 class ApiWorkerError(Exception):
     pass
 
-class ApiClientError(Exception):
+class ApiClientError(ApiWorkerError):
     pass
