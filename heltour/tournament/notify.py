@@ -38,13 +38,15 @@ def _lichess_message(league, username, subject, text):
     if league.enable_notifications:
         try:
             lichessapi.send_mail(username, subject, text)
-        except ApiClientError:
-            # If they have blocked us specifically, or if they have
-            # Turned off messages from non-followers, we'll get a client error.
-            # In that case, make an attempt to turn off their lichess noifications.
-            PlayerNotificationSetting.filter(
-                player__lichess_username=username
-            ).update(enable_lichess_mail=False)
+        except lichessapi.ApiClientError as e:
+            reason = str(e)
+            if "The message was rejected" in reason:
+                # If they have blocked us specifically, or if they have
+                # Turned off messages from non-followers In that case,
+                # make an attempt to turn off their lichess noifications.
+                PlayerNotificationSetting.objects.filter(
+                    player__lichess_username=username
+                ).update(enable_lichess_mail=False)
 
 
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
