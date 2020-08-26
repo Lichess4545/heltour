@@ -35,10 +35,6 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
         else:
             r = requests.get(url, params, headers=headers)
 
-        if r.status_code == 429:
-            logger.info('API 429, sleeping for a minute')
-            time.sleep(60) # Abide by the API rules
-
         if r.status_code >= 400 and r.status_code <= 500:
             logger.info('API Client Error[url:%s]: %s: %s', url, r.status_code, r.text)
             cache.set(redis_key, f'CLIENT-ERROR: {r.text}', timeout=60)
@@ -69,6 +65,7 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
                           params, priority, max_retries, format, retry_count + 1)
 
     if r is not None and r.status_code == 429:
+        logger.warning('API 429, sleeping for a minute')
         # Too many requests
         time.sleep(60)
     else:
