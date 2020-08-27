@@ -36,13 +36,18 @@ def _apicall(url, timeout=300, check_interval=0.1, post_data=None):
         if time_spent >= timeout:
             raise ApiWorkerError('Timeout for %s' % url)
 
+def _apicall_with_error_parsing(*args, **kwargs):
+    result = _apicall(*args, **kwargs)
+    if result == '':
+        raise ApiWorkerError('API failure')
+    if result.startswith("CLIENT-ERROR: "):
+        raise ApiClientError(f'API failure: {result}')
+    return result
 
 def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=300):
     url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
-    result = _apicall(url, timeout)
-    if result == '':
-        raise ApiWorkerError('API failure')
+    result = _apicall_with_error_parsing(url, timeout)
     return json.loads(result)
 
 
@@ -51,9 +56,7 @@ def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=3
         settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
         batch = lichess_usernames[:300]
-        result = _apicall(url, timeout, post_data=','.join(batch))
-        if result == '':
-            raise ApiWorkerError('API failure')
+        result = _apicall_with_error_parsing(url, timeout, post_data=','.join(batch))
         for meta in json.loads(result):
             yield meta
         lichess_usernames = lichess_usernames[300:]
@@ -64,9 +67,7 @@ def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeou
         settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
         batch = lichess_usernames[:40]
-        result = _apicall('%s&ids=%s' % (url, ','.join(batch)), timeout)
-        if result == '':
-            raise ApiWorkerError('API failure')
+        result = _apicall_with_error_parsing('%s&ids=%s' % (url, ','.join(batch)), timeout)
         for status in json.loads(result):
             yield status
         lichess_usernames = lichess_usernames[40:]
@@ -98,9 +99,7 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=300):
         return result
     url = '%s/lichessapi/game/export/%s.pgn?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, gameid, priority, max_retries)
-    result = _apicall(url, timeout)
-    if result == '':
-        raise ApiWorkerError('API failure')
+    result = _apicall_with_error_parsing(url, timeout)
     cache.set('pgn_%s' % gameid, result, 60 * 60 * 24)  # Cache the PGN for 24 hours
     return result
 
@@ -108,18 +107,14 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=300):
 def get_game_meta(gameid, priority=0, max_retries=3, timeout=300):
     url = '%s/lichessapi/game/export/%s?priority=%s&max_retries=%s&format=application/json' % (
         settings.API_WORKER_HOST, gameid, priority, max_retries)
-    result = _apicall(url, timeout)
-    if result == '':
-        raise ApiWorkerError('API failure')
+    result = _apicall_with_error_parsing(url, timeout)
     return json.loads(result)
 
 
 def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, timeout=300):
     url = '%s/lichessapi/api/games/user/%s?max=%s&ongoing=true&priority=%s&max_retries=%s&format=application/x-ndjson' % (
         settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
-    result = _apicall(url, timeout)
-    if result == '':
-        raise ApiWorkerError('API failure')
+    result = _apicall_with_error_parsing(url, timeout)
     return [json.loads(g) for g in result.split('\n') if g.strip()]
 
 
@@ -128,9 +123,7 @@ def send_mail(lichess_username, subject, text, priority=0, max_retries=3, timeou
     url = '%s/lichessapi/inbox/%s?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     post_data = {'text': '%s\n%s' % (subject, text)}
-    result = _apicall(url, timeout, post_data=post_data)
-    if result == '':
-        raise ApiWorkerError('API failure')
+    result = _apicall_with_error_parsing(url, timeout, post_data=post_data)
     if result != 'ok':
         logger.error('Error sending mail: %s' % result)
 
@@ -173,4 +166,7 @@ def get_peak_rating(lichess_username, perf_type):
 
 
 class ApiWorkerError(Exception):
+    pass
+
+class ApiClientError(ApiWorkerError):
     pass

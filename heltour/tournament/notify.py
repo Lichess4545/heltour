@@ -36,7 +36,13 @@ def _message_multiple_users(league, usernames, text):
 
 def _lichess_message(league, username, subject, text):
     if league.enable_notifications:
-        lichessapi.send_mail(username, subject, text)
+        try:
+            lichessapi.send_mail(username, subject, text)
+        except lichessapi.ApiClientError as e:
+            reason = str(e)
+            if "The message was rejected" in reason:
+                return
+            raise
 
 
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
