@@ -69,6 +69,7 @@ LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sys
 env.roledefs = {
     'live': ['lichess4545@marta.lichess.ovh'],
     'staging': ['lichess4545@marta.lichess.ovh'],
+    'vagrant': ['example@0.0.0.0'],
 }
 
 # TODO: we don't have any of these yet, but I prefer these over git submodules.
@@ -78,8 +79,8 @@ python_repos = OrderedDict([(repo.name, repo) for repo in []])
 static_file_repos = OrderedDict([(repo.name, repo) for repo in []])
 all_repos = python_repos.copy()
 all_repos.update(static_file_repos)
-all_repos['baste'] = Git('env/src/baste', 'git@bitbucket.org:strabs/baste.git')
-all_repos['container'] = Git('.', 'git@github.com:lakinwecker/heltour.git', 'master')
+all_repos['baste'] = Git('env/src/baste', 'https://lakin.wecker@bitbucket.org/strabs/baste.git')
+all_repos['container'] = Git('.', 'https://github.com/cyanfish/heltour.git', 'master')
 
 # -------------------------------------------------------------------------------
 st = status = StatusCommand(all_repos)
@@ -218,13 +219,17 @@ def latestdb():
     DATABASE_NAME = import_db_name()
     DATABASE_USER = import_db_user()
     if not env.roles:
-        print("Usage: fab -R [staging|live] latestdb")
+        print("Usage: fab -R [vagrant|staging|live] latestdb")
         return
 
     if env.roles == ['live']:
         LIVE_LATEST_SQL_FILE_PATH = "/home/lichess4545/backups/heltour-sql/hourly/latest.sql.bz2"
         strabulous.latest_live_db(LIVE_BACKUP_SCRIPT_PATH, LIVE_LATEST_SQL_FILE_PATH, DATABASE_NAME,
                                   DATABASE_USER, get_password)
+    elif env.roles == ['vagrant']:
+        local_db = "/home/vagrant/heltour/data/latestdb.sql.bz2"
+        with settings(warn_only=True):
+            PgLoadPlain(local_db, DATABASE_NAME, DATABASE_USER)()
     elif env.roles == ['staging']:
         local("mkdir -p {}".format(project_relative("data")))
         local_target = project_relative("data/latestdb.sql.bz2")
