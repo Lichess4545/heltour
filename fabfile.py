@@ -80,7 +80,7 @@ static_file_repos = OrderedDict([(repo.name, repo) for repo in []])
 all_repos = python_repos.copy()
 all_repos.update(static_file_repos)
 all_repos['baste'] = Git('env/src/baste', 'https://lakin.wecker@bitbucket.org/strabs/baste.git')
-all_repos['container'] = Git('.', 'https://github.com/cyanfish/heltour.git', 'master')
+all_repos['container'] = Git('.', 'https://github.com/cyanfish/heltour.git')
 
 # -------------------------------------------------------------------------------
 st = status = StatusCommand(all_repos)
