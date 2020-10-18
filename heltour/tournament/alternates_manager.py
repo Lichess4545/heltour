@@ -109,11 +109,11 @@ def do_alternate_search(season, round_, board_number, setting):
         team_members = TeamMember.objects.filter(team__season=season,
                                                  board_number=board_number).select_related('team',
                                                                                            'player').nocache()
-        assigned_alts = {aa.team: aa.player for aa in
-                         AlternateAssignment.objects.filter(round=round_,
-                                                            board_number=board_number)}
+        alts = AlternateAssignment.objects.filter(round=round_, board_number=board_number)
+        assigned_alts = {aa.team: aa.player for aa in alts}
         players_on_board = {assigned_alts.get(tm.team, tm.player) for tm in team_members}
         teams_by_player = {tm.player: tm.team for tm in team_members}
+        teams_by_player.update({aa.player: aa.team for aa in assigned_alts}
 
     unavailable_players = {pa.player for pa in player_availabilities}
     # Prioritize open spots by the date the player was marked as unavailable
