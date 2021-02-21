@@ -1440,9 +1440,13 @@ class ContactView(LeagueView):
         if post:
             form = ContactForm(self.request.POST, leagues=leagues)
             if form.is_valid():
+                form_contains_links = (
+                        'http://' in form.cleaned_data['message']
+                        or 'https://' in form.cleaned_data['message']
+                    )
                 league = League.objects.get(tag=form.cleaned_data['league'])
                 for mod in league.leaguemoderator_set.all():
-                    if mod.send_contact_emails and mod.player.email:
+                    if mod.send_contact_emails and mod.player.email and not form_contains_links:
                         message = EmailMessage(
                             '[%s] %s' % (league.name, form.cleaned_data['subject']),
                             'Sender:\n%s\n%s\n\nMessage:\n%s' %
