@@ -688,7 +688,8 @@ class ICalPairingsView(PairingsView, ICalMixin):
 
 class ICalPlayerView(BaseView, ICalMixin):
     def view(self, username):
-        player = get_object_or_404(Player, lichess_username__iexact=username)
+        player = get_object_or_404(
+            Player, lichess_username__iexact=username, gdpr_erased=False)
         calendar_title = "{} Chess Games".format(player.lichess_username)
         uid_component = 'all'
         pairings = player.pairings.exclude(scheduled_time=None)
@@ -1483,7 +1484,8 @@ class AboutView(LeagueView):
 
 class PlayerProfileView(LeagueView):
     def view(self, username):
-        player = get_object_or_404(Player, lichess_username__iexact=username)
+        player = get_object_or_404(
+                Player, lichess_username__iexact=username, gdpr_erased=False)
 
         def game_count(season):
             if season.league.competitor_type == 'team':

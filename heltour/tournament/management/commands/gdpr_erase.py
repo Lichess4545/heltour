@@ -6,10 +6,12 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from heltour.tournament.models import (
-    Player,
-    Registration,
-    LoginToken,
     LeagueModerator,
+    LoginToken,
+    ModRequest,
+    Player,
+    PrivateUrlAuth,
+    Registration,
 )
 
 
@@ -22,9 +24,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # TODO: revisions probably need to be updated.
-        # TODO: Player page needs to be "removed"
-        # TODO: PrivateUrlAuth does this need to be changed?
-        # TODO: ModRequest objects, do we have to do anything with them?
         username = options['username'][0]
         try:
             player = Player.objects.get(lichess_username__iexact=username.lower())
@@ -46,10 +45,19 @@ class Command(BaseCommand):
         player.timezone_offset = None
         player.oauth_token = None
         player.profile = ''
+        player.gdpr_erased = True
         player.save()
 
         LeagueModerator.objects \
             .filter(player=player) \
+            .delete()
+
+        PrivateUrlAuth.objects \
+            .filter(authenticated_user__iexact=username.lower()) \
+            .delete()
+
+        ModRequest.objects \
+            .filter(requester=player) \
             .delete()
 
         Registration.objects \
@@ -76,6 +84,7 @@ class Command(BaseCommand):
                 validation_ok=True,
                 validation_warning=False,
             )
+
         LoginToken.objects \
             .filter(lichess_username__iexact=username.lower()) \
             .delete()
@@ -96,4 +105,4 @@ class Command(BaseCommand):
                 date_joined=now,
             )
 
-        print(username)
+        print(f"{username} has been gdpr erased")
