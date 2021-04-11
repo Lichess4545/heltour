@@ -1,5 +1,6 @@
 import sys
 
+from django.utils.crypto import get_random_string
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -24,6 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # TODO: revisions probably need to be updated.
+        # TODO: comments might have player names in it?
         username = options['username'][0]
         try:
             player = Player.objects.get(lichess_username__iexact=username.lower())
@@ -33,9 +35,10 @@ class Command(BaseCommand):
         if player.account_status not in ['normal', 'closed']:
             sys.exit(f"Unable to GDPR erase for legitimate interests")
 
-        anon_username = f"anonymous_{player.id}"
-        anon_email = f"anonymous_{player.id}@example.com"
-        anon_slack = f"anonymous_{player.id}"
+        rando = get_random_string(8)
+        anon_username = f"ghost_{rando}"
+        anon_email = f"ghost_{rando}@example.com"
+        anon_slack = f"ghost_{rando}"
         player.lichess_username = anon_username
         player.rating = 1500
         player.games_played = 0
