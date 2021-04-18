@@ -77,6 +77,16 @@
             {% endif %}
 
             <div class="form-row">
+                <label>Consent to share email with slack:</label>
+                <span class="{% if not original.consent_to_share_email_with_slack %}text-rejected{% endif %}">{{ original.consent_to_share_email_with_slack|yesno:'Yes,No' }}</span>
+            </div>
+
+            <div class="form-row">
+                <label>Consent to publish lichess username:</label>
+                <span class="{% if not original.consent_to_publish_lichess_username %}text-rejected{% endif %}">{{ original.consent_to_publish_lichess_username|yesno:'Yes,No' }}</span>
+            </div>
+
+            <div class="form-row">
                 <label>Can commit to 1 long game per week:</label>
                 <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
             </div>
@@ -98,6 +108,11 @@
             <div class="form-row">
                 <label>Agreed to rules:</label>
                 <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
+            </div>
+
+            <div class="form-row">
+                <label>Agreed to tos:</label>
+                <span class="{% if not original.agreed_to_tos %}text-rejected{% endif %}">{{ original.agreed_to_tos|yesno:'Yes,No' }}</span>
             </div>
 
             {% if is_team %}

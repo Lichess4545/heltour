@@ -1708,10 +1708,14 @@ class Registration(_BaseModel):
     already_in_slack_group = models.BooleanField()
     previous_season_alternate = models.CharField(blank=True, max_length=255,
                                                  choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
+    consent_to_share_email_with_slack = models.BooleanField()
+    consent_to_publish_lichess_username = models.BooleanField()
+
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     avoid = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
+    agreed_to_tos = models.BooleanField()
     alternate_preference = models.CharField(blank=True, max_length=255,
                                             choices=ALTERNATE_PREFERENCE_OPTIONS)
     section_preference = models.ForeignKey(Section, on_delete=models.SET_NULL, blank=True,
