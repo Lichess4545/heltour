@@ -16,11 +16,11 @@ AGREED_TO_TOS_LABEL = textwrap.dedent(
 )
 AGREED_TO_TOS_HELP_TEXT = mark_safe(textwrap.dedent(
     '''
-    By selecting Yes, you understand and agree that we will share your
-    email address with Slack in line with our
+    By selecting Yes, you understand and agree that we will share your email
+    address with Slack in line with our
     <a href="/team4545/document/privacy-policy/">Privacy Policy</a>
-    and
-    <a href="/team4545/document/terms-of-service/">Terms of Service</a>.
+    (and justified in our
+    <a href="/team4545/document/terms-of-service/">Terms of Service</a>)
      '''
 ))
 
