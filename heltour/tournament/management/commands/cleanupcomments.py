@@ -1,5 +1,6 @@
 import random
 import string
+from datetime import datetime
 from django.core.management import BaseCommand
 from django.utils import timezone
 from heltour.tournament.models import *
@@ -37,11 +38,13 @@ class Command(BaseCommand):
             ct.pk for ct in ContentType.objects.filter(model__in=models)
         ]
         assert(len(ct_pks) == len(models))
-        for badword in ['mark', 'cheat', 'alt', 'tos violation']:
-            Comment.objects.filter(
-                content_type_id__in=ct_pks,
-                comment__icontains=badword,
-            ).delete()
+        jan_01_2021 = timezone.make_aware(datetime(2021, 1, 1))
+        Comment.objects.filter(
+            content_type_id__in=ct_pks,
+            submit_date__lte=jan_01_2021
+        ).exclude(
+            user_name="System"
+        ).delete()
 
 
 
