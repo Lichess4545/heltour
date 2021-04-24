@@ -1,4 +1,3 @@
-from heltour.gdpr import SLACK_EMAIL_CONSENT_HELP_TEXT
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from captcha.fields import ReCaptchaField
@@ -27,7 +26,6 @@ class RegistrationForm(forms.ModelForm):
             'lichess_username', 'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate',
-            'consent_to_share_email_with_slack', 'consent_to_publish_lichess_username', # GDPR
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
@@ -71,26 +69,6 @@ class RegistrationForm(forms.ModelForm):
                                                                              'Were you an alternate for the previous season?'))
         else:
             del self.fields['previous_season_alternate']
-
-        self.fields['consent_to_share_email_with_slack'] = \
-                forms.TypedChoiceField(
-                    required=True,
-                    choices=YES_NO_OPTIONS,
-                    widget=forms.RadioSelect,
-                    coerce=lambda x: x == 'True',
-                    label=_(gdpr.SLACK_EMAIL_CONSENT_LABEL),
-                    help_text=_(gdpr.SLACK_EMAIL_CONSENT_HELP_TEXT)
-                )
-
-        self.fields['consent_to_publish_lichess_username'] = \
-                forms.TypedChoiceField(
-                    required=True,
-                    choices=YES_NO_OPTIONS,
-                    widget=forms.RadioSelect,
-                    coerce=lambda x: x == 'True',
-                    label=_(gdpr.LICHESS_USERNAME_CONSENT_LABEL),
-                    help_text=_(gdpr.LICHESS_USERNAME_CONSENT_HELP_TEXT)
-                )
 
         # Can commit
         time_control = league.time_control
@@ -222,13 +200,12 @@ class RegistrationForm(forms.ModelForm):
         registration.status = 'pending'
         if commit:
             registration.save()
+        registration.player().agreed_to_tos()
         return registration
 
     def clean(self):
         cd = super().clean()
         for field_name in [
-            'consent_to_share_email_with_slack',
-            'consent_to_publish_lichess_username',
             'agreed_to_tos',
             'agreed_to_rules',
             'can_commit',
