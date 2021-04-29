@@ -754,6 +754,9 @@ class Player(_BaseModel):
 
     profile = JSONField(blank=True, null=True)
 
+    date_first_agreed_to_tos = models.DateTimeField(blank=True, null=True)
+    date_last_agreed_to_tos = models.DateTimeField(blank=True, null=True)
+
     def player_rating_display(self, league=None):
         return self.rating_for(league)
 
@@ -854,6 +857,18 @@ class Player(_BaseModel):
         return SeasonPrize.objects \
             .filter(season__league=league, seasonprizewinner__player=self) \
             .order_by('rank', '-season')
+
+    def agreed_to_tos(self):
+        now = timezone.now()
+        # Update
+        me = Player.objects.filter(pk=self.pk)
+        me.update(
+            date_last_agreed_to_tos=now
+        )
+        me.filter(date_first_agreed_to_tos__isnull=True).update(
+            date_first_agreed_to_tos=now
+        )
+
 
     def __str__(self):
         if self.rating is None:
@@ -1708,10 +1723,12 @@ class Registration(_BaseModel):
     already_in_slack_group = models.BooleanField()
     previous_season_alternate = models.CharField(blank=True, max_length=255,
                                                  choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
+
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     avoid = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
+    agreed_to_tos = models.BooleanField()
     alternate_preference = models.CharField(blank=True, max_length=255,
                                             choices=ALTERNATE_PREFERENCE_OPTIONS)
     section_preference = models.ForeignKey(Section, on_delete=models.SET_NULL, blank=True,

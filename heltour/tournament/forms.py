@@ -9,6 +9,7 @@ from heltour import settings
 import captcha
 from django.urls import reverse
 from heltour.tournament.workflows import ApproveRegistrationWorkflow
+from heltour import gdpr
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -24,7 +25,8 @@ class RegistrationForm(forms.ModelForm):
         fields = (
             'lichess_username', 'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
-            'previous_season_alternate', 'can_commit', 'friends', 'avoid', 'agreed_to_rules',
+            'previous_season_alternate',
+            'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
@@ -54,7 +56,7 @@ class RegistrationForm(forms.ModelForm):
 
         # In slack
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
-            'Are you on our Slack group?'), choices=YES_NO_OPTIONS,
+            'Are you in our Slack group?'), choices=YES_NO_OPTIONS,
                                                                        widget=forms.RadioSelect,
                                                                        coerce=lambda x: x == 'True')
 
@@ -99,11 +101,11 @@ class RegistrationForm(forms.ModelForm):
             self.fields['friends'] = forms.CharField(required=False, label=_(
                 'Are there any friends you would like to be paired with?'),
                                                      help_text=_(
-                                                         'Note: Please enter their exact lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
+                                                         'Note: Please enter their exact Lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
             self.fields['avoid'] = forms.CharField(required=False, label=_(
                 'Are there any players you would like NOT to be paired with?'),
                                                    help_text=_(
-                                                       'Note: Please enter their exact lichess usernames.'))
+                                                       'Note: Please enter their exact Lichess usernames.'))
         else:
             del self.fields['friends']
             del self.fields['avoid']
@@ -118,12 +120,26 @@ class RegistrationForm(forms.ModelForm):
         if not league_name.endswith('League'):
             league_name += ' League'
 
-        self.fields['agreed_to_rules'] = forms.TypedChoiceField(required=True, label=_(
-            'Do you agree to the rules of the %s?' % league_name),
-                                                                help_text=rules_help_text,
-                                                                choices=YES_NO_OPTIONS,
-                                                                widget=forms.RadioSelect,
-                                                                coerce=lambda x: x == 'True')
+        self.fields['agreed_to_tos'] = \
+            forms.TypedChoiceField(
+                required=True,
+                label=_(gdpr.AGREED_TO_TOS_LABEL),
+                help_text=_(gdpr.AGREED_TO_TOS_HELP_TEXT),
+                choices=YES_NO_OPTIONS,
+                widget=forms.RadioSelect,
+                coerce=lambda x: x == 'True'
+            )
+
+
+        self.fields['agreed_to_rules'] = \
+            forms.TypedChoiceField(
+                required=True,
+                label=_(gdpr.AGREED_TO_RULES_LABEL % league_name),
+                help_text=rules_help_text,
+                choices=YES_NO_OPTIONS,
+                widget=forms.RadioSelect,
+                coerce=lambda x: x == 'True'
+            )
 
         # Alternate preference
         if league.competitor_type == 'team':
@@ -184,7 +200,24 @@ class RegistrationForm(forms.ModelForm):
         registration.status = 'pending'
         if commit:
             registration.save()
+        registration.player().agreed_to_tos()
         return registration
+
+    def clean(self):
+        cd = super().clean()
+        for field_name in [
+            'agreed_to_tos',
+            'agreed_to_rules',
+            'can_commit',
+        ]:
+            if not cd.get(field_name, False):
+                self.add_error(
+                    field_name,
+                    _(gdpr.MISSING_CONSENT_MESSAGE)
+                )
+        return cd
+
+
 
     def clean_weeks_unavailable(self):
         upcoming_rounds = [r for r in self.season.round_set.order_by('number') if

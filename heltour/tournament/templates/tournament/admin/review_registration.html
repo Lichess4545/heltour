@@ -100,6 +100,11 @@
                 <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
             </div>
 
+            <div class="form-row">
+                <label>Agreed to tos:</label>
+                <span class="{% if not original.agreed_to_tos %}text-rejected{% endif %}">{{ original.agreed_to_tos|yesno:'Yes,No' }}</span>
+            </div>
+
             {% if is_team %}
                 <div class="form-row">
                     <label>Alternate preference:</label>

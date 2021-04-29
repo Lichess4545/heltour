@@ -14,6 +14,7 @@ def create_reg(season, name):
                                        has_played_20_games=True, already_in_slack_group=True,
                                        previous_season_alternate='new',
                                        can_commit=True, agreed_to_rules=True,
+                                       agreed_to_tos=True,
                                        alternate_preference='full_time')
 
 
