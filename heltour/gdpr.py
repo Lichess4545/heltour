@@ -7,7 +7,7 @@ from django.utils.html import mark_safe
 
 AGREED_TO_RULES_LABEL = textwrap.dedent(
     '''
-    Do you agree to comply with the %s league rules?
+    Do you agree to comply with the %s rules?
     '''
 )
 
