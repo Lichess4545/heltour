@@ -67,8 +67,8 @@ PYTHON_PACKAGE_NAME = PROJECT_NAME
 PASSWORD_FILE_NAME = '%s.txt' % PROJECT_NAME
 LIVE_BACKUP_SCRIPT_PATH = "/home/lichess4545/web/www.lichess4545.com/current/sysadmin/backup.sh"
 env.roledefs = {
-    'live': ['lichess4545@marta.lichess.ovh'],
-    'staging': ['lichess4545@marta.lichess.ovh'],
+    'live': ['lichess4545@radio.lichess.ovh'],
+    'staging': ['lichess4545@radio.lichess.ovh'],
     'vagrant': ['example@0.0.0.0'],
 }
 

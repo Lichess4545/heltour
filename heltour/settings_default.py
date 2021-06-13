@@ -307,3 +307,5 @@ LICHESS_OAUTH_AUTHORIZE_URL = 'https://oauth.lichess.org/oauth/authorize'
 LICHESS_OAUTH_TOKEN_URL = 'https://oauth.lichess.org/oauth'
 LICHESS_OAUTH_CLIENTID = ''
 LICHESS_OAUTH_CLIENTSECRET = ''
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400 # 25MB - we'll let nginx otherwise restrict it.
