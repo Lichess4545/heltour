@@ -75,6 +75,15 @@ class _BaseAdmin(VersionAdmin):
     def has_assigned_perm(self, user, perm_type):
         return 'tournament.%s_%s' % (perm_type, self.opts.model_name) in user.get_all_permissions()
 
+    def has_dox(self, user):
+        return user.has_perm('tournament.dox')
+
+    def remove_email_if_no_dox(self, user, fields):
+        if self.has_dox(user):
+            return fields
+        return [f for f in fields if f != "email"]
+
+
     def get_league_id(self, obj):
         if self.league_id_field is None:
             return None
@@ -1569,16 +1578,29 @@ class PlayerWarningAdmin(_BaseAdmin):
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
-
 # -------------------------------------------------------------------------------
 @admin.register(Player)
 class PlayerAdmin(_BaseAdmin):
-    search_fields = ('lichess_username', 'email', 'slack_user_id')
+    # NOTE: because autocomplete_fields on other models reference this
+    #       we have to define this one and the method below.
+    search_fields = ['lichess_username', 'slack_user_id']
     list_filter = ('is_active',)
     readonly_fields = (
         'rating', 'games_played', 'slack_user_id', 'timezone_offset', 'account_status')
     exclude = ('profile', 'oauth_token')
     actions = ['update_selected_player_ratings']
+
+    def get_fields(self, request, obj=None):
+        return self.remove_email_if_no_dox(
+            request.user,
+            super().get_fields(request, obj)
+        )
+
+    def get_search_fields(self, request):
+        return self.remove_email_if_no_dox(
+            request.user,
+            self.search_fields + ['email']
+        )
 
     def has_delete_permission(self, request, obj=None):
         # Don't let unprivileged users delete players
@@ -1882,18 +1904,33 @@ class LonePlayerPairingAdmin(_BaseAdmin):
 # -------------------------------------------------------------------------------
 @admin.register(Registration)
 class RegistrationAdmin(_BaseAdmin):
-    list_display = (
-        'review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating',
-        'date_created')
     list_display_links = ()
-    search_fields = ('lichess_username', 'email', 'season__name')
     list_filter = ('status', 'season', 'section_preference__name')
     actions = ('validate', 'approve')
     league_id_field = 'season__league_id'
 
+    def get_list_display(self, request):
+        return self.remove_email_if_no_dox(
+            request.user,
+            ['review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating',
+             'date_created']
+        )
+
+    def get_fields(self, request, obj=None):
+        return self.remove_email_if_no_dox(
+            request.user,
+            super().get_fields(request, obj)
+        )
+
+    def get_search_fields(self, request):
+        return self.remove_email_if_no_dox(
+            request.user,
+            ('lichess_username', 'email', 'season__name')
+        )
+
     def changelist_view(self, request, extra_context=None):
         self.request = request
-        return super(RegistrationAdmin, self).changelist_view(request, extra_context=extra_context)
+        return super().changelist_view(request, extra_context=extra_context)
 
     def section(self, obj):
         return obj.section_preference.name if obj.section_preference else ''

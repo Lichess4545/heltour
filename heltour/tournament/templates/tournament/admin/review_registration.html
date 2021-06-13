@@ -44,10 +44,12 @@
                 {{ original.slack_username }}
             </div>
 
-            <div class="form-row">
-                <label>Email:</label>
-                {{ original.email }}
-            </div>
+            {% if perms.tournament.dox %}
+                <div class="form-row">
+                    <label>Email:</label>
+                    {{ original.email }}
+                </div>
+            {% endif %}
 
             <div class="form-row">
                 <label>Classical rating:</label>
