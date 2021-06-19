@@ -770,6 +770,7 @@ class Player(_BaseModel):
             ('change_player_details', 'Can change player details'),
             ('invite_to_slack', 'Can invite to slack'),
             ('link_slack', 'Can manually link slack accounts'),
+            ('dox', 'Can see player emails'),
         )
 
     def __init__(self, *args, **kwargs):

@@ -29,12 +29,14 @@
                 {{ original.slack_username }}
             </div>
 
-            <div class="form-row">
-                <label>Email:</label>
-                {{ original.email }}
-                {% if no_email_change %}<br/>
-                    <span style="color: #c00">Moderator emails must be updated manually.</span>{% endif %}
-            </div>
+            {% if perms.tournament.dox %}
+                <div class="form-row">
+                    <label>Email:</label>
+                    {{ original.email }}
+                    {% if no_email_change %}<br/>
+                        <span style="color: #c00">Moderator emails must be updated manually.</span>{% endif %}
+                </div>
+            {% endif %}
 
         </div>
 
@@ -47,13 +49,13 @@
             <div class="action-checkbox">
                 {{ form.invite_to_slack }}
                 <label for="{{ form.invite_to_slack.id_for_label }}">Invite <span
-                        class="text-email">{{ confirm_email }}</span> to Slack</label>
+                       class="text-email">{% if perms.tournament.dox %}{{ confirm_email }}{% endif %}</span> to Slack</label>
             </div>
 
             <div class="action-checkbox">
                 {{ form.send_confirm_email }}
                 <label for="{{ form.send_confirm_email.id_for_label }}">Send a confirmation email to <span
-                        class="text-email">{{ confirm_email }}</span></label>
+                       class="text-email">{% if perms.tournament.dox %}{{ confirm_email }}{% endif %}</span></label>
             </div>
 
             {% if form.section %}
