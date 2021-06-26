@@ -1,10 +1,12 @@
 import base64
+import hashlib
 import json
 import requests
 from django.contrib.auth import login
 from django.core import signing
 from django.http.response import HttpResponse
 from django.shortcuts import redirect, reverse
+from django.utils.crypto import get_random_string
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi
 
@@ -25,11 +27,14 @@ def redirect_for_authorization(request, league_tag, secret_token):
         'league': league_tag,
         'token': secret_token
     }
+    request.session['oauth_code_verifier'] = get_random_string(64)
     auth = f'{settings.LICHESS_OAUTH_AUTHORIZE_URL}' + \
            f'?response_type=code' + \
            f'&client_id={settings.LICHESS_OAUTH_CLIENTID}' + \
            f'&redirect_uri={_get_redirect_uri(request)}' + \
            f'&scope={" ".join(_SCOPES)}' + \
+           f'&code_challenge_method=S256' + \
+           f'&code_challenge={_code_challenge(request.session["oauth_code_verifier"])}' + \
            f'&state={_encode_state(state)}'
     return redirect(auth)
 
@@ -110,7 +115,7 @@ def _get_oauth_token(request, code):
         'code': code,
         'redirect_uri': _get_redirect_uri(request),
         'client_id': settings.LICHESS_OAUTH_CLIENTID,
-        'client_secret': settings.LICHESS_OAUTH_CLIENTSECRET
+        'code_verifier': request.session.get('oauth_code_verifier'),
     })
     if token_response.status_code != 200:
         logger.error(f'Received {token_response.status_code} from token endpoint: {token_response.text}')
@@ -119,9 +124,14 @@ def _get_oauth_token(request, code):
     return None, OauthToken(access_token=token_json['access_token'],
                       token_type=token_json['token_type'],
                       expires=timezone.now() + timedelta(
-                          seconds=token_json['expires_in']),
+                          seconds=token_json.get('expires_in', 5270400)),
                       refresh_token=token_json.get('refresh_token'),
                       scope=token_json.get('scope', ' '.join(_SCOPES)))
+
+
+def _code_challenge(verifier):
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 def _get_redirect_uri(request):
