@@ -557,9 +557,10 @@ def do_create_team_channel(sender, team_ids, **kwargs):
 
 @app.task(bind=True)
 def alternates_manager_tick(self):
-    for season in Season.objects.filter(is_active=True, is_completed=False):
-        if season.alternates_manager_enabled():
-            alternates_manager.tick(season)
+    with cache.lock('alternates_tick'):
+        for season in Season.objects.filter(is_active=True, is_completed=False):
+            if season.alternates_manager_enabled():
+                alternates_manager.tick(season)
 
 
 @app.task(bind=True)
