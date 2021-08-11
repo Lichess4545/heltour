@@ -22,8 +22,9 @@
                                         {% if team_member %}
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
                                                 {{ team_member.player.lichess_username }}
-                                                        {% if team_member.player_rating_display %} (
-                                                            {{ team_member.player_rating_display }}){% endif %}
+                                                        {% if team_member.player_rating_display %}
+                                                            ({{ team_member.player_rating_display }})
+                                                        {% endif %}
                                             </a>
                                         {% endif %}
                                     </td>
