@@ -10,6 +10,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# Optimize for typical rate limits: 1, 2, 5, 10 minutes
+retry_wait_times = {0: 60, 1: 60, 2: 180, 3: 300, 4: 600}
+
 def _get_lichess_api_token():
     try:
         with open(settings.LICHESS_API_TOKEN_FILE_PATH) as fin:
@@ -66,9 +69,10 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
                           params, priority, max_retries, format, retry_count + 1)
 
     if r is not None and r.status_code == 429:
-        logger.warning('API 429, sleeping for a minute')
         # Too many requests
-        time.sleep(60)
+        wait_time = retry_wait_times.get(retry_count, 600)
+        logger.warning(f'API 429, sleeping for {wait_time} seconds')
+        time.sleep(wait_time)
     else:
         time.sleep(2)
 
@@ -77,7 +81,7 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
 def lichess_api_call(request, path):
     params = request.GET.dict()
     priority = int(params.pop('priority', 0))
-    max_retries = int(params.pop('max_retries', 3))
+    max_retries = int(params.pop('max_retries', 5))
     format = params.pop('format', None)
     redis_key = get_random_string(length=16)
 

@@ -44,14 +44,14 @@ def _apicall_with_error_parsing(*args, **kwargs):
         raise ApiClientError(f'API failure: {result}')
     return result
 
-def get_user_meta(lichess_username, priority=0, max_retries=3, timeout=300):
+def get_user_meta(lichess_username, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/api/user/%s?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     result = _apicall_with_error_parsing(url, timeout)
     return json.loads(result)
 
 
-def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=300):
+def enumerate_user_metas(lichess_usernames, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/api/users?with_moves=1&priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
@@ -62,7 +62,7 @@ def enumerate_user_metas(lichess_usernames, priority=0, max_retries=3, timeout=3
         lichess_usernames = lichess_usernames[300:]
 
 
-def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeout=300):
+def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/api/users/status?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, priority, max_retries)
     while len(lichess_usernames) > 0:
@@ -73,7 +73,7 @@ def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=3, timeou
         lichess_usernames = lichess_usernames[40:]
 
 
-def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=3,
+def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority=0, max_retries=5,
                                                      timeout=300):
     page = 1
     while True:
@@ -93,7 +93,7 @@ def enumerate_user_classical_rating_and_games_played(lichess_team_name, priority
             break
 
 
-def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=300):
+def get_pgn_with_cache(gameid, priority=0, max_retries=5, timeout=300):
     result = cache.get('pgn_%s' % gameid)
     if result is not None:
         return result
@@ -104,14 +104,14 @@ def get_pgn_with_cache(gameid, priority=0, max_retries=3, timeout=300):
     return result
 
 
-def get_game_meta(gameid, priority=0, max_retries=3, timeout=300):
+def get_game_meta(gameid, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/game/export/%s?priority=%s&max_retries=%s&format=application/json' % (
         settings.API_WORKER_HOST, gameid, priority, max_retries)
     result = _apicall_with_error_parsing(url, timeout)
     return json.loads(result)
 
 
-def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, timeout=300):
+def get_latest_game_metas(lichess_username, number, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/api/games/user/%s?max=%s&ongoing=true&priority=%s&max_retries=%s&format=application/x-ndjson' % (
         settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
     result = _apicall_with_error_parsing(url, timeout)
@@ -119,7 +119,7 @@ def get_latest_game_metas(lichess_username, number, priority=0, max_retries=3, t
 
 
 # Sends a mail on lichess
-def send_mail(lichess_username, subject, text, priority=0, max_retries=3, timeout=300):
+def send_mail(lichess_username, subject, text, priority=0, max_retries=5, timeout=300):
     url = '%s/lichessapi/inbox/%s?priority=%s&max_retries=%s' % (
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     post_data = {'text': '%s\n%s' % (subject, text)}
