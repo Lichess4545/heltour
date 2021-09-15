@@ -305,6 +305,7 @@ LICHESS_OAUTH_ACCOUNT_URL = 'https://lichess.org/api/account'
 LICHESS_OAUTH_EMAIL_URL = 'https://lichess.org/api/email'
 LICHESS_OAUTH_AUTHORIZE_URL = 'https://lichess.org/oauth'
 LICHESS_OAUTH_TOKEN_URL = 'https://lichess.org/api/token'
+LICHESS_OAUTH_REDIRECT_SCHEME = 'https://'
 LICHESS_OAUTH_CLIENTID = 'heltour'
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400 # 25MB - we'll let nginx otherwise restrict it.
