@@ -125,7 +125,7 @@ def _get_oauth_token(request, code):
                       token_type=token_json['token_type'],
                       expires=timezone.now() + timedelta(
                           seconds=token_json.get('expires_in', 5270400)),
-                      refresh_token=token_json.get('refresh_token'),
+                      refresh_token=token_json.get('refresh_token', ''),
                       scope=token_json.get('scope', ' '.join(_SCOPES)))
 
 
