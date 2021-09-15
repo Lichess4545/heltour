@@ -303,9 +303,8 @@ CHESSTER_USER_ID = 'U0VCPUT7T'
 LICHESS_DOMAIN = 'https://lichess.org/'
 LICHESS_OAUTH_ACCOUNT_URL = 'https://lichess.org/api/account'
 LICHESS_OAUTH_EMAIL_URL = 'https://lichess.org/api/email'
-LICHESS_OAUTH_AUTHORIZE_URL = 'https://oauth.lichess.org/oauth/authorize'
-LICHESS_OAUTH_TOKEN_URL = 'https://oauth.lichess.org/oauth'
-LICHESS_OAUTH_CLIENTID = ''
-LICHESS_OAUTH_CLIENTSECRET = ''
+LICHESS_OAUTH_AUTHORIZE_URL = 'https://lichess.org/oauth'
+LICHESS_OAUTH_TOKEN_URL = 'https://lichess.org/api/token'
+LICHESS_OAUTH_CLIENTID = 'heltour'
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400 # 25MB - we'll let nginx otherwise restrict it.
