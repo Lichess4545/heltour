@@ -459,9 +459,12 @@ class NotificationsForm(forms.Form):
                                                                  initial=setting.enable_lichess_mail)
             self.fields[type_ + "_slack"] = forms.BooleanField(required=False, label="Slack",
                                                                initial=setting.enable_slack_im)
+            # users should not be able to switch off the pairing messages in slack, 
+            # as they have to reply to those messages to be considered responsive
             self.fields[type_ + "_slack_wo"] = forms.BooleanField(required=False,
                                                                   label="Slack (with opponent)",
-                                                                  initial=setting.enable_slack_mpim)
+                                                                  initial=True if type_ == 'round_started' else setting.enable_slack_mpim,
+                                                                  disabled=(type_ == 'round_started'))
             if type_ == 'before_game_time':
                 offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'),
                                   (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]
