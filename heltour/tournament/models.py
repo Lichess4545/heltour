@@ -1794,6 +1794,13 @@ class SeasonPlayer(_BaseModel):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
         self.initial_unresponsive = self.unresponsive
         self.initial_player_id = self.player_id
+        self.initial_games_missed = self.games_missed
+        
+    def _set_unavailable_for_season(self):
+        rounds = Round.objects.filter(season=self.season, is_completed=False)
+        for r in rounds:
+            PlayerAvailability.objects.update_or_create(round=r, player=self.player,
+                                                    defaults={'is_available': False})
 
     def player_rating_display(self, league=None):
         if self.final_rating is not None:
@@ -1816,6 +1823,9 @@ class SeasonPlayer(_BaseModel):
             if alt.priority_date_override is None or alt.priority_date_override < current_date:
                 alt.priority_date_override = current_date
                 alt.save()
+                
+        if self.games_missed >= 2 and self.initial_games_missed < 2:
+            self._set_unavailable_for_season()
 
         super(SeasonPlayer, self).save(*args, **kwargs)
 

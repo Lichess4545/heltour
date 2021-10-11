@@ -1828,6 +1828,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
 
             availability_set = PlayerAvailability.objects.filter(player__in=player_list,
                                                                  round__in=round_list).nocache()
+            season_player_set = SeasonPlayer.objects.filter(player__in=player_list, season=self.season).nocache()
             is_available_dict = {(av.round_id, av.player_id): av.is_available for av in
                                  availability_set}
 
@@ -1836,14 +1837,16 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
                     for p in player_list:
                         field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
                         is_available = self.request.POST.get(field_name) != 'on'
-                        if is_available != is_available_dict.get((r.id, p.id), True):
+                        
+                        if (is_available != is_available_dict.get((r.id, p.id), True) and 
+                        SeasonPlayer.objects.filter(player=p, season=self.season).first().card_color != "red"):
                             PlayerAvailability.objects.update_or_create(player=p, round=r,
                                                                         defaults={
                                                                             'is_available': is_available})
                 return redirect('by_league:by_season:edit_availability', self.league.tag,
                                 self.season.tag)
 
-            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list])
+            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True), season_player_set.get(player=p).card_color=="red") for p in player_list])
                           for r in round_list]
 
         context = {
