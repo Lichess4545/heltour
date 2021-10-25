@@ -404,18 +404,18 @@ def _notify_alternate_and_opponent(league, aa):
 
     # Send configured notifications
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+             + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
              + 'Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + '<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n' \
+             + '<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n' \
              + 'Message your opponent here as soon as possible.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     li_subject = 'Round {round} - {league}'
     li_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + '@{white} (white pieces) vs @{black} (black pieces)\n' \
+             + '@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n' \
              + 'Message your opponent on Slack as soon as possible.\n' \
              + '{slack_url}\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel}.'
