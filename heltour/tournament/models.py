@@ -824,21 +824,21 @@ class Player(_BaseModel):
         if league:
             if self.profile is None:
                 return None
-            return self.profile['perfs'].get(league.rating_type, {}).get('rating')
+            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('rating')
         return self.rating
 
     def games_played_for(self, league):
         if league:
             if self.profile is None:
                 return None
-            return self.profile['perfs'].get(league.rating_type, {}).get('games')
+            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('games')
 
         return self.games_played  # classical
 
     def provisional_for(self, league):
         if self.profile is None:
             return True
-        perf = self.profile['perfs'].get(league.rating_type)
+        perf = self.profile.get('perfs', {}).get(league.rating_type)
         if perf is None:
             return True
         return perf.get('prov', False)
