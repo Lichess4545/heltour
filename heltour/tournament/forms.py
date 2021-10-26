@@ -467,7 +467,7 @@ class NotificationsForm(forms.Form):
                                   (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]
                 self.fields[type_ + '_offset'] = forms.TypedChoiceField(choices=offset_options,
                                                                         initial=int(
-                                                                            setting.offset.total_seconds()) / 60,
+                                                                            setting.offset.total_seconds() / 60),
                                                                         coerce=int)
 
 
