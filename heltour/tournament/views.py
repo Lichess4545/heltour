@@ -928,6 +928,7 @@ class StandingsView(SeasonView):
                 if match is not None:
                     max_rating = int(match.group(1))
                     player_scores = [ps for ps in player_scores if
+                                     ps[1].season_player.seed_rating_display() is not None and
                                      ps[1].season_player.seed_rating_display() < max_rating]
 
             player_sections = [('u%d' % sp.max_rating, 'U%d' % sp.max_rating) for sp in
