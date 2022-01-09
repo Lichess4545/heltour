@@ -22,6 +22,8 @@ from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.utils.http import is_safe_url
+from django.conf import settings
 from ipware import get_client_ip
 
 from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi, oauth
@@ -2129,7 +2131,7 @@ class ToggleDarkModeView(BaseView):
         self.request.session['dark_mode'] = not original_value
 
         redirect_url = self.request.GET.get('redirect_url')
-        if redirect_url:
+        if redirect_url and is_safe_url(redirect_url, settings.ALLOWED_HOSTS):
             return redirect(redirect_url)
         return redirect('home')
 
