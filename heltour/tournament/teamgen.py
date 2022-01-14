@@ -53,7 +53,7 @@ class Player:
                 self.pref_score -= 1
         for avoid in self.avoid:
             if avoid in self.team.get_boards():
-                self.pref_score -= 1
+                self.pref_score -= 3
         # player with more than 5 choices can be <5 preference even if all teammates are preferred
 
     def set_req_met(self):
