@@ -130,6 +130,13 @@ div.inline {
     color: inherit;
 }
 
+table .team-link {
+    // Both lines have the same effect. `anywhere` value is not supported on
+    // safari yet. `word-break` is deprecated but still supported everyewhere.
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 .player-profile-row {
     max-width: 1200px;
 }
