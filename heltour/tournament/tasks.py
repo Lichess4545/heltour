@@ -46,16 +46,17 @@ def update_player_ratings(self):
     active_players = active_player_usernames()
     not_updated_recently = not_updated_recently_usernames(active_players)
     usernames = active_players + not_updated_recently
-    logger.info(f"Updating ratings for {len(usernames)} players")
+    logger.info(f"[START]: Updating {len(usernames)} player ratings")
+    updated = 0
     try:
-        updated = 0
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
             p = Player.objects.get(lichess_username__iexact=user_meta['id'])
             p.update_profile(user_meta)
             updated += 1
-        logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))
+        logger.info(f'[FINISHED] Updated {updated}/{len(usernames)} player ratings')
     except Exception as e:
-        logger.warning('Error getting ratings: %s' % e)
+        logger.warning(f'[ERROR] Error getting ratings: {e}')
+        logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
 
 
 @app.task(bind=True)
