@@ -3,7 +3,7 @@ from heltour.tournament import lichessapi, slackapi, pairinggen, \
     alternates_manager, signals, uptime
 from heltour.celery import app
 from celery.utils.log import get_task_logger
-from datetime import datetime
+from datetime import datetime, time_delta
 from django.core.cache import cache
 from heltour import settings
 import reversion
@@ -20,9 +20,33 @@ import textwrap
 logger = get_task_logger(__name__)
 
 
+def just_username(qs):
+    return qs \
+        .distinct('lichess_username') \
+        .values('lichess_username')
+
+def active_player_usernames():
+    players_qs = Player.objects.all()
+    active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
+    return [p['lichess_username'] for p in just_username(active_qs)]
+
+def not_updated_recently_usernames(active_usernames):
+    players_qs = Player.objects.all()
+    total_players = players_qs.count()
+    one_24th = total_players/24 # update them approximately every 24 hours
+    _24_hours = datetime.now() - timedelta(hours=24)
+    qs = players_qs \
+            .filter(date_modified__lte=_24_hours) \
+            .exclude(lichess_username__in=active_usernames) \
+            .order_by('date_modified')[:one_24th]
+    return [p['lichess_username'] for p in just_username(qs)]
+
 @app.task(bind=True)
 def update_player_ratings(self):
-    usernames = [p.lichess_username for p in Player.objects.all()]
+    active_players = active_player_usernames()
+    not_updated_recently = not_updated_recently_usernames(active_players)
+    usernames = active_players + not_updated_recently
+    logger.info(f"Updating ratings for {len(usernames)} players")
     try:
         updated = 0
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
