@@ -404,6 +404,18 @@ mypy = ">=0.790"
 typing-extensions = "*"
 
 [[package]]
+name = "django-stubs-ext"
+version = "0.3.1"
+description = "Monkey-patching and extensions for django-stubs"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+django = "*"
+typing-extensions = "*"
+
+[[package]]
 name = "fabric3"
 version = "1.14.post1"
 description = "Fabric is a simple, Pythonic tool for remote execution and deployment (py2.7/py3.4+ compatible fork)."
@@ -913,7 +925,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "8a6b4c25da2e1c08448f60ca70999607a4cff38f89b24ce4c3fa3611962b547c"
+content-hash = "db4764cfa6af34247109064fe3f4fb9c006b7d941043a985bdec1400fa1f32d9"
 
 [metadata.files]
 acme = [
@@ -1103,6 +1115,10 @@ django-static-precompiler = [
 django-stubs = [
     {file = "django-stubs-1.7.0.tar.gz", hash = "sha256:ddd190aca5b9adb4d30760d5c64f67cb3658703f5f42c3bb0c2c71ff4d752c39"},
     {file = "django_stubs-1.7.0-py3-none-any.whl", hash = "sha256:30a7d99c694acf79c5d93d69a5a8e4b54d2a8c11dd672aa869006789e2189fa6"},
+]
+django-stubs-ext = [
+    {file = "django-stubs-ext-0.3.1.tar.gz", hash = "sha256:783c198d7e39a41be0b90fd843fa2770243a642922af679be4b19e03b82c8c28"},
+    {file = "django_stubs_ext-0.3.1-py3-none-any.whl", hash = "sha256:a51a3e9e844d4e1cacaaedbb33bf3def78a3956eed5d9575a640bd97ccd99cec"},
 ]
 fabric3 = [
     {file = "Fabric3-1.14.post1-py3-none-any.whl", hash = "sha256:7c5a5f2eb3079eb6bd2a69931f1ca298844c730ce3fdc68111db16e8857a0408"},
