@@ -24,6 +24,10 @@ logger = get_task_logger(__name__)
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
+def to_usernames(users: UsernamesQuerySet):
+    return [p['lichess_username'] for p in users if p['lichess_username'].strip()]
+
+
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
         .order_by('lichess_username') \
@@ -33,7 +37,7 @@ def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
 def active_player_usernames() -> List[str]:
     players_qs = Player.objects.all()
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
-    return [p['lichess_username'] for p in just_username(active_qs)]
+    return to_usernames(just_username(active_qs))
 
 def not_updated_recently_usernames(active_usernames) -> List[str]:
     players_qs = Player.objects.all()
@@ -44,7 +48,7 @@ def not_updated_recently_usernames(active_usernames) -> List[str]:
             .exclude(lichess_username__in=active_usernames)
 
     one_24th = total_players/24 # update them approximately every 24 hours
-    return [p['lichess_username'] for p in just_username(qs)[:one_24th]]
+    return to_usernames(just_username(qs)[:one_24th])
 
 @app.task(bind=True)
 def update_player_ratings(self):
