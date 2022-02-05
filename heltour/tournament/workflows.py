@@ -479,6 +479,9 @@ class ApproveRegistrationWorkflow():
                     sp.save()
 
         # Set availability
+        ''' weeks that are set unavailable already will not be switched back to available here. 
+            If this is ever supposed to change, it should be considered that red-carded players should not
+            be able toset themselves available by changing their registration.'''
         for week_number in reg.weeks_unavailable.split(','):
             if week_number != '':
                 round_ = Round.objects.filter(season=season, number=int(week_number)).first()
