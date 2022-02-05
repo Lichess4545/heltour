@@ -770,27 +770,33 @@ table .team-link {
     vertical-align: middle;
 }
 
-.player-gold {
+.standings-container {
+    color: black;
+}
+
+.standings-container p:first-child {
     background-color: #ffd700;
 }
 
-.player-silver {
+.standings-container p:nth-child(2) {
     background-color: #c0c0c0;
 }
 
-.player-bronze {
+.standings-container p:nth-child(3) {
     background-color: #cd7f32;
 }
 
-.player-blue {
+.standings-container p:nth-child(4) {
     background-color: #7bbcf2;
 }
-
-.player-gold a,
-.player-silver a,
-.player-bronze a,
-.player-blue a {
-    color: black;
+.standings-container p {
+    display: inline;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.standings-container p:after {
+    content: '\A';
+    white-space:pre;
 }
 
 .table-menu {
