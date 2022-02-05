@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-django = "==2.2.13"
+django = "==2.2.26"
 django-reversion = "==3.0.5"
 fabric3 = "==1.14.post1"
 psycopg2-binary = "==2.8.4"
