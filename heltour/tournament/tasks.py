@@ -49,7 +49,7 @@ def not_updated_recently_usernames(active_usernames) -> List[str]:
 @app.task(bind=True)
 def update_player_ratings(self):
     id = self.request.id
-    prefix =  f"[update_player_ratings{id}]: "
+    prefix =  f"[update_player_ratings({id})]: "
     active_players = active_player_usernames()
     not_updated_recently = not_updated_recently_usernames(active_players)
     usernames = active_players + not_updated_recently
