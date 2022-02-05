@@ -4,6 +4,7 @@ League management software for the Lichess4545 league.
 # requirements
 * Python
 * Pip
+* poetry
 * Postgres (Ubuntu packages postgresql and postgresql-server-dev-9.5)
 * Fabric (pip install fabric)
 * Virtualenv (Ubuntu package virtualenv)

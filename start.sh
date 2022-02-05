@@ -1,5 +1,6 @@
 #!/bin/bash
-virtualenv env --no-site-packages --prompt="(heltour):" --python=/usr/bin/python3.6
+virtualenv env --prompt="(heltour):" --python=/usr/bin/python3
 source env/bin/activate
-pip install -r requirements.txt
+pip install poetry
+poetry install
 fab update

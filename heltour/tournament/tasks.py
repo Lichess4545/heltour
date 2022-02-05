@@ -1,37 +1,69 @@
 from heltour.tournament.models import *
 from heltour.tournament import lichessapi, slackapi, pairinggen, \
     alternates_manager, signals, uptime
-from heltour.celery import app
-from celery.utils.log import get_task_logger
-from datetime import datetime
-from django.core.cache import cache
 from heltour import settings
-import reversion
-from django.contrib import messages
-from math import ceil
-from django.urls import reverse
+from heltour.celery import app
 from heltour.tournament.workflows import RoundTransitionWorkflow
-from django.dispatch.dispatcher import receiver
+
+from django_stubs_ext import ValuesQuerySet
+
+from django.core.cache import cache
+from django.db.models import QuerySet
 from django.db.models.signals import post_save
-from django.contrib.sites.models import Site
-import time
+from django.dispatch.dispatcher import receiver
+from django.urls import reverse
+
+from typing import Dict, List
+from celery.utils.log import get_task_logger
+from datetime import datetime, timedelta
+import reversion
 import textwrap
+import time
 
 logger = get_task_logger(__name__)
 
+UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
+
+def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
+    return qs \
+        .order_by('lichess_username') \
+        .distinct('lichess_username') \
+        .values('lichess_username')
+
+def active_player_usernames() -> List[str]:
+    players_qs = Player.objects.all()
+    active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
+    return [p['lichess_username'] for p in just_username(active_qs)]
+
+def not_updated_recently_usernames(active_usernames) -> List[str]:
+    players_qs = Player.objects.all()
+    total_players = players_qs.count()
+    _24_hours = datetime.now() - timedelta(hours=24)
+    qs = players_qs \
+            .filter(date_modified__lte=_24_hours) \
+            .exclude(lichess_username__in=active_usernames)
+
+    one_24th = total_players/24 # update them approximately every 24 hours
+    return [p['lichess_username'] for p in just_username(qs)[:one_24th]]
 
 @app.task(bind=True)
 def update_player_ratings(self):
-    usernames = [p.lichess_username for p in Player.objects.all()]
+    id = self.request.id
+    prefix =  f"[update_player_ratings({id})]: "
+    active_players = active_player_usernames()
+    not_updated_recently = not_updated_recently_usernames(active_players)
+    usernames = active_players + not_updated_recently
+    logger.info(f"{prefix}[START] Updating {len(usernames)} player ratings")
+    updated = 0
     try:
-        updated = 0
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
             p = Player.objects.get(lichess_username__iexact=user_meta['id'])
             p.update_profile(user_meta)
             updated += 1
-        logger.info('Updated ratings for %d/%d players' % (updated, len(usernames)))
+        logger.info(f'{prefix}[FINISHED] Updated {updated}/{len(usernames)} player ratings')
     except Exception as e:
-        logger.warning('Error getting ratings: %s' % e)
+        logger.warning(f'{prefix}[ERROR] Error getting ratings: {e}')
+        logger.warning(f'{prefix}[ERROR] Only updated {updated}/{len(usernames)} player ratings')
 
 
 @app.task(bind=True)
