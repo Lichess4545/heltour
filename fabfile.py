@@ -1,17 +1,12 @@
 import os
 import sys
-import datetime
 import strabulous
 
 from fabric.api import (
     local,
     sudo,
-    lcd,
     env,
-    hosts,
-    put,
     run,
-    get,
     settings,
     shell_env,
 )
@@ -19,17 +14,13 @@ from fabric import colors
 from fabric.contrib.console import confirm
 
 from baste import (
-    DiffCommand,
     Git,
     OrderedDict,
     project_relative,
     python_dependency,
     PgLoadPlain,
     RsyncDeployment,
-    RsyncMedia,
     StatusCommand,
-    Subversion,
-    UbuntuPgCreateDbAndUser,
 )
 
 os.environ.setdefault("HELTOUR_ENV", "LIVE")
