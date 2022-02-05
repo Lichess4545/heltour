@@ -10,6 +10,8 @@ from multiprocessing import Pool
 
 from django.conf import settings
 
+AVOID_WEIGHT = 1000
+FRIEND_WEIGHT = 1
 
 class Player:
     pref_score = 0
@@ -48,14 +50,13 @@ class Player:
         self.pref_score = 0
         for friend in self.friends:
             if friend in self.team.get_boards():
-                self.pref_score += 1
+                self.pref_score += FRIEND_WEIGHT
             else:
-                self.pref_score -= 1
+                self.pref_score -= FRIEND_WEIGHT
         for avoid in self.avoid:
             if avoid in self.team.get_boards():
-                self.pref_score -= 1
+                self.pref_score -= AVOID_WEIGHT
         # player with more than 5 choices can be <5 preference even if all teammates are preferred
-
     def set_req_met(self):
         self.req_met = False
         if not self.friends:
@@ -297,15 +298,15 @@ def is_neutral_swap(swap):
     count_avoids_on_team = partial(count_on_team, 'avoid')
 
     pa, pb = swap
-    pre_swap_score = count_friends_on_team(pa, pa.team) \
-                     + count_friends_on_team(pb, pb.team) \
-                     - count_avoids_on_team(pa, pa.team) \
-                     - count_avoids_on_team(pb, pb.team)
+    pre_swap_score =   FRIEND_WEIGHT * count_friends_on_team(pa, pa.team) \
+                     + FRIEND_WEIGHT * count_friends_on_team(pb, pb.team) \
+                     - AVOID_WEIGHT * count_avoids_on_team(pa, pa.team) \
+                     - AVOID_WEIGHT * count_avoids_on_team(pb, pb.team)
 
-    post_swap_score = count_friends_on_team(pa, pb.team) \
-                      + count_friends_on_team(pb, pa.team) \
-                      - count_avoids_on_team(pa, pb.team) \
-                      - count_avoids_on_team(pb, pa.team)
+    post_swap_score =  FRIEND_WEIGHT * count_friends_on_team(pa, pb.team) \
+                     + FRIEND_WEIGHT * count_friends_on_team(pb, pa.team) \
+                     - AVOID_WEIGHT * count_avoids_on_team(pa, pb.team) \
+                     - AVOID_WEIGHT * count_avoids_on_team(pb, pa.team)
 
     if pre_swap_score != post_swap_score:
         return False
