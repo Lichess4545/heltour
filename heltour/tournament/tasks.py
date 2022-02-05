@@ -3,17 +3,14 @@ from heltour.tournament import lichessapi, slackapi, pairinggen, \
     alternates_manager, signals, uptime
 from heltour.celery import app
 from celery.utils.log import get_task_logger
-from datetime import datetime, time_delta
+from datetime import datetime, timedelta
 from django.core.cache import cache
 from heltour import settings
 import reversion
-from django.contrib import messages
-from math import ceil
 from django.urls import reverse
 from heltour.tournament.workflows import RoundTransitionWorkflow
 from django.dispatch.dispatcher import receiver
 from django.db.models.signals import post_save
-from django.contrib.sites.models import Site
 import time
 import textwrap
 
