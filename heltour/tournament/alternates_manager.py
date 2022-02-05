@@ -115,7 +115,7 @@ def do_alternate_search(season, round_, board_number, setting):
         assigned_alts_lookup = {aa.team: aa.player for aa in assigned_alts_qs}
         players_on_board = {assigned_alts_lookup.get(tm.team, tm.player) for tm in team_members}
         teams_by_player = {tm.player: tm.team for tm in team_members}
-        teams_by_player.update({aa.player: aa.team for aa in assigned_alts_qs}
+        teams_by_player.update({aa.player: aa.team for aa in assigned_alts_qs})
 
     unavailable_players = {pa.player for pa in player_availabilities}
     # Prioritize open spots by the date the player was marked as unavailable
