@@ -1833,20 +1833,27 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
                                                                  round__in=round_list).nocache()
             is_available_dict = {(av.round_id, av.player_id): av.is_available for av in
                                  availability_set}
-
+            
+            season_player_set = SeasonPlayer.objects.filter(player__in=player_list, season=self.season).nocache()
+            has_red_card_dict = {sp.player : sp.card_color == "red" for sp in season_player_set}
+            
             if post:
                 for r in round_list:
                     for p in player_list:
                         field_name = 'av_r%d_%s' % (r.number, p.lichess_username)
                         is_available = self.request.POST.get(field_name) != 'on'
-                        if is_available != is_available_dict.get((r.id, p.id), True):
+                        
+                        season_player = SeasonPlayer.objects.filter(player=p, season=self.season).first()
+                        can_update_availability = season_player is not None and season_player.card_color != 'red'
+                        
+                        if (is_available != is_available_dict.get((r.id, p.id), True) and can_update_availability):
                             PlayerAvailability.objects.update_or_create(player=p, round=r,
                                                                         defaults={
                                                                             'is_available': is_available})
                 return redirect('by_league:by_season:edit_availability', self.league.tag,
                                 self.season.tag)
 
-            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True)) for p in player_list])
+            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True), has_red_card_dict.get(p, False)) for p in player_list])
                           for r in round_list]
 
         context = {
