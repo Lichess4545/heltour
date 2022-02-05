@@ -13,6 +13,9 @@ import os
 import platform
 import re
 import sys
+import django_stubs_ext
+
+django_stubs_ext.monkeypatch()
 
 TESTING = 'test' in sys.argv
 STAGING = os.environ.get('HELTOUR_ENV', '').upper() == 'STAGING'
