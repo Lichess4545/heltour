@@ -1450,13 +1450,15 @@ class ContactView(LeagueView):
                 league = League.objects.get(tag=form.cleaned_data['league'])
                 for mod in league.leaguemoderator_set.all():
                     if mod.send_contact_emails and mod.player.email and not form_contains_links:
+                        sender_email = form.cleaned_data['your_email_address']
                         message = EmailMessage(
                             '[%s] %s' % (league.name, form.cleaned_data['subject']),
                             'Sender:\n%s\n%s\n\nMessage:\n%s' %
                             (form.cleaned_data['your_lichess_username'],
-                             form.cleaned_data['your_email_address'], form.cleaned_data['message']),
+                             sender_email, form.cleaned_data['message']),
                             settings.DEFAULT_FROM_EMAIL,
-                            [mod.player.email]
+                            [mod.player.email],
+                            reply_to=[sender_email]
                         )
                         message.send()
                 return redirect(leagueurl('contact_success', league_tag=self.league.tag))
