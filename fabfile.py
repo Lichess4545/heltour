@@ -46,8 +46,6 @@ def get_password():
 
 # -------------------------------------------------------------------------------
 # Figure out where we are on the directory system
-import os.path
-import sys
 
 relative_path_to_this_module = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 absolute_path_to_this_module = os.path.abspath(relative_path_to_this_module)
@@ -71,7 +69,7 @@ static_file_repos = OrderedDict([(repo.name, repo) for repo in []])
 all_repos = python_repos.copy()
 all_repos.update(static_file_repos)
 all_repos['baste'] = Git('env/src/baste', 'https://lakin.wecker@bitbucket.org/strabs/baste.git')
-all_repos['container'] = Git('.', 'https://github.com/cyanfish/heltour.git')
+all_repos['container'] = Git('.', 'https://github.com/Lichess4545/heltour.git')
 
 # -------------------------------------------------------------------------------
 st = status = StatusCommand(all_repos)
@@ -89,7 +87,6 @@ def update():
         python_dependency(repo.name, PYTHON_VERSION)
 
     python_dependency('heltour', PYTHON_VERSION)
-    local("pip install -r {}".format(project_relative("requirements.txt")))
 
 
 up = update  # defines 'up' as the shortcut for 'update'
