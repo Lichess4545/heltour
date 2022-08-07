@@ -16,6 +16,7 @@ from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from heltour import settings
 import reversion
+from _datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -1423,6 +1424,9 @@ class PlayerPairing(_BaseModel):
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
     colors_reversed = models.BooleanField(default=False)
+    
+    #We do not want to mark players as unresponsive if their opponents got assigned less than 24 hours ago.
+    last_time_player_changed = models.DateTimeField(blank=True, null=True, default=timezone.now)
 
     tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
 
@@ -1519,6 +1523,12 @@ class PlayerPairing(_BaseModel):
             presence = PlayerPresence.objects.create(pairing=self, player=player,
                                                      round=self.get_round())
         return presence
+    
+    def paring_changed_after_round_start(self):
+        if self.last_time_player_changed is None:
+            return False
+        else:
+            return self.last_time_player_changed > self.get_round().start_date
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
@@ -1536,6 +1546,9 @@ class PlayerPairing(_BaseModel):
         if white_changed or black_changed or game_link_changed:
             self.white_rating = None
             self.black_rating = None
+            
+        if white_changed or black_changed:
+            self.last_time_player_changed = timezone.now()
 
         super(PlayerPairing, self).save(*args, **kwargs)
 
@@ -1583,6 +1596,7 @@ class PlayerPairing(_BaseModel):
                 old_black_setting = PlayerNotificationSetting.get_or_default(
                     player_id=self.initial_black_id, type='before_game_time', league=league)
                 old_black_setting.save()
+                
 
     def delete(self, *args, **kwargs):
         team_pairing = None
