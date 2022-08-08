@@ -1425,8 +1425,8 @@ class PlayerPairing(_BaseModel):
     scheduled_time = models.DateTimeField(blank=True, null=True)
     colors_reversed = models.BooleanField(default=False)
     
-    #We do not want to mark players as unresponsive if their opponents got assigned less than 24 hours ago.
-    last_time_player_changed = models.DateTimeField(blank=True, null=True, default=timezone.now)
+    #We do not want to mark players as unresponsive if their opponents got assigned after round start
+    last_time_player_changed = models.DateTimeField(blank=True, null=True)
 
     tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
 
@@ -1546,8 +1546,9 @@ class PlayerPairing(_BaseModel):
         if white_changed or black_changed or game_link_changed:
             self.white_rating = None
             self.black_rating = None
-            
-        if white_changed or black_changed:
+        
+        #we only want to set last_time_player_changed if a player was changed after the initial creation of the pairing
+        if (white_changed and self.initial_white_id is not None) or (black_changed and self.initial_black_id is not None):
             self.last_time_player_changed = timezone.now()
 
         super(PlayerPairing, self).save(*args, **kwargs)
