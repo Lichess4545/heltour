@@ -1801,7 +1801,29 @@ class SeasonPlayer(_BaseModel):
         for r in rounds:
             PlayerAvailability.objects.update_or_create(round=r, player=self.player,
                                                     defaults={'is_available': False})
+            
+    def has_scheduled_game_in_round(self, round):
+        scheduled_as_white = False
+        scheduled_as_black = False
+        
+        if self.season.league.competitor_type == 'team':
+            player_white_pairings = TeamPlayerPairing.objects.filter(white=self.player)
+            player_black_pairings = TeamPlayerPairing.objects.filter(black=self.player)
+        else:
+            player_white_pairings = LonePlayerPairing.objects.filter(white=self.player)
+            player_black_pairings = LonePlayerPairing.objects.filter(black=self.player)
+            
+        for pairing in player_white_pairings:
+            if int(pairing.round_number()) == int(round.number):
+                scheduled_as_white = pairing.scheduled_time is not None
+        
+        for pairing in player_black_pairings:
+            if int(pairing.round_number()) == int(round.number):
+                scheduled_as_black = pairing.scheduled_time is not None
 
+        return scheduled_as_white or scheduled_as_black
+            
+    
     def player_rating_display(self, league=None):
         if self.final_rating is not None:
             return self.final_rating

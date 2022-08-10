@@ -375,6 +375,7 @@ def set_availability(request):
         round_ = _get_next_round(league_tag, season_tag, round_num)
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
         season_player = SeasonPlayer.objects.filter(player=player, season=round_.season).first()
+        
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
@@ -386,6 +387,12 @@ def set_availability(request):
     
     if season_player.card_color == "red":
         return JsonResponse({'updated': 0, 'error': 'player_red_card'})
+    
+    if season_player.has_scheduled_game_in_round(round_):
+        return JsonResponse({'updated': 0, 'error': 'scheduled_game'})
+    
+    if has_scheduled_game:
+        return JsonResponse({'updated': 0, 'error': 'game_scheduled'})
 
     PlayerAvailability.objects.update_or_create(round=round_, player=player,
                                                 defaults={'is_available': is_available})

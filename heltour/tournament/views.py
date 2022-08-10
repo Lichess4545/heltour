@@ -1839,6 +1839,12 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
             season_player_set = SeasonPlayer.objects.filter(player__in=player_list, season=self.season).nocache()
             has_red_card_dict = {sp.player : sp.card_color == "red" for sp in season_player_set}
             
+            if self.league.competitor_type == 'team':
+                #games can only be scheduled for the current round
+                game_is_scheduled_dict = {(round_list[0], sp.player) : sp.has_scheduled_game_in_round(round_list[0]) for sp in season_player_set}
+            else:
+                game_is_scheduled_dict = {}
+            
             if post:
                 for r in round_list:
                     for p in player_list:
@@ -1846,7 +1852,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
                         is_available = self.request.POST.get(field_name) != 'on'
                         
                         season_player = SeasonPlayer.objects.filter(player=p, season=self.season).first()
-                        can_update_availability = season_player is not None and season_player.card_color != 'red'
+                        can_update_availability = season_player is not None and season_player.card_color != 'red' and not game_is_scheduled_dict.get((r, p), False)
                         
                         if (is_available != is_available_dict.get((r.id, p.id), True) and can_update_availability):
                             PlayerAvailability.objects.update_or_create(player=p, round=r,
@@ -1855,7 +1861,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
                 return redirect('by_league:by_season:edit_availability', self.league.tag,
                                 self.season.tag)
 
-            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True), has_red_card_dict.get(p, False)) for p in player_list])
+            round_data = [(r, [(p, is_available_dict.get((r.id, p.id), True), has_red_card_dict.get(p, False) or game_is_scheduled_dict.get((r, p), False)) for p in player_list])
                           for r in round_list]
 
         context = {
