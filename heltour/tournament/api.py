@@ -375,7 +375,6 @@ def set_availability(request):
         round_ = _get_next_round(league_tag, season_tag, round_num)
         player = Player.objects.filter(lichess_username__iexact=player_name).first()
         season_player = SeasonPlayer.objects.filter(player=player, season=round_.season).first()
-        
     except IndexError:
         return JsonResponse({'updated': 0, 'error': 'no_matching_rounds'})
 
