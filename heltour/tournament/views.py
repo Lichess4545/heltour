@@ -200,7 +200,7 @@ class HomeView(BaseView):
 
 class LeagueHomeView(LeagueView):
     def view(self):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view()
         else:
             return self.lone_view()
@@ -286,7 +286,7 @@ class LeagueHomeView(LeagueView):
 
 class SeasonLandingView(SeasonView):
     def view(self):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view()
         else:
             return self.lone_view()
@@ -437,7 +437,7 @@ class SeasonLandingView(SeasonView):
 
 class PairingsView(SeasonView):
     def view(self, round_number=None, team_number=None):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view(round_number, team_number)
         else:
             return self.lone_view(round_number, team_number)
@@ -649,7 +649,7 @@ class PairingsView(SeasonView):
 
 class ICalPairingsView(PairingsView, ICalMixin):
     def view(self, round_number=None, team_number=None):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view(round_number, team_number)
         else:
             return self.lone_view(round_number, team_number)
@@ -892,7 +892,7 @@ class RostersView(SeasonView):
 
 class StandingsView(SeasonView):
     def view(self, section=None):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view()
         else:
             return self.lone_view(section)
@@ -1036,7 +1036,7 @@ class WallchartView(SeasonView):
     def view(self):
         @cached_as(*common_lone_models)
         def _view(league_tag, season_tag, user_data):
-            if self.league.competitor_type == 'team':
+            if self.league.is_team_league():
                 raise Http404
             round_numbers = list(range(1, self.season.rounds + 1))
             player_scores = _lone_player_scores(self.season, sort_by_seed=True,
@@ -1061,7 +1061,7 @@ class WallchartView(SeasonView):
 
 class StatsView(SeasonView):
     def view(self):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view()
         else:
             return self.lone_view()
@@ -1205,7 +1205,7 @@ class StatsView(SeasonView):
 
 class BoardScoresView(SeasonView):
     def view(self, board_number):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view(board_number)
         else:
             raise Http404
@@ -1297,7 +1297,7 @@ class BoardScoresView(SeasonView):
 
 class LeagueDashboardView(LeagueView):
     def view(self):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             return self.team_view()
         else:
             return self.lone_view()
@@ -1491,7 +1491,7 @@ class PlayerProfileView(LeagueView):
         player = get_object_or_404(Player, lichess_username__iexact=username)
 
         def game_count(season):
-            if season.league.competitor_type == 'team':
+            if season.league.is_team_league():
                 season_pairings = TeamPlayerPairing.objects.filter(
                     team_pairing__round__season=season)
             else:
@@ -1500,7 +1500,7 @@ class PlayerProfileView(LeagueView):
                 black=player)).count()
 
         def team(season):
-            if season.league.competitor_type == 'team':
+            if season.league.is_team_league():
                 team_member = player.teammember_set.filter(team__season=season).first()
                 if team_member is not None:
                     return team_member.team
@@ -1526,7 +1526,7 @@ class PlayerProfileView(LeagueView):
             games = defaultdict(list)
             if season is None:
                 byes = {}
-            elif season.league.competitor_type == 'team':
+            elif season.league.is_team_league():
                 pairings = TeamPlayerPairing.objects.filter(
                     white=player) | TeamPlayerPairing.objects.filter(black=player)
                 for p in pairings.filter(team_pairing__round__season=season).order_by(
@@ -1601,7 +1601,7 @@ class PlayerProfileView(LeagueView):
                         continue
                     schedule.append((round_, pairing, None, None))
                 continue
-            if self.season.league.competitor_type == 'team':
+            if self.season.league.is_team_league():
                 assignment = AlternateAssignment.objects.filter(round=round_, player=player).first()
                 if assignment is not None and (
                     team_member is None or team_member.team != assignment.team):
@@ -1680,7 +1680,7 @@ class TeamProfileView(LeagueView):
 
         matches = []
         for round_ in self.season.round_set.filter(publish_pairings=True).order_by('number'):
-            if self.season.league.competitor_type == 'team':
+            if self.season.league.is_team_league():
                 pairing = team.pairings.filter(round=round_).first()
             if pairing is not None:
                 matches.append((round_, pairing))
@@ -1700,7 +1700,7 @@ class NominateView(SeasonView, LoginRequiredMixin):
         form = None
         player = self.player
 
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             season_pairings = PlayerPairing.objects.filter(
                 teamplayerpairing__team_pairing__round__season=self.season).nocache()
         else:
@@ -1839,7 +1839,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
             season_player_set = SeasonPlayer.objects.filter(player__in=player_list, season=self.season).nocache()
             has_red_card_dict = {sp.player : sp.card_color == "red" for sp in season_player_set}
             
-            if self.league.competitor_type == 'team':
+            if self.league.is_team_league():
                 #games can only be scheduled for the current round
                 game_is_scheduled_dict = {(round_list[0], sp.player) : sp.has_scheduled_game_in_round(round_list[0]) for sp in season_player_set}
             else:
