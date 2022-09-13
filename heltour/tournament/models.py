@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator
-from datetime import timedelta
+from datetime import timedelta, date
 from django.utils import timezone
 from django import forms as django_forms
 from collections import namedtuple, defaultdict
@@ -16,7 +16,6 @@ from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from heltour import settings
 import reversion
-from _datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -1426,7 +1425,7 @@ class PlayerPairing(_BaseModel):
     colors_reversed = models.BooleanField(default=False)
     
     #We do not want to mark players as unresponsive if their opponents got assigned after round start
-    last_time_player_changed = models.DateTimeField(blank=True, null=True)
+    date_player_changed = models.DateTimeField(blank=True, null=True)
 
     tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
 
@@ -1524,11 +1523,11 @@ class PlayerPairing(_BaseModel):
                                                      round=self.get_round())
         return presence
     
-    def paring_changed_after_round_start(self):
-        if self.last_time_player_changed is None:
+    def pairing_changed_after_round_start(self):
+        if self.date_player_changed is None:
             return False
         else:
-            return self.last_time_player_changed > self.get_round().start_date
+            return self.date_player_changed > self.get_round().start_date
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
@@ -1547,9 +1546,9 @@ class PlayerPairing(_BaseModel):
             self.white_rating = None
             self.black_rating = None
         
-        #we only want to set last_time_player_changed if a player was changed after the initial creation of the pairing
+        #we only want to set date_player_changed if a player was changed after the initial creation of the pairing
         if (white_changed and self.initial_white_id is not None) or (black_changed and self.initial_black_id is not None):
-            self.last_time_player_changed = timezone.now()
+            self.date_player_changed = timezone.now()
 
         super(PlayerPairing, self).save(*args, **kwargs)
 

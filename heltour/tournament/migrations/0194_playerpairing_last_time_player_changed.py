@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='playerpairing',
-            name='last_time_player_changed',
+            name='date_player_changed',
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

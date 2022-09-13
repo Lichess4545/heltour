@@ -82,7 +82,7 @@ def automod_unresponsive(round_, **kwargs):
                                                               is_available=False).exists()
             black_unavail = PlayerAvailability.objects.filter(round=round_, player=p.black,
                                                               is_available=False).exists()
-            if white_unavail or black_unavail or p.paring_changed_after_round_start():
+            if white_unavail or black_unavail or p.pairing_changed_after_round_start():
                 continue
         # check who is not present
         white_present = p.get_player_presence(p.white).first_msg_time is not None
