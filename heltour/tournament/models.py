@@ -15,6 +15,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from heltour import settings
+from django.db.models import Q
 import reversion
 
 logger = logging.getLogger(__name__)
@@ -1583,7 +1584,12 @@ class PlayerPairing(_BaseModel):
                 old_black_setting = PlayerNotificationSetting.get_or_default(
                     player_id=self.initial_black_id, type='before_game_time', league=league)
                 old_black_setting.save()
-
+                
+            #set both players available if game gets scheduled and either of them is set unavailable
+            PlayerAvailability.objects.filter(
+                (Q(player__id=self.white_id) | Q(player__id=self.black_id) & Q(round=self.get_round())
+                 )).update(is_available=True)
+                
     def delete(self, *args, **kwargs):
         team_pairing = None
         round_ = None
