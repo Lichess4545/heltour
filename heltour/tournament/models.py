@@ -1585,10 +1585,17 @@ class PlayerPairing(_BaseModel):
                     player_id=self.initial_black_id, type='before_game_time', league=league)
                 old_black_setting.save()
                 
-            #set both players available if game gets scheduled and either of them is set unavailable
-            PlayerAvailability.objects.filter(
-                (Q(player__id=self.white_id) | Q(player__id=self.black_id) & Q(round=self.get_round())
-                 )).update(is_available=True)
+            #set players available if game gets scheduled and either of them is set unavailable,
+            #do not set a player with a red card available, though.
+            if not SeasonPlayer.objects.filter(Q(player__id=self.white_id) & Q(season=self.get_round().season) & Q(games_missed__gte=2)).exists():
+                PlayerAvailability.objects.filter(
+                    (Q(player__id=self.white_id) & Q(round=self.get_round())
+                  )).update(is_available=True)
+            
+            if not SeasonPlayer.objects.filter(Q(player__id=self.black_id) & Q(season=self.get_round().season) & Q(games_missed__gte=2)).exists():
+                PlayerAvailability.objects.filter(
+                    (Q(player__id=self.black_id) & Q(round=self.get_round())
+                  )).update(is_available=True)
                 
     def delete(self, *args, **kwargs):
         team_pairing = None
