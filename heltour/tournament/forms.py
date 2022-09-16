@@ -36,6 +36,23 @@ class RegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
+        
+        username = kwargs.pop('user')
+        
+        #try to find a SeasonPlayer object for the current season.
+        #if SeasonPlayer object already exists for the current season we know the player got accepted before 
+        #and we do not have to display the availability fields in the registration form.
+        try:
+            #the lonewolf seasons are organized in section groups. Registrations are always linked to the lonewolf open section
+            #but players might be assigned to the u1800 section. Hence we have to identify all seasons in the same section group.
+            #On the other hand, team league and 960 do not have sections and we have to check directly the season.
+            seasonsInGroup = Season.objects.filter(
+                section__in=Section.objects.filter(
+                    section_group=Section.objects.filter(season=self.season).first().section_group))
+        except:
+            seasonsInGroup = Season.objects.filter(name=self.season.name)
+        already_accepted = SeasonPlayer.objects.filter(season__in=seasonsInGroup, player__lichess_username=username).exists()
+        
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
@@ -176,8 +193,8 @@ class RegistrationForm(forms.ModelForm):
         else:
             del self.fields['section_preference']
 
-        # Weeks unavailable
-        if self.season.round_duration == timedelta(days=7):
+        # Weeks unavailable - if player is already accepted they can edit their availability in the player dashboard
+        if self.season.round_duration == timedelta(days=7) and not already_accepted:
             weeks = [(r.number, 'Round %s (%s - %s)' %
                       (r.number,
                        r.start_date.strftime('%b %-d') if r.start_date is not None else '?',

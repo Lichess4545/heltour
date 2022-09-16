@@ -709,7 +709,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
             if post:
-                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season)
+                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season, user=self.request.user)
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
@@ -739,7 +739,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag,
                                               season_tag=self.season.tag))
             else:
-                form = RegistrationForm(instance=instance, season=reg_season)
+                form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
                 player = Player.get_or_create(self.request.user.username)
                 form.fields['lichess_username'].initial = player.lichess_username
                 form.fields['email'].initial = player.email
