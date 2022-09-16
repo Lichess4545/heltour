@@ -44,6 +44,14 @@ class RegistrationForm(forms.ModelForm):
         self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
             'Your Lichess %s Rating' % rating_type))
 
+        help_text_provisional = 'Applications are only reviewed if you have an established rating. \
+            If your rating is still provisional (there is a question mark next to your rating), you can already register. \
+            But we will only review your registration once your rating is established.'
+        
+        if league.competitor_type != 'team':
+            help_text_provisional = 'Applications are only reviewed if you have an established rating. \
+            If there is a question mark next to your rating, your application will not be reviewed. \
+            Exceptions may apply if you have played in our league before. Please check the league rules.'
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True,
                                                                     choices=YES_NO_OPTIONS,
@@ -52,7 +60,7 @@ class RegistrationForm(forms.ModelForm):
                                                                     label=_(
                                                                         'Is your %s rating established (not provisional)?' % rating_type.lower()),
                                                                     help_text=_(
-                                                                        'If it is provisional, it must be established ASAP by playing more games.'), )
+                                                                        help_text_provisional), )
 
         # In slack
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
@@ -149,7 +157,8 @@ class RegistrationForm(forms.ModelForm):
                                                                     label=_(
                                                                         'Are you interested in being an alternate or a full time player?'),
                                                                     help_text=_(
-                                                                        'Players are put into teams on a first come first served basis, you may be an alternate even if you request to be a full time player.'))
+                                                                        'Players are put into teams on a first come first served basis, based on registration date. \
+                                                                        You may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 
