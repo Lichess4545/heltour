@@ -55,6 +55,12 @@
             <td>{% render_comment_list for player %}</td>
         </tr>
     {% endif %}
+    {% get_comment_list for season_player as sp_comments %}
+    {% if sp_comments %}
+        <tr>
+            <td>{% render_comment_list for season_player %}</td>
+        </tr>
+    {% endif %}
     <tr>
         <td colspan="2"><input type="checkbox" class="captain-checkbox" id="captain"/><label
                 for="captain">Captain</label></div></td>
