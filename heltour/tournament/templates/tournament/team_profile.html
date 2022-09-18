@@ -44,8 +44,7 @@
                                     <tr>
                                         <td>
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                                                {{ player.lichess_username }}{% if rating_display %} (
-                                                    {{ rating_display }}){% endif %}
+                                                {{ player.lichess_username }}{% if rating_display %} ({{ rating_display }}){% endif %}
                                             </a>
                                         </td>
                                         <td>{% if game_count == 1 %}1 game{% else %}{{ game_count }}

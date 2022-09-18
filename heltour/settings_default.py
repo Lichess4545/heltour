@@ -172,7 +172,7 @@ USE_TZ = True
 # Email
 # https://docs.djangoproject.com/en/1.10/topics/email/
 
-DEFAULT_FROM_EMAIL = 'noreply@lichess4545.com'
+DEFAULT_FROM_EMAIL = 'noreply@lichess.org'
 
 # Celery (tasks)
 
