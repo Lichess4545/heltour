@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
+from django.db.models import Q
 from heltour import settings
 import reversion
 
@@ -163,6 +164,9 @@ class League(_BaseModel):
             return self.leaguesetting
         except LeagueSetting.DoesNotExist:
             return LeagueSetting.objects.create(league=self)
+        
+    def is_team_league(self):
+        return self.competitor_type == 'team'
 
     def __str__(self):
         return self.name
@@ -302,7 +306,7 @@ class Season(_BaseModel):
             # Remove out of date prizes
             SeasonPrizeWinner.objects.filter(season_prize__season=self).delete()
             # Award prizes
-            if self.league.competitor_type == 'team':
+            if self.league.is_team_league():
                 team_scores = sorted(
                     TeamScore.objects.filter(team__season=self).select_related('team').nocache(),
                     reverse=True)
@@ -326,7 +330,7 @@ class Season(_BaseModel):
                                                          player=eligible_players[prize.rank - 1])
 
     def calculate_scores(self):
-        if self.league.competitor_type == 'team':
+        if self.league.is_team_league():
             self._calculate_team_scores()
         else:
             self._calculate_lone_scores()
@@ -954,7 +958,7 @@ class PlayerLateRegistration(_BaseModel):
             self.perform_registration()
 
     def clean(self):
-        if self.round_id and self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.is_team_league():
             raise ValidationError('Player late registrations can only be created for lone leagues')
 
     def __str__(self):
@@ -992,7 +996,7 @@ class PlayerWithdrawal(_BaseModel):
             self.perform_withdrawal()
 
     def clean(self):
-        if self.round_id and self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.is_team_league():
             raise ValidationError('Player withdrawals can only be created for lone leagues')
 
     def __str__(self):
@@ -1070,7 +1074,7 @@ class PlayerBye(_BaseModel):
             round_.season.calculate_scores()
 
     def clean(self):
-        if self.round_id and self.round.season.league.competitor_type == 'team':
+        if self.round_id and self.round.season.league.is_team_league():
             raise ValidationError('Player byes can only be created for lone leagues')
 
 
@@ -1801,7 +1805,16 @@ class SeasonPlayer(_BaseModel):
         for r in rounds:
             PlayerAvailability.objects.update_or_create(round=r, player=self.player,
                                                     defaults={'is_available': False})
-
+            
+    def has_scheduled_game_in_round(self, round):
+        pairingModel = TeamPlayerPairing.objects.filter(team_pairing__round=round)
+        if not self.season.league.is_team_league():
+            pairingModel = LonePlayerPlairing.objects.filter(round=round)
+            
+        return pairingModel.filter(
+            (Q(white=self.player) | Q(black=self.player)) & Q(scheduled_time__isnull=False)#
+          ).exists()
+    
     def player_rating_display(self, league=None):
         if self.final_rating is not None:
             return self.final_rating
