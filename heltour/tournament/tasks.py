@@ -8,7 +8,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow
 from django_stubs_ext import ValuesQuerySet
 
 from django.core.cache import cache
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.urls import reverse
@@ -50,37 +50,43 @@ def not_updated_recently_usernames(active_usernames) -> List[str]:
     one_24th = total_players/24 # update them approximately every 24 hours
     return to_usernames(just_username(qs)[:one_24th])
 
-@app.task(bind=True)
-def update_player_ratings(self):
-    id = self.request.id
-    prefix =  f"[update_player_ratings({id})]: "
+@app.task()
+def update_player_ratings():
     active_players = active_player_usernames()
     not_updated_recently = not_updated_recently_usernames(active_players)
     usernames = active_players + not_updated_recently
-    logger.info(f"{prefix}[START] Updating {len(usernames)} player ratings")
+    logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
             p = Player.objects.get(lichess_username__iexact=user_meta['id'])
             p.update_profile(user_meta)
             updated += 1
-        logger.info(f'{prefix}[FINISHED] Updated {updated}/{len(usernames)} player ratings')
+        logger.info(f'[FINISHED] Updated {updated}/{len(usernames)} player ratings')
     except Exception as e:
-        logger.warning(f'{prefix}[ERROR] Error getting ratings: {e}')
-        logger.warning(f'{prefix}[ERROR] Only updated {updated}/{len(usernames)} player ratings')
+        logger.warning(f'[ERROR] Error getting ratings: {e}')
+        logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
 
 
-@app.task(bind=True)
-def populate_historical_ratings(self):
-    pairings_that_should_have_ratings = PlayerPairing.objects.exclude(game_link='',
-                                                                      result='').exclude(white=None,
-                                                                                         black=None).nocache()
-    pairings_that_need_ratings = pairings_that_should_have_ratings.filter(
-        white_rating=None) | pairings_that_should_have_ratings.filter(black_rating=None)
+
+def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
+    return PlayerPairing.objects.exclude(
+            game_link='',
+            result=''
+        ).exclude(
+            white=None,
+            black=None
+        ).filter(
+            Q(white_rating=None) | Q(black_rating=None)
+        ).nocache()
+
+@app.task()
+def populate_historical_ratings():
+    pairings_qs = pairings_that_need_ratings()
 
     api_poll_count = 0
 
-    for p in pairings_that_need_ratings.exclude(game_link=''):
+    for p in pairings_qs.exclude(game_link=''):
         # Poll ratings for the game from the lichess API
         if p.game_id() is None:
             continue
@@ -94,7 +100,7 @@ def populate_historical_ratings(self):
             # Limit the processing per task execution
             return
 
-    for p in pairings_that_need_ratings.filter(game_link=''):
+    for p in pairings_qs.filter(game_link=''):
         round_ = p.get_round()
         if round_ is None:
             continue
@@ -110,7 +116,11 @@ def populate_historical_ratings(self):
             p.black_rating = _find_closest_rating(p.black, round_.end_date, season)
         p.save(update_fields=['white_rating', 'black_rating'])
 
-    for b in PlayerBye.objects.filter(player_rating=None, round__publish_pairings=True).nocache():
+    for b in PlayerBye.objects.filter(
+        player_rating=None,
+        round__publish_pairings=True,
+        player__account_status='normal'
+    ).nocache():
         b.refresh_from_db()
         if not b.round.is_completed:
             b.player_rating = b.player.rating_for(b.round.season.league)
@@ -118,22 +128,32 @@ def populate_historical_ratings(self):
             b.player_rating = _find_closest_rating(b.player, b.round.end_date, b.round.season)
         b.save(update_fields=['player_rating'])
 
-    for tm in TeamMember.objects.filter(player_rating=None,
-                                        team__season__is_completed=True).nocache():
+    for tm in TeamMember.objects.filter(
+        player_rating=None,
+        team__season__is_completed=True,
+        player__account_status='normal'
+    ).nocache():
         tm.refresh_from_db()
         tm.player_rating = _find_closest_rating(tm.player, tm.team.season.end_date(),
                                                 tm.team.season)
         tm.save(update_fields=['player_rating'])
 
-    for alt in Alternate.objects.filter(player_rating=None,
-                                        season_player__season__is_completed=True).nocache():
+    for alt in Alternate.objects.filter(
+        player_rating=None,
+        season_player__season__is_completed=True,
+        season_player__player__account_status='normal'
+    ).nocache():
         alt.refresh_from_db()
         alt.player_rating = _find_closest_rating(alt.season_player.player,
                                                  alt.season_player.season.end_date(),
                                                  alt.season_player.season)
         alt.save(update_fields=['player_rating'])
 
-    for sp in SeasonPlayer.objects.filter(final_rating=None, season__is_completed=True).nocache():
+    for sp in SeasonPlayer.objects.filter(
+        final_rating=None,
+        season__is_completed=True,
+        player__account_status='normal'
+    ).nocache():
         sp.refresh_from_db()
         sp.final_rating = _find_closest_rating(sp.player, sp.season.end_date(), sp.season)
         sp.save(update_fields=['final_rating'])
@@ -187,8 +207,8 @@ def _find_closest_rating(player, date, season):
         return rating(pairings_by_date_gt[0][1])
 
 
-@app.task(bind=True)
-def update_tv_state(self):
+@app.task()
+def update_tv_state():
     games_starting = PlayerPairing.objects.filter(result='', game_link='',
                                                   scheduled_time__lt=timezone.now()).nocache()
     games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
@@ -237,8 +257,8 @@ def update_tv_state(self):
                 logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
 
 
-@app.task(bind=True)
-def update_lichess_presence(self):
+@app.task()
+def update_lichess_presence():
     games_starting = PlayerPairing.objects.filter( \
         result='', game_link='', \
         scheduled_time__lt=timezone.now() + timedelta(minutes=5), \
@@ -262,8 +282,8 @@ def update_lichess_presence(self):
                     presence.save()
 
 
-@app.task(bind=True)
-def update_slack_users(self):
+@app.task()
+def update_slack_users():
     slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
@@ -276,8 +296,8 @@ def update_slack_users(self):
 _max_lateness = timedelta(hours=1)
 
 
-@app.task(bind=True)
-def run_scheduled_events(self):
+@app.task()
+def run_scheduled_events():
     now = timezone.now()
     with cache.lock('run_scheduled_events'):
         future_event_time = None
@@ -361,8 +381,8 @@ def run_scheduled_events(self):
             run_scheduled_events.apply_async(args=[], eta=future_event_time)
 
 
-@app.task(bind=True)
-def round_transition(self, round_id):
+@app.task()
+def round_transition(round_id):
     season = Round.objects.get(pk=round_id).season
     workflow = RoundTransitionWorkflow(season)
     warnings = workflow.warnings
@@ -380,8 +400,8 @@ def do_round_transition(sender, round_id, **kwargs):
     round_transition.apply_async(args=[round_id])
 
 
-@app.task(bind=True)
-def generate_pairings(self, round_id, overwrite=False):
+@app.task()
+def generate_pairings(round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
     pairinggen.generate_pairings(round_, overwrite)
     round_.publish_pairings = False
@@ -396,8 +416,8 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
     generate_pairings.apply_async(args=[round_id, overwrite], countdown=1)
 
 
-@app.task(bind=True)
-def validate_registration(self, reg_id):
+@app.task()
+def validate_registration(reg_id):
     reg = Registration.objects.get(pk=reg_id)
 
     fail_reason = None
@@ -460,8 +480,8 @@ def do_validate_registration(reg_id, **kwargs):
     validate_registration.apply_async(args=[reg_id], countdown=1)
 
 
-@app.task(bind=True)
-def pairings_published(self, round_id, overwrite=False):
+@app.task()
+def pairings_published(round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
     season = round_.season
     league = season.league
@@ -484,8 +504,8 @@ def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
 
 
-@app.task(bind=True)
-def schedule_publish(self, round_id):
+@app.task()
+def schedule_publish(round_id):
     with cache.lock('schedule_publish'):
         round_ = Round.objects.get(pk=round_id)
         if round_.publish_pairings:
@@ -514,8 +534,8 @@ def do_schedule_publish(sender, round_id, eta, **kwargs):
         signals.publish_scheduled.send(sender=do_schedule_publish, round_id=round_id, eta=eta)
 
 
-@app.task(bind=True)
-def notify_slack_link(self, lichess_username):
+@app.task()
+def notify_slack_link(lichess_username):
     player = Player.get_or_create(lichess_username)
     email = slackapi.get_user(player.slack_user_id).email
     msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
@@ -527,8 +547,8 @@ def do_notify_slack_link(lichess_username, **kwargs):
     notify_slack_link.apply_async(args=[lichess_username], countdown=1)
 
 
-@app.task(bind=True)
-def create_team_channel(self, team_ids):
+@app.task()
+def create_team_channel(team_ids):
     intro_message = textwrap.dedent("""
             Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!
             You need to pick a team captain and a team name by {season_start}.
@@ -590,16 +610,16 @@ def do_create_team_channel(sender, team_ids, **kwargs):
     create_team_channel.apply_async(args=[team_ids], countdown=1)
 
 
-@app.task(bind=True)
-def alternates_manager_tick(self):
+@app.task()
+def alternates_manager_tick():
     with cache.lock('alternates_tick'):
         for season in Season.objects.filter(is_active=True, is_completed=False):
             if season.alternates_manager_enabled():
                 alternates_manager.tick(season)
 
 
-@app.task(bind=True)
-def celery_is_up(self):
+@app.task()
+def celery_is_up():
     uptime.celery.is_up = True
 
 
