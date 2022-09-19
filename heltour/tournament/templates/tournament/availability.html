@@ -45,13 +45,13 @@
                                 <tr>
                                     <td>Round {{ r.number }}</td>
                                     <td>{{ r.start_date|date_or_q:'%b %-d' }} - {{ r.end_date|date_or_q:'%b %-d' }}</td>
-                                    {% for p, is_av, is_red in av_list %}
+                                    {% for p, is_av, is_immutable in av_list %}
                                         <td>
                                             <input type="checkbox" name="av_r{{ r.number }}_{{ p.lichess_username }}"
                                                    data-toggle="toggle" data-on="Unavailable" data-off="Available"
                                                    data-onstyle="default" data-offstyle="success" data-size="small"
                                                    {% if not is_av %}checked{% endif %}
-                                                   {% if is_red %} disabled="true" {% endif %}
+                                                   {% if is_immutable %} disabled="true" {% endif %}
                                             />
                                         </td>
                                     {% endfor %}
