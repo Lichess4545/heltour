@@ -235,7 +235,7 @@ def get_roster(request):
         return JsonResponse(
             {'season_tag': None, 'players': None, 'teams': None, 'error': 'no_matching_rounds'})
 
-    if season.league.competitor_type == 'team':
+    if season.league.is_team_league():
         return _team_roster(season)
     else:
         return _lone_roster(season)
@@ -386,6 +386,9 @@ def set_availability(request):
     
     if season_player.card_color == "red":
         return JsonResponse({'updated': 0, 'error': 'player_red_card'})
+    
+    if season_player.has_scheduled_game_in_round(round_):
+        return JsonResponse({'updated': 0, 'error': 'scheduled_game'})
 
     PlayerAvailability.objects.update_or_create(round=round_, player=player,
                                                 defaults={'is_available': is_available})
