@@ -39,19 +39,8 @@ class RegistrationForm(forms.ModelForm):
         
         username = kwargs.pop('user')
         
-        #try to find a SeasonPlayer object for the current season.
-        #if SeasonPlayer object already exists for the current season we know the player got accepted before 
-        #and we do not have to display the availability fields in the registration form.
-        try:
-            #the lonewolf seasons are organized in section groups. Registrations are always linked to the lonewolf open section
-            #but players might be assigned to the u1800 section. Hence we have to identify all seasons in the same section group.
-            #On the other hand, team league and 960 do not have sections and we have to check directly the season.
-            seasonsInGroup = Season.objects.filter(
-                section__in=Section.objects.filter(
-                    section_group=Section.objects.filter(season=self.season).first().section_group))
-        except:
-            seasonsInGroup = Season.objects.filter(name=self.season.name)
-        already_accepted = SeasonPlayer.objects.filter(season__in=seasonsInGroup, player__lichess_username=username).exists()
+        already_accepted = SeasonPlayer.objects.filter(
+            season__in=self.season.section_list(), player__lichess_username=username).exists()
         
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
@@ -61,14 +50,11 @@ class RegistrationForm(forms.ModelForm):
         self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
             'Your Lichess %s Rating' % rating_type))
 
-        help_text_provisional = 'Applications are only reviewed if you have an established rating. \
-            If your rating is still provisional (there is a question mark next to your rating), you can already register. \
-            But we will only review your registration once your rating is established.'
+        help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
         
         if league.competitor_type != 'team':
-            help_text_provisional = 'Applications are only reviewed if you have an established rating. \
-            If there is a question mark next to your rating, your application will not be reviewed. \
-            Exceptions may apply if you have played in our league before. Please check the league rules.'
+            help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed \
+                once your rating is established. Some league-specific rules may override this, see rules pages for more information.'
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True,
                                                                     choices=YES_NO_OPTIONS,
