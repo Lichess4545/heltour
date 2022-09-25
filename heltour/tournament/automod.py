@@ -55,7 +55,7 @@ def withdraw_created(instance, **kwargs):
         instance.reject(response='You can\'t withdraw from the season at this time.')
         return
 
-    instance.approve(response='You\'ve been withdrawn for round %d.' % instance.round.number)
+    instance.approve(response='You\'ve been withdrawn from the season. The withdrawal takes effect at the start of round %d.' % instance.round.number)
 
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['withdraw'],
@@ -201,7 +201,8 @@ def claim_win_noshow_created(instance, **kwargs):
     if p.get_player_presence(instance.requester).online_for_game \
         and not p.get_player_presence(opponent).online_for_game \
         and timezone.now() > p.scheduled_time + timedelta(minutes=21):
-        instance.approve(response='You\'ve been given a win by forfeit.')
+        instance.approve(response='You\'ve been given a win by forfeit. \
+        It is still possible to reschedule and play the game if you want to.')
 
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'],
