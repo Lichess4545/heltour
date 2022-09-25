@@ -24,6 +24,13 @@
                             {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends
                                 {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
                     {% endif %}
+                    <p>You are registering as <strong>{{ user }}</strong>. 
+                    <br>If you want to change the account you register with, you can logout <a href="/team4545/player/">here</a>.
+                    <br>As per our 
+                    <a href="/team4545/document/terms-of-service/">Terms of Service</a> once you 
+                    participate in our league with this account you will always need to use it.
+                    
+                    </p>
                     <form action="" method="post">
                         {% csrf_token %}
                         {% bootstrap_form form %}

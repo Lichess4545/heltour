@@ -23,24 +23,23 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'email', 'classical_rating',
+            'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
-            'lichess_username': _('Your Lichess Username'),
             'email': _('Your Email'),
         }
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
         
-        username = kwargs.pop('user')
+        self.username = kwargs.pop('user')
         
         already_accepted = SeasonPlayer.objects.filter(
-            season__in=self.season.section_list(), player__lichess_username=username).exists()
+            season__in=self.season.section_list(), player__lichess_username=self.username).exists()
         
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
@@ -209,6 +208,7 @@ class RegistrationForm(forms.ModelForm):
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
+        registration.lichess_username = str(self.username)
         registration.status = 'pending'
         if commit:
             registration.save()
