@@ -1887,7 +1887,7 @@ class SeasonPlayer(_BaseModel):
             self.is_active = False
             self.save()
         self._set_unavailable_for_season(skip_current=True)
-        add_system_comment(self, 'player withdrawn for %s'%round)
+        add_system_comment(self, 'player withdrawn: %s'%round)
 
     @property
     def card_color(self):
