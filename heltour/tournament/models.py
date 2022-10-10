@@ -991,8 +991,7 @@ class PlayerWithdrawal(_BaseModel):
                 pairing.delete()
 
     def perform_team_season_withdrawal(self):
-        sp = SeasonPlayer.objects.get(season=self.round.season, player=self.player)
-        sp.withdraw_from_team_season(self.round)
+        SeasonPlayer.withdraw_from_team_season(round=self.round, player=self.player)
 
     def save(self, *args, **kwargs):
         if self.round.season.league.is_team_league():
@@ -1823,8 +1822,9 @@ class SeasonPlayer(_BaseModel):
     def _set_unavailable_for_season(self, skip_current=False):
         rounds = Round.objects.filter(season=self.season, is_completed=False)
         for r in rounds:
-            if not (skip_current and r.publish_pairings):
-                PlayerAvailability.objects.update_or_create(round=r, player=self.player,
+            if skip_current and r.publish_pairings:
+                continue
+            PlayerAvailability.objects.update_or_create(round=r, player=self.player,
                                                         defaults={'is_available': False})
             
     def has_scheduled_game_in_round(self, round):
@@ -1880,14 +1880,16 @@ class SeasonPlayer(_BaseModel):
                 league = self.season.league
             return self.player.rating_for(league)
     
-    def withdraw_from_team_season(self, round):
-        #we should only set players inactive here if they are not member of a team,
-        #i.e. if they are either alternates or we are in the pre-season before team creation.
-        if not TeamMember.objects.filter(player=self.player, team__season=round.season).exists():
-            self.is_active = False
-            self.save()
-        self._set_unavailable_for_season(skip_current=True)
-        add_system_comment(self, 'player withdrawn: %s'%round)
+    @classmethod
+    def withdraw_from_team_season(cls, round, player):
+        #We can only set players inactive that are not part of a team.
+        if not TeamMember.objects.filter(player=player, team__season=round.season).exists():
+            cls.objects.filter(season=round.season, player=player).update(is_active=False)
+        
+        sp = SeasonPlayer.objects.get(season=round.season, player=player)
+        sp._set_unavailable_for_season(skip_current=True)
+        add_system_comment(sp, 'player withdrawn: %s'%round)
+        
 
     @property
     def card_color(self):
