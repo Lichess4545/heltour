@@ -3,6 +3,7 @@ from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.tasks import pairings_published
+from textwrap import dedent
 import reversion
 import time
 
@@ -201,8 +202,8 @@ def claim_win_noshow_created(instance, **kwargs):
     if p.get_player_presence(instance.requester).online_for_game \
         and not p.get_player_presence(opponent).online_for_game \
         and timezone.now() > p.scheduled_time + timedelta(minutes=21):
-        instance.approve(response='You\'ve been given a win by forfeit. \
-        It is still possible to reschedule and play the game if you want to.')
+        instance.approve(
+            response='You\'ve been given a win by forfeit. It is still possible to reschedule and play the game if you want to.')
 
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['claim_win_noshow'],
