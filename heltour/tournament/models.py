@@ -1535,6 +1535,13 @@ class PlayerPairing(_BaseModel):
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
+    
+    def update_available_upon_schedule(self, player_id):
+        #set players available if game gets scheduled and they are unavailable,
+        #do not set a player with a red card available, though.
+        if not SeasonPlayer.objects.filter(player__id=player_id, season=self.get_round().season, games_missed__gte=2).exists():
+            PlayerAvailability.objects.filter(
+                player__id=player_id, round=self.get_round()).update(is_available=True)
 
     def save(self, *args, **kwargs):
         result_changed = self.result != self.initial_result
@@ -1600,8 +1607,10 @@ class PlayerPairing(_BaseModel):
                 old_black_setting = PlayerNotificationSetting.get_or_default(
                     player_id=self.initial_black_id, type='before_game_time', league=league)
                 old_black_setting.save()
-                
-
+            
+            self.update_available_upon_schedule(self.white_id)
+            self.update_available_upon_schedule(self.black_id)
+    
     def delete(self, *args, **kwargs):
         team_pairing = None
         round_ = None
