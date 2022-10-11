@@ -23,19 +23,24 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'lichess_username', 'email', 'classical_rating',
+            'email', 'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
         labels = {
-            'lichess_username': _('Your Lichess Username'),
             'email': _('Your Email'),
         }
 
     def __init__(self, *args, **kwargs):
         self.season = kwargs.pop('season')
+        
+        self.username = kwargs.pop('user')
+        
+        already_accepted = SeasonPlayer.objects.filter(
+            season__in=self.season.section_list(), player__lichess_username=self.username).exists()
+        
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
@@ -44,6 +49,11 @@ class RegistrationForm(forms.ModelForm):
         self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
             'Your Lichess %s Rating' % rating_type))
 
+        help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
+        
+        if league.competitor_type != 'team':
+            help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed \
+                once your rating is established. Some league-specific rules may override this, see rules pages for more information.'
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True,
                                                                     choices=YES_NO_OPTIONS,
@@ -52,7 +62,7 @@ class RegistrationForm(forms.ModelForm):
                                                                     label=_(
                                                                         'Is your %s rating established (not provisional)?' % rating_type.lower()),
                                                                     help_text=_(
-                                                                        'If it is provisional, it must be established ASAP by playing more games.'), )
+                                                                        help_text_provisional), )
 
         # In slack
         self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
@@ -149,7 +159,8 @@ class RegistrationForm(forms.ModelForm):
                                                                     label=_(
                                                                         'Are you interested in being an alternate or a full time player?'),
                                                                     help_text=_(
-                                                                        'Players are put into teams on a first come first served basis, you may be an alternate even if you request to be a full time player.'))
+                                                                        'Players are put into teams on a first come first served basis, based on registration date. \
+                                                                        You may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 
@@ -167,8 +178,8 @@ class RegistrationForm(forms.ModelForm):
         else:
             del self.fields['section_preference']
 
-        # Weeks unavailable
-        if self.season.round_duration == timedelta(days=7):
+        # Weeks unavailable - if player is already accepted they can edit their availability in the player dashboard
+        if self.season.round_duration == timedelta(days=7) and not already_accepted:
             weeks = [(r.number, 'Round %s (%s - %s)' %
                       (r.number,
                        r.start_date.strftime('%b %-d') if r.start_date is not None else '?',
@@ -197,6 +208,7 @@ class RegistrationForm(forms.ModelForm):
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
+        registration.lichess_username = str(self.username)
         registration.status = 'pending'
         if commit:
             registration.save()
