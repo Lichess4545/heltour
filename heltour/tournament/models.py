@@ -789,15 +789,17 @@ class Player(_BaseModel):
                                                        new_value=self.account_status)
 
     def update_profile(self, user_meta):
-        self.profile = user_meta
         classical = user_meta.get('perfs', {}).get('classical')
         if classical is not None:
             self.rating = classical['rating']
             self.games_played = classical['games']
-        
         is_closed = user_meta.get('disabled', False)
         is_tosViolation = user_meta.get('tosViolation', False)
         self.account_status = 'closed' if is_closed else 'tos_violation' if is_tosViolation else 'normal'
+        
+        # profile is used to get rating data which should not be updated anymore once an account is closed.
+        if not is_closed:
+            self.profile = user_meta
         self.save()
 
     @classmethod
@@ -827,7 +829,10 @@ class Player(_BaseModel):
     def rating_for(self, league):
         if league:
             if self.profile is None:
-                return None
+                # some admin screens cannot handle a None rating, so we return 0 instead.
+                # self.profile is only None if the player profile has never been downloaded
+                # from lichess or the account had already been closed at that first download.
+                return 0
             return self.profile.get('perfs', {}).get(league.rating_type, {}).get('rating')
         return self.rating
 
