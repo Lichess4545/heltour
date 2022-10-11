@@ -832,6 +832,7 @@ def notify_noshow_claim(round_, player, punishment, allow_continue, **kwargs):
         continue_url = abs_url(reverse('by_league:by_season:modrequest',
                                        args=[league.tag, season.tag, 'request_continuation']))
         message += '\nOtherwise, if you want to continue playing next round, <%s|click here>.' % continue_url
+    message += '\nNote that you can reach out to your opponent and try to reschedule the game.'
     _message_user(league, _slack_user(player), message)
 
 
