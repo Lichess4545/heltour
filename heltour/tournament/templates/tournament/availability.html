@@ -13,6 +13,17 @@
 
 {% block content %}
     <script type="text/javascript" src="{% static 'lib/js/bootstrap-toggle.min.js' %}"></script>
+
+    <script>
+    function availabilityChanged(checkbox, label) {
+      if (checkbox.checked) {
+          label.setAttribute("aria-label","Current setting: unavailable - press save to submit");
+      } else {
+          label.setAttribute("aria-label", "Current setting: available - press save to submit");
+      }
+    }
+</script>
+
     <div class="row row-condensed-xs">
         <div class="col-md-12">
             <div class="well">
@@ -31,7 +42,7 @@
 
                     <form action="" method="post">
                         {% csrf_token %}
-                        <table class="table" id="table-availability">
+                        <table class="table" id="table-availability" summary="Availability settings per round">
                             <thead>
                             <tr>
                                 <th colspan="2">Availability</th>
@@ -47,11 +58,17 @@
                                     <td>{{ r.start_date|date_or_q:'%b %-d' }} - {{ r.end_date|date_or_q:'%b %-d' }}</td>
                                     {% for p, is_av, is_immutable in av_list %}
                                         <td>
-                                            <input type="checkbox" name="av_r{{ r.number }}_{{ p.lichess_username }}"
+                                            <input id="availability-checkbox-{{ r.number }}_{{ p.lichess_username }}"
+                                                   type="checkbox" name="av_r{{ r.number }}_{{ p.lichess_username }}"
                                                    data-toggle="toggle" data-on="Unavailable" data-off="Available"
                                                    data-onstyle="default" data-offstyle="success" data-size="small"
+                                                   onchange="availabilityChanged(this, document.getElementById('availability-checkbox-label-{{ r.number }}_{{ p.lichess_username }}'))"
                                                    {% if not is_av %}checked{% endif %}
                                                    {% if is_immutable %} disabled="true" {% endif %}
+                                            />
+                                            <label id="availability-checkbox-label-{{ r.number }}_{{ p.lichess_username }}" 
+                                                   for="availability-checkbox-{{ r.number }}_{{ p.lichess_username }}" 
+                                                   aria-label="Current setting: {% if is_av %} available {% else %} unavailable {% endif %}"
                                             />
                                         </td>
                                     {% endfor %}
@@ -65,4 +82,5 @@
             </div>
         </div>
     </div>
+
 {% endblock %}
