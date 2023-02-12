@@ -98,7 +98,7 @@
                             <table class="table table-condensed-xs table-stats">
                                 <tr>
                                     <td>Count: {{ active_player_ratings|length }}</td>
-                                    <td>Mean: {{ active_player_ratings|mean }}</td>
+                                    <td>Mean: {{ active_player_ratings|mean|floatformat:2 }}</td>
                                     <td>Median: {{ active_player_ratings|median }}</td>
                                     <td>Min: {{ active_player_ratings|minimum }}</td>
                                     <td>Max: {{ active_player_ratings|maximum }}</td>
@@ -108,7 +108,7 @@
                             <table class="table table-condensed-xs table-stats">
                                 <tr>
                                     <td>Count: {{ all_player_ratings|length }}</td>
-                                    <td>Mean: {{ all_player_ratings|mean }}</td>
+                                    <td>Mean: {{ all_player_ratings|mean|floatformat:2 }}</td>
                                     <td>Median: {{ all_player_ratings|median }}</td>
                                     <td>Min: {{ all_player_ratings|minimum }}</td>
                                     <td>Max: {{ all_player_ratings|maximum }}</td>
