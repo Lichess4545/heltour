@@ -147,7 +147,7 @@ def flatten(lst):
 def make_league(playerdata, boards, balance):
     players = []
     for player in playerdata:
-        if player['has_20_games'] and player['in_slack']:
+        if player['in_slack']:
             players.append(Player.player_from_json(player))
         else:
             pass
