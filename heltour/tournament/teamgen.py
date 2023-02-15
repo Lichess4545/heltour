@@ -3,7 +3,6 @@ import re
 import math
 from heltour.tournament.team_rating_utils import variance, \
     team_rating_variance, team_rating_range
-
 from itertools import combinations
 from functools import partial
 from multiprocessing import Pool
@@ -19,13 +18,14 @@ class Player:
     board = None
     req_met = False
 
-    def __init__(self, name, rating, friends, avoid, date, alt, previous_season_alt):
+    def __init__(self, name, rating, friends, avoid, date, alt, altfine, previous_season_alt):
         self.name = name
         self.rating = rating
         self.friends = friends
         self.avoid = avoid
         self.date = date
         self.alt = alt
+        self.altfine = altfine
         self.previous_season_alt = previous_season_alt
 
     @classmethod
@@ -37,6 +37,7 @@ class Player:
             player['avoid'],
             player['date_created'],
             player['prefers_alt'],
+            player['alt_fine'],
             player.get('previous_season_alternate', False)
         )
 
@@ -167,7 +168,7 @@ def make_league(playerdata, boards, balance):
 
     # separate latest joining players into alternate lists as required
     for n, board in enumerate(players_split):
-        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, player.date))
+        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, 0 if not player.altfine else 1, player.date))
         alternates.extend(board[num_teams:])
         del board[num_teams:]
         board.sort(key=lambda player: player.rating, reverse=True)

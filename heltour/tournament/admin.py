@@ -1167,6 +1167,7 @@ class SeasonAdmin(_BaseAdmin):
         # Player highlights
         red_players = set()
         blue_players = set()
+        green_players = set()
         purple_players = set()
         for sp in season_player_objs:
             reg = sp.registration
@@ -1180,6 +1181,8 @@ class SeasonAdmin(_BaseAdmin):
                 red_players.add(sp.player)
             if reg is not None and reg.alternate_preference == 'alternate':
                 blue_players.add(sp.player)
+            if reg is not None and reg.alternate_preference == 'either':
+                green_players.add(sp.player)
             if sp.player in old_alternates:
                 purple_players.add(sp.player)
 
@@ -1204,6 +1207,7 @@ class SeasonAdmin(_BaseAdmin):
             'board_count': season.boards,
             'red_players': red_players,
             'blue_players': blue_players,
+            'green_players': green_players,
             'purple_players': purple_players,
             'expected_ratings': expected_ratings,
         }

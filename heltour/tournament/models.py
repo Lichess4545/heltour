@@ -251,6 +251,7 @@ class Season(_BaseModel):
                 'friends': None,
                 'avoid': None,
                 'prefers_alt': False,
+                'alt_fine': False,
                 'previous_season_alternate': sp.player in last_season_alts
             }
             reg = sp.registration
@@ -261,6 +262,7 @@ class Season(_BaseModel):
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
+                    'alt_fine': reg.alternate_preference == 'either'
                 })
             return info
 
@@ -1739,6 +1741,7 @@ PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
 ALTERNATE_PREFERENCE_OPTIONS = (
     ('alternate', 'Alternate'),
     ('full_time', 'Full Time'),
+    ('either', "Either is fine for me.")
 )
 
 
