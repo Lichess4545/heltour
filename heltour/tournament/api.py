@@ -573,13 +573,13 @@ def get_season_games(request):
             game_id = get_gameid_from_gamelink(p.game_link)
             r = p.get_round()
             g = {
-               'league': s.league.name,
-               'season': s.name,
-               'round': r.number if r else None,
-               'game_id': game_id if game_id else None,
-               'white': p.white.lichess_username if p.white else None,
-               'black': p.black.lichess_username if p.black else None,
-               'result': p.result
+                'league': s.league.name,
+                'season': s.name,
+                'round': r.number if r else None,
+                'game_id': game_id if game_id else None,
+                'white': p.white.lichess_username if p.white else None,
+                'black': p.black.lichess_username if p.black else None,
+                'result': p.result
             }
             if hasattr(p, 'teamplayerpairing'):
                 g.update({
