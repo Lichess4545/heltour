@@ -72,7 +72,7 @@
                     {% for board_number, board in team.boards %}
                         <td data-board="{{ board_number }}">
                             {% if board %}
-                            <span class="player{% if board.player in red_players %} player-red{% elif board.player in blue_players %} player-blue{% elif board.player in green_players %} player-green{% elif board.player in purple_players %} player-purple{% endif %}"
+                                <span class="player{% if board.player in red_players %} player-red{% elif board.player in blue_players %} player-blue{% elif board.player in green_players %} player-green{% elif board.player in purple_players %} player-purple{% endif %}"
                                       data-url="{% leagueurl 'player_profile' original.league.tag original.tag board.player.lichess_username %}"
                                       data-info-url="{% url 'admin:edit_rosters_player_info' original.pk board.player.lichess_username %}"
                                       data-rating="{% player_rating board.player %}"

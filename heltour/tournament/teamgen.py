@@ -3,6 +3,7 @@ import re
 import math
 from heltour.tournament.team_rating_utils import variance, \
     team_rating_variance, team_rating_range
+
 from itertools import combinations
 from functools import partial
 from multiprocessing import Pool
