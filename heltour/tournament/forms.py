@@ -20,7 +20,7 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'email', 'classical_rating',
+            'email', #'classical_rating',
             'has_played_20_games', 'already_in_slack_group',
             'previous_season_alternate',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
@@ -43,8 +43,8 @@ class RegistrationForm(forms.ModelForm):
 
         # Rating fields
         rating_type = league.get_rating_type_display()
-        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
-            'Your Lichess %s Rating' % rating_type))
+#        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
+#            'Your Lichess %s Rating' % rating_type))
 
         help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
         
