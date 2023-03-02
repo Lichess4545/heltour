@@ -751,7 +751,6 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 player = Player.get_or_create(self.request.user.username)
                 form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
                 form.fields['email'].initial = player.email
-                form.fields['classical_rating'].initial = player.rating_for(reg_season.league)
                 form.fields['has_played_20_games'].initial = not player.provisional_for(
                     reg_season.league)
                 form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
