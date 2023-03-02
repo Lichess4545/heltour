@@ -52,16 +52,6 @@
             {% endif %}
 
             <div class="form-row">
-                <label>Classical rating:</label>
-                {{ original.classical_rating }}
-            </div>
-
-            <div class="form-row">
-                <label>Peak classical rating:</label>
-                {{ original.peak_classical_rating }}
-            </div>
-
-            <div class="form-row">
                 <label>Has established rating:</label>
                 <span class="{% if not original.has_played_20_games %}text-rejected{% endif %}">{{ original.has_played_20_games|yesno:'Yes,No' }}</span>
             </div>
