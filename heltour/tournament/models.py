@@ -262,7 +262,7 @@ class Season(_BaseModel):
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
-                    'alt_fine': reg.alternate_preference == 'either'
+                    'alt_fine': reg.alternate_preference == 'either',
                 })
             return info
 
