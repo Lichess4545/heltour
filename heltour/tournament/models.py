@@ -1741,7 +1741,7 @@ PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
 ALTERNATE_PREFERENCE_OPTIONS = (
     ('alternate', 'Alternate'),
     ('full_time', 'Full Time'),
-    ('either', "Either is fine for me.")
+    ('either', "Either is fine for me."),
 )
 
 
