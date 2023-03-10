@@ -1,0 +1,1 @@
+Registration Rejected - {{ reg.season.league.name }}

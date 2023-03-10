@@ -1,0 +1,9 @@
+{% load tournament_extras %}Hi {{ reg.lichess_username }}!
+
+Unfortunately your registration for {{ reg.season.name }} has been rejected.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Regards,
+The {{ reg.season.league.name }} Mods
+
