@@ -1814,7 +1814,6 @@ class Registration(_BaseModel):
     email = models.EmailField(max_length=255)
 
     has_played_20_games = models.BooleanField()
-    already_in_slack_group = models.BooleanField()
     previous_season_alternate = models.CharField(blank=True, max_length=255,
                                                  choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
 
