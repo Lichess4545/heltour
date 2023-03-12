@@ -237,7 +237,6 @@ class Season(_BaseModel):
         return {alt.season_player.player for alt in last_season_alts}
 
     def export_players(self):
-        last_season_alts = self.last_season_alternates()
 
         def extract(sp):
             info = {
@@ -1726,15 +1725,6 @@ REGISTRATION_STATUS_OPTIONS = (
     ('rejected', 'Rejected'),
 )
 
-PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
-    ('alternate', 'Yes, I was an alternate at the end of the last season.'),
-    ('alternate_to_full_time',
-     'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'),
-    ('full_time', 'No, I was not an alternate for the last season. I played the season.'),
-    ('new',
-     'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
-)
-
 ALTERNATE_PREFERENCE_OPTIONS = (
     ('alternate', 'Alternate'),
     ('full_time', 'Full Time'),
@@ -1754,9 +1744,6 @@ class Registration(_BaseModel):
     email = models.EmailField(max_length=255)
 
     has_played_20_games = models.BooleanField()
-    previous_season_alternate = models.CharField(blank=True, max_length=255,
-                                                 choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
-
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     avoid = models.CharField(blank=True, max_length=1023)
