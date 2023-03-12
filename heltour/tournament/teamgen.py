@@ -90,9 +90,7 @@ class Team:
             new_player.team.boards[board] = None
         new_player.team = self
 
-    def get_mean(self, expected_rating=False):
-        # expected_rating is an unused parameter in this version.
-        # it is used by the tournament.models.Team.get_mean method.
+    def get_mean(self):
         ratings = [board.rating for board in self.boards]
         mean = sum(ratings) / len(ratings)
         return mean

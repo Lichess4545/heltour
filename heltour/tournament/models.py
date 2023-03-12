@@ -270,7 +270,6 @@ class Season(_BaseModel):
             if reg is not None:
                 info.update({
                     'date_created': reg.date_created.isoformat(),
-                    'peak_classical_rating': reg.peak_classical_rating,
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
@@ -1143,22 +1142,19 @@ class Team(_BaseModel):
         return [(n, find(team_members, board_number=n)) for n in
                 Season.objects.get(pk=self.season_id).board_number_list()]
 
-    def average_rating(self, expected_rating=False):
+    def average_rating(self):
         n = 0
         total = 0.0
         for _, board in self.boards():
             if board is not None:
-                if expected_rating:
-                    rating = board.expected_rating()
-                else:
-                    rating = board.player.rating_for(self.season.league)
+                rating = board.player.rating_for(self.season.league)
                 if rating is not None:
                     n += 1
                     total += rating
         return total / n if n > 0 else None
 
-    def get_mean(self, expected_rating=False):
-        return self.average_rating(expected_rating)
+    def get_mean(self):
+        return self.average_rating()
 
     def captain(self):
         return self.teammember_set.filter(is_captain=True).first()
@@ -1938,15 +1934,6 @@ class SeasonPlayer(_BaseModel):
             self._set_unavailable_for_season()
 
         super(SeasonPlayer, self).save(*args, **kwargs)
-
-    def expected_rating(self, league=None):
-        rating = self.player.rating_for(league)
-        if rating is None:
-            return None
-        if self.registration is not None:
-            peak = max(self.registration.peak_classical_rating or 0, rating)
-            return (rating + peak) / 2
-        return rating
 
     def seed_rating_display(self, league=None):
         if self.seed_rating is not None:
