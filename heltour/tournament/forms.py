@@ -22,7 +22,6 @@ class RegistrationForm(forms.ModelForm):
         fields = (
             'email',
             'has_played_20_games',
-            'previous_season_alternate',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
@@ -58,16 +57,6 @@ class RegistrationForm(forms.ModelForm):
                                                                         'Is your %s rating established (not provisional)?' % rating_type.lower()),
                                                                     help_text=_(
                                                                         help_text_provisional), )
-
-        # Previous season status
-        if league.competitor_type == 'team':
-            self.fields['previous_season_alternate'] = forms.ChoiceField(required=True,
-                                                                         choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS,
-                                                                         widget=forms.RadioSelect,
-                                                                         label=_(
-                                                                             'Were you an alternate for the previous season?'))
-        else:
-            del self.fields['previous_season_alternate']
 
         # Can commit
         time_control = league.time_control

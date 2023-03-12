@@ -61,13 +61,6 @@
                 {{ original.already_in_slack_group|yesno:'Yes,No' }}
             </div>
 
-            {% if is_team %}
-                <div class="form-row">
-                    <label>Previous season alternate:</label>
-                    {{ original.get_previous_season_alternate_display }}
-                </div>
-            {% endif %}
-
             <div class="form-row">
                 <label>Can commit to 1 long game per week:</label>
                 <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
