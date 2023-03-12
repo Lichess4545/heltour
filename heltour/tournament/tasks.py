@@ -454,8 +454,6 @@ def validate_registration(reg_id):
         if player.account_status != 'normal':
             fail_reason = 'The lichess user "%s" has the "%s" mark.' % (
                 reg.lichess_username, player.account_status)
-        if reg.already_in_slack_group and not player.slack_user_id:
-            reg.already_in_slack_group = False
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 
