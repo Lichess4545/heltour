@@ -24,7 +24,6 @@
         </p>
         <h2>Actions</h2>
         <p>
-            Show: {{ form.rating_type }}
             {% if not season_started %}
                 <a class="button" href="{% url 'admin:create_teams' original.pk %}">(re)Build teams</a>
             {% endif %}
