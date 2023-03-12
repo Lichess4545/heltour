@@ -21,7 +21,7 @@ class RegistrationForm(forms.ModelForm):
         model = Registration
         fields = (
             'email',
-            'has_played_20_games', 'already_in_slack_group',
+            'has_played_20_games',
             'previous_season_alternate',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
@@ -58,12 +58,6 @@ class RegistrationForm(forms.ModelForm):
                                                                         'Is your %s rating established (not provisional)?' % rating_type.lower()),
                                                                     help_text=_(
                                                                         help_text_provisional), )
-
-        # In slack
-        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
-            'Are you in our Slack group?'), choices=YES_NO_OPTIONS,
-                                                                       widget=forms.RadioSelect,
-                                                                       coerce=lambda x: x == 'True')
 
         # Previous season status
         if league.competitor_type == 'team':
