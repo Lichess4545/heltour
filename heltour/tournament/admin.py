@@ -2115,7 +2115,6 @@ class RegistrationAdmin(_BaseAdmin):
                         reg.status_changed_date = timezone.now()
                         reg.save()
 
-
                     self.message_user(request,
                                       'Registration for "%s" rejected.' % reg.lichess_username,
                                       messages.INFO)
