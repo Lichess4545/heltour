@@ -1,9 +1,11 @@
-{% load tournament_extras %}Hi {{ reg.lichess_username }}!
+{% load tournament_extras %}Dear {{ reg.lichess_username }},
 
-Unfortunately your registration for {{ reg.season.name }} has been rejected.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+We regret to inform you that your registration for the Lichess4545 League has been found to be ineligible under our current rules:
+https://www.lichess4545.com/team4545/document/terms-of-service/#eligibility.
+Unfortunately we cannot provide any further details, but we nevertheless appreciate your interest in the league, and encourage you to look into other similar leagues such as
+FICS Team League http://www.teamleague.org/
+Team 4545 League http://www.team4545league.org/
+or the leagues run by Chess Dojo https://www.chess.com/club/chessdojo].
 
 Regards,
 The {{ reg.season.league.name }} Mods
-
