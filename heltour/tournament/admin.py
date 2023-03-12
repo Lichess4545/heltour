@@ -1915,8 +1915,7 @@ class RegistrationAdmin(_BaseAdmin):
     def get_list_display(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ['review', 'email', 'status', 'valid', 'season', 'section',
-             'date_created']
+            ['review', 'email', 'status', 'valid', 'season', 'section', 'date_created']
         )
 
     def get_fields(self, request, obj=None):
