@@ -753,7 +753,6 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 form.fields['email'].initial = player.email
                 form.fields['has_played_20_games'].initial = not player.provisional_for(
                     reg_season.league)
-                form.fields['already_in_slack_group'].initial = player.slack_user_id != ''
 
             context = {
                 'form': form,
