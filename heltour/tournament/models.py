@@ -1834,6 +1834,9 @@ class Registration(_BaseModel):
     def player(self):
         return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
 
+    def rating(self):
+        return self.player().rating
+
     @classmethod
     def can_register(cls, user, season):
         if not season or not season.registration_open:
