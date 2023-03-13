@@ -41,7 +41,6 @@ class Command(BaseCommand):
             r.validation_warning = False
             r.friends = ''
             r.avoid = ''
-            r.slack_username = ''
             r.save()
         LeagueModerator.objects.all().delete()
         Comment.objects.all().delete()

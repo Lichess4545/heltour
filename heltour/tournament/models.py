@@ -1801,7 +1801,6 @@ class Registration(_BaseModel):
     status_changed_date = models.DateTimeField(blank=True, null=True)
 
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
-    slack_username = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=255)
     
     has_played_20_games = models.BooleanField()
