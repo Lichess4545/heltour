@@ -238,6 +238,7 @@ class Season(_BaseModel):
         return {alt.season_player.player for alt in last_season_alts}
 
     def export_players(self):
+        last_season_alts = self.last_season_alternates()
 
         def extract(sp):
             info = {
@@ -250,6 +251,7 @@ class Season(_BaseModel):
                 'friends': None,
                 'avoid': None,
                 'prefers_alt': False,
+                'previous_season_alternate': sp.player in last_season_alts
             }
             reg = sp.registration
             if reg is not None:
@@ -1737,7 +1739,7 @@ class Registration(_BaseModel):
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     slack_username = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=255)
-
+    
     has_played_20_games = models.BooleanField()
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
