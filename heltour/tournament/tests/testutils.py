@@ -9,10 +9,8 @@ def set_rating(player, rating, rating_type='classical'):
 
 def create_reg(season, name):
     return Registration.objects.create(season=season, status='pending', lichess_username=name,
-                                       email='a@test.com', classical_rating=1500,
-                                       peak_classical_rating=1600,
-                                       has_played_20_games=True, already_in_slack_group=True,
-                                       previous_season_alternate='new',
+                                       email='a@test.com',
+                                       has_played_20_games=True,
                                        can_commit=True, agreed_to_rules=True,
                                        agreed_to_tos=True,
                                        alternate_preference='full_time')
