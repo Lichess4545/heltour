@@ -15,12 +15,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='registration',
             name='classical_rating',
-            field=models.PositiveIntegerField(verbose_name='rating'),
+            field=models.PositiveIntegerField(verbose_name='rating', default=0),
         ),
         migrations.AlterField(
             model_name='registration',
             name='peak_classical_rating',
-            field=models.PositiveIntegerField(blank=True, null=True, verbose_name='peak rating'),
+            field=models.PositiveIntegerField(blank=True, null=True, verbose_name='peak rating', default=0),
         ),
         migrations.AlterField(
             model_name='section',
