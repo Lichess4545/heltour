@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'impersonate.middleware.ImpersonateMiddleware',
+    'heltour.tournament.middlewares.RejectNullMiddleware',
 ]
 
 ROOT_URLCONF = 'heltour.urls'

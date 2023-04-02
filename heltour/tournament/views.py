@@ -2146,8 +2146,11 @@ class ToggleDarkModeView(BaseView):
         self.request.session['dark_mode'] = not original_value
 
         redirect_url = self.request.GET.get('redirect_url')
-        if redirect_url and is_safe_url(redirect_url, settings.ALLOWED_HOSTS):
-            return redirect(redirect_url)
+        try:
+            if redirect_url and is_safe_url(redirect_url, settings.ALLOWED_HOSTS):
+                return redirect(redirect_url)
+        except:
+            pass
         return redirect('home')
 
 
