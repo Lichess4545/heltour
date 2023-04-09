@@ -22,7 +22,7 @@ def _get_lichess_api_token():
 
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
                          retry_count=0):
-    url = "https://lichess.org/%s" % path
+    url = settings.LICHESS_DOMAIN  + path
     token = _get_lichess_api_token()
 
     logger.info('API call: %s' % url)
