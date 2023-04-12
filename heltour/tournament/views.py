@@ -165,7 +165,7 @@ class ICalMixin:
                 game_duration = timedelta(hours=3)
 
             ical_event = Event()
-            if self.league.is_team_league():
+            if has_league and league.is_team_league():
                 ical_event.add('summary', '{} ({}) vs {} ({})'.format(
                     pairing.white.lichess_username,
                     pairing.white_team_name(),
