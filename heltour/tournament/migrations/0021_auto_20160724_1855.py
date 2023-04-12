@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='registration',
             name='already_in_slack_group',
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(),
         ),
         migrations.AlterField(
             model_name='registration',
