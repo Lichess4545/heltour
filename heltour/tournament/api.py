@@ -571,22 +571,22 @@ def get_season_games(request):
                                            'teamplayerpairing__team_pairing__white_team',
                                            'teamplayerpairing__team_pairing__black_team'):
             game_id = get_gameid_from_gamelink(p.game_link)
-            r = p.get_round()
-            g = {
-                'league': s.league.name,
-                'season': s.name,
-                'round': r.number if r else None,
-                'game_id': game_id if game_id else None,
-                'white': p.white.lichess_username if p.white else None,
-                'black': p.black.lichess_username if p.black else None,
-                'result': p.result
-            }
-            if hasattr(p, 'teamplayerpairing'):
-                g.update({
-                    'white_team': p.teamplayerpairing.white_team().name,
-                    'black_team': p.teamplayerpairing.black_team().name
-                })
             if game_id or include_unplayed:
+                r = p.get_round()
+                g = {
+                    'league': s.league.name,
+                    'season': s.name,
+                    'round': r.number if r else None,
+                    'game_id': game_id if game_id else None,
+                    'white': p.white.lichess_username if p.white else None,
+                    'black': p.black.lichess_username if p.black else None,
+                    'result': p.result
+                }
+                if hasattr(p, 'teamplayerpairing'):
+                    g.update({
+                        'white_team': p.teamplayerpairing.white_team().name,
+                        'black_team': p.teamplayerpairing.black_team().name
+                    })
                 games.append(g)
 
     return JsonResponse({'games': games})
