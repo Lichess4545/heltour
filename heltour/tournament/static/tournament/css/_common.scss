@@ -211,12 +211,19 @@ table .team-link {
 }
 
 .download-games,
-.download-games img {
+.download-games img,
+.opening-book,
+.opening-book img {
     width: 10px;
 }
 
-.download-games img {
+.download-games img,
+.opening-book img {
     margin-top: -3px;
+}
+
+.opening-book:hover {
+    text-decoration: none;
 }
 
 .cell-win {

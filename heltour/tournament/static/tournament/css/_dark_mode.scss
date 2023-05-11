@@ -208,7 +208,8 @@ body.dark {
         background-color: $gray-800;
     }
 
-    .download-games img {
+    .download-games img,
+    .opening-book img {
         filter: invert(.8);
     }
 }
