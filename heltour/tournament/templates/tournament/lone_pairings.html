@@ -87,7 +87,7 @@
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white"
                                                target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.white.lichess_username }} (white)">
+                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for white ({{ pairing.white.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
@@ -96,7 +96,7 @@
                                             <a class="opening-book"
                                             href="https://lichess.org/analysis#explorer/{{ pairing.white.lichess_username }}"
                                             target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.white.lichess_username }} (white)">
+                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for white ({{ pairing.white.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
@@ -120,7 +120,7 @@
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black"
                                                target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.black.lichess_username }} (black)">
+                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for black ({{ pairing.black.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
@@ -129,7 +129,7 @@
                                             <a class="opening-book"
                                             href="https://lichess.org/analysis#explorer/{{ pairing.black.lichess_username }}"
                                             target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.black.lichess_username }} (black)">
+                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for black ({{ pairing.black.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
