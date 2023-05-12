@@ -82,7 +82,7 @@
                                 <tr{% if error %} class="row-error" title="{{ error }}"{% endif %}>
                                     <td class="text-center hidden-xs">{{ pairing.pairing_order }}</td>
                                     <td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.white %}
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white"
@@ -91,7 +91,7 @@
                                             </a>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.white %}
                                             <a class="opening-book"
                                             href="https://lichess.org/analysis#explorer/{{ pairing.white.lichess_username }}"
@@ -115,7 +115,7 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.black %}
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black"
@@ -124,7 +124,7 @@
                                             </a>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.black %}
                                             <a class="opening-book"
                                             href="https://lichess.org/analysis#explorer/{{ pairing.black.lichess_username }}"
@@ -179,14 +179,14 @@
                                     <td class="hidden-xs"></td>
                                     <td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
                                     
-                                    <td>
+                                    <td class="text-center">
                                         <a class="download-games"
                                             href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}"
                                             target="_blank" rel="nofollow">
                                             <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ bye.player.lichess_username }}">
                                         </a>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <a class="opening-book"
                                         href="https://lichess.org/analysis#explorer/{{ bye.player.lichess_username }}"
                                         target="_blank" rel="nofollow">

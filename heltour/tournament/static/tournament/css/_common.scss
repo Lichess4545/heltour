@@ -760,6 +760,11 @@ table .team-link {
     width: 16px;
 }
 
+#table-lone-pairings tr > td:nth-child(4) img,
+#table-lone-pairings tr > td:nth-child(8) img{
+    padding-top: 7px;
+}
+
 #table-lone-pairings img {
     vertical-align: top;
     padding-top: 3px;
