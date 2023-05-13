@@ -22,10 +22,10 @@
                 <div class="well-body">
                     {% if teams %}
                         <div class="table-responsive">
-                            <table class="table table-striped table-condensed-sm" id="table-rosters">
+                            <table class="table table-striped table-condensed-sm sortable" id="table-rosters">
                                 <thead>
                                 <tr>
-                                    <th class="cell-team" colspan="3">Team</th>
+                                    <th class="cell-team sort" colspan="3">Team</th>
                                     {% for board_number in board_numbers %}
                                         <th class="cell-player" colspan="2">
                                             <a class="board-link"
@@ -33,9 +33,9 @@
                                                 Board {{ board_number }}
                                             </a>
                                         </th>
-                                        <th class="cell-rating">Rtg</th>
+                                        <th class="cell-rating sort">Rtg</th>
                                     {% endfor %}
-                                    <th class="cell-average-rating">Average</th>
+                                    <th class="cell-average-rating sort">Average</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -66,12 +66,14 @@
                                     </tr>
                                 {% endfor %}
                                 </tbody>
+                            </table>
+                            <table class="table table-striped table-condensed-sm sortable" id="table-rosters">
                                 <thead>
                                 <tr>
                                     <th class="cell-alternates" colspan="3">Alternates</th>
                                     {% for board_number in board_numbers %}
                                         <th class="cell-player" colspan="2">Board {{ board_number }}</th>
-                                        <th class="cell-rating">Rtg</th>
+                                        <th class="cell-rating sort">Rtg</th>
                                     {% endfor %}
                                     <th>&nbsp;</th>
                                 </tr>
@@ -147,4 +149,5 @@
             </div>
         </div>
     </div>
+    <script type="text/javascript" src="{% static 'lib/js/sort-tables.js' %}"></script>
 {% endblock %}
