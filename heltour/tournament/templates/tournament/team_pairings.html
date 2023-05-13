@@ -120,12 +120,12 @@
                                     <tr>
                                         <td class="pairing-player player-{{ pairing.white_team_color }}">
                                             {% if pairing.white_team_player %}
-                                                <a class="download-games"
-                                                href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}"
-                                                target="_blank" rel="nofollow">
+                                                <a class="download-games hidden-xs"
+                                                    href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}"
+                                                    target="_blank" rel="nofollow">
                                                     <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
                                                 </a>
-                                                <a class="opening-book"
+                                                <a class="opening-book hidden-xs"
                                                 href="https://lichess.org/analysis#explorer/{{ pairing.white_team_player.lichess_username }}"
                                                 target="_blank" rel="nofollow">
                                                     <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
@@ -178,12 +178,12 @@
                                                         <span class="captain"></span>{% endif %}
                                                 </a>
                                                 <span class="color-dot right"></span>
-                                                <a class="opening-book"
+                                                <a class="opening-book hidden-xs"
                                                 href="https://lichess.org/analysis#explorer/{{ pairing.black_team_player.lichess_username }}"
                                                 target="_blank" rel="nofollow">
                                                     <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
                                                 </a>
-                                                <a class="download-games"
+                                                <a class="download-games hidden-xs"
                                                    href="https://lichess.org/api/games/user/{{ pairing.black_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.black_team_color }}"
                                                    target="_blank" rel="nofollow">
                                                     <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
