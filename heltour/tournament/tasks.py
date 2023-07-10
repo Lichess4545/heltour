@@ -197,11 +197,16 @@ def _find_closest_rating(player, date, season):
         # Get the rating AFTER the game
         p = pairings_by_date_lt[-1][1]
         if p.game_id() is not None:
-            game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
-            player_meta = game_meta['players']['white'] if p.white == player else \
-                game_meta['players']['black']
-            if 'ratingDiff' in player_meta:
-                return player_meta['rating'] + player_meta['ratingDiff']
+            try:
+                game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
+            except Exception as e:
+                logger.warning(f'[ERROR] Error fetching game {p.game_id()}')
+                return None
+            else:
+                player_meta = game_meta['players']['white'] if p.white == player else \
+                    game_meta['players']['black']
+                if 'ratingDiff' in player_meta:
+                    return player_meta['rating'] + player_meta['ratingDiff']
         return rating(p)
     else:
         return rating(pairings_by_date_gt[0][1])
