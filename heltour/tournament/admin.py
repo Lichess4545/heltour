@@ -2118,6 +2118,22 @@ class RegistrationAdmin(_BaseAdmin):
                     self.message_user(request,
                                       'Registration for "%s" rejected.' % reg.lichess_username,
                                       messages.INFO)
+                    try:
+                        send_mail(
+                            render_to_string('tournament/emails/registration_rejected_subject.txt',
+                                             {'reg': reg}),
+                            render_to_string('tournament/emails/registration_rejected.txt',
+                                             {'reg': reg}),
+                            settings.DEFAULT_FROM_EMAIL,
+                            [reg.email],
+                            html_message=render_to_string('tournament/emails/registration_rejected.html',
+                                                          {'reg': reg})
+                        )
+                        self.message_user(request, 'Rejection email sent to "%s".' % reg.email,
+                                          messages.INFO)
+                    except SMTPException:
+                        logger.exception('A rejection email could not be sent.')
+
                     return redirect_with_params('admin:tournament_registration_changelist',
                                                 params='?' + changelist_filters)
                 else:
