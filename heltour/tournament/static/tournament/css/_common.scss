@@ -144,6 +144,9 @@ table .team-link {
 .player-profile-row .well-body {
     overflow: auto;
 }
+.player-profile-row .profile-links {
+    margin: 3px 0px;
+}
 
 .player-profile-section {
     margin-bottom: 10px;
@@ -210,13 +213,33 @@ table .team-link {
     max-width: 800px;
 }
 
+.opening-book {
+    margin: 0px 3px;
+}
+
+tr > td.pairing-player:nth-of-type(1) > .download-games {
+    margin-right: 3px;
+}
+
+tr > td.pairing-player:nth-of-type(3) .download-games {
+    margin-left: 3px;
+}
+
+
 .download-games,
-.download-games img {
+.download-games img,
+.opening-book,
+.opening-book img {
     width: 10px;
 }
 
-.download-games img {
+.download-games img,
+.opening-book img {
     margin-top: -3px;
+}
+
+.opening-book:hover {
+    text-decoration: none;
 }
 
 .cell-win {
@@ -738,17 +761,24 @@ table .team-link {
 }
 
 #table-lone-pairings tr > td:nth-child(2),
-#table-lone-pairings tr > td:nth-child(5) {
+#table-lone-pairings tr > td:nth-child(6) {
     width: 30px;
 }
 
-#table-lone-pairings tr > td:nth-child(5) {
+#table-lone-pairings tr > td:nth-child(6) {
     margin-left: 10px;
 }
 
 #table-lone-pairings tr > td:nth-child(3),
-#table-lone-pairings tr > td:nth-child(6) {
+#table-lone-pairings tr > td:nth-child(4),
+#table-lone-pairings tr > td:nth-child(7),
+#table-lone-pairings tr > td:nth-child(8) {
     width: 16px;
+}
+
+#table-lone-pairings tr > td:nth-child(4) img,
+#table-lone-pairings tr > td:nth-child(8) img{
+    padding-top: 7px;
 }
 
 #table-lone-pairings img {

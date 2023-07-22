@@ -52,10 +52,12 @@
                             <tr>
                                 <th class="text-center hidden-xs">Bd</th>
                                 <th class="text-center hidden-xs">#</th>
-                                <th>DB</th>
+                                <th class="text-center">DB</th>
+                                <th class="text-center">OB</th>
                                 <th>WHITE</th>
                                 <th class="text-center hidden-xs">#</th>
-                                <th>DB</th>
+                                <th class="text-center">DB</th>
+                                <th class="text-center">OB</th>
                                 <th>BLACK</th>
                                 <th class="text-center hidden-xs">RESULT</th>
                                 <th class="text-center visible-xs">RS</th>
@@ -80,12 +82,21 @@
                                 <tr{% if error %} class="row-error" title="{{ error }}"{% endif %}>
                                     <td class="text-center hidden-xs">{{ pairing.pairing_order }}</td>
                                     <td class="text-center hidden-xs">{{ pairing.white_rank|default_if_none:'' }}</td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.white %}
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.white.lichess_username }}?perfType={{ league.rating_type }}&color=white"
                                                target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/download-icon.svg" %}">
+                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for white ({{ pairing.white.lichess_username }})">
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if pairing.white %}
+                                            <a class="opening-book"
+                                            href="https://lichess.org/analysis#explorer/{{ pairing.white.lichess_username }}"
+                                            target="_blank" rel="nofollow">
+                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for white ({{ pairing.white.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
@@ -104,12 +115,21 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-center hidden-xs">{{ pairing.black_rank|default_if_none:'' }}</td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if pairing.black %}
                                             <a class="download-games"
                                                href="https://lichess.org/api/games/user/{{ pairing.black.lichess_username }}?perfType={{ league.rating_type }}&color=black"
                                                target="_blank" rel="nofollow">
-                                                <img src="{% static "tournament/img/download-icon.svg" %}">
+                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for black ({{ pairing.black.lichess_username }})">
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if pairing.black %}
+                                            <a class="opening-book"
+                                            href="https://lichess.org/analysis#explorer/{{ pairing.black.lichess_username }}"
+                                            target="_blank" rel="nofollow">
+                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for black ({{ pairing.black.lichess_username }})">
                                             </a>
                                         {% endif %}
                                     </td>
@@ -158,11 +178,19 @@
                                 <tr{% if error %} class="row-error" title="{{ error }}"{% endif %}>
                                     <td class="hidden-xs"></td>
                                     <td class="text-center hidden-xs">{{ bye.player_rank|default_if_none:'' }}</td>
-                                    <td>
+                                    
+                                    <td class="text-center">
                                         <a class="download-games"
-                                           href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}"
-                                           target="_blank">
-                                            <img src="{% static "tournament/img/download-icon.svg" %}">
+                                            href="https://lichess.org/api/games/user/{{ bye.player.lichess_username }}?perfType={{ league.rating_type }}"
+                                            target="_blank" rel="nofollow">
+                                            <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ bye.player.lichess_username }}">
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        <a class="opening-book"
+                                        href="https://lichess.org/analysis#explorer/{{ bye.player.lichess_username }}"
+                                        target="_blank" rel="nofollow">
+                                            <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon">
                                         </a>
                                     </td>
                                     <td>
