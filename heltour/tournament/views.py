@@ -165,10 +165,19 @@ class ICalMixin:
                 game_duration = timedelta(hours=3)
 
             ical_event = Event()
-            ical_event.add('summary', '{} vs {}'.format(
-                pairing.white.lichess_username,
-                pairing.black.lichess_username,
-            ))
+            if has_league and league.is_team_league():
+                ical_event.add('summary', '{} ({}) vs {} ({})'.format(
+                    pairing.white.lichess_username,
+                    pairing.white_team_name(),
+                    pairing.black.lichess_username,
+                    pairing.black_team_name(),
+                ))
+            else:
+                ical_event.add('summary', '{} vs {}'.format(
+                    pairing.white.lichess_username,
+                    pairing.black.lichess_username,
+                ))
+
             ical_event.add('dtstart', pairing.scheduled_time)
             ical_event.add('dtend', pairing.scheduled_time + game_duration)
             ical_event.add('dtstamp', pairing.scheduled_time + game_duration)
