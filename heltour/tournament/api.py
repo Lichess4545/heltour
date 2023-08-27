@@ -577,7 +577,7 @@ def get_season_games(request):
                     'league': s.league.name,
                     'season': s.name,
                     'round': r.number if r else None,
-                    'game_id': game_id if game_id else None,
+                    'game_id': game_id,
                     'white': p.white.lichess_username if p.white else None,
                     'black': p.black.lichess_username if p.black else None,
                     'result': p.result
