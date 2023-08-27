@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 import reversion
 import textwrap
 import time
+import sys, traceback
 
 logger = get_task_logger(__name__)
 
@@ -199,14 +200,22 @@ def _find_closest_rating(player, date, season):
         if p.game_id() is not None:
             try:
                 game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
-            except Exception as e:
-                logger.warning(f'[ERROR] Error fetching game {p.game_id()}')
-                return None
-            else:
                 player_meta = game_meta['players']['white'] if p.white == player else \
                     game_meta['players']['black']
                 if 'ratingDiff' in player_meta:
                     return player_meta['rating'] + player_meta['ratingDiff']
+            except lichessapi.ApiClientError:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logger.error(f'[ERROR] ApiClient: Error fetching game {p.game_id()}')
+                stacktrace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                logger.error(stacktrace)
+                return None
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logger.error("[ERROR] General Exception: This should really be an ApiClientError.")
+                stacktrace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                logger.error(stacktrace)
+                return None
         return rating(p)
     else:
         return rating(pairings_by_date_gt[0][1])
