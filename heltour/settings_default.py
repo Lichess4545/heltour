@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 
 import os
 from datetime import timedelta
+from celery.schedules import crontab
 
 ADMINS = []
 
@@ -216,6 +217,12 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=1),
         'args': ()
     },
+    'start_games': {
+        'task': 'heltour.tournament.tasks.start_games',
+        'schedule': crontab(minute='*/5'), # run every 5 minutes
+        'args': ()
+    },
+
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),
