@@ -1436,7 +1436,12 @@ class PlayerPairing(_BaseModel):
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
+    #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
+    white_confirmed = models.BooleanField(default=False)
+    black_confirmed = models.BooleanField(default=False)
+
     colors_reversed = models.BooleanField(default=False)
+
     
     #We do not want to mark players as unresponsive if their opponents got assigned after round start
     date_player_changed = models.DateTimeField(blank=True, null=True)
@@ -1620,6 +1625,10 @@ class PlayerPairing(_BaseModel):
             
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
+
+            # We also want the players to confirm (again) if the scheduled time changes.
+            white_confirmed = False
+            black_confirmed = False
     
     def delete(self, *args, **kwargs):
         team_pairing = None
