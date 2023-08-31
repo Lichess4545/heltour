@@ -311,6 +311,53 @@ def update_slack_users():
             p.save()
 
 
+
+@app.task()
+def start_games():
+    logger.warning(f'Checking for games to start.')
+    games_to_start = PlayerPairing.objects.filter(result='', game_link='', \
+            scheduled_time__lt=timezone.now() + timedelta(days=150), \
+        scheduled_time__gt=timezone.now() + timedelta(minutes=5), \
+            white_confirmed=True, black_confirmed=True) \
+            .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
+    leagues = {}
+    token_dict = {}
+    for game in games_to_start:
+        if (hasattr(game, 'loneplayerpairing')):
+            gameleague = game.loneplayerpairing.round.season.league
+#            if not gameleague in leagues:
+#                leagues.append(gameleague)
+        if (hasattr(game, 'teamplayerpairing')):
+            gameleague = game.teamplayerpairing.team_pairing.round.season.league
+#            if not gameleague in leagues:
+#                leagues.append(gameleague)
+        if gameleague is not None:
+            leagues[gameleague.name] = gameleague
+            white_token = game.white.oauth_token.access_token
+            black_token = game.black.oauth_token.access_token
+            if (not (white_token is None or black_token is None) and (game.white.oauth_token.expires > (timezone.now() + timedelta(minutes=5)) and game.black.oauth_token.expires > (timezone.now() + timedelta(minutes=5)))):
+                if not gameleague.name in token_dict:
+                    token_dict[gameleague.name] = []
+                token_dict[gameleague.name].append(f'{white_token}:{black_token}')
+    for key in leagues:
+        clock = leagues[key].time_control_initial()
+        increment = leagues[key].time_control_increment()
+        variant = leagues[key].rating_type
+        if variant in ['classical', 'rapid', 'blitz', 'bullet']:
+            variant = 'standard'
+        # filter games_to_start to the current league
+        league_games = games_to_start.filter(loneplayerpairing__round__season__league=leagues[key]) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=leagues[key])
+        # get tokens per game
+        tokens = ','.join(token_dict[key])
+        clockstart = round(((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()+360)*1000) # now + 6 minutes in milliseconds
+        try:
+           result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=key)
+           logger.info(f'result for starting games: {result}') # TODO: remove this.
+        except lichessapi.ApiClientError as e:
+            logger.warning(f'[ERROR] Failed to start games for {key}')
+            # TODO: use results to set game ids.
+
+
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
 
