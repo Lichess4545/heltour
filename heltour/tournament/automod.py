@@ -155,6 +155,7 @@ def appeal_late_response_approved(instance, **kwargs):
 def automod_noshow(pairing, **kwargs):
     if pairing.game_link:
         # Game started, no action necessary
+        # TODO: once we use bulk-pairings to start games, just looking for a game_link won't be enough.
         return
     white_online = pairing.get_player_presence(pairing.white).online_for_game
     black_online = pairing.get_player_presence(pairing.black).online_for_game

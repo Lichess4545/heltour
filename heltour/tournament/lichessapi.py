@@ -169,6 +169,26 @@ def get_peak_rating(lichess_username, perf_type):
         return None
 
 
+def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, priority=0, max_retries=0, timeout=30):
+    # tokens, clock.limit, clock.increment, days, pairAt, startClocksAt, rated, variant, fen, message, rules
+    # tokens: white1:black1,white2:black2,...
+    # clock.limit: in seconds
+    # pairAt/startClocksAt: Unix timestamp in milliseconds
+    # message: has {opponent} and {game} placeholders.
+    # rules: noAbort,noRematch,noGiveTime,noClaimWin,noEarlyDraw
+    url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content=application/x-www-form-urlencoded'
+    post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=false&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}. Clocks will start in about 5 minutes.&rules=noClaimWin'
+    logger.warning(f'trying post {post}')
+    try:
+        result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
+        logger.warning(f'bulk start games result: {result}') # TODO: remove this
+        return json.loads(result)
+    except Exception:
+        logger.exception(f'Error starting games for {leaguename}')
+    # TODO actually handle errors, e.g. for expired tokens, closed accounts and so on. Will possibly need to do this in tasks.py.
+
+
+
 class ApiWorkerError(Exception):
     pass
 
