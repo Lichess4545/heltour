@@ -548,6 +548,7 @@ def get_season_games(request):
     # No API token required - this one is public
     league_tag = request.GET.get('league', None)
     season_tag = request.GET.get('season', None)
+    include_unplayed = request.GET.get('include_unplayed', False)
 
     if not league_tag:
         return HttpResponse('Bad request: league required', status=400)
@@ -570,7 +571,7 @@ def get_season_games(request):
                                            'teamplayerpairing__team_pairing__white_team',
                                            'teamplayerpairing__team_pairing__black_team'):
             game_id = get_gameid_from_gamelink(p.game_link)
-            if game_id:
+            if game_id or include_unplayed:
                 r = p.get_round()
                 g = {
                     'league': s.league.name,
