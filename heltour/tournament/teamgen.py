@@ -19,13 +19,14 @@ class Player:
     board = None
     req_met = False
 
-    def __init__(self, name, rating, friends, avoid, date, alt, previous_season_alt):
+    def __init__(self, name, rating, friends, avoid, date, alt, alt_fine, previous_season_alt):
         self.name = name
         self.rating = rating
         self.friends = friends
         self.avoid = avoid
         self.date = date
         self.alt = alt
+        self.alt_fine = alt_fine
         self.previous_season_alt = previous_season_alt
 
     @classmethod
@@ -37,6 +38,7 @@ class Player:
             player['avoid'],
             player['date_created'],
             player['prefers_alt'],
+            player['alt_fine'],
             player.get('previous_season_alternate', False)
         )
 
@@ -167,7 +169,7 @@ def make_league(playerdata, boards, balance):
 
     # separate latest joining players into alternate lists as required
     for n, board in enumerate(players_split):
-        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, player.date))
+        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, 0 if not player.alt_fine else 1, player.date))
         alternates.extend(board[num_teams:])
         del board[num_teams:]
         board.sort(key=lambda player: player.rating, reverse=True)
