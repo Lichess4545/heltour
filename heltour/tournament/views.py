@@ -1448,6 +1448,10 @@ class ContactView(LeagueView):
         leagues = [self.league] + list(
             League.objects.filter(is_active=True).order_by('display_order').exclude(
                 pk=self.league.pk))
+
+        player = Player.get_or_create(self.request.user.username)
+        slack_linked = bool(player.slack_user_id)
+
         if post:
             form = ContactForm(self.request.POST, leagues=leagues)
             if form.is_valid():
@@ -1472,9 +1476,11 @@ class ContactView(LeagueView):
                 return redirect(leagueurl('contact_success', league_tag=self.league.tag))
         else:
             form = ContactForm(leagues=leagues)
+            form.fields['your_lichess_username'].initial = player.lichess_username
 
         context = {
             'form': form,
+            'slack_linked': slack_linked,
         }
         return self.render('tournament/contact.html', context)
 
