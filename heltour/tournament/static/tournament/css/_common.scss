@@ -198,6 +198,22 @@ table .team-link {
     vertical-align: middle;
 }
 
+.table.sortable {
+    .sort {
+        cursor: pointer;
+        &.asc {
+            &::after {
+                content: "\25B2";
+            }
+        }
+        &.desc {
+            &::after {
+                content: "\25BC";
+            }
+        }
+    }
+}
+
 .cell-score a {
     display: block;
     width: 100%;
