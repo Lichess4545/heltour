@@ -481,6 +481,15 @@ def do_validate_registration(reg_id, **kwargs):
 
 
 @app.task()
+def validate_pending_registrations():
+    # we want to re-validate pending registrations if they are not marked valid already
+    regs_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending').exclude(Q(validation_warning=False) & Q(validation_ok=True))
+    logger.info(f'Validating {len(regs_to_validate)} player registrations')
+    for reg in regs_to_validate:
+        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg.pk)
+
+
+@app.task()
 def pairings_published(round_id, overwrite=False):
     round_ = Round.objects.get(pk=round_id)
     season = round_.season
