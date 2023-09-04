@@ -1443,7 +1443,7 @@ class DocumentView(LeagueView):
         return self.render('tournament/document.html', context)
 
 
-class ContactView(LeagueView):
+class ContactView(LoginRequiredMixin, LeagueView):
     def view(self, post=False):
         leagues = [self.league] + list(
             League.objects.filter(is_active=True).order_by('display_order').exclude(
