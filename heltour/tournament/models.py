@@ -184,6 +184,7 @@ class LeagueSetting(_BaseModel):
     carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
+    start_games = models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players')
 
     def __str__(self):
         return '%s Settings' % self.league
