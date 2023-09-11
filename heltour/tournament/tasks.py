@@ -279,7 +279,7 @@ def update_tv_state():
 @app.task()
 def update_lichess_presence():
     games_starting = PlayerPairing.objects.filter( \
-        result='', game_link='', \
+        result='', \
         scheduled_time__lt=timezone.now() + timedelta(minutes=5), \
         scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
         .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
