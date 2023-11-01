@@ -1,4 +1,5 @@
 import requests
+import re
 import time
 import json
 from django.core.cache import cache
@@ -181,9 +182,23 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
     try:
         result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
         return json.loads(result)
+    except ApiClientError as err:
+        e = str(err)
+        if "tokens" in e:
+            bad_token_search = re.search('"tokens":\{"[A-z0-9_]+"', e)
+            if bad_token_search is not None:
+                bad_token = e[(bad_token_search.start()+11):(bad_token_search.end()-1)]
+                logger.info(f'[INFO] Removing bad token: {bad_token}')
+                # remove bad token + the good token paired with it, remove potential superfluous comma
+                new_tokens = res.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
+                # if there are still tokens to be paired, retry.
+                if len(new_tokens) > 1:
+                    result = bulk_start_games(new_tokens, clock, increment, clockstart, variant, leaguename, priority, max_retries, timeout)
+                    return result
+        else:
+            logger.exception(f'Error starting games for {leaguenames}')
     except Exception:
         logger.exception(f'Error starting games for {leaguename}')
-    # TODO actually handle errors, e.g. for expired tokens, closed accounts and so on. Will possibly need to do this in tasks.py.
 
 
 
