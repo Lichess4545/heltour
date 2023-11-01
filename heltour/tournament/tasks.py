@@ -314,7 +314,7 @@ def update_slack_users():
 
 @app.task()
 def start_games():
-    logger.warning(f'Checking for games to start.')
+    logger.info(f'Checking for games to start.')
     games_to_start = PlayerPairing.objects.filter(result='', game_link='', \
             scheduled_time__lt=timezone.now() + timedelta(days=150), \
         scheduled_time__gt=timezone.now() + timedelta(minutes=5), \
@@ -352,7 +352,6 @@ def start_games():
         clockstart = round(((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()+360)*1000) # now + 6 minutes in milliseconds
         try:
            result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=key)
-           logger.info(f'result for starting games: {result}') # TODO: remove this.
         except lichessapi.ApiClientError as e:
             logger.warning(f'[ERROR] Failed to start games for {key}')
             # TODO: use results to set game ids.
