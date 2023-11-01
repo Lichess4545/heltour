@@ -314,10 +314,10 @@ def update_slack_users():
 
 @app.task()
 def start_games():
-    logger.info(f'Checking for games to start.')
+    logger.info('[START] Checking for games to start.')
     games_to_start = PlayerPairing.objects.filter(result='', game_link='', \
-            scheduled_time__lt=timezone.now() + timedelta(days=150), \
-        scheduled_time__gt=timezone.now() + timedelta(minutes=5), \
+            scheduled_time__lt=timezone.now() + timedelta(minutes=5, seconds=30), \
+        scheduled_time__gt=timezone.now() + timedelta(seconds=30), \
             white_confirmed=True, black_confirmed=True) \
             .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
     leagues = {}
@@ -325,13 +325,9 @@ def start_games():
     for game in games_to_start:
         if (hasattr(game, 'loneplayerpairing')):
             gameleague = game.loneplayerpairing.round.season.league
-#            if not gameleague in leagues:
-#                leagues.append(gameleague)
         if (hasattr(game, 'teamplayerpairing')):
             gameleague = game.teamplayerpairing.team_pairing.round.season.league
-#            if not gameleague in leagues:
-#                leagues.append(gameleague)
-        if gameleague is not None and gameleague.get_leaguesetting().game_start:
+        if gameleague is not None and gameleague.get_leaguesetting().start_games:
             leagues[gameleague.name] = gameleague
             white_token = game.white.oauth_token.access_token
             black_token = game.black.oauth_token.access_token
@@ -355,6 +351,7 @@ def start_games():
         except lichessapi.ApiClientError as e:
             logger.warning(f'[ERROR] Failed to start games for {key}')
             # TODO: use results to set game ids.
+    logger.info('[FINISHED] Done trying to start games.')
 
 
 # How late an event is allowed to run before it's discarded instead
