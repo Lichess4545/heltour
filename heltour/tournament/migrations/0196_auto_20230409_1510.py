@@ -20,4 +20,9 @@ class Migration(migrations.Migration):
             name='white_confirmed',
             field=models.BooleanField(default=False),
         ),
+        migrations.AddField(
+            model_name='leaguesetting',
+            name='start_games',
+            field=models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players'),
+        ),
     ]
