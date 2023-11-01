@@ -36,14 +36,16 @@
                                         </span>
                                 </td>
                                 <td>
-                                    <div class="well-body">
-                                       <form action="" method="post">
-                                            {% csrf_token %}
-                                            {% buttons %}
-                                            <button value="{{ round.number }}_{{ pairing }}" name="id" type="submit" class="btn btn-primary">{% if pairing.white == player and not pairing.white_confirmed %} Confirm {% elif pairing.black == player and not pairing.black_confirmed %} Confirm {% else %} Retract {% endif %}
-                                            </button>
-                                            {% endbuttons %}
-                                    </div>
+                                    {% if round.season.league.get_leaguesetting.start_games %}
+                                        <div class="well-body">
+                                           <form action="" method="post">
+                                               {% csrf_token %}
+                                               {% buttons %}
+                                                  <button value="{{ round.number }}_{{ pairing }}" name="id" type="submit" class="btn btn-primary">{% if pairing.white == player and not pairing.white_confirmed %} Confirm {% elif pairing.black == player and not pairing.black_confirmed %} Confirm {% else %} Retract {% endif %}
+                                                  </button>
+                                               {% endbuttons %}
+                                        </div>
+                                    {% endif %}
                                  </td>
                             </tr>
                         {% endfor %}
