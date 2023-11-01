@@ -331,7 +331,7 @@ def start_games():
             gameleague = game.teamplayerpairing.team_pairing.round.season.league
 #            if not gameleague in leagues:
 #                leagues.append(gameleague)
-        if gameleague is not None:
+        if gameleague is not None and gameleague.get_leaguesetting().game_start:
             leagues[gameleague.name] = gameleague
             white_token = game.white.oauth_token.access_token
             black_token = game.black.oauth_token.access_token
