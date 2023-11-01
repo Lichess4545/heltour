@@ -409,6 +409,7 @@ def start_games():
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
     logger.info('[FINISHED] Done trying to start games.')
 
+
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
 
