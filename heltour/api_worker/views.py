@@ -34,12 +34,8 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
             headers['Authorization'] = 'Bearer %s' % token
         if format:
             headers['Accept'] = format
-            logger.warning("format found")
         if content:
             headers['Content-Type'] = content
-            logger.warning(content)
-        else:
-            logger.warning("content not found.")
         if method == 'POST':
             r = requests.post(url, params=params, data=post_data, headers=headers)
         else:
@@ -91,7 +87,6 @@ def lichess_api_call(request, path):
     max_retries = int(params.pop('max_retries', 5))
     format = params.pop('format', None)
     content = params.pop('content', None)
-    logger.info(f"content: {content}")
     redis_key = get_random_string(length=16)
 
     # support either a form encoded body or a raw body
