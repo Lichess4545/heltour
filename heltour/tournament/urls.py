@@ -58,6 +58,8 @@ season_urlpatterns = [
     url(r'^nominate/delete/(?P<nomination_id>\w+)/$', views.DeleteNominationView.as_view(),
         name='delete_nomination'),
     url(r'^schedule/edit/$', views.ScheduleView.as_view(), name='edit_schedule'),
+    url(r'^confirm_scheduled_time$', views.ConfirmScheduledTimeView.as_view(),
+        name='confirm_scheduled_time'),
     url(r'^availability/edit/$', views.AvailabilityView.as_view(), name='edit_availability'),
     url(r'^board/(?P<board_number>[0-9]+)/scores/$', views.BoardScoresView.as_view(),
         name='board_scores'),
