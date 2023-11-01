@@ -178,10 +178,8 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
     # rules: noAbort,noRematch,noGiveTime,noClaimWin,noEarlyDraw
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content=application/x-www-form-urlencoded'
     post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=false&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}. Clocks will start in about 5 minutes.&rules=noClaimWin'
-    logger.warning(f'trying post {post}')
     try:
         result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
-        logger.warning(f'bulk start games result: {result}') # TODO: remove this
         return json.loads(result)
     except Exception:
         logger.exception(f'Error starting games for {leaguename}')
