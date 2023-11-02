@@ -111,9 +111,9 @@ def get_game_meta(gameid, priority=0, max_retries=5, timeout=1800):
     return json.loads(result)
 
 
-def get_latest_game_metas(lichess_username, number, priority=0, max_retries=5, timeout=1800):
-    url = '%s/lichessapi/api/games/user/%s?max=%s&ongoing=true&priority=%s&max_retries=%s&format=application/x-ndjson' % (
-        settings.API_WORKER_HOST, lichess_username, number, priority, max_retries)
+def get_latest_game_metas(lichess_username, since, number, opponent, priority=0, max_retries=5, timeout=1800):
+    url = '%s/lichessapi/api/games/user/%s?since=%s&max=%s&vs=%s&ongoing=true&priority=%s&max_retries=%s&format=application/x-ndjson' % (
+        settings.API_WORKER_HOST, lichess_username, since, number, opponent, priority, max_retries)
     result = _apicall_with_error_parsing(url, timeout)
     return [json.loads(g) for g in result.split('\n') if g.strip()]
 
