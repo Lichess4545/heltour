@@ -178,7 +178,7 @@ def bulk_start_games(*, tokens, clock, increment, do_clockstart, clockstart, clo
         post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}&rules=noClaimWin'
     result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
     return json.loads(result)
-    
+
 
 class ApiWorkerError(Exception):
     pass
