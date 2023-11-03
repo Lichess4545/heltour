@@ -228,14 +228,14 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(days=1),
         'args': ()
     },
-    'start_games': {
-        'task': 'heltour.tournament.tasks.start_games',
-        'schedule': crontab(minute='*/5'), # run every 5 minutes
-        'args': ()
-    },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),
+        'args': ()
+    },
+    'start_games': {
+        'task': 'heltour.tournament.tasks.start_games',
+        'schedule': crontab(minute='*/5'), # run every 5 minutes
         'args': ()
     },
 }
