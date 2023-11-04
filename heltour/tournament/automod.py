@@ -1,5 +1,6 @@
 from heltour import settings
 from heltour.tournament.models import *
+from heltour.tournament import lichessapi
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.tasks import pairings_published
@@ -156,15 +157,16 @@ def automod_noshow(pairing, **kwargs):
     if pairing.game_link and (not pairing.white_confirmed or not pairing.black_confirmed):
         # Game started, but not by us, so no action necessary
         return
-    if not pairing.result:
+    if pairing.result:
         # Game ended, no action necessary.
         return
-    if pairing.white_confirmed and pairing.black_confirmed:
+    if pairing.white_confirmed and pairing.black_confirmed and pairing.game_id() is not None:
         # We probably tried to start this game, check if there are moves
-        game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
+        game_meta = lichessapi.get_game_meta(pairing.game_id(), priority=0, timeout=300)
         if ' ' in game_meta['moves']:
             # space in the move lists indicates that both players played at least one move
             return
+    if pairing.white_confirmed and pairing.black_confirmed and pairing.game_id() is None:
     white_online = pairing.get_player_presence(pairing.white).online_for_game
     black_online = pairing.get_player_presence(pairing.black).online_for_game
     if white_online and not black_online:
