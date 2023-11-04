@@ -180,7 +180,6 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content=application/x-www-form-urlencoded'
     post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}. Clocks will start in about 5 minutes.&rules=noClaimWin'
     try:
-        logger.info(f'[INFO] trying tokens: {tokens}')
         result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
         return json.loads(result)
     except ApiClientError as err:
@@ -192,7 +191,6 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
                 logger.info(f'[INFO] Removing bad token: {bad_token}')
                 # remove bad token + the good token paired with it, remove potential superfluous comma
                 new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
-                logger.info(f'[INFO] new tokens: {new_tokens}')
                 # if there are still tokens to be paired, retry.
                 if len(new_tokens) > 1:
                     result = bulk_start_games(new_tokens, clock, increment, clockstart, variant, leaguename, priority, max_retries, timeout)
