@@ -348,6 +348,16 @@ def start_games():
         clockstart = round(((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()+360)*1000) # now + 6 minutes in milliseconds
         try:
            result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=key)
+           try:
+               for game in league_games:
+                   for gameids in result['games']:
+                       if gameids['white'] == game.white.lichess_username.lower() and \
+                          gameids['black'] == game.black.lichess_username.lower():
+                              game.game_link = get_gamelink_from_gameid(gameids['id'])
+                              game.save()
+           except Exception as e:
+               # Not certain which exception to look out for here, in other places we simply assume that we will get a correctly formatted json response. maybe the try block is not necessary.
+               logger.exception(f'[ERROR] Failed to parse bulk pairing response with error {e}')
         except lichessapi.ApiClientError as e:
             logger.warning(f'[ERROR] Failed to start games for {key}')
             # TODO: use results to set game ids.
