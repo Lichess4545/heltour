@@ -167,8 +167,8 @@ def automod_noshow(pairing, **kwargs):
             # space in the move lists indicates that both players played at least one move
             return
     if pairing.white_confirmed and pairing.black_confirmed and pairing.game_id() is None:
-    white_online = pairing.get_player_presence(pairing.white).online_for_game
-    black_online = pairing.get_player_presence(pairing.black).online_for_game
+        white_online = pairing.get_player_presence(pairing.white).online_for_game
+        black_online = pairing.get_player_presence(pairing.black).online_for_game
     if white_online and not black_online:
         player_noshow(pairing, pairing.white, pairing.black)
     if black_online and not white_online:
