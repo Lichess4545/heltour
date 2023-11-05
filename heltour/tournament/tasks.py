@@ -357,6 +357,8 @@ def start_games():
                               game.save()
            except KeyError:
                logger.exception(f'[ERROR] For league {key}, unexpected bulk pairing json response with error {e}')
+           except TypeError: # if all tokens are rejected by lichess, result['games'] might be None, resulting in a TypeError.
+              pass
         except lichessapi.ApiClientError as e:
             logger.warning(f'[ERROR] ApiClient failed to start games for {key}')
     logger.info('[FINISHED] Done trying to start games.')
