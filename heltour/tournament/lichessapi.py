@@ -183,20 +183,19 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
         result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
         return json.loads(result)
     except ApiClientError as err:
-        e = str(err)
-        if "tokens" in e:
-            bad_token_search = re.search('"tokens":\{"[A-z0-9_]+"', e)
-            if bad_token_search is not None:
-                bad_token = e[(bad_token_search.start()+11):(bad_token_search.end()-1)]
+        e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
+        try:
+            result = json.loads(e)
+            for bad_token in result["tokens"]:
                 logger.info(f'[INFO] Removing bad token: {bad_token}')
                 # remove bad token + the good token paired with it, remove potential superfluous comma
                 new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
+            if len(new_tokens) > 1:
                 # if there are still tokens to be paired, retry.
-                if len(new_tokens) > 1:
-                    result = bulk_start_games(new_tokens, clock, increment, clockstart, variant, leaguename, priority, max_retries, timeout)
-                    return result
-        else:
-            logger.exception(f'Error starting games for {leaguenames}')
+                result = bulk_start_games(new_tokens, clock, increment, clockstart, variant, leaguename, priority, max_retries, timeout)
+                return result
+        except KeyError:
+            logger.exeption(f'[ERROR] could not parse error {e} as json.')
     except Exception:
         logger.exception(f'Error starting games for {leaguename}')
 
