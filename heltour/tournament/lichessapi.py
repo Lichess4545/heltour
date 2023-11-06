@@ -1,5 +1,4 @@
 import requests
-import re
 import time
 import json
 from django.core.cache import cache
