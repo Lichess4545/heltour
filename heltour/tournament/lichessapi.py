@@ -1,5 +1,4 @@
 import requests
-import re
 import time
 import json
 from django.core.cache import cache
@@ -179,27 +178,9 @@ def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, 
     # rules: noAbort,noRematch,noGiveTime,noClaimWin,noEarlyDraw
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content=application/x-www-form-urlencoded'
     post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}. Clocks will start in about 5 minutes.&rules=noClaimWin'
-    try:
-        result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
-        return json.loads(result)
-    except ApiClientError as err:
-        e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
-        try:
-            result = json.loads(e)
-            for bad_token in result["tokens"]:
-                logger.info(f'[INFO] Removing bad token: {bad_token}')
-                # remove bad token + the good token paired with it, remove potential superfluous comma
-                new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
-            if len(new_tokens) > 1:
-                # if there are still tokens to be paired, retry.
-                result = bulk_start_games(new_tokens, clock, increment, clockstart, variant, leaguename, priority, max_retries, timeout)
-                return result
-        except KeyError:
-            logger.exeption(f'[ERROR] could not parse error {e} as json.')
-    except Exception:
-        logger.exception(f'Error starting games for {leaguename}')
-
-
+    result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
+    return json.loads(result)
+    
 
 class ApiWorkerError(Exception):
     pass
