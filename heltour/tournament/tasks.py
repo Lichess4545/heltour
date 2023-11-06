@@ -313,6 +313,51 @@ def update_slack_users():
             p.save()
 
 
+def _start_league_games(tokens, clock, increment, clockstart, variant, leaguename, league_games):
+    try:
+        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=leaguename)
+    except lichessapi.ApiClientError as err:
+        # try to handle errors due to rjected tokens
+        e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
+        try:
+           result = json.loads(e)
+           for bad_token in result["tokens"]:
+               # set expiration of rejected token to yesterday, so we know to not use it anymore.
+               for game in league_games:
+                   if game.white.oauth_token.access_token==bad_token:
+                       game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
+                       game.white.oauth_token.save()
+                       break # only one oauth_token can be the bad token, so we do not need to proceed the loop
+                   if game.black.oauth_token.access_token==bad_token:
+                       game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
+                       game.black.oauth_token.save()
+                       break
+               # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
+               new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
+           if new_tokens:
+               try:
+                   # if there are still tokens to be paired, retry, and give up afterwards.
+                   result = lichessapi.bulk_start_games(tokens=new_tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=leaguename)
+               except lichessapi.ApiClientError as err:
+                   # give up.
+                   logger.exception(f'[ERROR] Failed to bulk start games for league {leaguename} after removing rejected tokens.')
+           else: # no tokens left after deleting rejected tokens
+               result = None
+        except KeyError:
+            logger.exeption(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
+    # use lichess reply to set game ids
+    for game in league_games:
+        try:
+            for gameids in result['games']:
+                if gameids['white'] == game.white.lichess_username.lower() and \
+                   gameids['black'] == game.black.lichess_username.lower():
+                       game.game_link = get_gamelink_from_gameid(gameids['id'])
+                       game.save()
+        except KeyError:
+            logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
+        except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
+            pass
+
 
 @app.task()
 def start_games():
@@ -338,58 +383,18 @@ def start_games():
                 if not gameleague.name in leagues:
                     leagues[gameleague.name] = gameleague
                 token_dict[gameleague.name].append(f'{white_token}:{black_token}')
-    for key in leagues:
-        clock = leagues[key].time_control_initial()
-        increment = leagues[key].time_control_increment()
-        variant = leagues[key].rating_type
+    for leaguename, league in leagues.items():
+        clock = league.time_control_initial()
+        increment = league.time_control_increment()
+        variant = league.rating_type
         if variant in ['classical', 'rapid', 'blitz', 'bullet']:
             variant = 'standard'
         # filter games_to_start to the current league
-        league_games = games_to_start.filter(loneplayerpairing__round__season__league=leagues[key]) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=leagues[key])
+        league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
         # get tokens per game
-        tokens = ','.join(token_dict[key])
-        clockstart = round(((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()+360)*1000) # now + 6 minutes in milliseconds
-        try:
-            result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=key)
-        except lichessapi.ApiClientError as err:
-            e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
-            try:
-               result = json.loads(e)
-               for bad_token in result["tokens"]:
-                   # set expiration of bad token to yesterday, so we know to not use it anymore.
-                   for game in league_games:
-                       if game.white.oauth_token.access_token==bad_token:
-                           game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                           game.white.oauth_token.save()
-                           break # only one oauth_token can be the bad token, so we do not need to proceed the loop
-                       if game.black.oauth_token.access_token==bad_token:
-                           game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                           game.black.oauth_token.save()
-                           break
-                   # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
-                   new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
-               if len(new_tokens) > 1:
-                   try:
-                       # if there are still tokens to be paired, retry, and give up afterwards.
-                       result = lichessapi.bulk_start_games(tokens=new_tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=key)
-                   except lichessapi.ApiClientError as err:
-                       # give up.
-                       logger.exception(f'[ERROR] Failed to bulk start games for league {key} on the second try.')
-               else: # no tokens left after deleting rejected tokens
-                   result = None
-            except KeyError:
-               logger.exeption(f'[ERROR] could not parse error {e} as json.')
-        for game in league_games:
-            try:
-                for gameids in result['games']:
-                    if gameids['white'] == game.white.lichess_username.lower() and \
-                       gameids['black'] == game.black.lichess_username.lower():
-                           game.game_link = get_gamelink_from_gameid(gameids['id'])
-                           game.save()
-            except KeyError:
-                logger.info(f'[ERROR] For league {key}, unexpected bulk pairing json response with error {e}')
-            except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
-                pass
+        tokens = ','.join(token_dict[leaguename])
+        clockstart = round((datetime.utcnow().timestamp()+360)*1000) # now + 6 minutes in milliseconds
+        _start_league_games(tokens, clock, increment, clockstart, variant, leaguename, league_games)
     logger.info('[FINISHED] Done trying to start games.')
 
 
