@@ -403,15 +403,10 @@ def start_games():
         league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
         # get tokens per game
         tokens = ','.join(token_dict[leaguename])
-<<<<<<< HEAD
         do_clockstart = league.get_leaguesetting().start_clocks
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
-=======
-        clockstart = round((datetime.utcnow().timestamp()+360)*1000) # now + 6 minutes in milliseconds
-        _start_league_games(tokens, clock, increment, clockstart, variant, leaguename, league_games)
->>>>>>> f3b710a (split start_games() into two functions to make the code more readable)
     logger.info('[FINISHED] Done trying to start games.')
 
 
