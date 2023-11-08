@@ -25,4 +25,9 @@ class Migration(migrations.Migration):
             name='start_games',
             field=models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players'),
         ),
+        migrations.AlterField(
+            model_name='playernotificationsetting',
+            name='type',
+            field=models.CharField(choices=[('round_started', 'Round started'), ('before_game_time', 'Before game time'), ('game_started', 'Game started'), ('game_time', 'Game time'), ('unscheduled_game', 'Unscheduled game'), ('game_warning', 'Game warning'), ('alternate_needed', 'Alternate needed')], max_length=255),
+        ),
     ]
