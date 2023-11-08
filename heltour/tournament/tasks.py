@@ -353,6 +353,9 @@ def _start_league_games(tokens, clock, increment, clockstart, variant, leaguenam
                    gameids['black'] == game.black.lichess_username.lower():
                        game.game_link = get_gamelink_from_gameid(gameids['id'])
                        game.save()
+                       signals.notify_players_game_started.send(sender=_start_league_games, \
+                                                                pairing=game, \
+                                                                gameid=gameids['id'])
         except KeyError:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
         except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.

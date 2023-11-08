@@ -635,6 +635,18 @@ def notify_players_game_time(pairing, **kwargs):
         send_pairing_notification('game_time', pairing, im_msg, mp_msg, li_subject, li_msg)
 
 
+@receiver(signals.notify_players_game_started, dispatch_uid='heltour.tournament.notify')
+def notify_players_game_started(pairing, gameid, **kwargs):
+    im_msg = 'We created your game.\n' \
+             + '<%s%s|Please join it here>.\n' % (settings.LICHESS_DOMAIN, gameid) \
+             + 'Clocks will start in about 6 minutes, but you can start making moves at any time.'
+    
+    mp_msg = im_msg
+    li_subject = '' # sent via bulk pairing api
+    li_msg = ''
+    send_pairing_notification('game_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+
+
 @receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
 def before_game_time(player, pairing, offset, **kwargs):
     im_msg = 'Reminder: Your game will start in {offset}.\n' \
