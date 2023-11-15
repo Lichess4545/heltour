@@ -1421,6 +1421,7 @@ RESULT_OPTIONS = (
 TV_STATE_OPTIONS = (
     ('default', 'Default'),
     ('hide', 'Hide'),
+    ('has_moves', "Has Moves"),
 )
 
 
