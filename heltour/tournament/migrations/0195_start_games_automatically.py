@@ -30,4 +30,9 @@ class Migration(migrations.Migration):
             name='type',
             field=models.CharField(choices=[('round_started', 'Round started'), ('before_game_time', 'Before game time'), ('game_started', 'Game started'), ('game_time', 'Game time'), ('unscheduled_game', 'Unscheduled game'), ('game_warning', 'Game warning'), ('alternate_needed', 'Alternate needed')], max_length=255),
         ),
+        migrations.AlterField(
+            model_name='playerpairing',
+            name='tv_state',
+            field=models.CharField(choices=[('default', 'Default'), ('hide', 'Hide'), ('has_moves', 'Has Moves')], default='default', max_length=31),
+        ),
     ]
