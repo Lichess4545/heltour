@@ -231,7 +231,7 @@ def update_tv_state():
     games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
                      games_starting.filter(
                          teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
-    games_in_progress = PlayerPairing.objects.filter(result='', tv_state='default').exclude(
+    games_in_progress = PlayerPairing.objects.filter(Q(result='') & (Q(tv_state='default') | Q(tv_state='has_moves'))).exclude(
         game_link='').nocache()
 
     for game in games_starting:
@@ -252,6 +252,8 @@ def update_tv_state():
                         meta['perf'] == league.rating_type and \
                         meta['rated'] == True:
                         game.game_link = get_gamelink_from_gameid(meta['id'])
+                        if 'moves' in meta and ' ' in meta['moves']: # ' ' indicates >= 2 moves
+                            game.tv_state = 'has_moves'
                         game.save()
                 except KeyError:
                     pass
@@ -265,6 +267,8 @@ def update_tv_state():
                 meta = lichessapi.get_game_meta(gameid, priority=1, timeout=300)
                 if 'status' not in meta or meta['status'] != 'started':
                     game.tv_state = 'hide'
+                if 'moves' in meta and ' ' in meta['moves']: # ' ' indicates >= 2 moves
+                    game.tv_state = 'has_moves'
                 if 'status' in meta and meta['status'] == 'draw':
                     game.result = '1/2-1/2'
                 elif 'winner' in meta and meta[
@@ -281,7 +285,7 @@ def update_tv_state():
 @app.task()
 def update_lichess_presence():
     games_starting = PlayerPairing.objects.filter( \
-        result='', \
+        result='', tv_state='default', \
         scheduled_time__lt=timezone.now() + timedelta(minutes=5), \
         scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
         .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
