@@ -292,7 +292,6 @@ def update_lichess_presence():
     games_starting = (games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) |
                       games_starting.filter(
                          teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()))
-
     users = {}
     for game in games_starting:
         users[game.white.lichess_username.lower()] = game.white
