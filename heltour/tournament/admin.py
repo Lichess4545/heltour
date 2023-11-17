@@ -544,7 +544,7 @@ class SeasonAdmin(_BaseAdmin):
         pgn = lichessapi.get_pgn_with_cache(gameid, priority=10)
 
         # Strip most tags for "blind" review
-        pgn = re.sub('\[[^R]\w+ ".*"\]\n', '', pgn)
+        pgn = re.sub('\\[[^R]\\w+ ".*"\\]\n', '', pgn)
 
         return HttpResponse(pgn)
 
