@@ -211,8 +211,8 @@ class TeamScoreTestCase(TestCase):
         ts2 = TeamScore()
 
         # Only the lt operator is implemented so we have to manually work around that
-        self.assert_(not (ts1 < ts2))
-        self.assert_(not (ts2 < ts1))
+        self.assertTrue(not (ts1 < ts2))
+        self.assertTrue(not (ts2 < ts1))
 
         ts1.match_points = 2
         self.assertLess(ts2, ts1)

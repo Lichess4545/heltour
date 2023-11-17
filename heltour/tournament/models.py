@@ -66,7 +66,7 @@ def format_score(score, game_played=None):
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return None
         return value / 2.0
@@ -732,7 +732,7 @@ class OauthToken(_BaseModel):
         return self.account_username
 
 
-username_validator = RegexValidator('^[\w-]+$')
+username_validator = RegexValidator('^[\\w-]+$')
 
 ACCOUNT_STATUS_OPTIONS = (
     ('normal', 'Normal'),

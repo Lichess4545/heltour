@@ -29,7 +29,7 @@ from django.forms.models import ModelForm
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
     SimpleListFilter
-from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.templatetags.static import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.contrib.contenttypes.models import ContentType

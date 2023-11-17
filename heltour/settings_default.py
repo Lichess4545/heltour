@@ -249,9 +249,15 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_PRECOMPILER_OUTPUT_DIR = '../heltour/tournament/static/'
 STATIC_PRECOMPILER_COMPILERS = (
-    ('static_precompiler.compilers.SCSS', {
+    ('static_precompiler.compilers.dart_sass.SCSS', {
         'sourcemap_enabled': True,
+        'load_paths': ['/path'],
         'output_style': 'compact'
+    }),
+    ('static_precompiler.compilers.dart_sass.SASS', {
+        'sourcemap_enabled': True,
+        'load_paths': ['/path'],
+        'output_style': 'compressed',
     }),
 )
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
