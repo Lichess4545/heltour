@@ -27,6 +27,8 @@ SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 ALLOWED_HOSTS = [
     'www.lichess4545.tv',
     'lichess4545.tv',
@@ -46,6 +48,7 @@ else:
     HELTOUR_APP = 'tournament'
 
 INSTALLED_APPS = [
+    'cacheops',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -59,7 +62,6 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'debug_toolbar',
-    'cacheops',
     'django_comments',
     'heltour.comments',
     'captcha',
@@ -249,15 +251,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_PRECOMPILER_OUTPUT_DIR = '../heltour/tournament/static/'
 STATIC_PRECOMPILER_COMPILERS = (
-    ('static_precompiler.compilers.dart_sass.SCSS', {
+    ('static_precompiler.compilers.SCSS', {
         'sourcemap_enabled': True,
-        'load_paths': ['/path'],
         'output_style': 'compact'
-    }),
-    ('static_precompiler.compilers.dart_sass.SASS', {
-        'sourcemap_enabled': True,
-        'load_paths': ['/path'],
-        'output_style': 'compressed',
     }),
 )
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'

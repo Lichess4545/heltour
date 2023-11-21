@@ -2,12 +2,7 @@ from heltour import settings
 
 if not settings.TESTING:
     from cacheops.query import cached_as as _cacheops_cached_as, \
-        cached_view_as as _cacheops_cached_view_as, \
-        install_cacheops
-
-    # TODO: This should be run automatically by django. I have no idea why it isn't.
-    install_cacheops()
-
+        cached_view_as as _cacheops_cached_view_as
 
 def cached_as(*ca_args, **ca_kwargs):
     def wrap(func):
