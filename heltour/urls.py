@@ -13,19 +13,19 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url, include
 from django.contrib import admin
+from django.urls import include, re_path
 from . import settings
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^impersonate/', include('impersonate.urls')),
-    url(r'^', include('heltour.%s.urls' % settings.HELTOUR_APP)),
+    re_path(r'^admin/', admin.site.urls),
+    re_path(r'^impersonate/', include('impersonate.urls')),
+    re_path(r'^', include('heltour.%s.urls' % settings.HELTOUR_APP)),
 ]
 
 if settings.DEBUG:
     import debug_toolbar
 
     urlpatterns += [
-        url(r'^__debug__/', include(debug_toolbar.urls)),
+        re_path(r'^__debug__/', include(debug_toolbar.urls)),
     ]

@@ -3,7 +3,6 @@ from django.utils import timezone
 from heltour.tournament import lichessapi, slackapi, views, forms, signals, simulation
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
-from django.conf.urls import url
 from django.shortcuts import render, redirect, get_object_or_404
 import reversion
 
@@ -17,7 +16,7 @@ from heltour import settings
 from datetime import timedelta
 from django_comments.models import Comment
 from django.contrib.sites.models import Site
-from django.urls import reverse
+from django.urls import reverse, re_path
 from django.http.response import HttpResponse
 from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
@@ -217,10 +216,10 @@ class LeagueAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/import_season/$',
+            re_path(r'^(?P<object_id>[0-9]+)/import_season/$',
                 self.admin_site.admin_view(self.import_season_view),
                 name='import_season'),
-            url(r'^(?P<object_id>[0-9]+)/export_forfeit_data/$',
+            re_path(r'^(?P<object_id>[0-9]+)/export_forfeit_data/$',
                 self.admin_site.admin_view(self.export_forfeit_data_view),
                 name='export_forfeit_data'),
         ]
@@ -374,43 +373,43 @@ class SeasonAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(SeasonAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/manage_players/$',
+            re_path(r'^(?P<object_id>[0-9]+)/manage_players/$',
                 self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
-            url(r'^(?P<object_id>[0-9]+)/create_teams/$',
+            re_path(r'^(?P<object_id>[0-9]+)/create_teams/$',
                 self.admin_site.admin_view(self.create_teams_view),
                 name='create_teams'),
-            url(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
+            re_path(r'^(?P<object_id>[0-9]+)/player_info/(?P<player_name>[\w-]+)/$',
                 self.admin_site.admin_view(self.player_info_view),
                 name='edit_rosters_player_info'),
-            url(r'^(?P<object_id>[0-9]+)/round_transition/$',
+            re_path(r'^(?P<object_id>[0-9]+)/round_transition/$',
                 self.admin_site.admin_view(self.round_transition_view),
                 name='round_transition'),
-            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review_nominated_games/$',
                 self.admin_site.admin_view(self.review_nominated_games_view),
                 name='review_nominated_games'),
-            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review_nominated_games/select/(?P<nom_id>[0-9]+)/$',
                 self.admin_site.admin_view(self.review_nominated_games_select_view),
                 name='review_nominated_games_select'),
-            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<sel_id>[0-9]+)/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review_nominated_games/deselect/(?P<sel_id>[0-9]+)/$',
                 self.admin_site.admin_view(self.review_nominated_games_deselect_view),
                 name='review_nominated_games_deselect'),
-            url(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review_nominated_games/pgn/$',
                 self.admin_site.admin_view(self.review_nominated_games_pgn_view),
                 name='review_nominated_games_pgn'),
-            url(r'^(?P<object_id>[0-9]+)/bulk_email/$',
+            re_path(r'^(?P<object_id>[0-9]+)/bulk_email/$',
                 self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email'),
-            url(r'^(?P<object_id>[0-9]+)/team_spam/$',
+            re_path(r'^(?P<object_id>[0-9]+)/team_spam/$',
                 self.admin_site.admin_view(self.team_spam_view),
                 name='team_spam'),
-            url(r'^(?P<object_id>[0-9]+)/mod_report/$',
+            re_path(r'^(?P<object_id>[0-9]+)/mod_report/$',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
-            url(r'^(?P<object_id>[0-9]+)/pre_round_report/$',
+            re_path(r'^(?P<object_id>[0-9]+)/pre_round_report/$',
                 self.admin_site.admin_view(self.pre_round_report_view),
                 name='pre_round_report'),
-            url(r'^(?P<object_id>[0-9]+)/export_players/$',
+            re_path(r'^(?P<object_id>[0-9]+)/export_players/$',
                 self.admin_site.admin_view(self.export_players_view),
                 name='export_players'),
         ]
@@ -1282,10 +1281,10 @@ class RoundAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/generate_pairings/$',
+            re_path(r'^(?P<object_id>[0-9]+)/generate_pairings/$',
                 self.admin_site.admin_view(self.generate_pairings_view),
                 name='generate_pairings'),
-            url(r'^(?P<object_id>[0-9]+)/review_pairings/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review_pairings/$',
                 self.admin_site.admin_view(self.review_pairings_view),
                 name='review_pairings'),
         ]
@@ -1491,7 +1490,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(PlayerLateRegistrationAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/move_latereg/$',
+            re_path(r'^(?P<object_id>[0-9]+)/move_latereg/$',
                 self.admin_site.admin_view(self.move_latereg_view),
                 name='move_latereg'),
         ]
@@ -1956,13 +1955,13 @@ class RegistrationAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/review/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review/$',
                 self.admin_site.admin_view(self.review_registration),
                 name='review_registration'),
-            url(r'^(?P<object_id>[0-9]+)/approve/$',
+            re_path(r'^(?P<object_id>[0-9]+)/approve/$',
                 self.admin_site.admin_view(self.approve_registration),
                 name='approve_registration'),
-            url(r'^(?P<object_id>[0-9]+)/reject/$',
+            re_path(r'^(?P<object_id>[0-9]+)/reject/$',
                 self.admin_site.admin_view(self.reject_registration),
                 name='reject_registration')
         ]
@@ -2199,7 +2198,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(SeasonPlayerAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_ids>[0-9,]+)/bulk_email/$',
+            re_path(r'^(?P<object_ids>[0-9,]+)/bulk_email/$',
                 self.admin_site.admin_view(self.bulk_email_view),
                 name='bulk_email_by_players'),
         ]
@@ -2508,13 +2507,13 @@ class ModRequestAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(ModRequestAdmin, self).get_urls()
         my_urls = [
-            url(r'^(?P<object_id>[0-9]+)/review/$',
+            re_path(r'^(?P<object_id>[0-9]+)/review/$',
                 self.admin_site.admin_view(self.review_request),
                 name='tournament_modrequest_review'),
-            url(r'^(?P<object_id>[0-9]+)/approve/$',
+            re_path(r'^(?P<object_id>[0-9]+)/approve/$',
                 self.admin_site.admin_view(self.approve_request),
                 name='tournament_modrequest_approve'),
-            url(r'^(?P<object_id>[0-9]+)/reject/$',
+            re_path(r'^(?P<object_id>[0-9]+)/reject/$',
                 self.admin_site.admin_view(self.reject_request),
                 name='tournament_modrequest_reject')
         ]
