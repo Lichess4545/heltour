@@ -15,4 +15,14 @@ class Migration(migrations.Migration):
             name='alternate_preference',
             field=models.CharField(blank=True, choices=[('alternate', 'Alternate'), ('full_time', 'Full Time'), ('either', 'Either is fine for me.')], max_length=255),
         ),
+        migrations.AlterField(
+            model_name='player',
+            name='profile',
+            field=models.JSONField(blank=True, null=True),
+        ),
+        migrations.AlterField(
+            model_name='registration',
+            name='validation_ok',
+            field=models.BooleanField(blank=True, default=None, null=True),
+        ),
     ]
