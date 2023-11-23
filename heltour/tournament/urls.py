@@ -5,19 +5,19 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 Examples:
 Function views
     1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  url(r'^$', views.home, name='home')
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
 Class-based views
     1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  url(r'^$', Home.as_view(), name='home')
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
 Including another URLconf
-    1. Import the include() function: from django.conf.urls import url, include
-    2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
+    1. Import the include() function: from django.urls import url, include
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views, api, android_app, auth
 from django.contrib.admin.views.decorators import staff_member_required
-from django.urls import include, path, re_path
+from django.urls import include, path
 from django.views.decorators.cache import cache_control
 
 season_urlpatterns = [
@@ -54,69 +54,68 @@ season_urlpatterns = [
     path('request/<slug:req_type>/', views.ModRequestView.as_view(), name='modrequest'),
     path('request/<slug:req_type>/success/', views.ModRequestSuccessView.as_view(),
         name='modrequest_success'),
-    # TODO: go through re_path() occurrences and check where we can use the more readable path(), see examples above
-    re_path(r'^nominate/$', views.NominateView.as_view(), name='nominate'),
-    re_path(r'^nominate/delete/(?P<nomination_id>\w+)/$', views.DeleteNominationView.as_view(),
+    path('nominate/', views.NominateView.as_view(), name='nominate'),
+    path('nominate/delete/<int:nomination_id>/', views.DeleteNominationView.as_view(),
         name='delete_nomination'),
-    re_path(r'^schedule/edit/$', views.ScheduleView.as_view(), name='edit_schedule'),
-    re_path(r'^availability/edit/$', views.AvailabilityView.as_view(), name='edit_availability'),
-    re_path(r'^board/(?P<board_number>[0-9]+)/scores/$', views.BoardScoresView.as_view(),
+    path('schedule/edit/', views.ScheduleView.as_view(), name='edit_schedule'),
+    path('availability/edit/', views.AvailabilityView.as_view(), name='edit_availability'),
+    path('board/<int:board_number>/scores/', views.BoardScoresView.as_view(),
         name='board_scores'),
-    re_path(r'^alternates/$', views.AlternatesView.as_view(), name='alternates'),
-    re_path(r'^round/(?P<round_number>[0-9]+)/alternate/accept/$', views.AlternateAcceptView.as_view(),
+    path('alternates/', views.AlternatesView.as_view(), name='alternates'),
+    path('round/<int:round_number>/alternate/accept/', views.AlternateAcceptView.as_view(),
         name='alternate_accept'),
-    re_path(r'^round/(?P<round_number>[0-9]+)/alternate/decline/$',
+    path('round/<int:round_number>/alternate/decline/',
         views.AlternateDeclineView.as_view(), name='alternate_decline'),
-    re_path(r'^notifications/$', views.NotificationsView.as_view(), name='notifications'),
+    path('notifications/', views.NotificationsView.as_view(), name='notifications'),
 ]
 
 league_urlpatterns = [
-    re_path(r'^$', views.LeagueHomeView.as_view(), name='league_home'),
-    re_path(r'^', include(season_urlpatterns)),
-    re_path(r'^season/(?P<season_tag>[\w-]+)/',
+    path('', views.LeagueHomeView.as_view(), name='league_home'),
+    path('', include(season_urlpatterns)),
+    path('season/<slug:season_tag>/',
         include((season_urlpatterns, 'tournament'), 'by_season')),
-    re_path(r'^document/(?P<document_tag>[\w-]+)/$', views.DocumentView.as_view(), name='document'),
-    re_path(r'^contact/$', views.ContactView.as_view(), name='contact'),
-    re_path(r'^contact_success/$', views.ContactSuccessView.as_view(), name='contact_success'),
-    re_path(r'^about/$', views.AboutView.as_view(), name='about'),
-    re_path(r'^login/$', views.LoginView.as_view(), name='login'),
-    re_path(r'^login/(?P<secret_token>\w+)/$', views.LoginView.as_view(), name='login_with_token'),
-    re_path(r'^logout/$', views.LogoutView.as_view(), name='logout'),
+    path('document/<slug:document_tag>/', views.DocumentView.as_view(), name='document'),
+    path('contact/', views.ContactView.as_view(), name='contact'),
+    path('contact_success/', views.ContactSuccessView.as_view(), name='contact_success'),
+    path('about/', views.AboutView.as_view(), name='about'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('login/<slug:secret_token>/', views.LoginView.as_view(), name='login_with_token'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
 ]
 
 api_urlpatterns = [
-    re_path(r'^find_pairing/$', api.find_pairing, name='find_pairing'),
-    re_path(r'^update_pairing/$', api.update_pairing, name='update_pairing'),
-    re_path(r'^get_roster/$', api.get_roster, name='get_roster'),
-    re_path(r'^assign_alternate/$', api.assign_alternate, name='assign_alternate'),
-    re_path(r'^set_availability/$', api.set_availability, name='set_availability'),
-    re_path(r'^get_league_moderators/$', api.get_league_moderators, name='get_league_moderators'),
-    re_path(r'^league_document/$', api.league_document, name='league_document'),
-    re_path(r'^link_slack/$', api.link_slack, name='link_slack'),
-    re_path(r'^get_slack_user_map/$', api.get_slack_user_map, name='get_slack_user_map'),
-    re_path(r'^game_warning/$', api.game_warning, name='game_warning'),
-    re_path(r'^player_contact/$', api.player_contact, name='player_contact'),
-    re_path(r'^get_season_games/$', api.get_season_games, name='get_season_games'),
+    path('find_pairing/', api.find_pairing, name='find_pairing'),
+    path('update_pairing/', api.update_pairing, name='update_pairing'),
+    path('get_roster/', api.get_roster, name='get_roster'),
+    path('assign_alternate/', api.assign_alternate, name='assign_alternate'),
+    path('set_availability/', api.set_availability, name='set_availability'),
+    path('get_league_moderators/', api.get_league_moderators, name='get_league_moderators'),
+    path('league_document/', api.league_document, name='league_document'),
+    path('link_slack/', api.link_slack, name='link_slack'),
+    path('get_slack_user_map/', api.get_slack_user_map, name='get_slack_user_map'),
+    path('game_warning/', api.game_warning, name='game_warning'),
+    path('player_contact/', api.player_contact, name='player_contact'),
+    path('get_season_games/', api.get_season_games, name='get_season_games'),
 ]
 
 app_urlpatterns = [
-    re_path(r'^event/$', android_app.slack_event, name='slack_event'),
-    re_path(r'^register/$', android_app.fcm_register, name='fcm_register'),
-    re_path(r'^unregister/$', android_app.fcm_unregister, name='fcm_unregister'),
+    path('event/', android_app.slack_event, name='slack_event'),
+    path('register/', android_app.fcm_register, name='fcm_register'),
+    path('unregister/', android_app.fcm_unregister, name='fcm_unregister'),
 ]
 
 urlpatterns = [
-    re_path(r'^$', views.HomeView.as_view(), name='home'),
-    re_path(r'^toggle/darkmode/$', views.ToggleDarkModeView.as_view(), name='toggle_darkmode'),
-    re_path(r'^player/(?P<username>[\w-]+)/calendar.ics$', views.ICalPlayerView.as_view(),
+    path('', views.HomeView.as_view(), name='home'),
+    path('toggle/darkmode/', views.ToggleDarkModeView.as_view(), name='toggle_darkmode'),
+    path('player/<slug:username>)/calendar.ics', views.ICalPlayerView.as_view(),
         name='player_icalendar'),
-    re_path(r'^api/', include((api_urlpatterns, 'tournament'), 'api')),
-    re_path(r'^app/', include((app_urlpatterns, 'tournament'), 'app')),
-    re_path(r'^auth/slack/$', auth.SlackAuth.as_view(), name='slack_auth'),
-    re_path(r'^auth/lichess/$', views.OAuthCallbackView.as_view(), name='lichess_auth'),
-    re_path(r'^comments/', include('django_comments.urls')),
-    re_path(r'^ckeditor/', include('ckeditor_uploader.urls')),
-    re_path(r'^(?P<league_tag>[\w-]+)/', include((league_urlpatterns, 'tournament'), 'by_league')),
+    path('api/', include((api_urlpatterns, 'tournament'), 'api')),
+    path('app/', include((app_urlpatterns, 'tournament'), 'app')),
+    path('auth/slack/', auth.SlackAuth.as_view(), name='slack_auth'),
+    path('auth/lichess/', views.OAuthCallbackView.as_view(), name='lichess_auth'),
+    path('comments/', include('django_comments.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('<slug:league_tag>/', include((league_urlpatterns, 'tournament'), 'by_league')),
 ]
 
 if settings.DEBUG:
