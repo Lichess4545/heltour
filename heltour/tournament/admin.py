@@ -18,7 +18,6 @@ from django_comments.models import Comment
 from django.contrib.sites.models import Site
 from django.urls import reverse, path
 from django.http.response import HttpResponse
-from django.utils.http import urlquote
 from django.core.mail.message import EmailMultiAlternatives
 from django.core import mail
 from django.utils.html import format_html
@@ -32,6 +31,7 @@ from django.templatetags.static import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.contrib.contenttypes.models import ContentType
+from urllib.parse import quote as urlquote
 from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
 from heltour.tournament import teamgen
 import time
