@@ -298,6 +298,7 @@ CACHEOPS = {
     'admin.*': {'ops': 'all'},
     'auth.*': {'ops': 'all'},
     'heltour.*': {'ops': 'all'},
+    'tournament.*': {'ops': 'all'},
     '*.*': {},
 }
 
