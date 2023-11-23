@@ -1,12 +1,11 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from captcha.fields import ReCaptchaField
+from django_recaptcha.fields import ReCaptchaField
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
 from .models import *
 from django.core.exceptions import ValidationError
 from heltour import settings
-import captcha
 from django.urls import reverse
 from heltour.tournament.workflows import ApproveRegistrationWorkflow
 from heltour import gdpr
