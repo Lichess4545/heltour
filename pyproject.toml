@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-django = "==3.2.*"
+django = "==4.2.*"
 django-reversion = "==5.0.*"
 fabric3 = "==1.14.post1"
 psycopg2-binary = "==2.8.4"
@@ -23,7 +23,6 @@ django-contrib-comments = "==2.2.0"
 # django until here
 django-redis = "==5.4.0"
 django-recaptcha = "==4.0.0"
-# django-select2-forms = "==3.0.0" # not necessary anymore since django has built in select2 support.
 django-static-precompiler = "==2.4"
 django-impersonate = "==1.9.1"
 django-ipware = "==6.0.0"

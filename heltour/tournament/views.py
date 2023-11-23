@@ -8,7 +8,7 @@ import math
 import re
 import reversion
 
-from .decorators import cached_as
+from cacheops.query import cached_as
 from django.core.mail.message import EmailMessage
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse

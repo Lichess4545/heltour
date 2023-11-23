@@ -291,9 +291,17 @@ CACHEOPS_REDIS = {
     'db': 1,
 }
 CACHEOPS_DEGRADE_ON_FAILURE = True
-CACHEOPS = {
-    '*.*': {'ops': 'all', 'timeout': 60 * 60},
+CACHEOPS_DEFAULTS = {
+    'timeout': 60*60
 }
+CACHEOPS = {
+    'admin.*': {'ops': 'all'},
+    'auth.*': {'ops': 'all'},
+    'heltour.*': {'ops': 'all'},
+    '*.*': {},
+}
+
+CACHEOPS_ENABLED = False
 
 TEAMGEN_PROCESSES_NUMBER = 8
 
