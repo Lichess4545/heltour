@@ -3,7 +3,7 @@ import responses
 from django.test import TestCase
 from unittest.mock import patch
 from heltour.tournament import oauth
-from .testutils import *
+from .testutils import *#
 import re
 
 
@@ -21,16 +21,17 @@ class LoginTestCase(TestCase):
     @patch('heltour.tournament.oauth._encode_state', return_value='encodedstate')
     def test_oauth_redirect(self, *args):
         response = self.client.get(league_url('team', 'login'))
-
+        url = re.sub("&code_challenge=[0-9A-z-]{43}", "", response.url)
         expected_oauth_url = 'https://lichess.org/oauth' + \
                              '?response_type=code' + \
                              '&client_id=heltour' + \
-                             '&redirect_uri=http://testserver/auth/lichess/' + \
+                             '&redirect_uri=https://testserver/auth/lichess/' + \
                              '&scope=email:read%20challenge:read%20challenge:write' + \
-                             '&code_challenge_method=S256&code_challenge=' + \
+                             '&code_challenge_method=S256' + \
                              '&state=encodedstate'
-
-# code_challenge above is based on a random string. TODO: solve this with regexp somehow. turn off for now
+        # TODO: find a more elegant way to solve this with assertRedirects instead of just comparing url and status code with assertEqual.
+        self.assertEqual(url, expected_oauth_url)
+        self.assertEqual(response.status_code, 302)
 #        self.assertRedirects(response, expected_oauth_url, fetch_redirect_response=False)
         oauth._encode_state.assert_called_with({'league': 'teamleague', 'token': None})
 
