@@ -4,4 +4,8 @@ CACHEOPS = {
     '*.*': {'ops': ()},
 }
 CACHEOPS_ENABLED = False
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STORAGES = {
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        },
+}

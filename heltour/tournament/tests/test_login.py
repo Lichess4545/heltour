@@ -41,7 +41,7 @@ class LoginTestCase(TestCase):
 @patch('heltour.tournament.oauth._decode_state',
        return_value={'league': league_tag('team'), 'token': None})
 @patch('django.utils.timezone.now',
-       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=timezone.utc))
+       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
 @responses.activate
 class LoginWithCodeTestCase(TestCase):
     def setUp(self):
@@ -73,7 +73,7 @@ class LoginWithCodeTestCase(TestCase):
 
         self.assertEqual('1234', player.oauth_token.access_token)
         self.assertEqual('4567', player.oauth_token.refresh_token)
-        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=timezone.utc),
+        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=datetime.timezone.utc),
                          player.oauth_token.expires)
         self.assertEqual('bearer', player.oauth_token.token_type)
         self.assertEqual('email:read challenge:read challenge:write', player.oauth_token.scope)

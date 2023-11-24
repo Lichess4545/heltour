@@ -168,8 +168,6 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 # Email
@@ -256,7 +254,11 @@ STATIC_PRECOMPILER_COMPILERS = (
         'output_style': 'compact'
     }),
 )
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+STORAGES = {
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+        },
+}
 
 BOOTSTRAP3 = {
     'set_placeholder': False
