@@ -33,7 +33,7 @@ else:
 # Host-based settings overrides.
 try:
     hostname = platform.node().split('.')[0]
-    exec('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
+    exec('from .local.%s import *' % re.sub('[^\\w]', '_', hostname))
 except ImportError:
     pass  # ignore missing local settings
 
