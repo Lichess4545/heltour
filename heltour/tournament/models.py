@@ -185,6 +185,7 @@ class LeagueSetting(_BaseModel):
     carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
+    start_games = models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players')
 
     def __str__(self):
         return '%s Settings' % self.league
@@ -1421,6 +1422,7 @@ RESULT_OPTIONS = (
 TV_STATE_OPTIONS = (
     ('default', 'Default'),
     ('hide', 'Hide'),
+    ('has_moves', "Has Moves"),
 )
 
 
@@ -1438,7 +1440,12 @@ class PlayerPairing(_BaseModel):
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
+    #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
+    white_confirmed = models.BooleanField(default=False)
+    black_confirmed = models.BooleanField(default=False)
+
     colors_reversed = models.BooleanField(default=False)
+
     
     #We do not want to mark players as unresponsive if their opponents got assigned after round start
     date_player_changed = models.DateTimeField(blank=True, null=True)
@@ -1622,6 +1629,10 @@ class PlayerPairing(_BaseModel):
             
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
+
+            # We also want the players to confirm (again) if the scheduled time changes.
+            white_confirmed = False
+            black_confirmed = False
     
     def delete(self, *args, **kwargs):
         team_pairing = None
@@ -2575,6 +2586,7 @@ class ScheduledEvent(_BaseModel):
 PLAYER_NOTIFICATION_TYPES = (
     ('round_started', 'Round started'),
     ('before_game_time', 'Before game time'),
+    ('game_started', 'Game started'),
     ('game_time', 'Game time'),
     ('unscheduled_game', 'Unscheduled game'),
     ('game_warning', 'Game warning'),
@@ -2629,10 +2641,10 @@ class PlayerNotificationSetting(_BaseModel):
                 return obj
         obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
         obj.enable_slack_im = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game',
+            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game',
             'alternate_needed')
         obj.enable_slack_mpim = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
