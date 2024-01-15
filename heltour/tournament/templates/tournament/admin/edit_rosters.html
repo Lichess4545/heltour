@@ -24,29 +24,24 @@
         </p>
         <h2>Actions</h2>
         <p>
-            Show: {{ form.rating_type }}
             {% if not season_started %}
                 <a class="button" href="{% url 'admin:create_teams' original.pk %}">(re)Build teams</a>
             {% endif %}
             <a class="button" href="{% url 'admin:export_players' original.pk %}">Export Players</a>
         </p>
-        {% if team_rating_variance and team_rating_range and team_expected_rating_variance and team_expected_rating_range %}
+        {% if team_rating_variance and team_rating_range %}
             <h2>Stats</h2>
             <table>
                 <thead>
                 <tr>
                     <th>Team Rating Variance</th>
                     <th>Team Rating Range</th>
-                    <th>Team Expected Rating Variance</th>
-                    <th>Team Expected Rating Range</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
                     <td>{{ team_rating_variance|floatformat:2 }}</td>
                     <td>{{ team_rating_range|floatformat:2 }}</td>
-                    <td>{{ team_expected_rating_variance|floatformat:2 }}</td>
-                    <td>{{ team_expected_rating_range|floatformat:2 }}</td>
                 </tr>
                 </tbody>
             </table>
@@ -76,7 +71,6 @@
                                       data-url="{% leagueurl 'player_profile' original.league.tag original.tag board.player.lichess_username %}"
                                       data-info-url="{% url 'admin:edit_rosters_player_info' original.pk board.player.lichess_username %}"
                                       data-rating="{% player_rating board.player %}"
-                                      data-exp-rating="{{ expected_ratings|get_item:board.player }}"
                                       data-toggle="popover">
                             <span class="name">{{ board.player.lichess_username }}</span>
                             <span class="rating-container">(<span class="rating"></span>)</span>
@@ -105,9 +99,6 @@
                     {% endfor %}
                     <td>
                         <span class="average-rating"></span>
-                    </td>
-                    <td>
-                        <span class="average-exp-rating"></span>
                     </td>
                 </tr>
             {% endif %}
@@ -139,7 +130,6 @@
                                       data-url="{% leagueurl 'player_profile' original.league.tag original.tag alt.season_player.player.lichess_username %}"
                                       data-info-url="{% url 'admin:edit_rosters_player_info' original.pk alt.season_player.player.lichess_username %}"
                                       data-rating="{% player_rating alt.season_player %}"
-                                      data-exp-rating="{{ expected_ratings|get_item:alt.season_player.player }}"
                                       data-toggle="popover">
                                     <span class="name">{{ alt.season_player.player.lichess_username }}</span>
                                     <span class="rating-container">(<span class="rating"></span>)</span>
@@ -182,7 +172,6 @@
                                       data-url="{% leagueurl 'player_profile' original.league.tag original.tag player.lichess_username %}"
                                       data-rating="{% player_rating player %}"
                                       data-info-url="{% url 'admin:edit_rosters_player_info' original.pk player.lichess_username %}"
-                                      data-exp-rating="{{ expected_ratings|get_item:player }}"
                                       data-toggle="popover">
                                     <span class="name">{{ player.lichess_username }}</span>
                                     (<span class="rating"></span>)

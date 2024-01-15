@@ -23,9 +23,8 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'email', 'classical_rating',
-            'has_played_20_games', 'already_in_slack_group',
-            'previous_season_alternate',
+            'email',
+            'has_played_20_games',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
@@ -46,8 +45,6 @@ class RegistrationForm(forms.ModelForm):
 
         # Rating fields
         rating_type = league.get_rating_type_display()
-        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
-            'Your Lichess %s Rating' % rating_type))
 
         help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
         
@@ -63,22 +60,6 @@ class RegistrationForm(forms.ModelForm):
                                                                         'Is your %s rating established (not provisional)?' % rating_type.lower()),
                                                                     help_text=_(
                                                                         help_text_provisional), )
-
-        # In slack
-        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
-            'Are you in our Slack group?'), choices=YES_NO_OPTIONS,
-                                                                       widget=forms.RadioSelect,
-                                                                       coerce=lambda x: x == 'True')
-
-        # Previous season status
-        if league.competitor_type == 'team':
-            self.fields['previous_season_alternate'] = forms.ChoiceField(required=True,
-                                                                         choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS,
-                                                                         widget=forms.RadioSelect,
-                                                                         label=_(
-                                                                             'Were you an alternate for the previous season?'))
-        else:
-            del self.fields['previous_season_alternate']
 
         # Can commit
         time_control = league.time_control

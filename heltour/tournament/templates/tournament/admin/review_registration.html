@@ -39,11 +39,6 @@
                 {% endif %}
             </div>
 
-            <div class="form-row">
-                <label>Slack username:</label>
-                {{ original.slack_username }}
-            </div>
-
             {% if perms.tournament.dox %}
                 <div class="form-row">
                     <label>Email:</label>
@@ -51,14 +46,10 @@
                 </div>
             {% endif %}
 
-            <div class="form-row">
-                <label>Classical rating:</label>
-                {{ original.classical_rating }}
-            </div>
 
             <div class="form-row">
-                <label>Peak classical rating:</label>
-                {{ original.peak_classical_rating }}
+                <label>Classical rating:</label>
+                {{ original.player.rating }}
             </div>
 
             <div class="form-row">
@@ -67,16 +58,9 @@
             </div>
 
             <div class="form-row">
-                <label>Already in slack group:</label>
-                {{ original.already_in_slack_group|yesno:'Yes,No' }}
+                <label>Slack ID:</label>
+                {{ original.player.slack_user_id|default:'Not on slack' }}
             </div>
-
-            {% if is_team %}
-                <div class="form-row">
-                    <label>Previous season alternate:</label>
-                    {{ original.get_previous_season_alternate_display }}
-                </div>
-            {% endif %}
 
             <div class="form-row">
                 <label>Can commit to 1 long game per week:</label>

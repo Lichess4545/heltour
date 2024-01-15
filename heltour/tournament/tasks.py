@@ -443,15 +443,10 @@ def validate_registration(reg_id):
                                                  defaults={
                                                      'lichess_username': reg.lichess_username})
         player.update_profile(user_meta)
-        reg.classical_rating = player.rating_for(reg.season.league)
-        reg.peak_classical_rating = lichessapi.get_peak_rating(reg.lichess_username,
-                                                               reg.season.league.rating_type)
         reg.has_played_20_games = not player.provisional_for(reg.season.league)
         if player.account_status != 'normal':
             fail_reason = 'The lichess user "%s" has the "%s" mark.' % (
                 reg.lichess_username, player.account_status)
-        if reg.already_in_slack_group and not player.slack_user_id:
-            reg.already_in_slack_group = False
     except lichessapi.ApiWorkerError:
         fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
 
