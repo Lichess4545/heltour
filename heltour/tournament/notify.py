@@ -522,13 +522,6 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     }
     black_params.update(common_params)
 
-    # Send lichess mails
-    if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
-        _lichess_message(league, white, li_subject.format(**white_params),
-                         li_msg.format(**white_params))
-    if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
-        _lichess_message(league, black, li_subject.format(**black_params),
-                         li_msg.format(**black_params))
     # Send slack ims
     if send_to_white and (
         white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
@@ -539,6 +532,14 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     # Send slack mpim
     if send_to_white and use_mpim:
         _message_multiple_users(league, [white, black], mp_msg.format(**common_params))
+
+    # Send lichess mails second.
+    if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
+        _lichess_message(league, white, li_subject.format(**white_params),
+                         li_msg.format(**white_params))
+    if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
+        _lichess_message(league, black, li_subject.format(**black_params),
+                         li_msg.format(**black_params))
 
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
