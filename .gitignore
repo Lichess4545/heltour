@@ -1,5 +1,6 @@
 *.pyc
 env
+venv
 .project
 .pydevproject
 /static
@@ -12,3 +13,5 @@ data
 .sass-cache
 /heltour/tournament/static/tournament/css/*.css
 /heltour/tournament/static/tournament/css/*.css.map
+javafo.jar
+heltour/local/
