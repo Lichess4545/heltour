@@ -32,15 +32,32 @@ pillow = "==9.3.0"
 pyfcm = "==1.3.1"
 letsencrypt = "*"
 requests = {extras = ["security"], version = "^2.31.0"}
-wrapt = "^1.16.0"
-
-[tool.poetry.dev-dependencies]
-fabric3 = "==1.14.post1"
-patchwork = "1.0.1"
 django-stubs = "1.7.0"
 django-stubs-ext = "^0.3.1"
-baste = { git = "https://bitbucket.org/strabs/baste.git", branch="release-2.2" }
 django-debug-toolbar = "==3.2.4"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+# FIXME: these belong here but there appears to be a hard production dependency on them. 
+# django-stubs = "1.7.0"
+# django-stubs-ext = "^0.3.1"
+# django-debug-toolbar = "==3.2.4"
+
+[tool.poetry.group.server]
+optional = true
+
+[tool.poetry.group.server.dependencies]
+gunicorn = "==22.0.0"
+
+[tool.poetry.group.sysadmin]
+optional = true
+
+[tool.poetry.group.sysadmin.dependencies]
+patchwork = "1.0.1"
+fabric3 = "==1.14.post1"
+baste = { git = "https://bitbucket.org/strabs/baste.git", branch="release-2.2" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
