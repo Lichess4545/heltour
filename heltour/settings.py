@@ -30,13 +30,6 @@ elif STAGING:
 else:
     from .settings_default import *
 
-# Host-based settings overrides.
-try:
-    hostname = platform.node().split('.')[0]
-    exec('from .local.%s import *' % re.sub('[^\w]', '_', hostname))
-except ImportError:
-    pass  # ignore missing local settings
-
 # Allow live settings (which aren't in the repository) to override the development settings.
 config_path = '/home/lichess4545/etc/heltour/%s.json' % ('staging' if STAGING else 'production')
 if os.path.exists(config_path):
