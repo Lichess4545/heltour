@@ -1,4 +1,4 @@
-FROM python:3.11-slim as build
+FROM python:3.11-slim AS build
 
 WORKDIR /usr/src/heltour
 
@@ -19,9 +19,9 @@ COPY heltour/ ./heltour
 RUN poetry install
 RUN python manage.py collectstatic
 
-FROM nginx as static
+FROM nginx AS static
 COPY --from=build /usr/src/heltour/static /usr/share/nginx/html
 
-FROM build as app
+FROM build AS app
 CMD ["gunicorn", "-t", "300", "-w", "4", "-b", "0.0.0.0:8000", "heltour.wsgi:application"]
 

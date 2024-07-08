@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    command: ["python", "manage.py", "runserver"]
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /usr/src/heltour
+  redis:
+    image: "redis:alpine"
+  postgres:
+    image: "postgres:alpine"
