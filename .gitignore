@@ -15,3 +15,4 @@ data
 /heltour/tournament/static/tournament/css/*.css.map
 javafo.jar
 heltour/local/
+.DS_Store
