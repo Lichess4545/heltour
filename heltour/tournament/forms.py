@@ -111,11 +111,11 @@ class RegistrationForm(forms.ModelForm):
             self.fields['friends'] = forms.CharField(required=False, label=_(
                 'Are there any friends you would like to be teammates with?'),
                                                      help_text=_(
-                                                         'Note: Please enter their exact Lichess usernames. All players must register. All players must join Slack. All players should also request each other.'))
+                                                         'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. All players must register. All players must join Slack. All players should also request each other.'))
             self.fields['avoid'] = forms.CharField(required=False, label=_(
                 'Are there any players you would NOT like to be teammates with?'),
                                                    help_text=_(
-                                                       'Note: Please enter their exact Lichess usernames.'))
+                                                       'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Lou-E, glbert, M0r1'))
         else:
             del self.fields['friends']
             del self.fields['avoid']
