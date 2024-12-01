@@ -1,3 +1,4 @@
+from heltour.settings import *
 
 ALLOWED_HOSTS = [
     # FIXME: is lichess4545.tv still used? the domain doesn't currently resolve
