@@ -11,12 +11,9 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 '''
 
 import os
-import re
-import json
 from datetime import timedelta
 
 ADMINS = []
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,23 +22,23 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e')
-
-def truthy(v):
-    if v and (v is True or re.match(r'\s*(y|yes|t|true|1)\s*', v, re.IGNORECASE)):
-        return True
-    return False
-
+SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = truthy(os.getenv('DJANGO_DEBUG', False))
-TESTING = truthy(os.getenv('DJANGO_TESTING', False))
+DEBUG = False
 
-ALLOWED_HOSTS = []
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-LINK_PROTOCOL = os.getenv('HELTOUR_LINK_PROTOCOL', 'https')
+ALLOWED_HOSTS = [
+    'www.lichess4545.tv',
+    'lichess4545.tv',
+    'www.lichess4545.com',
+    'lichess4545.com',
+    'heltour.lakin.ca',
+    'heltour.lakin.ca',
+    'localhost',
+]
+LINK_PROTOCOL = 'https'
 
 # Application definition
 
@@ -49,8 +46,6 @@ if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
     HELTOUR_APP = 'api_worker'
 else:
     HELTOUR_APP = 'tournament'
-
-HELTOUR_STAGING = truthy(os.getenv('HELTOUR_STAGING'))
 
 INSTALLED_APPS = [
     'cacheops',
@@ -66,17 +61,20 @@ INSTALLED_APPS = [
     'bootstrap3',
     'ckeditor',
     'ckeditor_uploader',
+    'debug_toolbar',
     'django_comments',
     'heltour.comments',
     'django_recaptcha',
     'impersonate',
+    'static_precompiler',
 ]
 
 COMMENTS_APP = 'heltour.comments'
 
-API_WORKER_HOST = os.getenv('HELTOUR_API_WORKER_HOST', 'http://localhost:8880')
+API_WORKER_HOST = 'http://localhost:8880'
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -111,40 +109,32 @@ WSGI_APPLICATION = 'heltour.wsgi.application'
 
 SITE_ID = 1
 
-if os.getenv('DJANGO_LOGGING_CONFIG'):
-    LOGGING = json.loads(os.getenv('DJANGO_LOGGING_CONFIG'))
-else:
-    log_level = os.getenv('DJANGO_LOGGING_LEVEL', 'DEBUG')
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-            },
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
         },
-        'root': {
-            'handlers': ['console'],
-            'level': log_level,
-        },
-    }
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-if os.getenv('DJANGO_DATABASE_CONFIG'):
-    LOGGING = json.loads(os.getenv('DJANGO_DATABASE_CONFIG'))
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'HOST': os.getenv('DJANGO_DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
-            'NAME': os.getenv('DJANGO_DB_NAME'),
-            'USER': os.getenv('DJANGO_DB_USER'),
-            'PASSWORD': os.getenv('DJANGO_DB_PASS'),
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': 'localhost',
+        'NAME': 'heltour_lichess4545',
+        'USER': 'heltour_lichess4545',
+        'PASSWORD': 'sown shuts combiner chattels',
     }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -178,8 +168,6 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 # Email
@@ -189,7 +177,7 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess.org'
 
 # Celery (tasks)
 
-BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')
+BROKER_URL = 'redis://localhost:6379/1'
 CELERY_DEFAULT_QUEUE = 'heltour.live'
 
 CELERYBEAT_SCHEDULE = {
@@ -247,7 +235,7 @@ CELERY_TIMEZONE = 'UTC'
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.getenv('DJANGO_CACHE_URL', 'redis://127.0.0.1:6379/1'),
+        'LOCATION': 'redis://127.0.0.1:6379/1',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
@@ -267,9 +255,9 @@ STATIC_PRECOMPILER_COMPILERS = (
     }),
 )
 STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
-    },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+        },
 }
 
 BOOTSTRAP3 = {
@@ -296,10 +284,14 @@ RECAPTCHA_USE_SSL = True
 LOGIN_URL = '/admin/login/'
 SESSION_COOKIE_AGE = 4838400  # 8 weeks
 
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '::1']
 
-CACHEOPS_ENABLED = True
-CACHEOPS_REDIS = os.getenv('DJANGO_CACHEOPS_URL', 'redis://localhost:6379/1')
+CACHEOPS_REDIS = {
+    'host': 'localhost',
+    'port': 6379,
+    'db': 1,
+}
 CACHEOPS_DEGRADE_ON_FAILURE = True
 CACHEOPS_DEFAULTS = {
     'timeout': 60*60
@@ -312,19 +304,20 @@ CACHEOPS = {
     '*.*': {},
 }
 
+CACHEOPS_ENABLED = True
+
 TEAMGEN_PROCESSES_NUMBER = 8
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = os.getenv('HELTOUR_GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH')
-SLACK_API_TOKEN_FILE_PATH = os.getenv('HELTOUR_SLACK_API_TOKEN_FILE_PATH')
-SLACK_WEBHOOK_FILE_PATH = os.getenv('HELTOUR_SLACK_WEBHOOK_FILE_PATH')
-LICHESS_API_TOKEN_FILE_PATH = os.getenv('HELTOUR_LICHESS_API_TOKEN_FILE_PATH')
-FCM_API_KEY_FILE_PATH = os.getenv('HELTOUR_FCM_API_KEY_FILE_PATH')
-
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
+SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
+SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
+LICHESS_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/lichess-api-token.conf'
 JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
+FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
 
-SLACK_APP_TOKEN = os.getenv('HELTOUR_SLACK_APP_TOKEN', '')
-SLACK_ANNOUNCE_CHANNEL = os.getenv('HELTOUR_SLACK_ANNOUNCE_CHANNEL', 'C2UP34BCZ')
-CHESSTER_USER_ID = os.getenv('HELTOUR_CHESSTER_USER_ID', 'U0VCPUT7T')
+SLACK_APP_TOKEN = ''
+SLACK_ANNOUNCE_CHANNEL = 'C2UP34BCZ'
+CHESSTER_USER_ID = 'U0VCPUT7T'
 
 LICHESS_NAME = 'lichess'
 LICHESS_TOPLEVEL = 'org'
