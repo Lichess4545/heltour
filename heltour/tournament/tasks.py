@@ -5,8 +5,6 @@ from heltour import settings
 from heltour.celery import app
 from heltour.tournament.workflows import RoundTransitionWorkflow
 
-from django_stubs_ext import ValuesQuerySet
-
 from django.core.cache import cache
 from django.db.models import QuerySet, Q
 from django.db.models.signals import post_save
@@ -23,13 +21,12 @@ import sys, traceback
 
 logger = get_task_logger(__name__)
 
-UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
-def to_usernames(users: UsernamesQuerySet):
+def to_usernames(users):
     return [p['lichess_username'] for p in users if p['lichess_username'].strip()]
 
 
-def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
+def just_username(qs):
     return qs \
         .order_by('lichess_username') \
         .distinct('lichess_username') \
@@ -70,7 +67,7 @@ def update_player_ratings():
 
 
 
-def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
+def pairings_that_need_ratings():
     return PlayerPairing.objects.exclude(
             game_link='',
             result=''

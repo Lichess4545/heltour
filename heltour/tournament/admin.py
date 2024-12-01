@@ -419,7 +419,7 @@ class SeasonAdmin(_BaseAdmin):
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
             raise PermissionDenied
-        if not settings.DEBUG and not settings.STAGING:
+        if not settings.DEBUG and not settings.HELTOUR_STAGING:
             self.message_user(request, 'Results can\'t be simulated in a live environment',
                               messages.ERROR)
             return
@@ -1299,7 +1299,7 @@ class RoundAdmin(_BaseAdmin):
         return redirect('admin:generate_pairings', object_id=queryset[0].pk)
 
     def simulate_results(self, request, queryset):
-        if not settings.DEBUG and not settings.STAGING:
+        if not settings.DEBUG and not settings.HELTOUR_STAGING:
             self.message_user(request, 'Results can\'t be simulated in a live environment',
                               messages.ERROR)
             return

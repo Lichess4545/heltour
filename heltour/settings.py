@@ -49,6 +49,8 @@ if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
 else:
     HELTOUR_APP = 'tournament'
 
+HELTOUR_STAGING = truthy(os.getenv('HELTOUR_STAGING'))
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -122,7 +124,7 @@ else:
         },
         'root': {
             'handlers': ['console'],
-            'level': log_evel,
+            'level': log_level,
         },
     }
 
@@ -135,11 +137,11 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'HOST': os.getenv('DJANGO_DB_HOST'),
-            'PORT': os.getenv('DJANGO_DB_PORT'),
+            'HOST': os.getenv('DJANGO_DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
             'NAME': os.getenv('DJANGO_DB_NAME'),
             'USER': os.getenv('DJANGO_DB_USER'),
-            'PASSWORD': os.getenv('DJANGO_DB_PASSWORD'),
+            'PASSWORD': os.getenv('DJANGO_DB_PASS'),
         }
     }
 
@@ -186,7 +188,7 @@ DEFAULT_FROM_EMAIL = 'noreply@lichess.org'
 
 # Celery (tasks)
 
-BROKER_URL = os.getenv('HELTOUR_BROKER_URL', 'redis://localhost:6379/1')
+BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1')
 CELERY_DEFAULT_QUEUE = 'heltour.live'
 
 CELERYBEAT_SCHEDULE = {
@@ -299,16 +301,11 @@ CACHEOPS = {
 
 TEAMGEN_PROCESSES_NUMBER = 8
 
-GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = os.getenv(
-    'HELTOUR_GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH', '/home/lichess4545/etc/heltour/gspread.conf')
-SLACK_API_TOKEN_FILE_PATH = os.getenv(
-    'SLACK_API_TOKEN_FILE_PATH', '/home/lichess4545/etc/heltour/slack-token.conf')
-SLACK_WEBHOOK_FILE_PATH = os.getenv(
-    'SLACK_WEBHOOK_FILE_PATH', '/home/lichess4545/etc/heltour/slack-webhook.conf')
-LICHESS_API_TOKEN_FILE_PATH = os.getenv(
-    'LICHESS_API_TOKEN_FILE_PATH', '/home/lichess4545/etc/heltour/lichess-api-token.conf')
-FCM_API_KEY_FILE_PATH = os.getenv(
-    'FCM_API_KEY_FILE_PATH', '/home/lichess4545/etc/heltour/fcm-key.conf')
+GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = os.getenv('HELTOUR_GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH')
+SLACK_API_TOKEN_FILE_PATH = os.getenv('HELTOUR_SLACK_API_TOKEN_FILE_PATH')
+SLACK_WEBHOOK_FILE_PATH = os.getenv('HELTOUR_SLACK_WEBHOOK_FILE_PATH')
+LICHESS_API_TOKEN_FILE_PATH = os.getenv('HELTOUR_LICHESS_API_TOKEN_FILE_PATH')
+FCM_API_KEY_FILE_PATH = os.getenv('HELTOUR_FCM_API_KEY_FILE_PATH')
 
 JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
 

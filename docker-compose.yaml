@@ -3,7 +3,14 @@ services:
     build: .
     ports:
       - "8000:8000"
-    command: ["python", "manage.py", "runserver"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    environment:
+      DJANGO_DB_HOST: postgres
+      DJANGO_DB_PORT: 5432
+      DJANGO_DB_USER: local
+      DJANGO_DB_PASS: password
+      DJANGO_SETTINGS_MODULE: heltour.settings_development
+      
     develop:
       watch:
         - action: sync
@@ -11,5 +18,12 @@ services:
           target: /usr/src/heltour
   redis:
     image: "redis:alpine"
+    ports:
+      - 6379:6379
   postgres:
     image: "postgres:alpine"
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: password

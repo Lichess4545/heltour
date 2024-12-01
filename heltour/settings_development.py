@@ -1,5 +1,6 @@
 from heltour.settings import *
 
+DEBUG=True
 ALLOWED_HOSTS = ['localhost']
 
 LINK_PROTOCOL = os.getenv('HELTOUR_LINK_PROTOCOL', 'http')
