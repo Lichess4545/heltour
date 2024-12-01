@@ -14,3 +14,9 @@ INSTALLED_APPS =  INSTALLED_APPS + [
 MIDDLEWARE = ['debug_toolbar.middleware.DebugToolbarMiddleware'] + MIDDLEWARE
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    },
+}
