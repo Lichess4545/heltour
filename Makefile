@@ -1,4 +1,4 @@
-.PHONY: docker
+.PHONY: docker-build server migrate collectstatic init docker-run up up-deps
 
 export DJANGO_DB_HOST=127.0.0.1
 export DJANGO_DB_PORT=5432
@@ -8,16 +8,20 @@ export DJANGO_SETTINGS_MODULE=heltour.settings_development
 
 
 server:
-	python ./manage.py runserver
+	python manage.py runserver
 
 
 migrate:
-	python ./manage.py migrate
+	python manage.py migrate
 
 collectstatic:
-	python ./manage.py collectstatic
+	python manage.py collectstatic
 
-init: collectstatic migrate
+createsuperuser:
+	python manage.py createsuperuser
+	
+
+init: collectstatic migrate createsuperuser
 
 docker-build:
 	docker build --target app -t lichess4545/heltour:latest .
@@ -32,3 +36,4 @@ up:
 
 up-deps:
 	docker compose up redis postgres
+
