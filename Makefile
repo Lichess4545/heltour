@@ -1,15 +1,19 @@
-.PHONY: docker-build server migrate collectstatic init docker-run up up-deps
+.PHONY: docker-build server migrate collectstatic init docker-run up up-deps celery
 
 export DJANGO_DB_HOST=127.0.0.1
 export DJANGO_DB_PORT=5432
 export DJANGO_DB_USER=local
 export DJANGO_DB_PASS=password
 export DJANGO_SETTINGS_MODULE=heltour.settings_development
-
+export DJANGO_CACHE_URL=redis://redis:6379/1
+export DJANGO_CACHEOPS_URL=redis://redis:6379/1
+export CELERY_BROKER_URL=redis://redis:6379/2
 
 server:
 	python manage.py runserver
 
+celery:
+	celery -A heltour worker -B -c 1 --loglevel INFO -O fair
 
 migrate:
 	python manage.py migrate
@@ -19,7 +23,6 @@ collectstatic:
 
 createsuperuser:
 	python manage.py createsuperuser
-	
 
 init: collectstatic migrate createsuperuser
 

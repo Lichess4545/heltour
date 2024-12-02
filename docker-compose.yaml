@@ -10,7 +10,28 @@ services:
       DJANGO_DB_USER: local
       DJANGO_DB_PASS: password
       DJANGO_SETTINGS_MODULE: heltour.settings_development
+      DJANGO_CACHE_URL: redis://redis:6379/1
+      DJANGO_CACHEOPS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/2
       
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /usr/src/heltour
+  celery:
+    build: .
+    command: ["celery", "-A", "heltour", "worker", "-B", "-c", "1", "--loglevel", "INFO", "-O", "fair"]
+    environment:
+      DJANGO_DB_HOST: postgres
+      DJANGO_DB_PORT: 5432
+      DJANGO_DB_USER: local
+      DJANGO_DB_PASS: password
+      DJANGO_SETTINGS_MODULE: heltour.settings_development
+      DJANGO_CACHE_URL: redis://redis:6379/1
+      DJANGO_CACHEOPS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/2
+
     develop:
       watch:
         - action: sync
