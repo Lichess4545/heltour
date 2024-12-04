@@ -731,7 +731,7 @@ class OauthToken(_BaseModel):
         return self.account_username
 
 
-username_validator = RegexValidator('^[\\w-]+$')
+username_validator = RegexValidator(r'^[\w-]+$')
 
 ACCOUNT_STATUS_OPTIONS = (
     ('normal', 'Normal'),
