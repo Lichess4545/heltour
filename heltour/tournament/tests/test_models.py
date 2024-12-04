@@ -1,7 +1,10 @@
 from django.test import TestCase
+from django.utils import timezone
 from datetime import datetime
-from .testutils import *
-
+from heltour.tournament.models import (Alternate, AlternateAssignment, AlternateBucket, League, LonePlayerPairing,
+                                       Player, PlayerBye, PlayerPairing, Round, Season, SeasonPlayer, Team,
+                                       TeamPairing, TeamPlayerPairing, TeamScore)
+from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, set_rating
 
 class SeasonTestCase(TestCase):
     def setUp(self):

@@ -1,5 +1,8 @@
 from django.test import TestCase
-from .testutils import *
+from django.contrib.auth.models import User
+from heltour.tournament.models import Season
+from heltour.tournament.tests.testutils import (createCommonLeagueData, create_reg, get_season,
+                                                league_url, reverse, season_url)
 
 
 # For now we just have sanity checks for the templates used
