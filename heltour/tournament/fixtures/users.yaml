@@ -1,0 +1,34 @@
+- model: auth.User
+  pk: 1
+  fields:
+    username: admin
+    password: pbkdf2_sha256$600000$NLLY3rixFUE48mItvJ2rvf$pQf/zFi3e5UvaIG0F3OBxP48Ol/0/KbKzuWYyi2MC/0=
+    is_active: true
+    is_staff: true
+    is_superuser: true
+- model: auth.User
+  pk: 2
+  fields:
+    username: nic_west
+    password: pbkdf2_sha256$600000$IZanVLd6sSm8lHmvHtUUeq$Bhgf95/GbzayJDtWV/HLg/qh6cYtfIvIfZvJulaA4tM=
+    is_active: true
+- model: tournament.Player
+  pk: 2
+  fields:
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+    lichess_username: nic_west
+    rating: 2800
+- model: auth.User
+  pk: 3
+  fields:
+    username: nic_guessed
+    password: pbkdf2_sha256$600000$o2UAEnb8RXKzWYlB1ZZCVR$GqDpUsXmiNyOnq8x8PJksgn4qSDLbTkNHzzWn1e+wR0=
+    is_active: true
+- model: tournament.Player
+  pk: 3
+  fields:
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+    lichess_username: nic_guessed
+    rating: 600
