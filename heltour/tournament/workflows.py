@@ -26,8 +26,7 @@ from heltour.tournament.models import (
     TeamMember,
     find,
 )
-
-from . import alternates_manager
+from heltour.tournament.utils import current_round
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +266,7 @@ class UpdateBoardOrderWorkflow:
                 old_order = {m.board_number: m for m in members}
                 new_order = {m.board_number: m for m in members}
 
-                alternate_search_round = alternates_manager.current_round(self.season)
+                alternate_search_round = current_round(self.season)
 
                 def invariant(board_num):
                     search = AlternateSearch.objects.filter(
