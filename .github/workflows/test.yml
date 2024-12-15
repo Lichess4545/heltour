@@ -18,8 +18,8 @@ jobs:
           poetry install --with dev
       - name: Lint
         run:
-          ruff format --check heltour/
-          ruff check heltour/
+          poetry run ruff format --check heltour/
+          poetry run ruff check heltour/
       - name: Test
         run:
-          python manage.py test --settings=heltour.settings_test
+          poetry run python manage.py test --settings=heltour.settings_test

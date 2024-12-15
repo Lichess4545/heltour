@@ -2,7 +2,6 @@ name: Build and Push
 on:
   push:
     branch:
-      - docker 
       - master
 jobs:
   Build-And-Push:
