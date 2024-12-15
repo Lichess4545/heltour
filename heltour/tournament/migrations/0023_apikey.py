@@ -7,23 +7,37 @@ import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0022_auto_20160724_1859'),
+        ("tournament", "0022_auto_20160724_1859"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ApiKey',
+            name="ApiKey",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255, unique=True)),
-                ('secret_token', models.CharField(default=heltour.tournament.models.create_api_token, max_length=255, unique=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255, unique=True)),
+                (
+                    "secret_token",
+                    models.CharField(
+                        default=heltour.tournament.models.create_api_token,
+                        max_length=255,
+                        unique=True,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

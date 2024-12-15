@@ -6,15 +6,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0148_player_timezone_offset'),
+        ("tournament", "0148_player_timezone_offset"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='player',
-            name='account_status',
-            field=models.CharField(choices=[('normal', 'Normal'), ('engine', 'Engine'), ('booster', 'Booster'), ('closed', 'Closed')], default='normal', max_length=31),
+            model_name="player",
+            name="account_status",
+            field=models.CharField(
+                choices=[
+                    ("normal", "Normal"),
+                    ("engine", "Engine"),
+                    ("booster", "Booster"),
+                    ("closed", "Closed"),
+                ],
+                default="normal",
+                max_length=31,
+            ),
         ),
     ]

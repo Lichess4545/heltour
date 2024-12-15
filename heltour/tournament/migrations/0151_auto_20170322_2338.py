@@ -6,14 +6,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0150_team_slack_channel'),
+        ("tournament", "0150_team_slack_channel"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='season',
-            options={'ordering': ['league__name', '-name'], 'permissions': (('manage_players', 'Can manage players'), ('review_nominated_games', 'Can review nominated games'))},
+            name="season",
+            options={
+                "ordering": ["league__name", "-name"],
+                "permissions": (
+                    ("manage_players", "Can manage players"),
+                    ("review_nominated_games", "Can review nominated games"),
+                ),
+            },
         ),
     ]

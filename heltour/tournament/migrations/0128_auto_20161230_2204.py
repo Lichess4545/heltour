@@ -6,15 +6,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0127_auto_20161230_1947'),
+        ("tournament", "0127_auto_20161230_1947"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alternate',
-            name='status',
-            field=models.CharField(blank=True, choices=[('waiting', 'Waiting'), ('contacted', 'Contacted'), ('accepted', 'Accepted'), ('declined', 'Declined'), ('unresponsive', 'Unresponsive')], default='waiting', max_length=31),
+            model_name="alternate",
+            name="status",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("waiting", "Waiting"),
+                    ("contacted", "Contacted"),
+                    ("accepted", "Accepted"),
+                    ("declined", "Declined"),
+                    ("unresponsive", "Unresponsive"),
+                ],
+                default="waiting",
+                max_length=31,
+            ),
         ),
     ]

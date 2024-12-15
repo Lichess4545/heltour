@@ -7,20 +7,23 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0139_merge'),
+        ("tournament", "0139_merge"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='leaguedocument',
-            name='document',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.Document'),
+            model_name="leaguedocument",
+            name="document",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Document"
+            ),
         ),
         migrations.AlterField(
-            model_name='seasondocument',
-            name='document',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.Document'),
+            model_name="seasondocument",
+            name="document",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Document"
+            ),
         ),
     ]

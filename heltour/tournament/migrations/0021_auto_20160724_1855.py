@@ -6,30 +6,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0020_auto_20160724_1649'),
+        ("tournament", "0020_auto_20160724_1649"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='registration',
-            name='agreed_to_rules',
+            model_name="registration",
+            name="agreed_to_rules",
             field=models.BooleanField(),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='already_in_slack_group',
+            model_name="registration",
+            name="already_in_slack_group",
             field=models.BooleanField(),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='can_commit',
+            model_name="registration",
+            name="can_commit",
             field=models.BooleanField(),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='has_played_20_games',
+            model_name="registration",
+            name="has_played_20_games",
             field=models.BooleanField(),
         ),
     ]

@@ -7,15 +7,14 @@ import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0076_auto_20160818_2336'),
+        ("tournament", "0076_auto_20160818_2336"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerlateregistration',
-            name='late_join_points',
+            model_name="playerlateregistration",
+            name="late_join_points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
     ]

@@ -6,14 +6,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0140_auto_20170122_1710'),
+        ("tournament", "0140_auto_20170122_1710"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='league',
-            options={'permissions': (('view_dashboard', 'Can view dashboard'),)},
+            name="league",
+            options={"permissions": (("view_dashboard", "Can view dashboard"),)},
         ),
     ]

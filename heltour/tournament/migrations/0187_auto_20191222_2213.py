@@ -7,15 +7,18 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0186_auto_20191222_0355'),
+        ("tournament", "0186_auto_20191222_0355"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='document',
-            name='owner',
-            field=select2.fields.ForeignKey(limit_choices_to=models.Q(is_staff=True), on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
+            model_name="document",
+            name="owner",
+            field=select2.fields.ForeignKey(
+                limit_choices_to=models.Q(is_staff=True),
+                on_delete=django.db.models.deletion.PROTECT,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

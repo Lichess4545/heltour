@@ -6,15 +6,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0129_auto_20161231_0108'),
+        ("tournament", "0129_auto_20161231_0108"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alternatesearch',
-            name='status',
-            field=models.CharField(blank=True, choices=[('started', 'Started'), ('all_contacted', 'All alternates contacted'), ('completed', 'Completed'), ('failed', 'Failed')], max_length=31),
+            model_name="alternatesearch",
+            name="status",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("started", "Started"),
+                    ("all_contacted", "All alternates contacted"),
+                    ("completed", "Completed"),
+                    ("failed", "Failed"),
+                ],
+                max_length=31,
+            ),
         ),
     ]

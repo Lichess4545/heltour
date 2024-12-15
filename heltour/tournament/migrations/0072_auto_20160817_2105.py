@@ -6,21 +6,20 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0071_auto_20160817_2044'),
+        ("tournament", "0071_auto_20160817_2044"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='roundchange',
-            name='player',
+            model_name="roundchange",
+            name="player",
         ),
         migrations.RemoveField(
-            model_name='roundchange',
-            name='round',
+            model_name="roundchange",
+            name="round",
         ),
         migrations.DeleteModel(
-            name='RoundChange',
+            name="RoundChange",
         ),
     ]

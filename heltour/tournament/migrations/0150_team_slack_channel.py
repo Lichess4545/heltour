@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0149_auto_20170307_1700'),
+        ("tournament", "0149_auto_20170307_1700"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='team',
-            name='slack_channel',
+            model_name="team",
+            name="slack_channel",
             field=models.CharField(blank=True, max_length=255),
         ),
     ]

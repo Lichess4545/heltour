@@ -6,19 +6,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0158_auto_20170801_0133'),
+        ("tournament", "0158_auto_20170801_0133"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerwarning',
-            name='type',
-            field=models.CharField(choices=[('unresponsive', 'Unresponsive'), ('card', 'Card')], max_length=255),
+            model_name="playerwarning",
+            name="type",
+            field=models.CharField(
+                choices=[("unresponsive", "Unresponsive"), ("card", "Card")],
+                max_length=255,
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='playerwarning',
-            unique_together=set([('round', 'player', 'type')]),
+            name="playerwarning",
+            unique_together=set([("round", "player", "type")]),
         ),
     ]

@@ -7,29 +7,50 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0086_auto_20160901_2352'),
+        ("tournament", "0086_auto_20160901_2352"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NavItem',
+            name="NavItem",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('order', models.PositiveIntegerField()),
-                ('text', models.CharField(max_length=255)),
-                ('path', models.CharField(blank=True, max_length=1023)),
-                ('league_relative', models.BooleanField(default=False)),
-                ('season_relative', models.BooleanField(default=False)),
-                ('append_separator', models.BooleanField(default=False)),
-                ('league', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.League')),
-                ('parent', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tournament.NavItem')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("order", models.PositiveIntegerField()),
+                ("text", models.CharField(max_length=255)),
+                ("path", models.CharField(blank=True, max_length=1023)),
+                ("league_relative", models.BooleanField(default=False)),
+                ("season_relative", models.BooleanField(default=False)),
+                ("append_separator", models.BooleanField(default=False)),
+                (
+                    "league",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.League",
+                    ),
+                ),
+                (
+                    "parent",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.NavItem",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0098_auto_20160916_1934'),
+        ("tournament", "0098_auto_20160916_1934"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='alternate',
-            name='priority_date_override',
+            model_name="alternate",
+            name="priority_date_override",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

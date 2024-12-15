@@ -8,25 +8,42 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0106_auto_20161031_0546'),
+        ("tournament", "0106_auto_20161031_0546"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alternateassignment',
-            name='replaced_player',
-            field=select2.fields.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='alternate_replacements', to='tournament.Player'),
+            model_name="alternateassignment",
+            name="replaced_player",
+            field=select2.fields.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="alternate_replacements",
+                to="tournament.Player",
+            ),
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='black',
-            field=select2.fields.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_black', to='tournament.Player'),
+            model_name="playerpairing",
+            name="black",
+            field=select2.fields.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="pairings_as_black",
+                to="tournament.Player",
+            ),
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='white',
-            field=select2.fields.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_white', to='tournament.Player'),
+            model_name="playerpairing",
+            name="white",
+            field=select2.fields.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="pairings_as_white",
+                to="tournament.Player",
+            ),
         ),
     ]

@@ -7,23 +7,36 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0182_auto_20180728_2344'),
+        ("tournament", "0182_auto_20180728_2344"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlayerSetting',
+            name="PlayerSetting",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('dark_mode', models.BooleanField(default=False)),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("dark_mode", models.BooleanField(default=False)),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Player",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

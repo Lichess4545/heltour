@@ -7,55 +7,54 @@ import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0074_auto_20160817_2247'),
+        ("tournament", "0074_auto_20160817_2247"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='late_join_points',
+            model_name="loneplayerscore",
+            name="late_join_points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='points',
+            model_name="loneplayerscore",
+            name="points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='tiebreak1',
+            model_name="loneplayerscore",
+            name="tiebreak1",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='tiebreak2',
+            model_name="loneplayerscore",
+            name="tiebreak2",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='tiebreak3',
+            model_name="loneplayerscore",
+            name="tiebreak3",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='loneplayerscore',
-            name='tiebreak4',
+            model_name="loneplayerscore",
+            name="tiebreak4",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='teampairing',
-            name='black_points',
+            model_name="teampairing",
+            name="black_points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='teampairing',
-            name='white_points',
+            model_name="teampairing",
+            name="white_points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='teamscore',
-            name='game_points',
+            model_name="teamscore",
+            name="game_points",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
     ]

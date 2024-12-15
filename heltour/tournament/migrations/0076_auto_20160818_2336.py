@@ -6,14 +6,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0075_auto_20160818_0456'),
+        ("tournament", "0075_auto_20160818_0456"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='season',
-            options={'permissions': (('manage_players', 'Can manage players'),)},
+            name="season",
+            options={"permissions": (("manage_players", "Can manage players"),)},
         ),
     ]

@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0013_auto_20160723_2003'),
+        ("tournament", "0013_auto_20160723_2003"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='player',
-            name='moderator_notes',
+            model_name="player",
+            name="moderator_notes",
             field=models.TextField(blank=True, max_length=4095),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='moderator_notes',
+            model_name="registration",
+            name="moderator_notes",
             field=models.TextField(blank=True, max_length=4095),
         ),
     ]

@@ -9,33 +9,38 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0171_auto_20171030_0044'),
+        ("tournament", "0171_auto_20171030_0044"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='leaguedocument',
-            name='allow_all_editors',
+            model_name="leaguedocument",
+            name="allow_all_editors",
         ),
         migrations.RemoveField(
-            model_name='seasondocument',
-            name='allow_all_editors',
+            model_name="seasondocument",
+            name="allow_all_editors",
         ),
         migrations.AddField(
-            model_name='document',
-            name='allow_editors',
-            field=models.BooleanField(default=False, verbose_name='Allow designated editors'),
+            model_name="document",
+            name="allow_editors",
+            field=models.BooleanField(
+                default=False, verbose_name="Allow designated editors"
+            ),
         ),
         migrations.AddField(
-            model_name='document',
-            name='owner',
-            field=select2.fields.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="document",
+            name="owner",
+            field=select2.fields.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='slack_username',
+            model_name="registration",
+            name="slack_username",
             field=models.CharField(blank=True, max_length=255),
         ),
     ]

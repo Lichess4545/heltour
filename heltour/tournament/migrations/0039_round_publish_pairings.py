@@ -6,16 +6,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0038_auto_20160729_2042'),
+        ("tournament", "0038_auto_20160729_2042"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='round',
-            name='publish_pairings',
+            model_name="round",
+            name="publish_pairings",
             field=models.BooleanField(default=False),
         ),
-        migrations.RunSQL('''UPDATE tournament_round SET publish_pairings=TRUE'''),
+        migrations.RunSQL("""UPDATE tournament_round SET publish_pairings=TRUE"""),
     ]

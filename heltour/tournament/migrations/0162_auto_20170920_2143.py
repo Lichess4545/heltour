@@ -8,20 +8,23 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0161_logintoken_username_hint'),
+        ("tournament", "0161_logintoken_username_hint"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='slackaccount',
-            name='lichess_username',
+            model_name="slackaccount",
+            name="lichess_username",
         ),
         migrations.AddField(
-            model_name='slackaccount',
-            name='player',
-            field=select2.fields.OneToOneField(default=None, on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="slackaccount",
+            name="player",
+            field=select2.fields.OneToOneField(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.Player",
+            ),
             preserve_default=False,
         ),
     ]

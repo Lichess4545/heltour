@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0141_auto_20170123_0040'),
+        ("tournament", "0141_auto_20170123_0040"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguedocument',
-            name='allow_all_editors',
+            model_name="leaguedocument",
+            name="allow_all_editors",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='seasondocument',
-            name='allow_all_editors',
+            model_name="seasondocument",
+            name="allow_all_editors",
             field=models.BooleanField(default=False),
         ),
     ]

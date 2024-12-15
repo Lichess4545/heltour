@@ -6,25 +6,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0177_auto_20180213_0433'),
+        ("tournament", "0177_auto_20180213_0433"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguesetting',
-            name='notify_for_comments',
+            model_name="leaguesetting",
+            name="notify_for_comments",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='notify_for_forfeits',
+            model_name="leaguesetting",
+            name="notify_for_forfeits",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='notify_for_latereg_and_withdraw',
+            model_name="leaguesetting",
+            name="notify_for_latereg_and_withdraw",
             field=models.BooleanField(default=True),
         ),
     ]

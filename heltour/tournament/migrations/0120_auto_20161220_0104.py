@@ -6,15 +6,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0119_auto_20161220_0100'),
+        ("tournament", "0119_auto_20161220_0100"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='leaguechannel',
-            name='type',
-            field=models.CharField(choices=[('mod', 'Mods'), ('captains', 'Captains'), ('scheduling', 'Scheduling')], max_length=255),
+            model_name="leaguechannel",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("mod", "Mods"),
+                    ("captains", "Captains"),
+                    ("scheduling", "Scheduling"),
+                ],
+                max_length=255,
+            ),
         ),
     ]

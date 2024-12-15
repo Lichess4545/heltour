@@ -6,100 +6,149 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0187_auto_20191222_2213'),
+        ("tournament", "0187_auto_20191222_2213"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alternateassignment',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="alternateassignment",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='alternateassignment',
-            name='replaced_player',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='alternate_replacements', to='tournament.Player'),
+            model_name="alternateassignment",
+            name="replaced_player",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="alternate_replacements",
+                to="tournament.Player",
+            ),
         ),
         migrations.AlterField(
-            model_name='availabletime',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="availabletime",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='document',
-            name='owner',
-            field=models.ForeignKey(limit_choices_to=models.Q(is_staff=True), on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
+            model_name="document",
+            name="owner",
+            field=models.ForeignKey(
+                limit_choices_to=models.Q(is_staff=True),
+                on_delete=django.db.models.deletion.PROTECT,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='gamenomination',
-            name='nominating_player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="gamenomination",
+            name="nominating_player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='leaguemoderator',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="leaguemoderator",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='modrequest',
-            name='requester',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="modrequest",
+            name="requester",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playeravailability',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playeravailability",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playerbye',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playerbye",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playerlateregistration',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playerlateregistration",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playernotificationsetting',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playernotificationsetting",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='black',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_black', to='tournament.Player'),
+            model_name="playerpairing",
+            name="black",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="pairings_as_black",
+                to="tournament.Player",
+            ),
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='white',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_white', to='tournament.Player'),
+            model_name="playerpairing",
+            name="white",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="pairings_as_white",
+                to="tournament.Player",
+            ),
         ),
         migrations.AlterField(
-            model_name='playerwarning',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playerwarning",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='playerwithdrawal',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playerwithdrawal",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='seasonplayer',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="seasonplayer",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='seasonprizewinner',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="seasonprizewinner",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterField(
-            model_name='teammember',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="teammember",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
     ]

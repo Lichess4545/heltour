@@ -7,15 +7,19 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0169_registration_section_preference'),
+        ("tournament", "0169_registration_section_preference"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='registration',
-            name='section_preference',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='tournament.Section'),
+            model_name="registration",
+            name="section_preference",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="tournament.Section",
+            ),
         ),
     ]

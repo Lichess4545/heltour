@@ -7,44 +7,75 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0005_auto_20160717_2320'),
+        ("tournament", "0005_auto_20160717_2320"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TeamPairing',
+            name="TeamPairing",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('white_points', models.PositiveIntegerField(default=0)),
-                ('black_points', models.PositiveIntegerField(default=0)),
-                ('black_team', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_black', to='tournament.Team')),
-                ('round', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Round')),
-                ('white_team', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pairings_as_white', to='tournament.Team')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("white_points", models.PositiveIntegerField(default=0)),
+                ("black_points", models.PositiveIntegerField(default=0)),
+                (
+                    "black_team",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="pairings_as_black",
+                        to="tournament.Team",
+                    ),
+                ),
+                (
+                    "round",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Round",
+                    ),
+                ),
+                (
+                    "white_team",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="pairings_as_white",
+                        to="tournament.Team",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.RemoveField(
-            model_name='pairing',
-            name='black_team',
+            model_name="pairing",
+            name="black_team",
         ),
         migrations.RemoveField(
-            model_name='pairing',
-            name='round',
+            model_name="pairing",
+            name="round",
         ),
         migrations.RemoveField(
-            model_name='pairing',
-            name='white_team',
+            model_name="pairing",
+            name="white_team",
         ),
         migrations.AddField(
-            model_name='pairing',
-            name='team_pairing',
-            field=models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to='tournament.TeamPairing'),
+            model_name="pairing",
+            name="team_pairing",
+            field=models.ForeignKey(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.TeamPairing",
+            ),
             preserve_default=False,
         ),
     ]

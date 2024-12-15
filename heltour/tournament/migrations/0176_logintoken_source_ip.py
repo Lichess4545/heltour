@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0175_auto_20180117_2042'),
+        ("tournament", "0175_auto_20180117_2042"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='logintoken',
-            name='source_ip',
+            model_name="logintoken",
+            name="source_ip",
             field=models.GenericIPAddressField(blank=True, null=True),
         ),
     ]

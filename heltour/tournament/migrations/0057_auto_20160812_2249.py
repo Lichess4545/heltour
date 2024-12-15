@@ -6,20 +6,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0056_auto_20160810_0204'),
+        ("tournament", "0056_auto_20160810_0204"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='league',
-            name='tag',
-            field=models.SlugField(help_text='The league will be accessible at /{league_tag}/', unique=True),
+            model_name="league",
+            name="tag",
+            field=models.SlugField(
+                help_text="The league will be accessible at /{league_tag}/", unique=True
+            ),
         ),
         migrations.AlterField(
-            model_name='leaguedocument',
-            name='tag',
-            field=models.SlugField(help_text='The document will be accessible at /{league_tag}/document/{document_tag}/'),
-        )
+            model_name="leaguedocument",
+            name="tag",
+            field=models.SlugField(
+                help_text="The document will be accessible at /{league_tag}/document/{document_tag}/"
+            ),
+        ),
     ]

@@ -6,21 +6,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0061_auto_20160813_2319'),
+        ("tournament", "0061_auto_20160813_2319"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='league',
-            name='display_order',
+            model_name="league",
+            name="display_order",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='league',
-            name='theme',
-            field=models.CharField(choices=[('blue', 'Blue'), ('green', 'Green')], default='blue', max_length=32),
+            model_name="league",
+            name="theme",
+            field=models.CharField(
+                choices=[("blue", "Blue"), ("green", "Green")],
+                default="blue",
+                max_length=32,
+            ),
             preserve_default=False,
         ),
     ]

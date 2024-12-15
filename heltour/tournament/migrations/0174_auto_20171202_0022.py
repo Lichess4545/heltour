@@ -9,16 +9,19 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0173_set_document_owners'),
+        ("tournament", "0173_set_document_owners"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='document',
-            name='owner',
-            field=select2.fields.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="document",
+            name="owner",
+            field=select2.fields.ForeignKey(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
             preserve_default=False,
         ),
     ]

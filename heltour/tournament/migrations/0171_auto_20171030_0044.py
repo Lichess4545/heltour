@@ -6,25 +6,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0170_auto_20171028_2128'),
+        ("tournament", "0170_auto_20171028_2128"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='registration',
-            name='classical_rating',
-            field=models.PositiveIntegerField(verbose_name='rating'),
+            model_name="registration",
+            name="classical_rating",
+            field=models.PositiveIntegerField(verbose_name="rating"),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='peak_classical_rating',
-            field=models.PositiveIntegerField(blank=True, null=True, verbose_name='peak rating'),
+            model_name="registration",
+            name="peak_classical_rating",
+            field=models.PositiveIntegerField(
+                blank=True, null=True, verbose_name="peak rating"
+            ),
         ),
         migrations.AlterField(
-            model_name='section',
-            name='name',
-            field=models.CharField(max_length=255, verbose_name='section name'),
+            model_name="section",
+            name="name",
+            field=models.CharField(max_length=255, verbose_name="section name"),
         ),
     ]

@@ -7,15 +7,19 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0083_auto_20160901_1905'),
+        ("tournament", "0083_auto_20160901_1905"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='gamenomination',
-            name='pairing',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='tournament.PlayerPairing'),
+            model_name="gamenomination",
+            name="pairing",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="tournament.PlayerPairing",
+            ),
         ),
     ]

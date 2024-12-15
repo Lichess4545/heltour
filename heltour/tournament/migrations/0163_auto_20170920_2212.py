@@ -6,26 +6,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0162_auto_20170920_2143'),
+        ("tournament", "0162_auto_20170920_2143"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='slackaccount',
-            name='player',
+            model_name="slackaccount",
+            name="player",
         ),
         migrations.RemoveField(
-            model_name='player',
-            name='in_slack_group',
+            model_name="player",
+            name="in_slack_group",
         ),
         migrations.AddField(
-            model_name='player',
-            name='slack_user_id',
+            model_name="player",
+            name="slack_user_id",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.DeleteModel(
-            name='SlackAccount',
+            name="SlackAccount",
         ),
     ]

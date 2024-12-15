@@ -6,21 +6,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0034_auto_20160728_2146'),
+        ("tournament", "0034_auto_20160728_2146"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='loneplayerpairing',
-            name='pairing_order',
+            model_name="loneplayerpairing",
+            name="pairing_order",
             field=models.PositiveIntegerField(default=0),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='teampairing',
-            name='pairing_order',
+            model_name="teampairing",
+            name="pairing_order",
             field=models.PositiveIntegerField(default=0),
             preserve_default=False,
         ),

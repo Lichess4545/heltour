@@ -7,15 +7,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0179_merge'),
+        ("tournament", "0179_merge"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguesetting',
-            name='contact_period',
+            model_name="leaguesetting",
+            name="contact_period",
             field=models.DurationField(default=datetime.timedelta(2)),
         ),
     ]

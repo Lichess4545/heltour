@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0130_auto_20161231_1642'),
+        ("tournament", "0130_auto_20161231_1642"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='registration',
-            name='validation_warning',
+            model_name="registration",
+            name="validation_warning",
             field=models.BooleanField(default=False),
         ),
     ]

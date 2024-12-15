@@ -6,20 +6,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0010_auto_20160720_0307'),
+        ("tournament", "0010_auto_20160720_0307"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='registration',
-            name='moderator_notes',
+            model_name="registration",
+            name="moderator_notes",
             field=models.CharField(blank=True, max_length=4095),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='previous_season_alternate',
-            field=models.CharField(choices=[('alternate', 'Yes, I was an alternate for at the end of the last season.'), ('alternate_to_full_time', 'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'), ('full_time', 'No, I was not an alternate for the last season. I played the season.'), ('new', 'No, I was not an alternate for the last season. I am a new member / I took last season off.')], max_length=255),
+            model_name="registration",
+            name="previous_season_alternate",
+            field=models.CharField(
+                choices=[
+                    (
+                        "alternate",
+                        "Yes, I was an alternate for at the end of the last season.",
+                    ),
+                    (
+                        "alternate_to_full_time",
+                        "Yes, but I was able to find a consistent team (did not simply fill in for a week or two).",
+                    ),
+                    (
+                        "full_time",
+                        "No, I was not an alternate for the last season. I played the season.",
+                    ),
+                    (
+                        "new",
+                        "No, I was not an alternate for the last season. I am a new member / I took last season off.",
+                    ),
+                ],
+                max_length=255,
+            ),
         ),
     ]

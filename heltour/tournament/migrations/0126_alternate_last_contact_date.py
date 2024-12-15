@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0125_player_account_status'),
+        ("tournament", "0125_player_account_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='alternate',
-            name='last_contact_date',
+            model_name="alternate",
+            name="last_contact_date",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

@@ -9,29 +9,69 @@ import re
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0082_privateurlauth'),
+        ("tournament", "0082_privateurlauth"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='GameNomination',
+            name="GameNomination",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('game_link', models.URLField(validators=[django.core.validators.RegexValidator(re.compile('^(https?://)?([a-z]+\\.)?lichess\\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\\?].*)?$'))])),
-                ('nominating_player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player')),
-                ('season', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Season')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "game_link",
+                    models.URLField(
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                re.compile(
+                                    "^(https?://)?([a-z]+\\.)?lichess\\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\\?].*)?$"
+                                )
+                            )
+                        ]
+                    ),
+                ),
+                (
+                    "nominating_player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Player",
+                    ),
+                ),
+                (
+                    "season",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Season",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='game_link',
-            field=models.URLField(blank=True, max_length=1024, validators=[django.core.validators.RegexValidator(re.compile('^(https?://)?([a-z]+\\.)?lichess\\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\\?].*)?$'))]),
+            model_name="playerpairing",
+            name="game_link",
+            field=models.URLField(
+                blank=True,
+                max_length=1024,
+                validators=[
+                    django.core.validators.RegexValidator(
+                        re.compile(
+                            "^(https?://)?([a-z]+\\.)?lichess\\.org/([A-Za-z0-9]{8})([A-Za-z0-9]{4})?([/#\\?].*)?$"
+                        )
+                    )
+                ],
+            ),
         ),
     ]

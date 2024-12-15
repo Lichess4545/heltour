@@ -6,14 +6,16 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0142_auto_20170124_0156'),
+        ("tournament", "0142_auto_20170124_0156"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='player',
-            options={'ordering': ['lichess_username'], 'permissions': (('invite_to_slack', 'Can invite to slack'),)},
+            name="player",
+            options={
+                "ordering": ["lichess_username"],
+                "permissions": (("invite_to_slack", "Can invite to slack"),),
+            },
         ),
     ]

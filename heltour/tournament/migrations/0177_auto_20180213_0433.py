@@ -6,35 +6,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0176_logintoken_source_ip'),
+        ("tournament", "0176_logintoken_source_ip"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguesetting',
-            name='carry_over_red_cards_as_yellow',
+            model_name="leaguesetting",
+            name="carry_over_red_cards_as_yellow",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='close_registration_at_last_round',
+            model_name="leaguesetting",
+            name="close_registration_at_last_round",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='notify_for_pre_season_registrations',
+            model_name="leaguesetting",
+            name="notify_for_pre_season_registrations",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='notify_for_registrations',
+            model_name="leaguesetting",
+            name="notify_for_registrations",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguesetting',
-            name='warning_for_late_response',
+            model_name="leaguesetting",
+            name="warning_for_late_response",
             field=models.BooleanField(default=True),
         ),
     ]

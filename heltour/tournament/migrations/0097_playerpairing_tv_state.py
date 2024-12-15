@@ -6,15 +6,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0096_teamscore_playoff_score'),
+        ("tournament", "0096_teamscore_playoff_score"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='playerpairing',
-            name='tv_state',
-            field=models.CharField(choices=[('default', 'Default'), ('hide', 'Hide')], default='default', max_length=31),
+            model_name="playerpairing",
+            name="tv_state",
+            field=models.CharField(
+                choices=[("default", "Default"), ("hide", "Hide")],
+                default="default",
+                max_length=31,
+            ),
         ),
     ]

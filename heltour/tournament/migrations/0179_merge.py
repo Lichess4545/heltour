@@ -6,11 +6,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0178_auto_20180213_0442'),
-        ('tournament', '0177_registration_avoid'),
+        ("tournament", "0178_auto_20180213_0442"),
+        ("tournament", "0177_registration_avoid"),
     ]
 
-    operations = [
-    ]
+    operations = []

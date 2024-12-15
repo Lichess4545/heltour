@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0088_merge'),
+        ("tournament", "0088_merge"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='season',
-            name='is_active',
+            model_name="season",
+            name="is_active",
             field=models.BooleanField(default=False),
         ),
     ]

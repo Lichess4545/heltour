@@ -6,11 +6,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0138_player_profile'),
-        ('tournament', '0138_leaguemoderator_is_active'),
+        ("tournament", "0138_player_profile"),
+        ("tournament", "0138_leaguemoderator_is_active"),
     ]
 
-    operations = [
-    ]
+    operations = []

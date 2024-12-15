@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0193_enable_round_start_mpim'),
+        ("tournament", "0193_enable_round_start_mpim"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='playerpairing',
-            name='date_player_changed',
+            model_name="playerpairing",
+            name="date_player_changed",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

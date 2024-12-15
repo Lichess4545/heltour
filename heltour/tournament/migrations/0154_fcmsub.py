@@ -6,23 +6,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0153_leaguesetting_max_game_nominations_per_user'),
+        ("tournament", "0153_leaguesetting_max_game_nominations_per_user"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FcmSub',
+            name="FcmSub",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('slack_user_id', models.CharField(max_length=31)),
-                ('reg_id', models.CharField(max_length=4096, unique=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("slack_user_id", models.CharField(max_length=31)),
+                ("reg_id", models.CharField(max_length=4096, unique=True)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

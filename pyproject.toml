@@ -61,6 +61,48 @@ patchwork = "1.0.1"
 fabric3 = "==1.14.post1"
 baste = { git = "https://bitbucket.org/strabs/baste.git", branch="release-2.2" }
 
+[tool.ruff]
+line-length= 88
+indent-width = 4
+target-version = "py311"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "strabulous.py",
+    "fabfile.py",
+    "bin/createteams.py",
+    "**/migrations/*.py",
+    "sysadmin/*.py",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0147_auto_20170223_2220'),
+        ("tournament", "0147_auto_20170223_2220"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='player',
-            name='timezone_offset',
+            model_name="player",
+            name="timezone_offset",
             field=models.DurationField(blank=True, null=True),
         ),
     ]

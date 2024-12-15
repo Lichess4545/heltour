@@ -8,43 +8,65 @@ import select2.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0116_auto_20161219_0043'),
+        ("tournament", "0116_auto_20161219_0043"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ScheduledNotification',
+            name="ScheduledNotification",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('notification_time', models.DateTimeField()),
-                ('pairing', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.PlayerPairing')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("notification_time", models.DateTimeField()),
+                (
+                    "pairing",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.PlayerPairing",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AlterField(
-            model_name='playernotificationsetting',
-            name='league',
-            field=models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to='tournament.League'),
+            model_name="playernotificationsetting",
+            name="league",
+            field=models.ForeignKey(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.League",
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='playernotificationsetting',
-            name='player',
-            field=select2.fields.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="playernotificationsetting",
+            name="player",
+            field=select2.fields.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='playernotificationsetting',
-            unique_together=set([('player', 'type', 'league', 'offset')]),
+            name="playernotificationsetting",
+            unique_together=set([("player", "type", "league", "offset")]),
         ),
         migrations.AddField(
-            model_name='schedulednotification',
-            name='setting',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.PlayerNotificationSetting'),
+            model_name="schedulednotification",
+            name="setting",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.PlayerNotificationSetting",
+            ),
         ),
     ]

@@ -6,25 +6,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0017_registration_status_changed_date'),
+        ("tournament", "0017_registration_status_changed_date"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='pairing',
-            name='date_played',
+            model_name="pairing",
+            name="date_played",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='end_date',
+            model_name="round",
+            name="end_date",
             field=models.DateTimeField(),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='start_date',
+            model_name="round",
+            name="start_date",
             field=models.DateTimeField(),
         ),
     ]

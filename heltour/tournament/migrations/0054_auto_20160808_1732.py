@@ -6,15 +6,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0053_team_seed_rating'),
+        ("tournament", "0053_team_seed_rating"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='leaguedocument',
-            name='type',
-            field=models.CharField(blank=True, choices=[('faq', 'FAQ'), ('rules', 'Rules'), ('intro', 'Intro'), ('slack-welcome', 'Slack Welcome')], max_length=255),
+            model_name="leaguedocument",
+            name="type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("faq", "FAQ"),
+                    ("rules", "Rules"),
+                    ("intro", "Intro"),
+                    ("slack-welcome", "Slack Welcome"),
+                ],
+                max_length=255,
+            ),
         ),
     ]

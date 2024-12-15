@@ -6,19 +6,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0051_playeravailability'),
+        ("tournament", "0051_playeravailability"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='playeravailability',
-            options={'verbose_name_plural': 'player availabilities'},
+            name="playeravailability",
+            options={"verbose_name_plural": "player availabilities"},
         ),
         migrations.AddField(
-            model_name='seasonplayer',
-            name='unresponsive',
+            model_name="seasonplayer",
+            name="unresponsive",
             field=models.BooleanField(default=False),
         ),
     ]

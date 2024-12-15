@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0122_auto_20161221_0450'),
+        ("tournament", "0122_auto_20161221_0450"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='registration',
-            name='username_exists',
+            model_name="registration",
+            name="username_exists",
             field=models.NullBooleanField(default=None),
         ),
     ]

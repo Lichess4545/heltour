@@ -7,20 +7,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0097_playerpairing_tv_state'),
+        ("tournament", "0097_playerpairing_tv_state"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='player',
-            name='in_slack_group',
+            model_name="player",
+            name="in_slack_group",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='registration',
-            name='lichess_username',
-            field=models.CharField(max_length=255, validators=[django.core.validators.RegexValidator('^[\\w-]+$')]),
+            model_name="registration",
+            name="lichess_username",
+            field=models.CharField(
+                max_length=255,
+                validators=[django.core.validators.RegexValidator("^[\\w-]+$")],
+            ),
         ),
     ]

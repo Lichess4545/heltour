@@ -1,11 +1,9 @@
-from heltour.settings_development import *
+from heltour.settings_development import *  # noqa: F403
 
 CACHEOPS = {
-    '*.*': {'ops': ()},
+    "*.*": {"ops": ()},
 }
 CACHEOPS_ENABLED = False
 STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
-    },
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }

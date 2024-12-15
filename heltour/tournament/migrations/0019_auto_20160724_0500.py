@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0018_auto_20160724_0342'),
+        ("tournament", "0018_auto_20160724_0342"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='round',
-            name='end_date',
+            model_name="round",
+            name="end_date",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='start_date',
+            model_name="round",
+            name="start_date",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

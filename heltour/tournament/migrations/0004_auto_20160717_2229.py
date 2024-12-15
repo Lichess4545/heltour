@@ -6,21 +6,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0003_auto_20160717_2154'),
+        ("tournament", "0003_auto_20160717_2154"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pairing',
-            name='board_number',
-            field=models.PositiveIntegerField(choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6')], default=1),
+            model_name="pairing",
+            name="board_number",
+            field=models.PositiveIntegerField(
+                choices=[(1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "5"), (6, "6")],
+                default=1,
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='teammember',
-            name='board_number',
-            field=models.PositiveIntegerField(blank=True, choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6')], null=True),
+            model_name="teammember",
+            name="board_number",
+            field=models.PositiveIntegerField(
+                blank=True,
+                choices=[(1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "5"), (6, "6")],
+                null=True,
+            ),
         ),
     ]

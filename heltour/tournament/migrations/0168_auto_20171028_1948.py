@@ -7,28 +7,31 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0167_auto_20171025_2304'),
+        ("tournament", "0167_auto_20171025_2304"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='section',
-            name='order',
+            model_name="section",
+            name="order",
             field=models.PositiveIntegerField(default=0),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='section',
-            name='name',
+            model_name="section",
+            name="name",
             field=models.CharField(default=0, max_length=255),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='section',
-            name='section_group',
-            field=models.ForeignKey(default=0, on_delete=django.db.models.deletion.CASCADE, to='tournament.SectionGroup'),
+            model_name="section",
+            name="section_group",
+            field=models.ForeignKey(
+                default=0,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.SectionGroup",
+            ),
             preserve_default=False,
         ),
     ]

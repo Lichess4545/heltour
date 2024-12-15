@@ -6,15 +6,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0110_scheduledevent'),
+        ("tournament", "0110_scheduledevent"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='scheduledevent',
-            name='type',
-            field=models.CharField(choices=[('notify_mods_unscheduled', 'Notify mods of unscheduled games'), ('notify_mods_no_result', 'Notify mods of games without results')], max_length=255),
+            model_name="scheduledevent",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("notify_mods_unscheduled", "Notify mods of unscheduled games"),
+                    ("notify_mods_no_result", "Notify mods of games without results"),
+                ],
+                max_length=255,
+            ),
         ),
     ]

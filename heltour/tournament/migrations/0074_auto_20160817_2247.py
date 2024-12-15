@@ -6,15 +6,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0073_auto_20160817_2107'),
+        ("tournament", "0073_auto_20160817_2107"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerbye',
-            name='type',
-            field=models.CharField(choices=[('full-point-pairing-bye', 'Full-Point Bye (Pairing)'), ('full-point-bye', 'Full-Point Bye'), ('half-point-bye', 'Half-Point Bye'), ('zero-point-bye', 'Zero-Point Bye')], max_length=31),
+            model_name="playerbye",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("full-point-pairing-bye", "Full-Point Bye (Pairing)"),
+                    ("full-point-bye", "Full-Point Bye"),
+                    ("half-point-bye", "Half-Point Bye"),
+                    ("zero-point-bye", "Zero-Point Bye"),
+                ],
+                max_length=31,
+            ),
         ),
     ]

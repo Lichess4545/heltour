@@ -6,26 +6,25 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0030_loneplayerpairing_teamplayerpairing'),
+        ("tournament", "0030_loneplayerpairing_teamplayerpairing"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='pairing',
+            name="pairing",
             unique_together=set([]),
         ),
         migrations.AlterUniqueTogether(
-            name='teamplayerpairing',
-            unique_together=set([('team_pairing', 'board_number')]),
+            name="teamplayerpairing",
+            unique_together=set([("team_pairing", "board_number")]),
         ),
         migrations.RemoveField(
-            model_name='pairing',
-            name='board_number',
+            model_name="pairing",
+            name="board_number",
         ),
         migrations.RemoveField(
-            model_name='pairing',
-            name='team_pairing',
+            model_name="pairing",
+            name="team_pairing",
         ),
     ]

@@ -6,15 +6,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0124_auto_20161228_2325'),
+        ("tournament", "0124_auto_20161228_2325"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='player',
-            name='account_status',
-            field=models.CharField(choices=[('normal', 'Normal'), ('engine', 'Engine'), ('booster', 'Booster')], default='normal', max_length=31),
+            model_name="player",
+            name="account_status",
+            field=models.CharField(
+                choices=[
+                    ("normal", "Normal"),
+                    ("engine", "Engine"),
+                    ("booster", "Booster"),
+                ],
+                default="normal",
+                max_length=31,
+            ),
         ),
     ]

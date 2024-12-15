@@ -6,15 +6,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0133_auto_20170103_2324'),
+        ("tournament", "0133_auto_20170103_2324"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='league',
-            name='theme',
-            field=models.CharField(choices=[('blue', 'Blue'), ('green', 'Green'), ('red', 'Red')], max_length=32),
+            model_name="league",
+            name="theme",
+            field=models.CharField(
+                choices=[("blue", "Blue"), ("green", "Green"), ("red", "Red")],
+                max_length=32,
+            ),
         ),
     ]

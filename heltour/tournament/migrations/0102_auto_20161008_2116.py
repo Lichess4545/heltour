@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0101_alternateassignment_replaced_player'),
+        ("tournament", "0101_alternateassignment_replaced_player"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='playerpairing',
-            name='black_rating',
+            model_name="playerpairing",
+            name="black_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='playerpairing',
-            name='white_rating',
+            model_name="playerpairing",
+            name="white_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

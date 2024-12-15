@@ -8,44 +8,46 @@ import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0079_loneplayerscore_perf_rating'),
+        ("tournament", "0079_loneplayerscore_perf_rating"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='player',
-            options={'ordering': ['lichess_username']},
+            name="player",
+            options={"ordering": ["lichess_username"]},
         ),
         migrations.AddField(
-            model_name='teampairing',
-            name='black_wins',
+            model_name="teampairing",
+            name="black_wins",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='teampairing',
-            name='white_wins',
+            model_name="teampairing",
+            name="white_wins",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='teamscore',
-            name='games_won',
+            model_name="teamscore",
+            name="games_won",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='teamscore',
-            name='head_to_head',
+            model_name="teamscore",
+            name="head_to_head",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='teamscore',
-            name='sb_score',
+            model_name="teamscore",
+            name="sb_score",
             field=heltour.tournament.models.ScoreField(default=0),
         ),
         migrations.AlterField(
-            model_name='player',
-            name='lichess_username',
-            field=models.CharField(max_length=255, validators=[django.core.validators.RegexValidator('^[\\w-]+$')]),
+            model_name="player",
+            name="lichess_username",
+            field=models.CharField(
+                max_length=255,
+                validators=[django.core.validators.RegexValidator("^[\\w-]+$")],
+            ),
         ),
     ]

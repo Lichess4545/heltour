@@ -6,22 +6,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0037_auto_20160729_2037'),
+        ("tournament", "0037_auto_20160729_2037"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='leaguedocument',
-            name='type',
-            field=models.CharField(blank=True, choices=[('faq', 'FAQ'), ('rules', 'Rules'), ('intro', 'Intro')], default='', max_length=255),
+            model_name="leaguedocument",
+            name="type",
+            field=models.CharField(
+                blank=True,
+                choices=[("faq", "FAQ"), ("rules", "Rules"), ("intro", "Intro")],
+                default="",
+                max_length=255,
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='player',
-            name='email',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="player",
+            name="email",
+            field=models.CharField(blank=True, default="", max_length=255),
             preserve_default=False,
         ),
     ]

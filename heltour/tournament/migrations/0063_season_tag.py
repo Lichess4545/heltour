@@ -6,16 +6,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0062_auto_20160814_0052'),
+        ("tournament", "0062_auto_20160814_0052"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='season',
-            name='tag',
-            field=models.SlugField(default='4', help_text='The season will be accessible at /{league_tag}/season/{season_tag}/'),
+            model_name="season",
+            name="tag",
+            field=models.SlugField(
+                default="4",
+                help_text="The season will be accessible at /{league_tag}/season/{season_tag}/",
+            ),
             preserve_default=False,
         ),
     ]

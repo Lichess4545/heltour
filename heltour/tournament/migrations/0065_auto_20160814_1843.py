@@ -7,39 +7,56 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0064_auto_20160814_1729'),
+        ("tournament", "0064_auto_20160814_1729"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='LonePlayerScore',
+            name="LonePlayerScore",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('points', models.PositiveIntegerField(default=0)),
-                ('late_join_points', models.PositiveIntegerField(default=0)),
-                ('tiebreak1', models.PositiveIntegerField(default=0)),
-                ('tiebreak2', models.PositiveIntegerField(default=0)),
-                ('tiebreak3', models.PositiveIntegerField(default=0)),
-                ('tiebreak4', models.PositiveIntegerField(default=0)),
-                ('season_player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.SeasonPlayer')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("points", models.PositiveIntegerField(default=0)),
+                ("late_join_points", models.PositiveIntegerField(default=0)),
+                ("tiebreak1", models.PositiveIntegerField(default=0)),
+                ("tiebreak2", models.PositiveIntegerField(default=0)),
+                ("tiebreak3", models.PositiveIntegerField(default=0)),
+                ("tiebreak4", models.PositiveIntegerField(default=0)),
+                (
+                    "season_player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.SeasonPlayer",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AddField(
-            model_name='roundchange',
-            name='player',
-            field=models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="roundchange",
+            name="player",
+            field=models.ForeignKey(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.Player",
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='season',
-            name='boards',
+            model_name="season",
+            name="boards",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

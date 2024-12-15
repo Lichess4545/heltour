@@ -6,26 +6,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0024_season_is_active'),
+        ("tournament", "0024_season_is_active"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='league',
-            name='is_active',
+            model_name="league",
+            name="is_active",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='league',
-            name='is_default',
+            model_name="league",
+            name="is_default",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='league',
-            name='tag',
-            field=models.CharField(default='team4545', max_length=31, unique=True),
+            model_name="league",
+            name="tag",
+            field=models.CharField(default="team4545", max_length=31, unique=True),
             preserve_default=False,
         ),
     ]

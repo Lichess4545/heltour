@@ -7,27 +7,70 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0109_auto_20161108_0128'),
+        ("tournament", "0109_auto_20161108_0128"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ScheduledEvent',
+            name="ScheduledEvent",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('type', models.CharField(choices=[('notify_mods_unscheduled', 'Notify mods of unscheduled games')], max_length=255)),
-                ('offset', models.DurationField()),
-                ('relative_to', models.CharField(choices=[('round_start', 'Round start'), ('round_end', 'Round end')], max_length=255)),
-                ('last_run', models.DateTimeField(blank=True, null=True)),
-                ('league', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tournament.League')),
-                ('season', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tournament.Season')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            (
+                                "notify_mods_unscheduled",
+                                "Notify mods of unscheduled games",
+                            )
+                        ],
+                        max_length=255,
+                    ),
+                ),
+                ("offset", models.DurationField()),
+                (
+                    "relative_to",
+                    models.CharField(
+                        choices=[
+                            ("round_start", "Round start"),
+                            ("round_end", "Round end"),
+                        ],
+                        max_length=255,
+                    ),
+                ),
+                ("last_run", models.DateTimeField(blank=True, null=True)),
+                (
+                    "league",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.League",
+                    ),
+                ),
+                (
+                    "season",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Season",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

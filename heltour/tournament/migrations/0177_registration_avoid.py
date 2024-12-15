@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0176_logintoken_source_ip'),
+        ("tournament", "0176_logintoken_source_ip"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='registration',
-            name='avoid',
+            model_name="registration",
+            name="avoid",
             field=models.CharField(blank=True, max_length=1023),
         ),
     ]

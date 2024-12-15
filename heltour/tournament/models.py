@@ -1,70 +1,81 @@
-from django.db import models, transaction
-from django.utils.crypto import get_random_string
-from ckeditor_uploader.fields import RichTextUploadingField
-from django.core.validators import RegexValidator
-from datetime import timedelta, date
-from django.utils import timezone
-from django import forms as django_forms
-from collections import namedtuple, defaultdict
-import re
-from django.core.exceptions import ValidationError
-from heltour.tournament import signals
 import logging
+import re
+from collections import defaultdict, namedtuple
+from datetime import timedelta
+
+import reversion
+from ckeditor_uploader.fields import RichTextUploadingField
+from django import forms as django_forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
+from django.db import models, transaction
+from django.db.models import JSONField, Q
+from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django_comments.models import Comment
-from django.db.models import Q, JSONField
-from heltour import settings
-import reversion
+
+from heltour.tournament import signals
 
 logger = logging.getLogger(__name__)
 
 
 # Helper function to find an item in a list by its properties
+# FIXME: move to utils
 def find(lst, **prop_values):
     for k, v in list(prop_values.items()):
         lst = [obj for obj in lst if getnestedattr(obj, k) == v]
     return next(iter(lst), None)
 
 
+# FIXME: move to utils
 def getnestedattr(obj, k):
-    for k2 in k.split('__'):
+    for k2 in k.split("__"):
         if obj is None:
             return None
         obj = getattr(obj, k2)
     return obj
 
 
+# FIXME: move to utils (and/or check if exists in django utils)
 def abs_url(url):
     site = Site.objects.get_current().domain
-    return '%s://%s%s' % (settings.LINK_PROTOCOL, site, url)
+    return "%s://%s%s" % (settings.LINK_PROTOCOL, site, url)
 
 
-def add_system_comment(obj, text, user_name='System'):
-    Comment.objects.create(content_object=obj, site=Site.objects.get_current(), user_name=user_name,
-                           comment=text, submit_date=timezone.now(), is_public=True)
+# FIXME: does this belong in models?
+def add_system_comment(obj, text, user_name="System"):
+    Comment.objects.create(
+        content_object=obj,
+        site=Site.objects.get_current(),
+        user_name=user_name,
+        comment=text,
+        submit_date=timezone.now(),
+        is_public=True,
+    )
 
 
 def format_score(score, game_played=None):
     if score is None:
-        return ''
-    if str(score) == '0.5':
-        score_str = '\u00BD'
+        return ""
+    if str(score) == "0.5":
+        score_str = "\u00bd"
     else:
-        score_str = str(score).replace('.0', '').replace('.5', '\u00BD')
+        score_str = str(score).replace(".0", "").replace(".5", "\u00bd")
     if game_played is False:
         if score == 1:
-            score_str += 'X'
+            score_str += "X"
         elif score == 0.5:
-            score_str += 'Z'
+            score_str += "Z"
         elif score == 0:
-            score_str += 'F'
+            score_str += "F"
     return score_str
 
 
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
-
     def from_db_value(self, value, expression, connection):
         if value is None:
             return None
@@ -76,13 +87,15 @@ class ScoreField(models.PositiveIntegerField):
         return int(value * 2)
 
     def to_python(self, value):
-        if value is None or value == '':
+        if value is None or value == "":
             return None
         return float(value)
 
     def formfield(self, **kwargs):
-        defaults = {'widget': django_forms.TextInput(attrs={'class': 'vIntegerField'}),
-                    'initial': self.default}
+        defaults = {
+            "widget": django_forms.TextInput(attrs={"class": "vIntegerField"}),
+            "initial": self.default,
+        }
         defaults.update(kwargs)
         return django_forms.FloatField(**defaults)
 
@@ -97,31 +110,33 @@ class _BaseModel(models.Model):
 
 
 THEME_OPTIONS = (
-    ('blue', 'Blue'),
-    ('green', 'Green'),
-    ('red', 'Red'),
-    ('yellow', 'Yellow'),
+    ("blue", "Blue"),
+    ("green", "Green"),
+    ("red", "Red"),
+    ("yellow", "Yellow"),
 )
 RATING_TYPE_OPTIONS = (
-    ('classical', 'Classical'),
-    ('rapid', 'Rapid'),
-    ('chess960', 'Chess 960'),
-    ('blitz', 'Blitz'),
+    ("classical", "Classical"),
+    ("rapid", "Rapid"),
+    ("chess960", "Chess 960"),
+    ("blitz", "Blitz"),
 )
 COMPETITOR_TYPE_OPTIONS = (
-    ('team', 'Team'),
-    ('individual', 'Individual'),
+    ("team", "Team"),
+    ("individual", "Individual"),
 )
 PAIRING_TYPE_OPTIONS = (
-    ('swiss-dutch', 'Swiss Tournament: Dutch Algorithm'),
-    ('swiss-dutch-baku-accel', 'Swiss Tournament: Dutch Algorithm + Baku Acceleration'),
+    ("swiss-dutch", "Swiss Tournament: Dutch Algorithm"),
+    ("swiss-dutch-baku-accel", "Swiss Tournament: Dutch Algorithm + Baku Acceleration"),
 )
 
 
 # -------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
-    tag = models.SlugField(unique=True, help_text='The league will be accessible at /{league_tag}/')
+    tag = models.SlugField(
+        unique=True, help_text="The league will be accessible at /{league_tag}/"
+    )
     description = models.CharField(max_length=1023, blank=True)
     theme = models.CharField(max_length=32, choices=THEME_OPTIONS)
     display_order = models.PositiveIntegerField(default=0)
@@ -134,18 +149,16 @@ class League(_BaseModel):
     enable_notifications = models.BooleanField(default=False)
 
     class Meta:
-        permissions = (
-            ('view_dashboard', 'Can view dashboard'),
-        )
+        permissions = (("view_dashboard", "Can view dashboard"),)
 
     def time_control_initial(self):
-        parts = self.time_control.split('+')
+        parts = self.time_control.split("+")
         if len(parts) != 2:
             return None
         return int(parts[0]) * 60
 
     def time_control_increment(self):
-        parts = self.time_control.split('+')
+        parts = self.time_control.split("+")
         if len(parts) != 2:
             return None
         return int(parts[1])
@@ -163,9 +176,9 @@ class League(_BaseModel):
             return self.leaguesetting
         except LeagueSetting.DoesNotExist:
             return LeagueSetting.objects.create(league=self)
-        
+
     def is_team_league(self):
-        return self.competitor_type == 'team'
+        return self.competitor_type == "team"
 
     def __str__(self):
         return self.name
@@ -186,14 +199,14 @@ class LeagueSetting(_BaseModel):
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
 
     def __str__(self):
-        return '%s Settings' % self.league
+        return "%s Settings" % self.league
 
 
 PLAYOFF_OPTIONS = (
-    (0, 'None'),
-    (1, 'Finals'),
-    (2, 'Semi-Finals'),
-    (3, 'Quarter-Finals'),
+    (0, "None"),
+    (1, "Finals"),
+    (2, "Semi-Finals"),
+    (3, "Quarter-Finals"),
 )
 
 
@@ -202,7 +215,8 @@ class Season(_BaseModel):
     league = models.ForeignKey(League, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     tag = models.SlugField(
-        help_text='The season will be accessible at /{league_tag}/season/{season_tag}/')
+        help_text="The season will be accessible at /{league_tag}/season/{season_tag}/"
+    )
     start_date = models.DateTimeField(blank=True, null=True)
     rounds = models.PositiveIntegerField()
     round_duration = models.DurationField(default=timedelta(days=7))
@@ -215,12 +229,12 @@ class Season(_BaseModel):
     nominations_open = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = (('league', 'name'), ('league', 'tag'))
+        unique_together = (("league", "name"), ("league", "tag"))
         permissions = (
-            ('manage_players', 'Can manage players'),
-            ('review_nominated_games', 'Can review nominated games'),
+            ("manage_players", "Can manage players"),
+            ("review_nominated_games", "Can review nominated games"),
         )
-        ordering = ['league__name', '-name']
+        ordering = ["league__name", "-name"]
 
     def __init__(self, *args, **kwargs):
         super(Season, self).__init__(*args, **kwargs)
@@ -230,10 +244,16 @@ class Season(_BaseModel):
         self.initial_is_completed = self.is_completed
 
     def last_season_alternates(self):
-        last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
-            .order_by('-start_date').first()
-        last_season_alts = Alternate.objects.filter(season_player__season=last_season) \
-            .select_related('season_player__player').nocache()
+        last_season = (
+            Season.objects.filter(league=self.league, start_date__lt=self.start_date)
+            .order_by("-start_date")
+            .first()
+        )
+        last_season_alts = (
+            Alternate.objects.filter(season_player__season=last_season)
+            .select_related("season_player__player")
+            .nocache()
+        )
         return {alt.season_player.player for alt in last_season_alts}
 
     def export_players(self):
@@ -241,47 +261,60 @@ class Season(_BaseModel):
 
         def extract(sp):
             info = {
-                'name': sp.player.lichess_username,
-                'rating': sp.player.rating_for(self.league),
-                'has_20_games': not sp.player.provisional_for(self.league),
-                'in_slack': bool(sp.player.slack_user_id),
-                'account_status': sp.player.account_status,
-                'date_created': None,
-                'friends': None,
-                'avoid': None,
-                'prefers_alt': False,
-                'alt_fine': False,
-                'previous_season_alternate': sp.player in last_season_alts
+                "name": sp.player.lichess_username,
+                "rating": sp.player.rating_for(self.league),
+                "has_20_games": not sp.player.provisional_for(self.league),
+                "in_slack": bool(sp.player.slack_user_id),
+                "account_status": sp.player.account_status,
+                "date_created": None,
+                "friends": None,
+                "avoid": None,
+                "prefers_alt": False,
+                "alt_fine": False,
+                "previous_season_alternate": sp.player in last_season_alts,
             }
             reg = sp.registration
             if reg is not None:
-                info.update({
-                    'date_created': reg.date_created.isoformat(),
-                    'peak_classical_rating': reg.peak_classical_rating,
-                    'friends': reg.friends,
-                    'avoid': reg.avoid,
-                    'prefers_alt': reg.alternate_preference == 'alternate',
-                    'alt_fine': reg.alternate_preference == 'either',
-                })
+                info.update(
+                    {
+                        "date_created": reg.date_created.isoformat(),
+                        "peak_classical_rating": reg.peak_classical_rating,
+                        "friends": reg.friends,
+                        "avoid": reg.avoid,
+                        "prefers_alt": reg.alternate_preference == "alternate",
+                        "alt_fine": reg.alternate_preference == "either",
+                    }
+                )
             return info
 
-        season_players = (self.seasonplayer_set
-                          .filter(is_active=True)
-                          .select_related('player', 'registration')
-                          .nocache())
+        season_players = (
+            self.seasonplayer_set.filter(is_active=True)
+            .select_related("player", "registration")
+            .nocache()
+        )
         return [extract(sp) for sp in season_players]
 
     def clean(self):
-        if self.league_id and self.league.competitor_type == 'team' and self.boards is None:
-            raise ValidationError('Boards must be specified for a team season')
+        if (
+            self.league_id
+            and self.league.competitor_type == "team"
+            and self.boards is None
+        ):
+            raise ValidationError("Boards must be specified for a team season")
 
     def save(self, *args, **kwargs):
         # TODO: Add validation to prevent changes after a certain point
         new_obj = self.pk is None
         rounds_changed = self.pk is None or self.rounds != self.initial_rounds
-        round_duration_changed = self.pk is None or self.round_duration != self.initial_round_duration
-        start_date_changed = self.pk is None or self.start_date != self.initial_start_date
-        is_completed_changed = self.pk is None or self.is_completed != self.initial_is_completed
+        round_duration_changed = (
+            self.pk is None or self.round_duration != self.initial_round_duration
+        )
+        start_date_changed = (
+            self.pk is None or self.start_date != self.initial_start_date
+        )
+        is_completed_changed = (
+            self.pk is None or self.is_completed != self.initial_is_completed
+        )
 
         if self.is_completed and self.registration_open:
             self.registration_open = False
@@ -291,8 +324,11 @@ class Season(_BaseModel):
             date = self.start_date
             for round_num in range(1, self.rounds + 1):
                 next_date = date + self.round_duration if date is not None else None
-                Round.objects.update_or_create(season=self, number=round_num,
-                                               defaults={'start_date': date, 'end_date': next_date})
+                Round.objects.update_or_create(
+                    season=self,
+                    number=round_num,
+                    defaults={"start_date": date, "end_date": next_date},
+                )
                 date = next_date
 
         if new_obj:
@@ -300,7 +336,7 @@ class Season(_BaseModel):
             SeasonPrize.objects.create(season=self, rank=1)
             SeasonPrize.objects.create(season=self, rank=2)
             SeasonPrize.objects.create(season=self, rank=3)
-            if self.league.competitor_type != 'team':
+            if self.league.competitor_type != "team":
                 SeasonPrize.objects.create(season=self, max_rating=1600, rank=1)
 
         if is_completed_changed and self.is_completed:
@@ -309,26 +345,42 @@ class Season(_BaseModel):
             # Award prizes
             if self.league.is_team_league():
                 team_scores = sorted(
-                    TeamScore.objects.filter(team__season=self).select_related('team').nocache(),
-                    reverse=True)
+                    TeamScore.objects.filter(team__season=self)
+                    .select_related("team")
+                    .nocache(),
+                    reverse=True,
+                )
                 for prize in self.seasonprize_set.filter(max_rating=None):
                     if prize.rank <= len(team_scores):
                         # Award a prize to each team member
-                        for member in team_scores[prize.rank - 1].team.teammember_set.all():
-                            SeasonPrizeWinner.objects.create(season_prize=prize,
-                                                             player=member.player)
+                        for member in team_scores[
+                            prize.rank - 1
+                        ].team.teammember_set.all():
+                            SeasonPrizeWinner.objects.create(
+                                season_prize=prize, player=member.player
+                            )
             else:
                 player_scores = sorted(
-                    LonePlayerScore.objects.filter(season_player__season=self).select_related(
-                        'season_player__player').nocache(),
-                    key=lambda s: s.final_standings_sort_key(), reverse=True)
+                    LonePlayerScore.objects.filter(season_player__season=self)
+                    .select_related("season_player__player")
+                    .nocache(),
+                    key=lambda s: s.final_standings_sort_key(),
+                    reverse=True,
+                )
                 for prize in self.seasonprize_set.all():
-                    eligible_players = [s.season_player.player for s in player_scores if
-                                        prize.max_rating is None or (
-                                            s.season_player.seed_rating is not None and s.season_player.seed_rating < prize.max_rating)]
+                    eligible_players = [
+                        s.season_player.player
+                        for s in player_scores
+                        if prize.max_rating is None
+                        or (
+                            s.season_player.seed_rating is not None
+                            and s.season_player.seed_rating < prize.max_rating
+                        )
+                    ]
                     if prize.rank <= len(eligible_players):
-                        SeasonPrizeWinner.objects.create(season_prize=prize,
-                                                         player=eligible_players[prize.rank - 1])
+                        SeasonPrizeWinner.objects.create(
+                            season_prize=prize, player=eligible_players[prize.rank - 1]
+                        )
 
     def calculate_scores(self):
         if self.league.is_team_league():
@@ -341,18 +393,31 @@ class Season(_BaseModel):
         score_dict = {}
 
         last_round = None
-        for round_ in self.round_set.filter(is_completed=True).order_by('number'):
+        for round_ in self.round_set.filter(is_completed=True).order_by("number"):
             round_pairings = round_.teampairing_set.all()
             for team in Team.objects.filter(season=self):
                 white_pairing = find(round_pairings, white_team_id=team.id)
                 black_pairing = find(round_pairings, black_team_id=team.id)
                 is_playoffs = round_.number > self.rounds - self.playoffs
 
-                def increment_score(round_opponent, round_points, round_opponent_points,
-                                    round_wins):
-                    playoff_score, match_count, match_points, game_points, games_won, _, _, _, _ = \
-                        score_dict[(team.pk, last_round.number)] if last_round is not None else (
-                            0, 0, 0, 0, 0, 0, 0, None, 0)
+                def increment_score(
+                    round_opponent, round_points, round_opponent_points, round_wins
+                ):
+                    (
+                        playoff_score,
+                        match_count,
+                        match_points,
+                        game_points,
+                        games_won,
+                        _,
+                        _,
+                        _,
+                        _,
+                    ) = (
+                        score_dict[(team.pk, last_round.number)]
+                        if last_round is not None
+                        else (0, 0, 0, 0, 0, 0, 0, None, 0)
+                    )
                     round_match_points = 0
                     if round_opponent is None:
                         if not is_playoffs:
@@ -373,21 +438,32 @@ class Season(_BaseModel):
                             match_points += round_match_points
                             game_points += round_points
                             games_won += round_wins
-                    score_dict[(team.pk, round_.number)] = _TeamScoreState(playoff_score,
-                                                                           match_count,
-                                                                           match_points,
-                                                                           game_points, games_won,
-                                                                           round_match_points,
-                                                                           round_points,
-                                                                           round_opponent,
-                                                                           round_opponent_points)
+                    score_dict[(team.pk, round_.number)] = _TeamScoreState(
+                        playoff_score,
+                        match_count,
+                        match_points,
+                        game_points,
+                        games_won,
+                        round_match_points,
+                        round_points,
+                        round_opponent,
+                        round_opponent_points,
+                    )
 
                 if white_pairing is not None:
-                    increment_score(white_pairing.black_team_id, white_pairing.white_points,
-                                    white_pairing.black_points, white_pairing.white_wins)
+                    increment_score(
+                        white_pairing.black_team_id,
+                        white_pairing.white_points,
+                        white_pairing.black_points,
+                        white_pairing.white_wins,
+                    )
                 elif black_pairing is not None:
-                    increment_score(black_pairing.white_team_id, black_pairing.black_points,
-                                    black_pairing.white_points, black_pairing.black_wins)
+                    increment_score(
+                        black_pairing.white_team_id,
+                        black_pairing.black_points,
+                        black_pairing.white_points,
+                        black_pairing.black_wins,
+                    )
                 else:
                     increment_score(None, 0, 0, 0)
             last_round = round_
@@ -396,7 +472,9 @@ class Season(_BaseModel):
         tied_team_map = defaultdict(set)
         for team in Team.objects.filter(season=self):
             score_state = score_dict[(team.pk, last_round.number)]
-            tied_team_map[(score_state.match_points, score_state.game_points)].add(team.pk)
+            tied_team_map[(score_state.match_points, score_state.game_points)].add(
+                team.pk
+            )
 
         team_scores = TeamScore.objects.filter(team__season=self)
         for score in team_scores:
@@ -417,7 +495,9 @@ class Season(_BaseModel):
                 score.games_won = score_state.games_won
 
                 # Tiebreak calculations
-                tied_team_set = tied_team_map[(score_state.match_points, score_state.game_points)]
+                tied_team_set = tied_team_map[
+                    (score_state.match_points, score_state.game_points)
+                ]
                 score.head_to_head = 0
                 score.sb_score = 0
                 for round_number in range(1, last_round.number + 1):
@@ -426,21 +506,29 @@ class Season(_BaseModel):
                     if opponent is not None:
                         if round_state.round_match_points == 2:
                             score.sb_score += score_dict[
-                                (round_state.round_opponent, last_round.number)].match_points
+                                (round_state.round_opponent, last_round.number)
+                            ].match_points
                         elif round_state.round_match_points == 1:
-                            score.sb_score += score_dict[(
-                                round_state.round_opponent, last_round.number)].match_points / 2.0
+                            score.sb_score += (
+                                score_dict[
+                                    (round_state.round_opponent, last_round.number)
+                                ].match_points
+                                / 2.0
+                            )
                         if opponent in tied_team_set:
                             score.head_to_head += round_state.round_match_points
             score.save()
 
     def _calculate_lone_scores(self):
-        season_players = SeasonPlayer.objects.filter(season=self).select_related(
-            'loneplayerscore').nocache()
+        season_players = (
+            SeasonPlayer.objects.filter(season=self)
+            .select_related("loneplayerscore")
+            .nocache()
+        )
         seed_rating_dict = {sp.player_id: sp.seed_rating for sp in season_players}
         score_dict = {}
         last_round = None
-        for round_ in self.round_set.filter(is_completed=True).order_by('number'):
+        for round_ in self.round_set.filter(is_completed=True).order_by("number"):
             pairings = round_.loneplayerpairing_set.all().nocache()
             byes = PlayerBye.objects.filter(round=round_)
             for sp in season_players:
@@ -449,9 +537,11 @@ class Season(_BaseModel):
                 bye = find(byes, player_id=sp.player_id)
 
                 def increment_score(round_opponent, round_score, round_played):
-                    total, mm_total, cumul, perf, _, _ = score_dict[
-                        (sp.player_id, last_round.number)] if last_round is not None else (
-                        0, 0, 0, PerfRatingCalc(), None, False)
+                    total, mm_total, cumul, perf, _, _ = (
+                        score_dict[(sp.player_id, last_round.number)]
+                        if last_round is not None
+                        else (0, 0, 0, PerfRatingCalc(), None, False)
+                    )
                     total += round_score
                     cumul += total
                     if round_played:
@@ -463,17 +553,22 @@ class Season(_BaseModel):
                         # Special cases for unplayed games
                         mm_total += 0.5
                         cumul -= round_score
-                    score_dict[(sp.player_id, round_.number)] = _LoneScoreState(total, mm_total,
-                                                                                cumul, perf,
-                                                                                round_opponent,
-                                                                                round_played)
+                    score_dict[(sp.player_id, round_.number)] = _LoneScoreState(
+                        total, mm_total, cumul, perf, round_opponent, round_played
+                    )
 
                 if white_pairing is not None:
-                    increment_score(white_pairing.black_id, white_pairing.white_score() or 0,
-                                    white_pairing.game_played())
+                    increment_score(
+                        white_pairing.black_id,
+                        white_pairing.white_score() or 0,
+                        white_pairing.game_played(),
+                    )
                 elif black_pairing is not None:
-                    increment_score(black_pairing.white_id, black_pairing.black_score() or 0,
-                                    black_pairing.game_played())
+                    increment_score(
+                        black_pairing.white_id,
+                        black_pairing.black_score() or 0,
+                        black_pairing.game_played(),
+                    )
                 elif bye is not None:
                     increment_score(None, bye.score(), False)
                 else:
@@ -491,7 +586,9 @@ class Season(_BaseModel):
                 score.tiebreak3 = 0
                 score.tiebreak4 = 0
             else:
-                score_state = score_dict[(score.season_player.player_id, last_round.number)]
+                score_state = score_dict[
+                    (score.season_player.player_id, last_round.number)
+                ]
                 score.points = score_state.total
 
                 # Tiebreak calculations
@@ -500,11 +597,20 @@ class Season(_BaseModel):
                 opponent_cumuls = []
                 for round_number in range(1, last_round.number + 1):
                     round_state = score_dict[(player_id, round_number)]
-                    if round_state.round_played and round_state.round_opponent is not None:
+                    if (
+                        round_state.round_played
+                        and round_state.round_opponent is not None
+                    ):
                         opponent_scores.append(
-                            score_dict[(round_state.round_opponent, last_round.number)].mm_total)
+                            score_dict[
+                                (round_state.round_opponent, last_round.number)
+                            ].mm_total
+                        )
                         opponent_cumuls.append(
-                            score_dict[(round_state.round_opponent, last_round.number)].cumul)
+                            score_dict[
+                                (round_state.round_opponent, last_round.number)
+                            ].cumul
+                        )
                     else:
                         opponent_scores.append(0)
                 opponent_scores.sort()
@@ -543,27 +649,28 @@ class Season(_BaseModel):
 
     def board_number_list(self):
         if self.boards is None:
-            raise Exception('Tried to get board list but season.boards is None')
+            raise Exception("Tried to get board list but season.boards is None")
         return [n for n in range(1, self.boards + 1)]
 
     def alternates_manager_enabled(self):
-        if not hasattr(self.league, 'alternatesmanagersetting'):
+        if not hasattr(self.league, "alternatesmanagersetting"):
             return False
         return self.league.alternatesmanagersetting.is_active
 
     def alternates_manager_setting(self):
-        if not hasattr(self.league, 'alternatesmanagersetting'):
+        if not hasattr(self.league, "alternatesmanagersetting"):
             return None
         return self.league.alternatesmanagersetting
 
     def section_list(self):
-        if not hasattr(self, 'section'):
+        if not hasattr(self, "section"):
             return [self]
         return Season.objects.filter(
-            section__section_group_id=self.section.section_group_id).order_by('section__order')
+            section__section_group_id=self.section.section_group_id
+        ).order_by("section__order")
 
     def section_group_name(self):
-        if not hasattr(self, 'section'):
+        if not hasattr(self, "section"):
             return self.name
         return self.section.section_group.name
 
@@ -572,34 +679,138 @@ class Season(_BaseModel):
         if season is not None and season.registration_open:
             return season
         else:
-            return cls.objects.filter(league=league, registration_open=True).order_by(
-                '-start_date').first()
+            return (
+                cls.objects.filter(league=league, registration_open=True)
+                .order_by("-start_date")
+                .first()
+            )
 
     @property
     def pairings(self):
-        return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round__season=self)
-                | PlayerPairing.objects.filter(loneplayerpairing__round__season=self)).nocache()
+        return (
+            PlayerPairing.objects.filter(
+                teamplayerpairing__team_pairing__round__season=self
+            )
+            | PlayerPairing.objects.filter(loneplayerpairing__round__season=self)
+        ).nocache()
 
     def __str__(self):
         return self.name
 
 
-_TeamScoreState = namedtuple('_TeamScoreState',
-                             'playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points')
-_LoneScoreState = namedtuple('_LoneScoreState',
-                             'total, mm_total, cumul, perf, round_opponent, round_played')
+_TeamScoreState = namedtuple(
+    "_TeamScoreState",
+    "playoff_score, match_count, match_points, game_points, games_won, round_match_points, round_points, round_opponent, round_opponent_points",
+)
+_LoneScoreState = namedtuple(
+    "_LoneScoreState", "total, mm_total, cumul, perf, round_opponent, round_played"
+)
 
 # From https://www.fide.com/component/handbook/?id=174&view=article
 # Used for performance rating calculations
-fide_dp_lookup = [-800, -677, -589, -538, -501, -470, -444, -422, -401, -383, -366, -351, -336,
-                  -322, -309, -296, -284, -273, -262, -251,
-                  - 240, -230, -220, -211, -202, -193, -184, -175, -166, -158, -149, -141, -133,
-                  -125, -117, -110, -102, -95, -87, -80, -72,
-                  - 65, -57, -50, -43, -36, -29, -21, -14, -7, 0, 7, 14, 21, 29, 36, 43, 50, 57, 65,
-                  72, 80, 87, 95, 102, 110, 117, 125, 133,
-                  141, 149, 158, 166, 175, 184, 193, 202, 211, 220, 230, 240, 251, 262, 273, 284,
-                  296, 309, 322, 336, 351, 366, 383, 401,
-                  422, 444, 470, 501, 538, 589, 677, 800]
+fide_dp_lookup = [
+    -800,
+    -677,
+    -589,
+    -538,
+    -501,
+    -470,
+    -444,
+    -422,
+    -401,
+    -383,
+    -366,
+    -351,
+    -336,
+    -322,
+    -309,
+    -296,
+    -284,
+    -273,
+    -262,
+    -251,
+    -240,
+    -230,
+    -220,
+    -211,
+    -202,
+    -193,
+    -184,
+    -175,
+    -166,
+    -158,
+    -149,
+    -141,
+    -133,
+    -125,
+    -117,
+    -110,
+    -102,
+    -95,
+    -87,
+    -80,
+    -72,
+    -65,
+    -57,
+    -50,
+    -43,
+    -36,
+    -29,
+    -21,
+    -14,
+    -7,
+    0,
+    7,
+    14,
+    21,
+    29,
+    36,
+    43,
+    50,
+    57,
+    65,
+    72,
+    80,
+    87,
+    95,
+    102,
+    110,
+    117,
+    125,
+    133,
+    141,
+    149,
+    158,
+    166,
+    175,
+    184,
+    193,
+    202,
+    211,
+    220,
+    230,
+    240,
+    251,
+    262,
+    273,
+    284,
+    296,
+    309,
+    322,
+    336,
+    351,
+    366,
+    383,
+    401,
+    422,
+    444,
+    470,
+    501,
+    538,
+    589,
+    677,
+    800,
+]
 
 
 def get_fide_dp(score, total):
@@ -609,7 +820,8 @@ def get_fide_dp(score, total):
     return fide_dp_lookup[lookup_index]
 
 
-class PerfRatingCalc():
+# TODO: does this live in models?
+class PerfRatingCalc:
     def __init__(self):
         self._score = 0
         self._game_count = 0
@@ -628,19 +840,24 @@ class PerfRatingCalc():
     def calculate(self):
         if self._game_count < 5:
             return None
-        average_opp_rating = int(round(sum(self._opponent_ratings) / float(self._game_count)))
+        average_opp_rating = int(
+            round(sum(self._opponent_ratings) / float(self._game_count))
+        )
         dp = get_fide_dp(self._score, self._game_count)
         return average_opp_rating + dp
 
     def debug(self):
-        return '%.1f / %d [%s]' % (
-            self._score, self._game_count, ', '.join((str(r) for r in self._opponent_ratings)))
+        return "%.1f / %d [%s]" % (
+            self._score,
+            self._game_count,
+            ", ".join((str(r) for r in self._opponent_ratings)),
+        )
 
 
 # -------------------------------------------------------------------------------
 class Round(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
-    number = models.PositiveIntegerField(verbose_name='round number')
+    number = models.PositiveIntegerField(verbose_name="round number")
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
@@ -648,9 +865,7 @@ class Round(_BaseModel):
     is_completed = models.BooleanField(default=False)
 
     class Meta:
-        permissions = (
-            ('generate_pairings', 'Can generate and review pairings'),
-        )
+        permissions = (("generate_pairings", "Can generate and review pairings"),)
 
     def __init__(self, *args, **kwargs):
         super(Round, self).__init__(*args, **kwargs)
@@ -658,8 +873,16 @@ class Round(_BaseModel):
         self.initial_publish_pairings = self.publish_pairings
 
     def save(self, *args, **kwargs):
-        is_completed_changed = self.pk is None and self.is_completed or self.is_completed != self.initial_is_completed
-        publish_pairings_changed = self.pk is None and self.publish_pairings or self.publish_pairings != self.initial_publish_pairings
+        is_completed_changed = (
+            self.pk is None
+            and self.is_completed
+            or self.is_completed != self.initial_is_completed
+        )
+        publish_pairings_changed = (
+            self.pk is None
+            and self.publish_pairings
+            or self.publish_pairings != self.initial_publish_pairings
+        )
         super(Round, self).save(*args, **kwargs)
         if is_completed_changed:
             self.season.calculate_scores()
@@ -668,8 +891,10 @@ class Round(_BaseModel):
 
     @property
     def pairings(self):
-        return (PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=self)
-                | PlayerPairing.objects.filter(loneplayerpairing__round=self)).nocache()
+        return (
+            PlayerPairing.objects.filter(teamplayerpairing__team_pairing__round=self)
+            | PlayerPairing.objects.filter(loneplayerpairing__round=self)
+        ).nocache()
 
     def pairing_for(self, player):
         pairings = self.pairings
@@ -692,25 +917,31 @@ class SectionGroup(_BaseModel):
 class Section(_BaseModel):
     season = models.OneToOneField(Season, on_delete=models.CASCADE)
     section_group = models.ForeignKey(SectionGroup, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255, verbose_name='section name')
+    name = models.CharField(max_length=255, verbose_name="section name")
     order = models.PositiveIntegerField()
     min_rating = models.PositiveIntegerField(blank=True, null=True)
     max_rating = models.PositiveIntegerField(blank=True, null=True)
 
     def clean(self):
-        if self.season and self.section_group and self.season.league_id != self.section_group.league_id:
-            raise ValidationError('Season and section group leagues must match')
+        if (
+            self.season
+            and self.section_group
+            and self.season.league_id != self.section_group.league_id
+        ):
+            raise ValidationError("Season and section group leagues must match")
 
     def is_eligible(self, player):
         rating = player.rating_for(self.season.league)
         if self.min_rating is not None and (rating is None or rating < self.min_rating):
             return False
-        if self.max_rating is not None and (rating is None or rating >= self.max_rating):
+        if self.max_rating is not None and (
+            rating is None or rating >= self.max_rating
+        ):
             return False
         return True
 
     def __str__(self):
-        return '%s - %s' % (self.name, self.section_group.name)
+        return "%s - %s" % (self.name, self.section_group.name)
 
 
 # -------------------------------------------------------------------------------
@@ -731,12 +962,12 @@ class OauthToken(_BaseModel):
         return self.account_username
 
 
-username_validator = RegexValidator('^[\\w-]+$')
+username_validator = RegexValidator("^[\\w-]+$")
 
 ACCOUNT_STATUS_OPTIONS = (
-    ('normal', 'Normal'),
-    ('tos_violation', 'ToS Violation'),
-    ('closed', 'Closed'),
+    ("normal", "Normal"),
+    ("tos_violation", "ToS Violation"),
+    ("closed", "Closed"),
 )
 
 
@@ -752,8 +983,9 @@ class Player(_BaseModel):
     is_active = models.BooleanField(default=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
     timezone_offset = models.DurationField(blank=True, null=True)
-    account_status = models.CharField(default='normal', max_length=31,
-                                      choices=ACCOUNT_STATUS_OPTIONS)
+    account_status = models.CharField(
+        default="normal", max_length=31, choices=ACCOUNT_STATUS_OPTIONS
+    )
     oauth_token = models.ForeignKey(OauthToken, null=True, on_delete=models.CASCADE)
 
     profile = JSONField(blank=True, null=True)
@@ -769,12 +1001,12 @@ class Player(_BaseModel):
         return (self.pairings_as_white.all() | self.pairings_as_black.all()).nocache()
 
     class Meta:
-        ordering = ['lichess_username']
+        ordering = ["lichess_username"]
         permissions = (
-            ('change_player_details', 'Can change player details'),
-            ('invite_to_slack', 'Can invite to slack'),
-            ('link_slack', 'Can manually link slack accounts'),
-            ('dox', 'Can see player emails'),
+            ("change_player_details", "Can change player details"),
+            ("invite_to_slack", "Can invite to slack"),
+            ("link_slack", "Can manually link slack accounts"),
+            ("dox", "Can see player emails"),
         )
 
     def __init__(self, *args, **kwargs):
@@ -782,22 +1014,29 @@ class Player(_BaseModel):
         self.initial_account_status = self.account_status
 
     def save(self, *args, **kwargs):
-        account_status_changed = self.pk and self.account_status != self.initial_account_status
+        account_status_changed = (
+            self.pk and self.account_status != self.initial_account_status
+        )
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:
-            signals.player_account_status_changed.send(Player, instance=self,
-                                                       old_value=self.initial_account_status,
-                                                       new_value=self.account_status)
+            signals.player_account_status_changed.send(
+                Player,
+                instance=self,
+                old_value=self.initial_account_status,
+                new_value=self.account_status,
+            )
 
     def update_profile(self, user_meta):
-        classical = user_meta.get('perfs', {}).get('classical')
+        classical = user_meta.get("perfs", {}).get("classical")
         if classical is not None:
-            self.rating = classical['rating']
-            self.games_played = classical['games']
-        is_closed = user_meta.get('disabled', False)
-        is_tosViolation = user_meta.get('tosViolation', False)
-        self.account_status = 'closed' if is_closed else 'tos_violation' if is_tosViolation else 'normal'
-        
+            self.rating = classical["rating"]
+            self.games_played = classical["games"]
+        is_closed = user_meta.get("disabled", False)
+        is_tosViolation = user_meta.get("tosViolation", False)
+        self.account_status = (
+            "closed" if is_closed else "tos_violation" if is_tosViolation else "normal"
+        )
+
         # profile is used to get rating data which should not be updated anymore once an account is closed.
         if not is_closed:
             self.profile = user_meta
@@ -805,8 +1044,10 @@ class Player(_BaseModel):
 
     @classmethod
     def get_or_create(cls, lichess_username):
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username,
-                                                 defaults={'lichess_username': lichess_username})
+        player, _ = Player.objects.get_or_create(
+            lichess_username__iexact=lichess_username,
+            defaults={"lichess_username": lichess_username},
+        )
         return player
 
     @classmethod
@@ -816,16 +1057,20 @@ class Player(_BaseModel):
             # No change needed
             return False
         with reversion.create_revision():
-            reversion.set_comment('Link slack account')
+            reversion.set_comment("Link slack account")
             player.slack_user_id = slack_user_id
             player.save()
-            signals.slack_account_linked.send(sender=cls, lichess_username=lichess_username,
-                                              slack_user_id=slack_user_id)
+            signals.slack_account_linked.send(
+                sender=cls,
+                lichess_username=lichess_username,
+                slack_user_id=slack_user_id,
+            )
             return True
 
     def is_available_for(self, round_):
-        return not PlayerAvailability.objects.filter(round=round_, player=self,
-                                                     is_available=False).exists()
+        return not PlayerAvailability.objects.filter(
+            round=round_, player=self, is_available=False
+        ).exists()
 
     def rating_for(self, league):
         if league:
@@ -834,51 +1079,52 @@ class Player(_BaseModel):
                 # self.profile is only None if the player profile has never been downloaded
                 # from lichess or the account had already been closed at that first download.
                 return 0
-            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('rating')
+            return (
+                self.profile.get("perfs", {}).get(league.rating_type, {}).get("rating")
+            )
         return self.rating
 
     def games_played_for(self, league):
         if league:
             if self.profile is None:
                 return None
-            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('games')
+            return (
+                self.profile.get("perfs", {}).get(league.rating_type, {}).get("games")
+            )
 
         return self.games_played  # classical
 
     def provisional_for(self, league):
         if self.profile is None:
             return True
-        perf = self.profile.get('perfs', {}).get(league.rating_type)
+        perf = self.profile.get("perfs", {}).get(league.rating_type)
         if perf is None:
             return True
-        return perf.get('prov', False)
+        return perf.get("prov", False)
 
     @property
     def timezone_str(self):
-        if self.timezone_offset == None:
-            return '?'
+        if self.timezone_offset is None:
+            return "?"
         seconds = self.timezone_offset.total_seconds()
-        sign = '-' if seconds < 0 else '+'
+        sign = "-" if seconds < 0 else "+"
         hours = abs(seconds) / 3600
         minutes = (abs(seconds) % 3600) / 60
-        return 'UTC%s%02d:%02d' % (sign, hours, minutes)
+        return "UTC%s%02d:%02d" % (sign, hours, minutes)
 
     def get_season_prizes(self, league):
-        return SeasonPrize.objects \
-            .filter(season__league=league, seasonprizewinner__player=self) \
-            .order_by('rank', '-season')
+        return SeasonPrize.objects.filter(
+            season__league=league, seasonprizewinner__player=self
+        ).order_by("rank", "-season")
 
     def agreed_to_tos(self):
         now = timezone.now()
         # Update
         me = Player.objects.filter(pk=self.pk)
-        me.update(
-            date_last_agreed_to_tos=now
-        )
+        me.update(date_last_agreed_to_tos=now)
         me.filter(date_first_agreed_to_tos__isnull=True).update(
             date_first_agreed_to_tos=now
         )
-
 
     def __str__(self):
         if self.rating is None:
@@ -906,16 +1152,16 @@ class LeagueModerator(_BaseModel):
     send_contact_emails = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('league', 'player')
+        unique_together = ("league", "player")
 
     def __str__(self):
         return "%s - %s" % (self.league, self.player.lichess_username)
 
 
 ROUND_CHANGE_OPTIONS = (
-    ('register', 'Register'),
-    ('withdraw', 'Withdraw'),
-    ('half-point-bye', 'Half-Point Bye'),
+    ("register", "Register"),
+    ("withdraw", "Withdraw"),
+    ("half-point-bye", "Half-Point Bye"),
 )
 
 
@@ -927,12 +1173,14 @@ class PlayerLateRegistration(_BaseModel):
     late_join_points = ScoreField(default=0)
 
     class Meta:
-        unique_together = ('round', 'player')
+        unique_together = ("round", "player")
 
     def perform_registration(self):
         with transaction.atomic():
             # Set the SeasonPlayer as active
-            sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
+            sp, _ = SeasonPlayer.objects.get_or_create(
+                season=self.round.season, player=self.player
+            )
             sp.is_active = True
             if sp.seed_rating is None:
                 sp.seed_rating = self.player.rating_for(self.round.season.league)
@@ -947,11 +1195,13 @@ class PlayerLateRegistration(_BaseModel):
                     break
                 round_ = find(rounds, number=round_number)
                 pairings = round_.loneplayerpairing_set.filter(
-                    white=self.player) | round_.loneplayerpairing_set.filter(black=self.player)
+                    white=self.player
+                ) | round_.loneplayerpairing_set.filter(black=self.player)
                 byes = round_.playerbye_set.filter(player=self.player)
                 if pairings.count() == 0 and byes.count() == 0:
-                    PlayerBye.objects.create(round=round_, player=self.player,
-                                             type='half-point-bye')
+                    PlayerBye.objects.create(
+                        round=round_, player=self.player, type="half-point-bye"
+                    )
 
             # Set the late-join points
             score = sp.get_loneplayerscore()
@@ -965,7 +1215,9 @@ class PlayerLateRegistration(_BaseModel):
 
     def clean(self):
         if self.round_id and self.round.season.league.is_team_league():
-            raise ValidationError('Player late registrations can only be created for lone leagues')
+            raise ValidationError(
+                "Player late registrations can only be created for lone leagues"
+            )
 
     def __str__(self):
         return "%s - %s" % (self.round, self.player)
@@ -977,23 +1229,31 @@ class PlayerWithdrawal(_BaseModel):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('round', 'player')
+        unique_together = ("round", "player")
 
     def perform_withdrawal(self):
         with transaction.atomic():
             # Set the SeasonPlayer as inactive
-            sp, _ = SeasonPlayer.objects.get_or_create(season=self.round.season, player=self.player)
+            sp, _ = SeasonPlayer.objects.get_or_create(
+                season=self.round.season, player=self.player
+            )
             sp.is_active = False
             sp.save()
 
             # Delete pairings and give opponents byes
             for pairing in self.round.loneplayerpairing_set.filter(white=self.player):
-                PlayerBye.objects.create(round=self.round, player=pairing.black,
-                                         type='full-point-pairing-bye')
+                PlayerBye.objects.create(
+                    round=self.round,
+                    player=pairing.black,
+                    type="full-point-pairing-bye",
+                )
                 pairing.delete()
             for pairing in self.round.loneplayerpairing_set.filter(black=self.player):
-                PlayerBye.objects.create(round=self.round, player=pairing.white,
-                                         type='full-point-pairing-bye')
+                PlayerBye.objects.create(
+                    round=self.round,
+                    player=pairing.white,
+                    type="full-point-pairing-bye",
+                )
                 pairing.delete()
 
     def perform_team_season_withdrawal(self):
@@ -1008,17 +1268,19 @@ class PlayerWithdrawal(_BaseModel):
 
     def clean(self):
         if self.round_id and self.round.season.league.is_team_league():
-            raise ValidationError('Player withdrawals can only be created for lone leagues')
+            raise ValidationError(
+                "Player withdrawals can only be created for lone leagues"
+            )
 
     def __str__(self):
         return "%s - %s" % (self.round, self.player)
 
 
 BYE_TYPE_OPTIONS = (
-    ('full-point-pairing-bye', 'Full-Point Bye (Pairing)'),
-    ('full-point-bye', 'Full-Point Bye'),
-    ('half-point-bye', 'Half-Point Bye'),
-    ('zero-point-bye', 'Zero-Point Bye'),
+    ("full-point-pairing-bye", "Full-Point Bye (Pairing)"),
+    ("full-point-bye", "Full-Point Bye"),
+    ("half-point-bye", "Half-Point Bye"),
+    ("zero-point-bye", "Zero-Point Bye"),
 )
 
 
@@ -1031,7 +1293,7 @@ class PlayerBye(_BaseModel):
     player_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('round', 'player')
+        unique_together = ("round", "player")
 
     def __init__(self, *args, **kwargs):
         super(PlayerBye, self).__init__(*args, **kwargs)
@@ -1048,14 +1310,14 @@ class PlayerBye(_BaseModel):
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.player_rank = rank_dict.get(self.player_id, None)
 
     def score(self):
-        if self.type == 'full-point-bye' or self.type == 'full-point-pairing-bye':
+        if self.type == "full-point-bye" or self.type == "full-point-pairing-bye":
             return 1
-        elif self.type == 'half-point-bye':
+        elif self.type == "half-point-bye":
             return 0.5
         else:
             return 0
@@ -1075,7 +1337,9 @@ class PlayerBye(_BaseModel):
         if player_changed:
             self.player_rating = None
         super(PlayerBye, self).save(*args, **kwargs)
-        if (round_changed or player_changed or type_changed) and self.round.is_completed:
+        if (
+            round_changed or player_changed or type_changed
+        ) and self.round.is_completed:
             self.round.season.calculate_scores()
 
     def delete(self, *args, **kwargs):
@@ -1086,21 +1350,21 @@ class PlayerBye(_BaseModel):
 
     def clean(self):
         if self.round_id and self.round.season.league.is_team_league():
-            raise ValidationError('Player byes can only be created for lone leagues')
+            raise ValidationError("Player byes can only be created for lone leagues")
 
 
 # -------------------------------------------------------------------------------
 class Team(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
-    number = models.PositiveIntegerField(verbose_name='team number')
-    name = models.CharField(max_length=255, verbose_name='team name')
+    number = models.PositiveIntegerField(verbose_name="team number")
+    name = models.CharField(max_length=255, verbose_name="team name")
     slack_channel = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
 
     seed_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
-        unique_together = (('season', 'number'), ('season', 'name'))
+        unique_together = (("season", "number"), ("season", "name"))
 
     def get_teamscore(self):
         try:
@@ -1110,8 +1374,10 @@ class Team(_BaseModel):
 
     def boards(self):
         team_members = self.teammember_set.all()
-        return [(n, find(team_members, board_number=n)) for n in
-                Season.objects.get(pk=self.season_id).board_number_list()]
+        return [
+            (n, find(team_members, board_number=n))
+            for n in Season.objects.get(pk=self.season_id).board_number_list()
+        ]
 
     def average_rating(self, expected_rating=False):
         n = 0
@@ -1134,8 +1400,10 @@ class Team(_BaseModel):
         return self.teammember_set.filter(is_captain=True).first()
 
     def get_teampairing(self, round_):
-        return (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(
-            black_team=self)).first()
+        return (
+            round_.teampairing_set.filter(white_team=self)
+            | round_.teampairing_set.filter(black_team=self)
+        ).first()
 
     def get_opponent(self, round_):
         team_pairing = self.get_teampairing(round_)
@@ -1156,18 +1424,18 @@ class Team(_BaseModel):
 
 
 BOARD_NUMBER_OPTIONS = (
-    (1, '1'),
-    (2, '2'),
-    (3, '3'),
-    (4, '4'),
-    (5, '5'),
-    (6, '6'),
-    (7, '7'),
-    (8, '8'),
-    (9, '9'),
-    (10, '10'),
-    (11, '11'),
-    (12, '12'),
+    (1, "1"),
+    (2, "2"),
+    (3, "3"),
+    (4, "4"),
+    (5, "5"),
+    (6, "6"),
+    (7, "7"),
+    (8, "8"),
+    (9, "9"),
+    (10, "10"),
+    (11, "11"),
+    (12, "12"),
 )
 
 
@@ -1182,7 +1450,7 @@ class TeamMember(_BaseModel):
     player_rating = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('team', 'board_number')
+        unique_together = ("team", "board_number")
 
     def __init__(self, *args, **kwargs):
         super(TeamMember, self).__init__(*args, **kwargs)
@@ -1217,13 +1485,20 @@ class TeamMember(_BaseModel):
         self.team.save()
 
     def clean(self):
-        if self.team_id and self.player_id and not SeasonPlayer.objects.filter(
-            season=self.team.season, player=self.player).exists():
-            raise ValidationError('Team member must be a player in the season')
+        if (
+            self.team_id
+            and self.player_id
+            and not SeasonPlayer.objects.filter(
+                season=self.team.season, player=self.player
+            ).exists()
+        ):
+            raise ValidationError("Team member must be a player in the season")
 
     def __str__(self):
         return "%s%s" % (
-            self.player, ' (C)' if self.is_captain else ' (V)' if self.is_vice_captain else '')
+            self.player,
+            " (C)" if self.is_captain else " (V)" if self.is_vice_captain else "",
+        )
 
 
 # -------------------------------------------------------------------------------
@@ -1246,14 +1521,21 @@ class TeamScore(_BaseModel):
 
     def pairing_sort_key(self):
         return (
-            self.playoff_score, self.match_points, self.game_points, self.head_to_head,
+            self.playoff_score,
+            self.match_points,
+            self.game_points,
+            self.head_to_head,
             self.games_won,
-            self.sb_score, self.team.seed_rating)
+            self.sb_score,
+            self.team.seed_rating,
+        )
 
     def round_scores(self):
         white_pairings = self.team.pairings_as_white.all()
         black_pairings = self.team.pairings_as_black.all()
-        for round_ in Round.objects.filter(season_id=self.team.season_id).order_by('number'):
+        for round_ in Round.objects.filter(season_id=self.team.season_id).order_by(
+            "number"
+        ):
             if round_ is None or not round_.is_completed:
                 yield None, None, None
                 continue
@@ -1271,7 +1553,9 @@ class TeamScore(_BaseModel):
 
     def cross_scores(self, sorted_teams=None):
         if sorted_teams is None:
-            sorted_teams = Team.objects.filter(season_id=self.team.season_id).order_by('number')
+            sorted_teams = Team.objects.filter(season_id=self.team.season_id).order_by(
+                "number"
+            )
         white_pairings = self.team.pairings_as_white.all()
         black_pairings = self.team.pairings_as_black.all()
         for other_team in sorted_teams:
@@ -1294,16 +1578,31 @@ class TeamScore(_BaseModel):
         return "%s" % (self.team)
 
     def __lt__(self, other):
-        return (self.playoff_score, self.match_points, self.game_points, self.head_to_head,
-                self.games_won, self.sb_score) < \
-               (other.playoff_score, other.match_points, other.game_points, other.head_to_head,
-                other.games_won, other.sb_score)
+        return (
+            self.playoff_score,
+            self.match_points,
+            self.game_points,
+            self.head_to_head,
+            self.games_won,
+            self.sb_score,
+        ) < (
+            other.playoff_score,
+            other.match_points,
+            other.game_points,
+            other.head_to_head,
+            other.games_won,
+            other.sb_score,
+        )
 
 
 # -------------------------------------------------------------------------------
 class TeamPairing(_BaseModel):
-    white_team = models.ForeignKey(Team, related_name="pairings_as_white", on_delete=models.CASCADE)
-    black_team = models.ForeignKey(Team, related_name="pairings_as_black", on_delete=models.CASCADE)
+    white_team = models.ForeignKey(
+        Team, related_name="pairings_as_white", on_delete=models.CASCADE
+    )
+    black_team = models.ForeignKey(
+        Team, related_name="pairings_as_black", on_delete=models.CASCADE
+    )
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     pairing_order = models.PositiveIntegerField()
 
@@ -1313,7 +1612,7 @@ class TeamPairing(_BaseModel):
     black_wins = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = ('white_team', 'black_team', 'round')
+        unique_together = ("white_team", "black_team", "round")
 
     def __init__(self, *args, **kwargs):
         super(TeamPairing, self).__init__(*args, **kwargs)
@@ -1321,14 +1620,23 @@ class TeamPairing(_BaseModel):
         self.initial_black_points = self.black_points
 
     def save(self, *args, **kwargs):
-        points_changed = self.pk is None or self.white_points != self.initial_white_points or self.black_points != self.initial_black_points
+        points_changed = (
+            self.pk is None
+            or self.white_points != self.initial_white_points
+            or self.black_points != self.initial_black_points
+        )
         super(TeamPairing, self).save(*args, **kwargs)
         if points_changed and self.round.is_completed:
             self.round.season.calculate_scores()
 
     def clean(self):
-        if self.white_team_id and self.black_team_id and self.white_team.season != self.round.season or self.black_team.season != self.round.season:
-            raise ValidationError('Round and team seasons must match')
+        if (
+            self.white_team_id
+            and self.black_team_id
+            and self.white_team.season != self.round.season
+            or self.black_team.season != self.round.season
+        ):
+            raise ValidationError("Round and team seasons must match")
 
     def refresh_points(self):
         self.white_points = 0
@@ -1381,12 +1689,14 @@ class TeamPairing(_BaseModel):
 # 5. (Optional) Extended id for games in progress (4 chars)
 # 6. (Optional) Any junk at the end, e.g. "/black", etc.
 game_link_regex = re.compile(
-    fr'^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.{settings.LICHESS_TOPLEVEL}/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$')
+    rf"^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.{settings.LICHESS_TOPLEVEL}/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$"
+)
 game_link_validator = RegexValidator(game_link_regex)
 
 
+# FIXME: does this belong in models?
 def get_gameid_from_gamelink(gamelink):
-    if gamelink is None or gamelink == '':
+    if gamelink is None or gamelink == "":
         return None
     match = game_link_regex.match(gamelink)
     if match is None:
@@ -1394,12 +1704,14 @@ def get_gameid_from_gamelink(gamelink):
     return match.group(3)
 
 
+# FIXME: does this belong in models?
 def get_gamelink_from_gameid(gameid):
-    return f'{settings.LICHESS_DOMAIN}{gameid}'
+    return f"{settings.LICHESS_DOMAIN}{gameid}"
 
 
+# FIXME: move to utils
 def normalize_gamelink(gamelink):
-    if gamelink == '':
+    if gamelink == "":
         return gamelink, True
     gameid = get_gameid_from_gamelink(gamelink)
     if gameid is None:
@@ -1408,48 +1720,60 @@ def normalize_gamelink(gamelink):
 
 
 RESULT_OPTIONS = (
-    ('1-0', '1-0'),
-    ('1/2-1/2', '\u00BD-\u00BD'),
-    ('0-1', '0-1'),
-    ('1X-0F', '1X-0F'),
-    ('1/2Z-1/2Z', '\u00BDZ-\u00BDZ'),
-    ('0F-1X', '0F-1X'),
-    ('0F-0F', '0F-0F'),
+    ("1-0", "1-0"),
+    ("1/2-1/2", "\u00bd-\u00bd"),
+    ("0-1", "0-1"),
+    ("1X-0F", "1X-0F"),
+    ("1/2Z-1/2Z", "\u00bdZ-\u00bdZ"),
+    ("0F-1X", "0F-1X"),
+    ("0F-0F", "0F-0F"),
 )
 
 TV_STATE_OPTIONS = (
-    ('default', 'Default'),
-    ('hide', 'Hide'),
+    ("default", "Default"),
+    ("hide", "Hide"),
 )
 
 
 # -------------------------------------------------------------------------------
 class PlayerPairing(_BaseModel):
-    white = models.ForeignKey(Player,
-                              blank=True, null=True, related_name="pairings_as_white",
-                              on_delete=models.CASCADE)
-    black = models.ForeignKey(Player,
-                              blank=True, null=True, related_name="pairings_as_black",
-                              on_delete=models.CASCADE)
+    white = models.ForeignKey(
+        Player,
+        blank=True,
+        null=True,
+        related_name="pairings_as_white",
+        on_delete=models.CASCADE,
+    )
+    black = models.ForeignKey(
+        Player,
+        blank=True,
+        null=True,
+        related_name="pairings_as_black",
+        on_delete=models.CASCADE,
+    )
     white_rating = models.PositiveIntegerField(blank=True, null=True)
     black_rating = models.PositiveIntegerField(blank=True, null=True)
 
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
-    game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
+    game_link = models.URLField(
+        max_length=1024, blank=True, validators=[game_link_validator]
+    )
     scheduled_time = models.DateTimeField(blank=True, null=True)
     colors_reversed = models.BooleanField(default=False)
-    
-    #We do not want to mark players as unresponsive if their opponents got assigned after round start
+
+    # We do not want to mark players as unresponsive if their opponents got assigned after round start
     date_player_changed = models.DateTimeField(blank=True, null=True)
 
-    tv_state = models.CharField(max_length=31, default='default', choices=TV_STATE_OPTIONS)
+    tv_state = models.CharField(
+        max_length=31, default="default", choices=TV_STATE_OPTIONS
+    )
 
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
-        self.initial_result = '' if self.pk is None else self.result
+        self.initial_result = "" if self.pk is None else self.result
         self.initial_white_id = None if self.pk is None else self.white_id
         self.initial_black_id = None if self.pk is None else self.black_id
-        self.initial_game_link = '' if self.pk is None else self.game_link
+        self.initial_game_link = "" if self.pk is None else self.game_link
         self.initial_scheduled_time = None if self.pk is None else self.scheduled_time
 
     def white_rating_display(self, league=None):
@@ -1478,66 +1802,67 @@ class PlayerPairing(_BaseModel):
 
     def white_display(self):
         if not self.white:
-            return '?'
+            return "?"
         if self.white_rating:
-            return '%s (%d)' % (self.white.lichess_username, self.white_rating)
+            return "%s (%d)" % (self.white.lichess_username, self.white_rating)
         else:
             return self.white
 
     def black_display(self):
         if not self.black:
-            return '?'
+            return "?"
         if self.black_rating:
-            return '%s (%d)' % (self.black.lichess_username, self.black_rating)
+            return "%s (%d)" % (self.black.lichess_username, self.black_rating)
         else:
             return self.black
 
     def white_score(self):
-        if self.result == '1-0' or self.result == '1X-0F':
+        if self.result == "1-0" or self.result == "1X-0F":
             return 1 if not self.colors_reversed else 0
-        elif self.result == '0-1' or self.result == '0F-1X' or self.result == '0F-0F':
+        elif self.result == "0-1" or self.result == "0F-1X" or self.result == "0F-0F":
             return 0 if not self.colors_reversed else 1
-        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
+        elif self.result == "1/2-1/2" or self.result == "1/2Z-1/2Z":
             return 0.5
         return None
 
     def black_score(self):
-        if self.result == '0-1' or self.result == '0F-1X':
+        if self.result == "0-1" or self.result == "0F-1X":
             return 1 if not self.colors_reversed else 0
-        elif self.result == '1-0' or self.result == '1X-0F' or self.result == '0F-0F':
+        elif self.result == "1-0" or self.result == "1X-0F" or self.result == "0F-0F":
             return 0 if not self.colors_reversed else 1
-        elif self.result == '1/2-1/2' or self.result == '1/2Z-1/2Z':
+        elif self.result == "1/2-1/2" or self.result == "1/2Z-1/2Z":
             return 0.5
         return None
 
     def result_display(self):
         if not self.result:
-            return ''
-        result = self.result.replace('1/2', '\u00BD')
+            return ""
+        result = self.result.replace("1/2", "\u00bd")
         if self.colors_reversed:
-            result += '*'
+            result += "*"
         return result
 
     def game_played(self):
-        return self.result in ('1-0', '1/2-1/2', '0-1')
+        return self.result in ("1-0", "1/2-1/2", "0-1")
 
     def game_id(self):
         return get_gameid_from_gamelink(self.game_link)
 
     def get_round(self):
-        if hasattr(self, 'teamplayerpairing'):
+        if hasattr(self, "teamplayerpairing"):
             return self.teamplayerpairing.team_pairing.round
-        if hasattr(self, 'loneplayerpairing'):
+        if hasattr(self, "loneplayerpairing"):
             return self.loneplayerpairing.round
         return None
 
     def get_player_presence(self, player):
         presence = self.playerpresence_set.filter(player=player).first()
         if not presence:
-            presence = PlayerPresence.objects.create(pairing=self, player=player,
-                                                     round=self.get_round())
+            presence = PlayerPresence.objects.create(
+                pairing=self, player=player, round=self.get_round()
+            )
         return presence
-    
+
     def pairing_changed_after_round_start(self):
         if self.date_player_changed is None:
             return False
@@ -1546,13 +1871,16 @@ class PlayerPairing(_BaseModel):
 
     def __str__(self):
         return "%s - %s" % (self.white_display(), self.black_display())
-    
+
     def update_available_upon_schedule(self, player_id):
-        #set players available if game gets scheduled and they are unavailable,
-        #do not set a player with a red card available, though.
-        if not SeasonPlayer.objects.filter(player__id=player_id, season=self.get_round().season, games_missed__gte=2).exists():
+        # set players available if game gets scheduled and they are unavailable,
+        # do not set a player with a red card available, though.
+        if not SeasonPlayer.objects.filter(
+            player__id=player_id, season=self.get_round().season, games_missed__gte=2
+        ).exists():
             PlayerAvailability.objects.filter(
-                player__id=player_id, round=self.get_round()).update(is_available=True)
+                player__id=player_id, round=self.get_round()
+            ).update(is_available=True)
 
     def save(self, *args, **kwargs):
         result_changed = self.result != self.initial_result
@@ -1563,27 +1891,32 @@ class PlayerPairing(_BaseModel):
 
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
-            self.tv_state = 'default'
+            self.tv_state = "default"
         if white_changed or black_changed or game_link_changed:
             self.white_rating = None
             self.black_rating = None
-        
-        #we only want to set date_player_changed if a player was changed after the initial creation of the pairing
-        if (white_changed and self.initial_white_id is not None) or (black_changed and self.initial_black_id is not None):
+
+        # we only want to set date_player_changed if a player was changed after the initial creation of the pairing
+        if (white_changed and self.initial_white_id is not None) or (
+            black_changed and self.initial_black_id is not None
+        ):
             self.date_player_changed = timezone.now()
 
         super(PlayerPairing, self).save(*args, **kwargs)
 
-        if hasattr(self, 'teamplayerpairing') and result_changed:
+        if hasattr(self, "teamplayerpairing") and result_changed:
             self.teamplayerpairing.team_pairing.refresh_points()
             self.teamplayerpairing.team_pairing.save()
-        if hasattr(self, 'loneplayerpairing'):
+        if hasattr(self, "loneplayerpairing"):
             lpp = LonePlayerPairing.objects.nocache().get(pk=self.loneplayerpairing.pk)
             if result_changed and lpp.round.is_completed:
                 lpp.round.season.calculate_scores()
             # If the players for a PlayerPairing in the current round are edited, then we can update the player ranks
             if (
-                white_changed or black_changed) and lpp.round.publish_pairings and not lpp.round.is_completed:
+                (white_changed or black_changed)
+                and lpp.round.publish_pairings
+                and not lpp.round.is_completed
+            ):
                 lpp.refresh_ranks()
                 lpp.save()
             # If the players for a PlayerPairing in a previous round are edited, then the player ranks will be out of
@@ -1595,39 +1928,46 @@ class PlayerPairing(_BaseModel):
                 lpp.black_rank = None
                 lpp.save()
         if result_changed and (
-            result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
+            result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)
+        ):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
 
         # Update scheduled notifications based on the scheduled time
         if scheduled_time_changed:
             league = self.get_round().season.league
             # Calling the save method triggers the logic to recreate notifications
-            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
+            white_setting = PlayerNotificationSetting.get_or_default(
+                player_id=self.white_id, type="before_game_time", league=league
+            )
             white_setting.save()
-            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
+            black_setting = PlayerNotificationSetting.get_or_default(
+                player_id=self.black_id, type="before_game_time", league=league
+            )
             black_setting.save()
             if white_changed and self.initial_white_id:
                 old_white_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_white_id, type='before_game_time', league=league)
+                    player_id=self.initial_white_id,
+                    type="before_game_time",
+                    league=league,
+                )
                 old_white_setting.save()
             if black_changed and self.initial_black_id:
                 old_black_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_black_id, type='before_game_time', league=league)
+                    player_id=self.initial_black_id,
+                    type="before_game_time",
+                    league=league,
+                )
                 old_black_setting.save()
-            
+
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
-    
+
     def delete(self, *args, **kwargs):
         team_pairing = None
         round_ = None
-        if hasattr(self, 'teamplayerpairing'):
+        if hasattr(self, "teamplayerpairing"):
             team_pairing = self.teamplayerpairing.team_pairing
-        if hasattr(self, 'loneplayerpairing'):
+        if hasattr(self, "loneplayerpairing"):
             lpp = LonePlayerPairing.objects.nocache().get(pk=self.loneplayerpairing.pk)
             if lpp.round.is_completed:
                 round_ = lpp.round
@@ -1640,7 +1980,7 @@ class PlayerPairing(_BaseModel):
 
 
 def result_is_forfeit(result):
-    return result.endswith(('X', 'F', 'Z'))
+    return result.endswith(("X", "F", "Z"))
 
 
 # -------------------------------------------------------------------------------
@@ -1649,13 +1989,21 @@ class TeamPlayerPairing(PlayerPairing):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     class Meta:
-        unique_together = ('team_pairing', 'board_number')
+        unique_together = ("team_pairing", "board_number")
 
     def white_team(self):
-        return self.team_pairing.white_team if self.board_number % 2 == 1 else self.team_pairing.black_team
+        return (
+            self.team_pairing.white_team
+            if self.board_number % 2 == 1
+            else self.team_pairing.black_team
+        )
 
     def black_team(self):
-        return self.team_pairing.black_team if self.board_number % 2 == 1 else self.team_pairing.white_team
+        return (
+            self.team_pairing.black_team
+            if self.board_number % 2 == 1
+            else self.team_pairing.white_team
+        )
 
     def white_team_player(self):
         return self.white if self.board_number % 2 == 1 else self.black
@@ -1664,18 +2012,24 @@ class TeamPlayerPairing(PlayerPairing):
         return self.black if self.board_number % 2 == 1 else self.white
 
     def white_team_rating(self, league=None):
-        return self.white_rating_display(
-            league) if self.board_number % 2 == 1 else self.black_rating_display(league)
+        return (
+            self.white_rating_display(league)
+            if self.board_number % 2 == 1
+            else self.black_rating_display(league)
+        )
 
     def black_team_rating(self, league=None):
-        return self.black_rating_display(
-            league) if self.board_number % 2 == 1 else self.white_rating_display(league)
+        return (
+            self.black_rating_display(league)
+            if self.board_number % 2 == 1
+            else self.white_rating_display(league)
+        )
 
     def white_team_color(self):
-        return 'white' if self.board_number % 2 == 1 else 'black'
+        return "white" if self.board_number % 2 == 1 else "black"
 
     def black_team_color(self):
-        return 'black' if self.board_number % 2 == 1 else 'white'
+        return "black" if self.board_number % 2 == 1 else "white"
 
     def white_team_score(self):
         return self.white_score() if self.board_number % 2 == 1 else self.black_score()
@@ -1690,10 +2044,18 @@ class TeamPlayerPairing(PlayerPairing):
         return format_score(self.black_team_score(), self.game_played())
 
     def white_team_match_score(self):
-        return self.team_pairing.white_points if self.board_number % 2 == 1 else self.team_pairing.black_points
+        return (
+            self.team_pairing.white_points
+            if self.board_number % 2 == 1
+            else self.team_pairing.black_points
+        )
 
     def black_team_match_score(self):
-        return self.team_pairing.black_points if self.board_number % 2 == 1 else self.team_pairing.white_points
+        return (
+            self.team_pairing.black_points
+            if self.board_number % 2 == 1
+            else self.team_pairing.white_points
+        )
 
     def white_team_name(self):
         return "%s" % self.white_team().name
@@ -1716,31 +2078,38 @@ class LonePlayerPairing(PlayerPairing):
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
     def refresh_ranks(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
 
 
 REGISTRATION_STATUS_OPTIONS = (
-    ('pending', 'Pending'),
-    ('approved', 'Approved'),
-    ('rejected', 'Rejected'),
+    ("pending", "Pending"),
+    ("approved", "Approved"),
+    ("rejected", "Rejected"),
 )
 
 PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
-    ('alternate', 'Yes, I was an alternate at the end of the last season.'),
-    ('alternate_to_full_time',
-     'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'),
-    ('full_time', 'No, I was not an alternate for the last season. I played the season.'),
-    ('new',
-     'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
+    ("alternate", "Yes, I was an alternate at the end of the last season."),
+    (
+        "alternate_to_full_time",
+        "Yes, but I was able to find a consistent team (did not simply fill in for a week or two).",
+    ),
+    (
+        "full_time",
+        "No, I was not an alternate for the last season. I played the season.",
+    ),
+    (
+        "new",
+        "No, I was not an alternate for the last season. I am a new member / I took last season off.",
+    ),
 )
 
 ALTERNATE_PREFERENCE_OPTIONS = (
-    ('alternate', 'Alternate'),
-    ('full_time', 'Full Time'),
-    ('either', "Either is fine for me."),
+    ("alternate", "Alternate"),
+    ("full_time", "Full Time"),
+    ("either", "Either is fine for me."),
 )
 
 
@@ -1755,23 +2124,27 @@ class Registration(_BaseModel):
     slack_username = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=255)
 
-    classical_rating = models.PositiveIntegerField(verbose_name='rating')
-    peak_classical_rating = models.PositiveIntegerField(blank=True, null=True,
-                                                        verbose_name='peak rating')
+    classical_rating = models.PositiveIntegerField(verbose_name="rating")
+    peak_classical_rating = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="peak rating"
+    )
     has_played_20_games = models.BooleanField()
     already_in_slack_group = models.BooleanField()
-    previous_season_alternate = models.CharField(blank=True, max_length=255,
-                                                 choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
+    previous_season_alternate = models.CharField(
+        blank=True, max_length=255, choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS
+    )
 
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     avoid = models.CharField(blank=True, max_length=1023)
     agreed_to_rules = models.BooleanField()
     agreed_to_tos = models.BooleanField()
-    alternate_preference = models.CharField(blank=True, max_length=255,
-                                            choices=ALTERNATE_PREFERENCE_OPTIONS)
-    section_preference = models.ForeignKey(Section, on_delete=models.SET_NULL, blank=True,
-                                           null=True)
+    alternate_preference = models.CharField(
+        blank=True, max_length=255, choices=ALTERNATE_PREFERENCE_OPTIONS
+    )
+    section_preference = models.ForeignKey(
+        Section, on_delete=models.SET_NULL, blank=True, null=True
+    )
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
     validation_ok = models.BooleanField(blank=True, null=True, default=None)
@@ -1781,15 +2154,20 @@ class Registration(_BaseModel):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username__iexact=self.lichess_username,
-                                           date_created__lt=self.date_created)
+        return Registration.objects.filter(
+            lichess_username__iexact=self.lichess_username,
+            date_created__lt=self.date_created,
+        )
 
     def other_seasons(self):
         return SeasonPlayer.objects.filter(
-            player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
+            player__lichess_username__iexact=self.lichess_username
+        ).exclude(season=self.season)
 
     def player(self):
-        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+        return Player.objects.filter(
+            lichess_username__iexact=self.lichess_username
+        ).first()
 
     @classmethod
     def can_register(cls, user, season):
@@ -1800,25 +2178,30 @@ class Registration(_BaseModel):
     @classmethod
     def was_rejected(cls, user, season):
         reg = cls.get_latest_registration(user, season)
-        return reg and reg.status == 'rejected'
+        return reg and reg.status == "rejected"
 
     @classmethod
     def get_latest_registration(cls, user, season):
-        return (cls.objects
-                .filter(lichess_username__iexact=user.username, season=season)
-                .order_by('-date_created')
-                .first())
+        return (
+            cls.objects.filter(lichess_username__iexact=user.username, season=season)
+            .order_by("-date_created")
+            .first()
+        )
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
+        return cls.objects.filter(
+            lichess_username__iexact=user.username, season=season
+        ).exists()
 
 
 # -------------------------------------------------------------------------------
 class SeasonPlayer(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
-    registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, blank=True, null=True)
+    registration = models.ForeignKey(
+        Registration, on_delete=models.SET_NULL, blank=True, null=True
+    )
     is_active = models.BooleanField(default=True)
 
     games_missed = models.PositiveIntegerField(default=0)
@@ -1827,31 +2210,33 @@ class SeasonPlayer(_BaseModel):
     final_rating = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('season', 'player')
+        unique_together = ("season", "player")
 
     def __init__(self, *args, **kwargs):
         super(SeasonPlayer, self).__init__(*args, **kwargs)
         self.initial_unresponsive = self.unresponsive
         self.initial_player_id = self.player_id
         self.initial_games_missed = self.games_missed
-        
+
     def _set_unavailable_for_season(self, skip_current=False):
         rounds = Round.objects.filter(season=self.season, is_completed=False)
         for r in rounds:
             if skip_current and r.publish_pairings:
                 continue
-            PlayerAvailability.objects.update_or_create(round=r, player=self.player,
-                                                        defaults={'is_available': False})
-            
+            PlayerAvailability.objects.update_or_create(
+                round=r, player=self.player, defaults={"is_available": False}
+            )
+
     def has_scheduled_game_in_round(self, round):
         pairingModel = TeamPlayerPairing.objects.filter(team_pairing__round=round)
         if not self.season.league.is_team_league():
-            pairingModel = LonePlayerPlairing.objects.filter(round=round)
-            
+            pairingModel = LonePlayerPairing.objects.filter(round=round)
+
         return pairingModel.filter(
-            (Q(white=self.player) | Q(black=self.player)) & Q(scheduled_time__isnull=False)#
-          ).exists()
-    
+            (Q(white=self.player) | Q(black=self.player))
+            & Q(scheduled_time__isnull=False)  #
+        ).exists()
+
     def player_rating_display(self, league=None):
         if self.final_rating is not None:
             return self.final_rating
@@ -1861,19 +2246,24 @@ class SeasonPlayer(_BaseModel):
             return self.player.rating_for(league)
 
     def save(self, *args, **kwargs):
-        unresponsive_changed = self.pk is None or self.unresponsive != self.initial_unresponsive
+        unresponsive_changed = (
+            self.pk is None or self.unresponsive != self.initial_unresponsive
+        )
         player_changed = self.pk is None or self.player_id != self.initial_player_id
 
         if player_changed:
             self.player_rating = None
 
-        if unresponsive_changed and self.unresponsive and hasattr(self, 'alternate'):
+        if unresponsive_changed and self.unresponsive and hasattr(self, "alternate"):
             alt = self.alternate
             current_date = timezone.now()
-            if alt.priority_date_override is None or alt.priority_date_override < current_date:
+            if (
+                alt.priority_date_override is None
+                or alt.priority_date_override < current_date
+            ):
                 alt.priority_date_override = current_date
                 alt.save()
-                
+
         if self.games_missed >= 2 and self.initial_games_missed < 2:
             self._set_unavailable_for_season()
 
@@ -1895,24 +2285,27 @@ class SeasonPlayer(_BaseModel):
             if league is None:
                 league = self.season.league
             return self.player.rating_for(league)
-    
+
     @classmethod
     def withdraw_from_team_season(cls, round, player):
-        #We can only set players inactive that are not part of a team.
-        if not TeamMember.objects.filter(player=player, team__season=round.season).exists():
-            cls.objects.filter(season=round.season, player=player).update(is_active=False)
-        
+        # We can only set players inactive that are not part of a team.
+        if not TeamMember.objects.filter(
+            player=player, team__season=round.season
+        ).exists():
+            cls.objects.filter(season=round.season, player=player).update(
+                is_active=False
+            )
+
         sp = SeasonPlayer.objects.get(season=round.season, player=player)
         sp._set_unavailable_for_season(skip_current=True)
-        add_system_comment(sp, 'player withdrawn: %s'%round)
-        
+        add_system_comment(sp, "player withdrawn: %s" % round)
 
     @property
     def card_color(self):
         if self.games_missed >= 2:
-            return 'red'
+            return "red"
         elif self.games_missed == 1:
-            return 'yellow'
+            return "yellow"
         else:
             return None
 
@@ -1939,14 +2332,23 @@ class LonePlayerScore(_BaseModel):
 
     perf_rating = models.PositiveIntegerField(blank=True, null=True)
 
-    def round_scores(self, rounds, player_number_dict, white_pairings_dict, black_pairings_dict,
-                     byes_dict, include_current=False):
+    def round_scores(
+        self,
+        rounds,
+        player_number_dict,
+        white_pairings_dict,
+        black_pairings_dict,
+        byes_dict,
+        include_current=False,
+    ):
         white_pairings = white_pairings_dict.get(self.season_player.player, [])
         black_pairings = black_pairings_dict.get(self.season_player.player, [])
         byes = byes_dict.get(self.season_player.player, [])
         cumul_score = 0.0
         for round_ in rounds:
-            if not round_.is_completed and (not include_current or not round_.publish_pairings):
+            if not round_.is_completed and (
+                not include_current or not round_.publish_pairings
+            ):
                 yield (None, None, None, None)
                 continue
 
@@ -1963,27 +2365,59 @@ class LonePlayerScore(_BaseModel):
                 score = white_pairing.white_score()
                 if white_pairing.game_played() or score is None:
                     # Normal result
-                    color = 'W'
-                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else 'F'
+                    color = "W"
+                    result_type = (
+                        "W"
+                        if score == 1
+                        else "D"
+                        if score == 0.5
+                        else "L"
+                        if score == 0
+                        else "F"
+                    )
                 else:
                     # Special result
-                    result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
+                    result_type = (
+                        "X"
+                        if score == 1
+                        else "Z"
+                        if score == 0.5
+                        else "F"
+                        if score == 0
+                        else ""
+                    )
             elif black_pairing is not None and black_pairing.white is not None:
                 opponent = black_pairing.white
                 score = black_pairing.black_score()
                 if black_pairing.game_played() or score is None:
                     # Normal result
-                    color = 'B'
-                    result_type = 'W' if score == 1 else 'D' if score == 0.5 else 'L' if score == 0 else 'F'
+                    color = "B"
+                    result_type = (
+                        "W"
+                        if score == 1
+                        else "D"
+                        if score == 0.5
+                        else "L"
+                        if score == 0
+                        else "F"
+                    )
                 else:
                     # Special result
-                    result_type = 'X' if score == 1 else 'Z' if score == 0.5 else 'F' if score == 0 else ''
+                    result_type = (
+                        "X"
+                        if score == 1
+                        else "Z"
+                        if score == 0.5
+                        else "F"
+                        if score == 0
+                        else ""
+                    )
             elif bye is not None:
                 score = bye.score()
-                result_type = 'B' if score == 1 else 'H' if score == 0.5 else 'U'
+                result_type = "B" if score == 1 else "H" if score == 0.5 else "U"
             else:
                 score = 0
-                result_type = 'U'
+                result_type = "U"
 
             if score is not None:
                 cumul_score += score
@@ -2016,25 +2450,47 @@ class LonePlayerScore(_BaseModel):
 
     def pairing_sort_key(self):
         return (
-            self.points + self.late_join_points, self.season_player.player_rating_display() or 0)
+            self.points + self.late_join_points,
+            self.season_player.player_rating_display() or 0,
+        )
 
     def intermediate_standings_sort_key(self):
-        return (self.points + self.late_join_points, self.tiebreak1, self.tiebreak2, self.tiebreak3,
-                self.tiebreak4, self.season_player.player_rating_display() or 0)
+        return (
+            self.points + self.late_join_points,
+            self.tiebreak1,
+            self.tiebreak2,
+            self.tiebreak3,
+            self.tiebreak4,
+            self.season_player.player_rating_display() or 0,
+        )
 
     def final_standings_sort_key(self):
-        return (self.points, self.tiebreak1, self.tiebreak2, self.tiebreak3, self.tiebreak4,
-                self.season_player.player_rating_display() or 0)
+        return (
+            self.points,
+            self.tiebreak1,
+            self.tiebreak2,
+            self.tiebreak3,
+            self.tiebreak4,
+            self.season_player.player_rating_display() or 0,
+        )
 
     def __str__(self):
         return "%s" % (self.season_player)
 
 
+# FIXME: does this belong in models?
 def lone_player_pairing_rank_dict(season):
-    raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
-        .select_related('season_player__season__league', 'season_player__player').nocache()
+    raw_player_scores = (
+        LonePlayerScore.objects.filter(season_player__season=season)
+        .select_related("season_player__season__league", "season_player__player")
+        .nocache()
+    )
     player_scores = list(
-        enumerate(sorted(raw_player_scores, key=lambda s: s.pairing_sort_key(), reverse=True), 1))
+        enumerate(
+            sorted(raw_player_scores, key=lambda s: s.pairing_sort_key(), reverse=True),
+            1,
+        )
+    )
     return {p.season_player.player_id: n for n, p in player_scores}
 
 
@@ -2045,18 +2501,18 @@ class PlayerAvailability(_BaseModel):
     is_available = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name_plural = 'player availabilities'
+        verbose_name_plural = "player availabilities"
 
     def __str__(self):
         return "%s" % self.player
 
 
 ALTERNATE_STATUS_OPTIONS = (
-    ('waiting', 'Waiting'),
-    ('contacted', 'Contacted'),
-    ('accepted', 'Accepted'),
-    ('declined', 'Declined'),
-    ('unresponsive', 'Unresponsive'),
+    ("waiting", "Waiting"),
+    ("contacted", "Contacted"),
+    ("accepted", "Accepted"),
+    ("declined", "Declined"),
+    ("unresponsive", "Unresponsive"),
 )
 
 
@@ -2066,8 +2522,9 @@ class Alternate(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     priority_date_override = models.DateTimeField(null=True, blank=True)
 
-    status = models.CharField(blank=True, default='waiting', max_length=31,
-                              choices=ALTERNATE_STATUS_OPTIONS)
+    status = models.CharField(
+        blank=True, default="waiting", max_length=31, choices=ALTERNATE_STATUS_OPTIONS
+    )
     last_contact_date = models.DateTimeField(null=True, blank=True)
     player_rating = models.PositiveIntegerField(null=True, blank=True)
 
@@ -2085,13 +2542,18 @@ class Alternate(_BaseModel):
             return self.season_player.player.rating_for(league)
 
     def save(self, *args, **kwargs):
-        season_player_changed = self.pk is None or self.season_player_id != self.initial_season_player_id
+        season_player_changed = (
+            self.pk is None or self.season_player_id != self.initial_season_player_id
+        )
         status_changed = self.pk is None or self.status != self.initial_status
         if season_player_changed:
             self.player_rating = None
-        if status_changed and self.status == 'unresponsive':
+        if status_changed and self.status == "unresponsive":
             current_date = timezone.now()
-            if self.priority_date_override is None or self.priority_date_override < current_date:
+            if (
+                self.priority_date_override is None
+                or self.priority_date_override < current_date
+            ):
                 self.priority_date_override = current_date
         super(Alternate, self).save(*args, **kwargs)
 
@@ -2099,7 +2561,10 @@ class Alternate(_BaseModel):
         season = self.season_player.season
         player = self.season_player.player
         buckets = AlternateBucket.objects.filter(season=season)
-        if len(buckets) == season.boards and player.rating_for(season.league) is not None:
+        if (
+            len(buckets) == season.boards
+            and player.rating_for(season.league) is not None
+        ):
             for b in buckets:
                 if b.contains(player.rating_for(season.league)):
                     self.board_number = b.board_number
@@ -2110,24 +2575,31 @@ class Alternate(_BaseModel):
 
     def priority_date_and_reason(self):
         if self.priority_date_override is not None:
-            return max((self.priority_date_override, 'Was unresponsive'),
-                       self._priority_date_without_override())
+            return max(
+                (self.priority_date_override, "Was unresponsive"),
+                self._priority_date_without_override(),
+            )
         return self._priority_date_without_override()
 
     def _priority_date_without_override(self):
-        most_recent_assign = AlternateAssignment.objects.filter(
-            team__season_id=self.season_player.season_id, player_id=self.season_player.player_id) \
-            .order_by('-round__start_date').first()
+        most_recent_assign = (
+            AlternateAssignment.objects.filter(
+                team__season_id=self.season_player.season_id,
+                player_id=self.season_player.player_id,
+            )
+            .order_by("-round__start_date")
+            .first()
+        )
 
         if most_recent_assign is not None:
             round_date = most_recent_assign.round.end_date
             if round_date is not None:
-                return (round_date, 'Assigned game')
+                return (round_date, "Assigned game")
 
         if self.season_player.registration is not None:
-            return (self.season_player.registration.date_created, 'Registered')
+            return (self.season_player.registration.date_created, "Registered")
 
-        return (self.date_created, 'Made alternate')
+        return (self.date_created, "Made alternate")
 
     def __str__(self):
         return "%s" % self.season_player
@@ -2143,12 +2615,16 @@ class AlternateAssignment(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
-    replaced_player = models.ForeignKey(Player,
-                                        null=True, blank=True, on_delete=models.SET_NULL,
-                                        related_name='alternate_replacements')
+    replaced_player = models.ForeignKey(
+        Player,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="alternate_replacements",
+    )
 
     class Meta:
-        unique_together = ('round', 'team', 'board_number')
+        unique_together = ("round", "team", "board_number")
 
     def __init__(self, *args, **kwargs):
         super(AlternateAssignment, self).__init__(*args, **kwargs)
@@ -2157,15 +2633,26 @@ class AlternateAssignment(_BaseModel):
         self.initial_board_number = self.board_number
 
     def clean(self):
-        if self.round_id and self.team_id and self.round.season_id != self.team.season_id:
-            raise ValidationError('Round and team seasons must match')
-        if self.team_id and self.player_id and not SeasonPlayer.objects.filter(
-            season=self.team.season, player=self.player).exists():
-            raise ValidationError('Assigned player must be a player in the season')
+        if (
+            self.round_id
+            and self.team_id
+            and self.round.season_id != self.team.season_id
+        ):
+            raise ValidationError("Round and team seasons must match")
+        if (
+            self.team_id
+            and self.player_id
+            and not SeasonPlayer.objects.filter(
+                season=self.team.season, player=self.player
+            ).exists()
+        ):
+            raise ValidationError("Assigned player must be a player in the season")
 
     def save(self, *args, **kwargs):
         if self.replaced_player is None:
-            tm = TeamMember.objects.filter(team=self.team, board_number=self.board_number).first()
+            tm = TeamMember.objects.filter(
+                team=self.team, board_number=self.board_number
+            ).first()
             if tm is not None:
                 self.replaced_player = tm.player
 
@@ -2174,8 +2661,13 @@ class AlternateAssignment(_BaseModel):
         # Find and update any current pairings
         white_pairing = self.team.pairings_as_white.filter(round=self.round).first()
         if white_pairing is not None:
-            pairing = white_pairing.teamplayerpairing_set.filter(
-                board_number=self.board_number).nocache().first()
+            pairing = (
+                white_pairing.teamplayerpairing_set.filter(
+                    board_number=self.board_number
+                )
+                .nocache()
+                .first()
+            )
             if pairing is not None:
                 if self.board_number % 2 == 1:
                     pairing.white = self.player
@@ -2184,8 +2676,13 @@ class AlternateAssignment(_BaseModel):
                 pairing.save()
         black_pairing = self.team.pairings_as_black.filter(round=self.round).first()
         if black_pairing is not None:
-            pairing = black_pairing.teamplayerpairing_set.filter(
-                board_number=self.board_number).nocache().first()
+            pairing = (
+                black_pairing.teamplayerpairing_set.filter(
+                    board_number=self.board_number
+                )
+                .nocache()
+                .first()
+            )
             if pairing is not None:
                 if self.board_number % 2 == 1:
                     pairing.black = self.player
@@ -2205,16 +2702,21 @@ class AlternateBucket(_BaseModel):
     max_rating = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('season', 'board_number')
+        unique_together = ("season", "board_number")
 
     def contains(self, rating):
         if rating is None:
             return self.min_rating is None
         return (self.min_rating is None or rating > self.min_rating) and (
-            self.max_rating is None or rating <= self.max_rating)
+            self.max_rating is None or rating <= self.max_rating
+        )
 
     def __str__(self):
-        return "Board %d (%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
+        return "Board %d (%s, %s]" % (
+            self.board_number,
+            self.min_rating,
+            self.max_rating,
+        )
 
 
 def create_api_token():
@@ -2222,11 +2724,11 @@ def create_api_token():
 
 
 ALTERNATE_SEARCH_STATUS_OPTIONS = (
-    ('started', 'Started'),
-    ('all_contacted', 'All alternates contacted'),
-    ('completed', 'Completed'),
-    ('cancelled', 'Cancelled'),
-    ('failed', 'Failed'),
+    ("started", "Started"),
+    ("all_contacted", "All alternates contacted"),
+    ("completed", "Completed"),
+    ("cancelled", "Cancelled"),
+    ("failed", "Failed"),
 )
 
 
@@ -2237,39 +2739,58 @@ class AlternateSearch(_BaseModel):
     board_number = models.PositiveIntegerField(choices=BOARD_NUMBER_OPTIONS)
 
     is_active = models.BooleanField(default=True)
-    status = models.CharField(blank=True, max_length=31, choices=ALTERNATE_SEARCH_STATUS_OPTIONS)
+    status = models.CharField(
+        blank=True, max_length=31, choices=ALTERNATE_SEARCH_STATUS_OPTIONS
+    )
     last_alternate_contact_date = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('round', 'team', 'board_number')
+        unique_together = ("round", "team", "board_number")
 
     def clean(self):
-        if self.round_id and self.team_id and self.round.season_id != self.team.season_id:
-            raise ValidationError('Round and team seasons must match')
+        if (
+            self.round_id
+            and self.team_id
+            and self.round.season_id != self.team.season_id
+        ):
+            raise ValidationError("Round and team seasons must match")
 
     def still_needs_alternate(self):
         if self.round.publish_pairings:
             team_pairing = self.team.get_teampairing(self.round)
-            player_pairing = TeamPlayerPairing.objects.filter(team_pairing=team_pairing,
-                                                              board_number=self.board_number,
-                                                              result='',
-                                                              game_link='').nocache().first()
-            return player_pairing is not None and \
-                   (player_pairing.white_team() == self.team and (
-                       not player_pairing.white or not player_pairing.white.is_available_for(
-                       self.round)) or \
-                    player_pairing.black_team() == self.team and (
-                        not player_pairing.black or not player_pairing.black.is_available_for(
-                        self.round)))
+            player_pairing = (
+                TeamPlayerPairing.objects.filter(
+                    team_pairing=team_pairing,
+                    board_number=self.board_number,
+                    result="",
+                    game_link="",
+                )
+                .nocache()
+                .first()
+            )
+            return player_pairing is not None and (
+                player_pairing.white_team() == self.team
+                and (
+                    not player_pairing.white
+                    or not player_pairing.white.is_available_for(self.round)
+                )
+                or player_pairing.black_team() == self.team
+                and (
+                    not player_pairing.black
+                    or not player_pairing.black.is_available_for(self.round)
+                )
+            )
         else:
             player = None
-            aa = AlternateAssignment.objects.filter(round=self.round, team=self.team,
-                                                    board_number=self.board_number).first()
+            aa = AlternateAssignment.objects.filter(
+                round=self.round, team=self.team, board_number=self.board_number
+            ).first()
             if aa is not None:
                 player = aa.player
             else:
-                team_member = TeamMember.objects.filter(team=self.team,
-                                                        board_number=self.board_number).first()
+                team_member = TeamMember.objects.filter(
+                    team=self.team, board_number=self.board_number
+                ).first()
                 if team_member is not None:
                     player = team_member.player
             return player is not None and not player.is_available_for(self.round)
@@ -2282,24 +2803,37 @@ class AlternateSearch(_BaseModel):
 class AlternatesManagerSetting(_BaseModel):
     league = models.OneToOneField(League, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
-    contact_interval = models.DurationField(default=timedelta(hours=8),
-                                            help_text='How long before the next alternate will be contacted during the round.')
-    unresponsive_interval = models.DurationField(default=timedelta(hours=24),
-                                                 help_text='How long after being contacted until an alternate will be marked as unresponsive.')
-    rating_flex = models.PositiveIntegerField(default=0,
-                                              help_text='How far out of a board\'s rating range an alternate can be if it helps alternate balance.')
+    contact_interval = models.DurationField(
+        default=timedelta(hours=8),
+        help_text="How long before the next alternate will be contacted during the round.",
+    )
+    unresponsive_interval = models.DurationField(
+        default=timedelta(hours=24),
+        help_text="How long after being contacted until an alternate will be marked as unresponsive.",
+    )
+    rating_flex = models.PositiveIntegerField(
+        default=0,
+        help_text="How far out of a board's rating range an alternate can be if it helps alternate balance.",
+    )
 
-    contact_before_round_start = models.BooleanField(default=True,
-                                                     help_text='If we should search for alternates before the pairings are published. Has no effect for round 1.')
-    contact_offset_before_round_start = models.DurationField(default=timedelta(hours=48),
-                                                             help_text='How long before the round starts we should start searching for alternates. Also ends the previous round searches early.')
-    contact_interval_before_round_start = models.DurationField(default=timedelta(hours=12),
-                                                               help_text='How long before the next alternate will be contacted, if the round hasn\'t started yet.')
+    contact_before_round_start = models.BooleanField(
+        default=True,
+        help_text="If we should search for alternates before the pairings are published. Has no effect for round 1.",
+    )
+    contact_offset_before_round_start = models.DurationField(
+        default=timedelta(hours=48),
+        help_text="How long before the round starts we should start searching for alternates. Also ends the previous round searches early.",
+    )
+    contact_interval_before_round_start = models.DurationField(
+        default=timedelta(hours=12),
+        help_text="How long before the next alternate will be contacted, if the round hasn't started yet.",
+    )
 
     def clean(self):
-        if self.league_id and self.league.competitor_type != 'team':
+        if self.league_id and self.league.competitor_type != "team":
             raise ValidationError(
-                'Alternates manager settings can only be created for team leagues')
+                "Alternates manager settings can only be created for team leagues"
+            )
 
     def __str__(self):
         return "%s" % (self.league)
@@ -2312,13 +2846,13 @@ class SeasonPrize(_BaseModel):
     max_rating = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('season', 'rank', 'max_rating')
+        unique_together = ("season", "rank", "max_rating")
 
     def __str__(self):
         if self.max_rating is not None:
-            return '%s - U%d #%d' % (self.season, self.max_rating, self.rank)
+            return "%s - U%d #%d" % (self.season, self.max_rating, self.rank)
         else:
-            return '%s - #%d' % (self.season, self.rank)
+            return "%s - #%d" % (self.season, self.rank)
 
 
 # -------------------------------------------------------------------------------
@@ -2327,35 +2861,38 @@ class SeasonPrizeWinner(_BaseModel):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('season_prize', 'player')
+        unique_together = ("season_prize", "player")
 
     def __str__(self):
-        return '%s - %s' % (self.season_prize, self.player)
+        return "%s - %s" % (self.season_prize, self.player)
 
 
 # -------------------------------------------------------------------------------
 class GameNomination(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
-    nominating_player = models.ForeignKey(Player,
-                                          on_delete=models.CASCADE)
+    nominating_player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game_link = models.URLField(validators=[game_link_validator])
-    pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
+    pairing = models.ForeignKey(
+        PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def __str__(self):
-        return '%s - %s' % (self.season, self.nominating_player)
+        return "%s - %s" % (self.season, self.nominating_player)
 
 
 # -------------------------------------------------------------------------------
 class GameSelection(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     game_link = models.URLField(validators=[game_link_validator])
-    pairing = models.ForeignKey(PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL)
+    pairing = models.ForeignKey(
+        PlayerPairing, blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     class Meta:
-        unique_together = ('season', 'game_link')
+        unique_together = ("season", "game_link")
 
     def __str__(self):
-        return '%s - %s' % (self.season, self.game_link)
+        return "%s - %s" % (self.season, self.game_link)
 
 
 class AvailableTime(_BaseModel):
@@ -2367,7 +2904,7 @@ class AvailableTime(_BaseModel):
 # -------------------------------------------------------------------------------
 class NavItem(_BaseModel):
     league = models.ForeignKey(League, on_delete=models.CASCADE)
-    parent = models.ForeignKey('self', blank=True, null=True, on_delete=models.CASCADE)
+    parent = models.ForeignKey("self", blank=True, null=True, on_delete=models.CASCADE)
     order = models.PositiveIntegerField()
     text = models.CharField(max_length=255)
     path = models.CharField(max_length=1023, blank=True)
@@ -2376,13 +2913,15 @@ class NavItem(_BaseModel):
     append_separator = models.BooleanField(default=False)
 
     def __str__(self):
-        return '%s - %s' % (self.league, self.text)
+        return "%s - %s" % (self.league, self.text)
 
 
 # -------------------------------------------------------------------------------
 class ApiKey(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
-    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    secret_token = models.CharField(
+        max_length=255, unique=True, default=create_api_token
+    )
 
     def __str__(self):
         return self.name
@@ -2391,8 +2930,12 @@ class ApiKey(_BaseModel):
 # -------------------------------------------------------------------------------
 class PrivateUrlAuth(_BaseModel):
     # Note: Could separate the one-time-URL and timed-auth portions into separate models at some point in the future
-    authenticated_user = models.CharField(max_length=255, validators=[username_validator])
-    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    authenticated_user = models.CharField(
+        max_length=255, validators=[username_validator]
+    )
+    secret_token = models.CharField(
+        max_length=255, unique=True, default=create_api_token
+    )
     expires = models.DateTimeField()
     used = models.BooleanField(default=False)
 
@@ -2405,10 +2948,14 @@ class PrivateUrlAuth(_BaseModel):
 
 # -------------------------------------------------------------------------------
 class LoginToken(_BaseModel):
-    lichess_username = models.CharField(max_length=255, blank=True, validators=[username_validator])
+    lichess_username = models.CharField(
+        max_length=255, blank=True, validators=[username_validator]
+    )
     username_hint = models.CharField(max_length=255, blank=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
-    secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    secret_token = models.CharField(
+        max_length=255, unique=True, default=create_api_token
+    )
     mail_id = models.CharField(max_length=255, blank=True)
     source_ip = models.GenericIPAddressField(null=True, blank=True)
     expires = models.DateTimeField()
@@ -2425,9 +2972,12 @@ class LoginToken(_BaseModel):
 class Document(_BaseModel):
     name = models.CharField(max_length=255)
     content = RichTextUploadingField()
-    allow_editors = models.BooleanField(default=False, verbose_name='Allow designated editors')
-    owner = models.ForeignKey(User,
-                              limit_choices_to=models.Q(is_staff=True), on_delete=models.PROTECT)
+    allow_editors = models.BooleanField(
+        default=False, verbose_name="Allow designated editors"
+    )
+    owner = models.ForeignKey(
+        User, limit_choices_to=models.Q(is_staff=True), on_delete=models.PROTECT
+    )
 
     def owned_by(self, user):
         return self.owner == user
@@ -2437,10 +2987,10 @@ class Document(_BaseModel):
 
 
 LEAGUE_DOCUMENT_TYPES = (
-    ('faq', 'FAQ'),
-    ('rules', 'Rules'),
-    ('intro', 'Intro'),
-    ('slack-welcome', 'Slack Welcome'),
+    ("faq", "FAQ"),
+    ("rules", "Rules"),
+    ("intro", "Intro"),
+    ("slack-welcome", "Slack Welcome"),
 )
 
 
@@ -2449,23 +2999,22 @@ class LeagueDocument(_BaseModel):
     league = models.ForeignKey(League, on_delete=models.CASCADE)
     document = models.OneToOneField(Document, on_delete=models.CASCADE)
     tag = models.SlugField(
-        help_text='The document will be accessible at /{league_tag}/document/{document_tag}/')
+        help_text="The document will be accessible at /{league_tag}/document/{document_tag}/"
+    )
     type = models.CharField(blank=True, max_length=255, choices=LEAGUE_DOCUMENT_TYPES)
 
     class Meta:
-        unique_together = ('league', 'tag')
+        unique_together = ("league", "tag")
 
     def clean(self):
         if SeasonDocument.objects.filter(document_id=self.document_id):
-            raise ValidationError('Document already belongs to a season')
+            raise ValidationError("Document already belongs to a season")
 
     def __str__(self):
         return self.document.name
 
 
-SEASON_DOCUMENT_TYPES = (
-    ('links', 'Links'),
-)
+SEASON_DOCUMENT_TYPES = (("links", "Links"),)
 
 
 # -------------------------------------------------------------------------------
@@ -2473,24 +3022,25 @@ class SeasonDocument(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     document = models.OneToOneField(Document, on_delete=models.CASCADE)
     tag = models.SlugField(
-        help_text='The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/')
+        help_text="The document will be accessible at /{league_tag}/season/{season_tag}/document/{document_tag}/"
+    )
     type = models.CharField(blank=True, max_length=255, choices=SEASON_DOCUMENT_TYPES)
 
     class Meta:
-        unique_together = ('season', 'tag')
+        unique_together = ("season", "tag")
 
     def clean(self):
         if LeagueDocument.objects.filter(document_id=self.document_id):
-            raise ValidationError('Document already belongs to a league')
+            raise ValidationError("Document already belongs to a league")
 
     def __str__(self):
         return self.document.name
 
 
 LEAGUE_CHANNEL_TYPES = (
-    ('mod', 'Mods'),
-    ('captains', 'Captains'),
-    ('scheduling', 'Scheduling'),
+    ("mod", "Mods"),
+    ("captains", "Captains"),
+    ("scheduling", "Scheduling"),
 )
 
 
@@ -2504,32 +3054,36 @@ class LeagueChannel(_BaseModel):
     send_messages = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('league', 'slack_channel', 'type')
+        unique_together = ("league", "slack_channel", "type")
 
     def channel_link(self):
         if not self.slack_channel_id:
             return self.slack_channel
-        return '<%s%s|%s>' % (self.slack_channel[0], self.slack_channel_id, self.slack_channel[1:])
+        return "<%s%s|%s>" % (
+            self.slack_channel[0],
+            self.slack_channel_id,
+            self.slack_channel[1:],
+        )
 
     def __str__(self):
-        return '%s - %s' % (self.league, self.get_type_display())
+        return "%s - %s" % (self.league, self.get_type_display())
 
 
 SCHEDULED_EVENT_TYPES = (
-    ('notify_mods_unscheduled', 'Notify mods of unscheduled games'),
-    ('notify_mods_no_result', 'Notify mods of games without results'),
-    ('notify_mods_pending_regs', 'Notify mods of pending registrations'),
-    ('start_round_transition', 'Start round transition'),
-    ('notify_players_unscheduled', 'Notify players of unscheduled games'),
-    ('notify_players_game_time', 'Notify players of their game time'),
-    ('automod_unresponsive', 'Auto-mod unresponsive players'),
-    ('automod_noshow', 'Auto-mod no-shows'),
+    ("notify_mods_unscheduled", "Notify mods of unscheduled games"),
+    ("notify_mods_no_result", "Notify mods of games without results"),
+    ("notify_mods_pending_regs", "Notify mods of pending registrations"),
+    ("start_round_transition", "Start round transition"),
+    ("notify_players_unscheduled", "Notify players of unscheduled games"),
+    ("notify_players_game_time", "Notify players of their game time"),
+    ("automod_unresponsive", "Auto-mod unresponsive players"),
+    ("automod_noshow", "Auto-mod no-shows"),
 )
 
 SCHEDULED_EVENT_RELATIVE_TO = (
-    ('round_start', 'Round start'),
-    ('round_end', 'Round end'),
-    ('game_scheduled_time', 'Game scheduled time'),
+    ("round_start", "Round start"),
+    ("round_end", "Round end"),
+    ("game_scheduled_time", "Game scheduled time"),
 )
 
 
@@ -2543,41 +3097,41 @@ class ScheduledEvent(_BaseModel):
     last_run = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return '%s' % (self.get_type_display())
+        return "%s" % (self.get_type_display())
 
     def run(self, obj):
         self.last_run = timezone.now()
         self.save()
 
-        if self.type == 'notify_mods_unscheduled' and isinstance(obj, Round):
+        if self.type == "notify_mods_unscheduled" and isinstance(obj, Round):
             signals.notify_mods_unscheduled.send(sender=self.__class__, round_=obj)
-        elif self.type == 'notify_mods_no_result' and isinstance(obj, Round):
+        elif self.type == "notify_mods_no_result" and isinstance(obj, Round):
             signals.notify_mods_no_result.send(sender=self.__class__, round_=obj)
-        elif self.type == 'notify_mods_pending_regs' and isinstance(obj, Round):
+        elif self.type == "notify_mods_pending_regs" and isinstance(obj, Round):
             signals.notify_mods_pending_regs.send(sender=self.__class__, round_=obj)
-        elif self.type == 'start_round_transition' and isinstance(obj, Round):
+        elif self.type == "start_round_transition" and isinstance(obj, Round):
             signals.do_round_transition.send(sender=self.__class__, round_id=obj.pk)
-        elif self.type == 'notify_players_unscheduled' and isinstance(obj, Round):
+        elif self.type == "notify_players_unscheduled" and isinstance(obj, Round):
             signals.notify_players_unscheduled.send(sender=self.__class__, round_=obj)
-        elif self.type == 'notify_players_game_time' and isinstance(obj, PlayerPairing):
+        elif self.type == "notify_players_game_time" and isinstance(obj, PlayerPairing):
             signals.notify_players_game_time.send(sender=self.__class__, pairing=obj)
-        elif self.type == 'automod_unresponsive' and isinstance(obj, Round):
+        elif self.type == "automod_unresponsive" and isinstance(obj, Round):
             signals.automod_unresponsive.send(sender=self.__class__, round_=obj)
-        elif self.type == 'automod_noshow' and isinstance(obj, PlayerPairing):
+        elif self.type == "automod_noshow" and isinstance(obj, PlayerPairing):
             signals.automod_noshow.send(sender=self.__class__, pairing=obj)
 
     def clean(self):
         if self.league_id and self.season_id and self.season.league != self.league:
-            raise ValidationError('League and season must be compatible')
+            raise ValidationError("League and season must be compatible")
 
 
 PLAYER_NOTIFICATION_TYPES = (
-    ('round_started', 'Round started'),
-    ('before_game_time', 'Before game time'),
-    ('game_time', 'Game time'),
-    ('unscheduled_game', 'Unscheduled game'),
-    ('game_warning', 'Game warning'),
-    ('alternate_needed', 'Alternate needed'),
+    ("round_started", "Round started"),
+    ("before_game_time", "Before game time"),
+    ("game_time", "Game time"),
+    ("unscheduled_game", "Unscheduled game"),
+    ("game_warning", "Game warning"),
+    ("alternate_needed", "Alternate needed"),
 )
 
 
@@ -2592,25 +3146,29 @@ class PlayerNotificationSetting(_BaseModel):
     enable_slack_mpim = models.BooleanField()
 
     class Meta:
-        unique_together = ('player', 'type', 'league')
+        unique_together = ("player", "type", "league")
 
     def __str__(self):
-        return '%s - %s' % (self.player, self.get_type_display())
+        return "%s - %s" % (self.player, self.get_type_display())
 
     def save(self, *args, **kwargs):
         super(PlayerNotificationSetting, self).save(*args, **kwargs)
-        if self.type == 'before_game_time':
+        if self.type == "before_game_time":
             # Rebuild scheduled notifications based on offset
             self.schedulednotification_set.all().delete()
-            upcoming_pairings = self.player.pairings.filter(scheduled_time__gt=timezone.now())
+            upcoming_pairings = self.player.pairings.filter(
+                scheduled_time__gt=timezone.now()
+            )
             upcoming_pairings = upcoming_pairings.filter(
-                teamplayerpairing__team_pairing__round__season__league=self.league) | \
-                                upcoming_pairings.filter(
-                                    loneplayerpairing__round__season__league=self.league)
+                teamplayerpairing__team_pairing__round__season__league=self.league
+            ) | upcoming_pairings.filter(
+                loneplayerpairing__round__season__league=self.league
+            )
             for p in upcoming_pairings:
                 notification_time = p.scheduled_time - self.offset
-                ScheduledNotification.objects.create(setting=self, pairing=p,
-                                                     notification_time=notification_time)
+                ScheduledNotification.objects.create(
+                    setting=self, pairing=p, notification_time=notification_time
+                )
 
     @classmethod
     def get_or_default(cls, **kwargs):
@@ -2619,30 +3177,44 @@ class PlayerNotificationSetting(_BaseModel):
             return obj
         # Return (but don't create) the default setting based on the type
         obj = PlayerNotificationSetting(**kwargs)
-        type_ = kwargs.get('type')
-        if type_ == 'before_game_time' and obj.offset is not None:
-            del kwargs['offset']
-            has_other_offset = PlayerNotificationSetting.objects.filter(**kwargs).exists()
+        type_ = kwargs.get("type")
+        if type_ == "before_game_time" and obj.offset is not None:
+            del kwargs["offset"]
+            has_other_offset = PlayerNotificationSetting.objects.filter(
+                **kwargs
+            ).exists()
             if has_other_offset or obj.offset != timedelta(minutes=60):
                 # Non-default offset, so leave everything disabled
                 return obj
-        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
+        obj.enable_lichess_mail = type_ in (
+            "round_started",
+            "game_warning",
+            "alternate_needed",
+        )
         obj.enable_slack_im = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game',
-            'alternate_needed')
+            "round_started",
+            "before_game_time",
+            "game_time",
+            "unscheduled_game",
+            "alternate_needed",
+        )
         obj.enable_slack_mpim = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game')
-        if type_ == 'before_game_time':
+            "round_started",
+            "before_game_time",
+            "game_time",
+            "unscheduled_game",
+        )
+        if type_ == "before_game_time":
             obj.offset = timedelta(minutes=60)
         return obj
 
     def clean(self):
-        if self.type in ('before_game_time',):
+        if self.type in ("before_game_time",):
             if self.offset is None:
-                raise ValidationError('Offset is required for this type')
+                raise ValidationError("Offset is required for this type")
         else:
             if self.offset is not None:
-                raise ValidationError('Offset is not applicable for this type')
+                raise ValidationError("Offset is not applicable for this type")
 
 
 # -------------------------------------------------------------------------------
@@ -2656,13 +3228,13 @@ class PlayerPresence(_BaseModel):
     online_for_game = models.BooleanField(default=False)
 
     def __str__(self):
-        return '%s' % (self.player)
+        return "%s" % (self.player)
 
 
 PLAYER_WARNING_TYPE_OPTIONS = (
-    ('unresponsive', 'unresponsive'),
-    ('card_unresponsive', 'card for unresponsive'),
-    ('card_noshow', 'card for no-show'),
+    ("unresponsive", "unresponsive"),
+    ("card_unresponsive", "card for unresponsive"),
+    ("card_noshow", "card for no-show"),
 )
 
 
@@ -2673,10 +3245,10 @@ class PlayerWarning(_BaseModel):
     type = models.CharField(max_length=255, choices=PLAYER_WARNING_TYPE_OPTIONS)
 
     class Meta:
-        unique_together = ('round', 'player', 'type')
+        unique_together = ("round", "player", "type")
 
     def __str__(self):
-        return '%s - %s' % (self.player.lichess_username, self.get_type_display())
+        return "%s - %s" % (self.player.lichess_username, self.get_type_display())
 
 
 # -------------------------------------------------------------------------------
@@ -2686,7 +3258,7 @@ class ScheduledNotification(_BaseModel):
     notification_time = models.DateTimeField()
 
     def __str__(self):
-        return '%s' % (self.setting)
+        return "%s" % (self.setting)
 
     def save(self, *args, **kwargs):
         if self.notification_time < timezone.now():
@@ -2697,18 +3269,22 @@ class ScheduledNotification(_BaseModel):
 
     def run(self):
         try:
-            if self.setting.type == 'before_game_time':
+            if self.setting.type == "before_game_time":
                 pairing = PlayerPairing.objects.nocache().get(pk=self.pairing_id)
                 if pairing.scheduled_time is not None:
-                    signals.before_game_time.send(sender=self.__class__, player=self.setting.player,
-                                                  pairing=pairing, offset=self.setting.offset)
+                    signals.before_game_time.send(
+                        sender=self.__class__,
+                        player=self.setting.player,
+                        pairing=pairing,
+                        offset=self.setting.offset,
+                    )
         except Exception:
-            logger.exception('Error running scheduled notification')
+            logger.exception("Error running scheduled notification")
         self.delete()
 
     def clean(self):
         if self.setting.offset is None:
-            raise ValidationError('Setting must have an offset')
+            raise ValidationError("Setting must have an offset")
 
 
 # -------------------------------------------------------------------------------
@@ -2718,27 +3294,28 @@ class FcmSub(_BaseModel):
 
 
 MOD_REQUEST_STATUS_OPTIONS = (
-    ('pending', 'Pending'),
-    ('approved', 'Approved'),
-    ('rejected', 'Rejected'),
+    ("pending", "Pending"),
+    ("approved", "Approved"),
+    ("rejected", "Rejected"),
 )
 
 MOD_REQUEST_TYPE_OPTIONS = (
-    ('withdraw', 'Withdraw'),
-    ('reregister', 'Re-register'),
-    ('appeal_late_response', 'Appeal late response'),
-    ('appeal_noshow', 'Appeal no-show'),
-    ('appeal_draw_scheduling', 'Appeal scheduling draw'),
-    ('claim_win_noshow', 'Claim a forfeit win (no-show)'),
-    ('claim_win_effort', 'Claim a forfeit win (insufficient effort)'),
-    ('claim_draw_scheduling', 'Claim a scheduling draw'),
-    ('claim_loss', 'Claim a forfeit loss'),
-    ('request_continuation', 'Request continuation'),
+    ("withdraw", "Withdraw"),
+    ("reregister", "Re-register"),
+    ("appeal_late_response", "Appeal late response"),
+    ("appeal_noshow", "Appeal no-show"),
+    ("appeal_draw_scheduling", "Appeal scheduling draw"),
+    ("claim_win_noshow", "Claim a forfeit win (no-show)"),
+    ("claim_win_effort", "Claim a forfeit win (insufficient effort)"),
+    ("claim_draw_scheduling", "Claim a scheduling draw"),
+    ("claim_loss", "Claim a forfeit loss"),
+    ("request_continuation", "Request continuation"),
 )
 
 # A plain string literal won't work as a Django signal sender since it will have a unique object reference
 # By using a common dict we can make sure we're working with the same object (using `intern` would also work)
 # This also has the advantage that typos will create a KeyError instead of silently failing
+# TODO: does this live in models?
 MOD_REQUEST_SENDER = {a: a for a, _ in MOD_REQUEST_TYPE_OPTIONS}
 
 
@@ -2746,7 +3323,9 @@ MOD_REQUEST_SENDER = {a: a for a, _ in MOD_REQUEST_TYPE_OPTIONS}
 class ModRequest(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     round = models.ForeignKey(Round, null=True, blank=True, on_delete=models.CASCADE)
-    pairing = models.ForeignKey(PlayerPairing, null=True, blank=True, on_delete=models.CASCADE)
+    pairing = models.ForeignKey(
+        PlayerPairing, null=True, blank=True, on_delete=models.CASCADE
+    )
     requester = models.ForeignKey(Player, on_delete=models.CASCADE)
     type = models.CharField(max_length=255, choices=MOD_REQUEST_TYPE_OPTIONS)
     status = models.CharField(max_length=31, choices=MOD_REQUEST_STATUS_OPTIONS)
@@ -2755,29 +3334,34 @@ class ModRequest(_BaseModel):
 
     notes = models.TextField(blank=True)
     # TODO: Multiple screenshot support?
-    screenshot = models.ImageField(upload_to='screenshots/%Y/%m/%d/', null=True, blank=True)
+    screenshot = models.ImageField(
+        upload_to="screenshots/%Y/%m/%d/", null=True, blank=True
+    )
     response = models.TextField(blank=True)
 
-    def approve(self, user='System', response=''):
+    def approve(self, user="System", response=""):
         with reversion.create_revision():
-            reversion.set_comment(f'Mod request approved by {user}')
-            self.status = 'approved'
+            reversion.set_comment(f"Mod request approved by {user}")
+            self.status = "approved"
             self.status_changed_by = user
             self.status_changed_date = timezone.now()
             self.response = response
             self.save()
-        signals.mod_request_approved.send(sender=MOD_REQUEST_SENDER[self.type], instance=self)
+        signals.mod_request_approved.send(
+            sender=MOD_REQUEST_SENDER[self.type], instance=self
+        )
 
-    def reject(self, user='System', response=''):
+    def reject(self, user="System", response=""):
         with reversion.create_revision():
-            reversion.set_comment(f'Mod request rejected by {user}')
-            self.status = 'rejected'
+            reversion.set_comment(f"Mod request rejected by {user}")
+            self.status = "rejected"
             self.status_changed_by = user
             self.status_changed_date = timezone.now()
             self.response = response
             self.save()
-        signals.mod_request_rejected.send(sender=MOD_REQUEST_SENDER[self.type], instance=self,
-                                          response=response)
+        signals.mod_request_rejected.send(
+            sender=MOD_REQUEST_SENDER[self.type], instance=self, response=response
+        )
 
     def clean(self):
         pass
@@ -2787,4 +3371,4 @@ class ModRequest(_BaseModel):
     #             raise ValidationError('Screenshot is required')
 
     def __str__(self):
-        return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
+        return "%s - %s" % (self.requester.lichess_username, self.get_type_display())

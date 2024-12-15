@@ -6,20 +6,35 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0180_leaguesetting_contact_period'),
+        ("tournament", "0180_leaguesetting_contact_period"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='league',
-            name='rating_type',
-            field=models.CharField(choices=[('classical', 'Classical'), ('rapid', 'Rapid'), ('chess960', 'Chess 960'), ('blitz', 'Blitz')], max_length=32),
+            model_name="league",
+            name="rating_type",
+            field=models.CharField(
+                choices=[
+                    ("classical", "Classical"),
+                    ("rapid", "Rapid"),
+                    ("chess960", "Chess 960"),
+                    ("blitz", "Blitz"),
+                ],
+                max_length=32,
+            ),
         ),
         migrations.AlterField(
-            model_name='league',
-            name='theme',
-            field=models.CharField(choices=[('blue', 'Blue'), ('green', 'Green'), ('red', 'Red'), ('yellow', 'Yellow')], max_length=32),
+            model_name="league",
+            name="theme",
+            field=models.CharField(
+                choices=[
+                    ("blue", "Blue"),
+                    ("green", "Green"),
+                    ("red", "Red"),
+                    ("yellow", "Yellow"),
+                ],
+                max_length=32,
+            ),
         ),
     ]

@@ -7,15 +7,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0134_auto_20170108_0259'),
+        ("tournament", "0134_auto_20170108_0259"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='season',
-            name='round_duration',
+            model_name="season",
+            name="round_duration",
             field=models.DurationField(default=datetime.timedelta(7)),
         ),
     ]

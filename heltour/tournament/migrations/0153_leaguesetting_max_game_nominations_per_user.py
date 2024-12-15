@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0152_leaguesetting'),
+        ("tournament", "0152_leaguesetting"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguesetting',
-            name='max_game_nominations_per_user',
+            model_name="leaguesetting",
+            name="max_game_nominations_per_user",
             field=models.PositiveIntegerField(default=3),
         ),
     ]

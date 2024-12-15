@@ -6,15 +6,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0154_fcmsub'),
+        ("tournament", "0154_fcmsub"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='alternatesmanagersetting',
-            name='rating_flex',
-            field=models.PositiveIntegerField(default=0, help_text="How far out of a board's rating range an alternate can be if it helps alternate balance."),
+            model_name="alternatesmanagersetting",
+            name="rating_flex",
+            field=models.PositiveIntegerField(
+                default=0,
+                help_text="How far out of a board's rating range an alternate can be if it helps alternate balance.",
+            ),
         ),
     ]

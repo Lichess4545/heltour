@@ -6,22 +6,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0036_auto_20160729_2033'),
+        ("tournament", "0036_auto_20160729_2033"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerpairing',
-            name='game_link',
-            field=models.URLField(blank=True, default='', max_length=1024),
+            model_name="playerpairing",
+            name="game_link",
+            field=models.URLField(blank=True, default="", max_length=1024),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='playerpairing',
-            name='result',
-            field=models.CharField(blank=True, default='', max_length=16),
+            model_name="playerpairing",
+            name="result",
+            field=models.CharField(blank=True, default="", max_length=16),
             preserve_default=False,
         ),
     ]

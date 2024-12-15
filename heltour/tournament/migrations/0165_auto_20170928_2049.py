@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0164_logintoken_mail_id'),
+        ("tournament", "0164_logintoken_mail_id"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='registration',
-            name='peak_classical_rating',
+            model_name="registration",
+            name="peak_classical_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

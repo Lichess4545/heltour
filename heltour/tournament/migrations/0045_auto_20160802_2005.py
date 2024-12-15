@@ -6,16 +6,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0044_auto_20160802_0342'),
+        ("tournament", "0044_auto_20160802_0342"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='teammember',
-            name='board_number',
-            field=models.PositiveIntegerField(choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6')], default=1),
+            model_name="teammember",
+            name="board_number",
+            field=models.PositiveIntegerField(
+                choices=[(1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "5"), (6, "6")],
+                default=1,
+            ),
             preserve_default=False,
         ),
     ]

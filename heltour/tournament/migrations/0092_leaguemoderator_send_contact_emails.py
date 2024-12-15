@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0091_remove_player_is_moderator'),
+        ("tournament", "0091_remove_player_is_moderator"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguemoderator',
-            name='send_contact_emails',
+            model_name="leaguemoderator",
+            name="send_contact_emails",
             field=models.BooleanField(default=True),
         ),
     ]

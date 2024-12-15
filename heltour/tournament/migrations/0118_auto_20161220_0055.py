@@ -6,24 +6,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0117_auto_20161219_0256'),
+        ("tournament", "0117_auto_20161219_0256"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='leaguenotification',
-            name='enabled',
+            model_name="leaguenotification",
+            name="enabled",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='leaguenotification',
-            name='slack_channel_id',
+            model_name="leaguenotification",
+            name="slack_channel_id",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.AlterUniqueTogether(
-            name='playernotificationsetting',
-            unique_together=set([('player', 'type', 'league')]),
+            name="playernotificationsetting",
+            unique_together=set([("player", "type", "league")]),
         ),
     ]

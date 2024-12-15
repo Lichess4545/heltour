@@ -1,17 +1,20 @@
+import math
 import random
 import re
-import math
-from heltour.tournament.team_rating_utils import variance, \
-    team_rating_variance, team_rating_range
-
-from itertools import combinations
 from functools import partial
+from itertools import combinations
 from multiprocessing import Pool
 
 from django.conf import settings
 
+from heltour.tournament.team_rating_utils import (
+    team_rating_range,
+    variance,
+)
+
 AVOID_WEIGHT = 1000
 FRIEND_WEIGHT = 1
+
 
 class Player:
     pref_score = 0
@@ -19,7 +22,9 @@ class Player:
     board = None
     req_met = False
 
-    def __init__(self, name, rating, friends, avoid, date, alt, alt_fine, previous_season_alt):
+    def __init__(
+        self, name, rating, friends, avoid, date, alt, alt_fine, previous_season_alt
+    ):
         self.name = name
         self.rating = rating
         self.friends = friends
@@ -32,14 +37,14 @@ class Player:
     @classmethod
     def player_from_json(cls, player):
         return cls(
-            player['name'],
-            player['rating'],
-            player['friends'],
-            player['avoid'],
-            player['date_created'],
-            player['prefers_alt'],
-            player['alt_fine'],
-            player.get('previous_season_alternate', False)
+            player["name"],
+            player["rating"],
+            player["friends"],
+            player["avoid"],
+            player["date_created"],
+            player["prefers_alt"],
+            player["alt_fine"],
+            player.get("previous_season_alternate", False),
         )
 
     def __repr__(self):
@@ -59,6 +64,7 @@ class Player:
             if avoid in self.team.get_boards():
                 self.pref_score -= AVOID_WEIGHT
         # player with more than 5 choices can be <5 preference even if all teammates are preferred
+
     def set_req_met(self):
         self.req_met = False
         if not self.friends:
@@ -115,7 +121,10 @@ def update_pref(players, teams):  # update preference scores
 
 
 def update_sort(players, teams):  # based on preference score high to low
-    players.sort(key=lambda player: (player.team.team_pref_score, player.pref_score), reverse=False)
+    players.sort(
+        key=lambda player: (player.team.team_pref_score, player.pref_score),
+        reverse=False,
+    )
     teams.sort(key=lambda team: team.team_pref_score, reverse=False)
 
 
@@ -125,7 +134,7 @@ def split_into_equal_groups_by_rating(players, group_number):
     players_split = []
     last = 0.0
     while round(last) < len(players):
-        players_split.append(players[int(round(last)):int(round(last + avg))])
+        players_split.append(players[int(round(last)) : int(round(last + avg))])
         last += avg
     return players_split
 
@@ -149,7 +158,7 @@ def flatten(lst):
 def make_league(playerdata, boards, balance):
     players = []
     for player in playerdata:
-        if player['in_slack']:
+        if player["in_slack"]:
             players.append(Player.player_from_json(player))
         else:
             pass
@@ -169,7 +178,13 @@ def make_league(playerdata, boards, balance):
 
     # separate latest joining players into alternate lists as required
     for n, board in enumerate(players_split):
-        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, 0 if not player.alt_fine else 1, player.date))
+        board.sort(
+            key=lambda player: (
+                0 if player.previous_season_alt else 1,
+                0 if not player.alt_fine else 1,
+                player.date,
+            )
+        )
         alternates.extend(board[num_teams:])
         del board[num_teams:]
         board.sort(key=lambda player: player.rating, reverse=True)
@@ -189,8 +204,11 @@ def make_league(playerdata, boards, balance):
 
     def convert_name_list(string_of_names, players):
         pattern = r"([^-_a-zA-Z0-9]|^){0}([^-_a-zA-Z0-9]|$)"
-        return [player for player in players
-                if re.search(pattern.format(player.name), string_of_names, flags=re.I)]
+        return [
+            player
+            for player in players
+            if re.search(pattern.format(player.name), string_of_names, flags=re.I)
+        ]
 
     for player in players:
         filtered_players = [p for p in players if p.board != player.board]
@@ -244,12 +262,22 @@ def make_league(playerdata, boards, balance):
             # board check is redundant due to earlier removal of same board requests
             if friend.board != player.board and friend.team != player.team:
                 # test swap friend to player team (swap1)
-                swap1_ID = (friend.team, friend, player.team, player.team.get_player(friend.board),
-                            friend.board)
+                swap1_ID = (
+                    friend.team,
+                    friend,
+                    player.team,
+                    player.team.get_player(friend.board),
+                    friend.board,
+                )
                 swap1_score = testSwap(*swap1_ID)
                 # test swap player to friend team (swap2)
-                swap2_ID = (player.team, player, friend.team, friend.team.get_player(player.board),
-                            player.board)
+                swap2_ID = (
+                    player.team,
+                    player,
+                    friend.team,
+                    friend.team.get_player(player.board),
+                    player.board,
+                )
                 swap2_score = testSwap(*swap2_ID)
                 swaps.append(max((swap1_score, swap1_ID), (swap2_score, swap2_ID)))
         for avoid in player.avoid:
@@ -257,13 +285,18 @@ def make_league(playerdata, boards, balance):
             if player.team == avoid.team:  # otherwise irrelevant
                 for swap_team in teams:
                     swap_ID = (
-                        avoid.team, avoid, swap_team, swap_team.get_player(avoid.board),
-                        avoid.board)
+                        avoid.team,
+                        avoid,
+                        swap_team,
+                        swap_team.get_player(avoid.board),
+                        avoid.board,
+                    )
                     swap_score = testSwap(*swap_ID)
                     swaps.append((swap_score, swap_ID))
         swaps.sort()
-        if swaps and swaps[-1][
-            0] > 0:  # there is a swap to make and it improves the preference score
+        if (
+            swaps and swaps[-1][0] > 0
+        ):  # there is a swap to make and it improves the preference score
             swapPlayers(*(swaps[-1][1]))
             # print(swaps[-1])
             update_pref(players, teams)
@@ -275,15 +308,18 @@ def make_league(playerdata, boards, balance):
     for player in players:
         player.set_req_met()
 
-    return {'teams': teams,
-            'players': players,
-            'alternates': alternates,
-            'team_rating_bounds': team_rating_bounds,
-            'alt_rating_bounds': alt_rating_bounds,
-            'alts_split': alts_split}
+    return {
+        "teams": teams,
+        "players": players,
+        "alternates": alternates,
+        "team_rating_bounds": team_rating_bounds,
+        "alt_rating_bounds": alt_rating_bounds,
+        "alts_split": alts_split,
+    }
 
 
 # Reduce variance functions
+
 
 def intersection(lst1, lst2):
     return set(lst1).intersection(set(lst2))
@@ -296,19 +332,23 @@ def is_neutral_swap(swap):
         n += len([p for p in team.boards if player in getattr(p, attr)])
         return n
 
-    count_friends_on_team = partial(count_on_team, 'friends')
-    count_avoids_on_team = partial(count_on_team, 'avoid')
+    count_friends_on_team = partial(count_on_team, "friends")
+    count_avoids_on_team = partial(count_on_team, "avoid")
 
     pa, pb = swap
-    pre_swap_score =   FRIEND_WEIGHT * count_friends_on_team(pa, pa.team) \
-                     + FRIEND_WEIGHT * count_friends_on_team(pb, pb.team) \
-                     - AVOID_WEIGHT * count_avoids_on_team(pa, pa.team) \
-                     - AVOID_WEIGHT * count_avoids_on_team(pb, pb.team)
+    pre_swap_score = (
+        FRIEND_WEIGHT * count_friends_on_team(pa, pa.team)
+        + FRIEND_WEIGHT * count_friends_on_team(pb, pb.team)
+        - AVOID_WEIGHT * count_avoids_on_team(pa, pa.team)
+        - AVOID_WEIGHT * count_avoids_on_team(pb, pb.team)
+    )
 
-    post_swap_score =  FRIEND_WEIGHT * count_friends_on_team(pa, pb.team) \
-                     + FRIEND_WEIGHT * count_friends_on_team(pb, pa.team) \
-                     - AVOID_WEIGHT * count_avoids_on_team(pa, pb.team) \
-                     - AVOID_WEIGHT * count_avoids_on_team(pb, pa.team)
+    post_swap_score = (
+        FRIEND_WEIGHT * count_friends_on_team(pa, pb.team)
+        + FRIEND_WEIGHT * count_friends_on_team(pb, pa.team)
+        - AVOID_WEIGHT * count_avoids_on_team(pa, pb.team)
+        - AVOID_WEIGHT * count_avoids_on_team(pb, pa.team)
+    )
 
     if pre_swap_score != post_swap_score:
         return False
@@ -318,7 +358,10 @@ def is_neutral_swap(swap):
 def get_swaps(teams):
     num_boards = len(teams[0].boards)
     boards = [[team.boards[i] for team in teams] for i in range(num_boards)]
-    swaps = [[swap for swap in combinations(board, 2) if is_neutral_swap(swap)] for board in boards]
+    swaps = [
+        [swap for swap in combinations(board, 2) if is_neutral_swap(swap)]
+        for board in boards
+    ]
     return flatten(swaps)
 
 
@@ -359,19 +402,23 @@ def update_swaps(swaps, swap_performed, teams):
     pa, pb = swap_performed
     affected_players = pa.team.boards + pb.team.boards
     # remove all swaps involving players affected by the swap.
-    swaps = [swap for swap in swaps
-             if not intersection(swap, affected_players)]
+    swaps = [swap for swap in swaps if not intersection(swap, affected_players)]
 
     # find new neutral swaps involving the players affected by swap.
     for player in affected_players:
         board = player.board
-        players_on_board = [team.boards[board] for team in teams
-                            if not team.boards[board] in affected_players]
-        swaps.extend([(player, p) for p in players_on_board
-                      if is_neutral_swap((player, p))])
+        players_on_board = [
+            team.boards[board]
+            for team in teams
+            if team.boards[board] not in affected_players
+        ]
+        swaps.extend(
+            [(player, p) for p in players_on_board if is_neutral_swap((player, p))]
+        )
 
-    swaps.extend([swap for swap in zip(pa.team.boards, pb.team.boards)
-                  if is_neutral_swap(swap)])
+    swaps.extend(
+        [swap for swap in zip(pa.team.boards, pb.team.boards) if is_neutral_swap(swap)]
+    )
 
     return swaps
 
@@ -416,18 +463,24 @@ def make_league_map(args):
 
 
 def reduce_variance_map(league):
-    league['teams'] = reduce_variance(league['teams'])
+    league["teams"] = reduce_variance(league["teams"])
     return league
 
 
 def get_best_league(player_data, boards, balance, count):
-    pool = Pool(getattr(settings, 'TEAMGEN_PROCESSES_NUMBER', 1))
+    pool = Pool(getattr(settings, "TEAMGEN_PROCESSES_NUMBER", 1))
     args = [(player_data, boards, balance) for _ in range(count)]
     leagues = pool.map(make_league_map, args)
-    max_happiness = max([total_happiness(l['teams']) for l in leagues])
-    happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
+    max_happiness = max([total_happiness(league["teams"]) for league in leagues])
+    happy_leagues = [
+        league
+        for league in leagues
+        if total_happiness(league["teams"]) == max_happiness
+    ]
 
     happy_leagues = pool.map(reduce_variance_map, happy_leagues)
 
-    min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
+    min_range_league = min(
+        happy_leagues, key=lambda league: team_rating_range(league["teams"])
+    )
     return min_range_league

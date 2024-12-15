@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0102_auto_20161008_2116'),
+        ("tournament", "0102_auto_20161008_2116"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='playerbye',
-            name='player_rating',
+            model_name="playerbye",
+            name="player_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

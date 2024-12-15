@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0103_playerbye_player_rating'),
+        ("tournament", "0103_playerbye_player_rating"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='alternate',
-            name='player_rating',
+            model_name="alternate",
+            name="player_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='teammember',
-            name='player_rating',
+            model_name="teammember",
+            name="player_rating",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

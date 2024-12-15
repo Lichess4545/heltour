@@ -6,16 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0135_season_round_duration'),
+        ("tournament", "0135_season_round_duration"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='league',
-            name='rating_type',
-            field=models.CharField(choices=[('classical', 'Classical'), ('blitz', 'Blitz')], default='classical', max_length=32),
+            model_name="league",
+            name="rating_type",
+            field=models.CharField(
+                choices=[("classical", "Classical"), ("blitz", "Blitz")],
+                default="classical",
+                max_length=32,
+            ),
             preserve_default=False,
         ),
     ]

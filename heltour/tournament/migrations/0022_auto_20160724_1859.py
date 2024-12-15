@@ -3,19 +3,19 @@
 
 
 from django.db import migrations
-import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0021_auto_20160724_1855'),
+        ("tournament", "0021_auto_20160724_1855"),
     ]
 
     operations = [
-        migrations.RunSQL("CREATE UNIQUE INDEX lichess_username_idx ON tournament_player (LOWER(lichess_username));"),
+        migrations.RunSQL(
+            "CREATE UNIQUE INDEX lichess_username_idx ON tournament_player (LOWER(lichess_username));"
+        ),
         migrations.AlterUniqueTogether(
-            name='player',
+            name="player",
             unique_together=set([]),
         ),
     ]

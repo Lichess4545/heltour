@@ -6,20 +6,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0114_auto_20161129_1632'),
+        ("tournament", "0114_auto_20161129_1632"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='loneplayerscore',
-            name='acceleration_group',
+            model_name="loneplayerscore",
+            name="acceleration_group",
             field=models.PositiveIntegerField(default=0),
         ),
         migrations.AlterField(
-            model_name='league',
-            name='pairing_type',
-            field=models.CharField(choices=[('swiss-dutch', 'Swiss Tournament: Dutch Algorithm'), ('swiss-dutch-baku-accel', 'Swiss Tournament: Dutch Algorithm + Baku Acceleration')], max_length=32),
+            model_name="league",
+            name="pairing_type",
+            field=models.CharField(
+                choices=[
+                    ("swiss-dutch", "Swiss Tournament: Dutch Algorithm"),
+                    (
+                        "swiss-dutch-baku-accel",
+                        "Swiss Tournament: Dutch Algorithm + Baku Acceleration",
+                    ),
+                ],
+                max_length=32,
+            ),
         ),
     ]

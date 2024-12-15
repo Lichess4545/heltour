@@ -1,12 +1,32 @@
+from django.contrib.auth.models import Group, User
+from django.contrib.sessions.models import Session
 from django.core.management import BaseCommand
 from django.utils import timezone
-from heltour.tournament.models import *
-
 from django_comments.models import Comment
-from django.contrib.auth.models import User, Group
-from django.contrib.sessions.models import Session
-from reversion.models import Revision
 from impersonate.models import ImpersonationLog
+from reversion.models import Revision
+
+from heltour.tournament.models import (
+    ApiKey,
+    Document,
+    FcmSub,
+    GameNomination,
+    LeagueChannel,
+    LeagueDocument,
+    LeagueModerator,
+    LoginToken,
+    ModRequest,
+    OauthToken,
+    Player,
+    PlayerNotificationSetting,
+    PlayerPresence,
+    PlayerWarning,
+    PrivateUrlAuth,
+    Registration,
+    ScheduledNotification,
+    SeasonDocument,
+    Team,
+)
 
 
 class Command(BaseCommand):
@@ -25,22 +45,22 @@ class Command(BaseCommand):
         Group.objects.all().delete()
         for p in Player.objects.all():
             p.email = "email-{}@example.com".format(p.id)
-            p.slack_user_id = ''
+            p.slack_user_id = ""
             p.timezone_offset = None
             p.save()
         for t in Team.objects.all():
-            t.slack_channel = ''
+            t.slack_channel = ""
             t.save()
-        Registration.objects.filter(status='rejected').delete()
-        Registration.objects.filter(status='pending').delete()
+        Registration.objects.filter(status="rejected").delete()
+        Registration.objects.filter(status="pending").delete()
         for r in Registration.objects.all():
             r.email = "email-{}@example.com".format(r.id)
-            r.status = 'approved'
+            r.status = "approved"
             r.validation_ok = True
             r.validation_warning = False
-            r.friends = ''
-            r.avoid = ''
-            r.slack_username = ''
+            r.friends = ""
+            r.avoid = ""
+            r.slack_username = ""
             r.save()
         LeagueModerator.objects.all().delete()
         Comment.objects.all().delete()

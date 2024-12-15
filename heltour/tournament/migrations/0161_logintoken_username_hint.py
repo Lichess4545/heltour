@@ -6,15 +6,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0160_auto_20170918_0025'),
+        ("tournament", "0160_auto_20170918_0025"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='logintoken',
-            name='username_hint',
+            model_name="logintoken",
+            name="username_hint",
             field=models.CharField(blank=True, max_length=255),
         ),
     ]

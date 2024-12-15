@@ -7,33 +7,44 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0184_auto_20190518_1606'),
+        ("tournament", "0184_auto_20190518_1606"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='OauthToken',
+            name="OauthToken",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('access_token', models.CharField(max_length=255)),
-                ('token_type', models.CharField(max_length=255)),
-                ('expires', models.DateTimeField()),
-                ('refresh_token', models.CharField(blank=True, max_length=255)),
-                ('scope', models.TextField(blank=True)),
-                ('account_username', models.CharField(max_length=255)),
-                ('account_email', models.CharField(blank=True, max_length=255)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("access_token", models.CharField(max_length=255)),
+                ("token_type", models.CharField(max_length=255)),
+                ("expires", models.DateTimeField()),
+                ("refresh_token", models.CharField(blank=True, max_length=255)),
+                ("scope", models.TextField(blank=True)),
+                ("account_username", models.CharField(max_length=255)),
+                ("account_email", models.CharField(blank=True, max_length=255)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AddField(
-            model_name='player',
-            name='oauth_token',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='tournament.OauthToken'),
+            model_name="player",
+            name="oauth_token",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.OauthToken",
+            ),
         ),
     ]

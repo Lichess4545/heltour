@@ -7,37 +7,70 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0041_auto_20160801_2116'),
+        ("tournament", "0041_auto_20160801_2116"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Alternate',
+            name="Alternate",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('board_number', models.PositiveIntegerField(blank=True, choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6')], null=True)),
-                ('player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "board_number",
+                    models.PositiveIntegerField(
+                        blank=True,
+                        choices=[
+                            (1, "1"),
+                            (2, "2"),
+                            (3, "3"),
+                            (4, "4"),
+                            (5, "5"),
+                            (6, "6"),
+                        ],
+                        null=True,
+                    ),
+                ),
+                (
+                    "player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tournament.Player",
+                    ),
+                ),
             ],
         ),
         migrations.AlterModelOptions(
-            name='round',
-            options={'permissions': (('generate_pairings', 'Can generate and review pairings'),)},
+            name="round",
+            options={
+                "permissions": (
+                    ("generate_pairings", "Can generate and review pairings"),
+                )
+            },
         ),
         migrations.AlterModelOptions(
-            name='season',
-            options={'permissions': (('edit_rosters', 'Can edit rosters'),)},
+            name="season",
+            options={"permissions": (("edit_rosters", "Can edit rosters"),)},
         ),
         migrations.AddField(
-            model_name='alternate',
-            name='season',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Season'),
+            model_name="alternate",
+            name="season",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Season"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='alternate',
-            unique_together=set([('season', 'player')]),
+            name="alternate",
+            unique_together=set([("season", "player")]),
         ),
     ]

@@ -6,20 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0185_auto_20191221_2144'),
+        ("tournament", "0185_auto_20191221_2144"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='oauthtoken',
-            name='access_token',
+            model_name="oauthtoken",
+            name="access_token",
             field=models.CharField(max_length=4096),
         ),
         migrations.AlterField(
-            model_name='oauthtoken',
-            name='refresh_token',
+            model_name="oauthtoken",
+            name="refresh_token",
             field=models.CharField(blank=True, max_length=4096),
         ),
     ]

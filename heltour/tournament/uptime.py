@@ -1,6 +1,7 @@
-from django.utils import timezone
 from datetime import timedelta
+
 from django.core.cache import cache
+from django.utils import timezone
 
 _start_time = timezone.now()
 
@@ -12,7 +13,7 @@ class UptimeIndicator(object):
 
     @property
     def is_up(self):
-        return cache.get(self.name) == True
+        return cache.get(self.name) is True
 
     @is_up.setter
     def is_up(self, value):
@@ -23,4 +24,4 @@ class UptimeIndicator(object):
         return timezone.now() - self.ping_interval > _start_time and not self.is_up
 
 
-celery = UptimeIndicator('celery_up', ping_interval=timedelta(minutes=15))
+celery = UptimeIndicator("celery_up", ping_interval=timedelta(minutes=15))

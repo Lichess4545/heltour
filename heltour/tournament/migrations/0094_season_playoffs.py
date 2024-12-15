@@ -6,15 +6,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0093_playerpairing_colors_reversed'),
+        ("tournament", "0093_playerpairing_colors_reversed"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='season',
-            name='playoffs',
-            field=models.PositiveIntegerField(choices=[(0, 'None'), (1, 'Quarter-Finals'), (2, 'Semi-Finals'), (3, 'Finals')], default=0),
+            model_name="season",
+            name="playoffs",
+            field=models.PositiveIntegerField(
+                choices=[
+                    (0, "None"),
+                    (1, "Quarter-Finals"),
+                    (2, "Semi-Finals"),
+                    (3, "Finals"),
+                ],
+                default=0,
+            ),
         ),
     ]

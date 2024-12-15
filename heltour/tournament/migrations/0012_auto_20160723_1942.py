@@ -7,65 +7,81 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0011_auto_20160722_2321'),
+        ("tournament", "0011_auto_20160722_2321"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SeasonPlayer',
+            name="SeasonPlayer",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('games_missed', models.IntegerField(default=0)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("games_missed", models.IntegerField(default=0)),
             ],
         ),
         migrations.RemoveField(
-            model_name='teammember',
-            name='games_missed',
+            model_name="teammember",
+            name="games_missed",
         ),
         migrations.AddField(
-            model_name='player',
-            name='email',
+            model_name="player",
+            name="email",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name='player',
-            name='moderator_notes',
+            model_name="player",
+            name="moderator_notes",
             field=models.CharField(blank=True, max_length=4095),
         ),
         migrations.AlterUniqueTogether(
-            name='pairing',
-            unique_together=set([('team_pairing', 'board_number')]),
+            name="pairing",
+            unique_together=set([("team_pairing", "board_number")]),
         ),
         migrations.AlterUniqueTogether(
-            name='player',
-            unique_together=set([('lichess_username',), ('email',)]),
+            name="player",
+            unique_together=set([("lichess_username",), ("email",)]),
         ),
         migrations.AlterUniqueTogether(
-            name='teampairing',
-            unique_together=set([('white_team', 'black_team', 'round')]),
+            name="teampairing",
+            unique_together=set([("white_team", "black_team", "round")]),
         ),
         migrations.AddField(
-            model_name='seasonplayer',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Player'),
+            model_name="seasonplayer",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Player"
+            ),
         ),
         migrations.AddField(
-            model_name='seasonplayer',
-            name='registration',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tournament.Registration'),
+            model_name="seasonplayer",
+            name="registration",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.Registration",
+            ),
         ),
         migrations.AddField(
-            model_name='seasonplayer',
-            name='season',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.Season'),
+            model_name="seasonplayer",
+            name="season",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tournament.Season"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='seasonplayer',
-            unique_together=set([('season', 'player')]),
+            name="seasonplayer",
+            unique_together=set([("season", "player")]),
         ),
     ]

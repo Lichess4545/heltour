@@ -8,24 +8,44 @@ import heltour.tournament.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0081_auto_20160829_1946'),
+        ("tournament", "0081_auto_20160829_1946"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PrivateUrlAuth',
+            name="PrivateUrlAuth",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('authenticated_user', models.CharField(max_length=255, validators=[django.core.validators.RegexValidator('^[\\w-]+$')])),
-                ('secret_token', models.CharField(default=heltour.tournament.models.create_api_token, max_length=255, unique=True)),
-                ('expires', models.DateTimeField()),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "authenticated_user",
+                    models.CharField(
+                        max_length=255,
+                        validators=[django.core.validators.RegexValidator("^[\\w-]+$")],
+                    ),
+                ),
+                (
+                    "secret_token",
+                    models.CharField(
+                        default=heltour.tournament.models.create_api_token,
+                        max_length=255,
+                        unique=True,
+                    ),
+                ),
+                ("expires", models.DateTimeField()),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

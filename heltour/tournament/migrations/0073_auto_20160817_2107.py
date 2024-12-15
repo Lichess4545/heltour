@@ -6,18 +6,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0072_auto_20160817_2105'),
+        ("tournament", "0072_auto_20160817_2105"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='LateRegisterRoundChange',
-            new_name='PlayerLateRegistration',
+            old_name="LateRegisterRoundChange",
+            new_name="PlayerLateRegistration",
         ),
         migrations.RenameModel(
-            old_name='WithdrawRoundChange',
-            new_name='PlayerWithdrawl',
+            old_name="WithdrawRoundChange",
+            new_name="PlayerWithdrawl",
         ),
     ]

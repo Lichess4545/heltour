@@ -7,23 +7,25 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0049_auto_20160804_0509'),
+        ("tournament", "0049_auto_20160804_0509"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='alternate',
-            name='player',
+            model_name="alternate",
+            name="player",
         ),
         migrations.RemoveField(
-            model_name='alternate',
-            name='season',
+            model_name="alternate",
+            name="season",
         ),
         migrations.AlterField(
-            model_name='alternate',
-            name='season_player',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.SeasonPlayer'),
+            model_name="alternate",
+            name="season_player",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tournament.SeasonPlayer",
+            ),
         ),
     ]
