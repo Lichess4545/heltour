@@ -235,7 +235,7 @@ def update_tv_state():
         try:
             league = game.get_round().season.league
             roundstart = round(game.get_round().start_date.timestamp()*1000) # round start in miliseconds
-            for meta in lichessapi.get_latest_game_metas(game.white.lichess_username, since=roundstart,
+            for meta in lichessapi.get_latest_game_metas(lichess_username=game.white.lichess_username, since=roundstart,
                                        number=5, opponent=game.black.lichess_username, priority=1,
                                        timeout=300):
                 try:
