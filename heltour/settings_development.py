@@ -1,7 +1,7 @@
 from heltour.settings import *
 
 DEBUG=True
-ALLOWED_HOSTS = ['localhost']
+ALLOWED_HOSTS = ['localhost', 'apiworker']
 
 LINK_PROTOCOL = os.getenv('HELTOUR_LINK_PROTOCOL', 'http')
 

@@ -1,5 +1,5 @@
 FROM python:3.11-slim AS build
-
+ENV HELTOUR_APP=tournament
 WORKDIR /usr/src/heltour
 
 RUN apt-get update && \

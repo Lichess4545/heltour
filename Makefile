@@ -49,3 +49,5 @@ up:
 up-deps:
 	docker compose up redis postgres
 
+up-deps-d:
+	docker compose up -d redis postgres 
