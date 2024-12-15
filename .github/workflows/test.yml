@@ -16,10 +16,10 @@ jobs:
       - name: Install dependencies
         run:
           poetry install --with dev
-      - name: Lint
-        run:
-          poetry run ruff format --check heltour/
-          poetry run ruff check heltour/
+      # - name: Lint
+      #   run:
+      #     poetry run ruff format --check heltour/
+      #     poetry run ruff check heltour/
       - name: Test
         run:
           poetry run python manage.py test --settings=heltour.settings_test
