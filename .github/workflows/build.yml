@@ -11,10 +11,10 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
       - name: Build
-        run:
+        run: |
           docker build --target app -t lichess4545/heltour:latest .
           docker build --target static -t lichess4545/heltour-static:latest .
       - name: Push
-        run:
+        run: |
           docker push ghcr.io/nicwest/heltour:latest
           docker push ghcr.io/nicwest/heltour-static:latest
