@@ -1,0 +1,20 @@
+name: build
+on:
+  push:
+    branch:
+      - docker 
+      - master
+jobs:
+  Build-And-Push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Build
+        run:
+          docker build --target app -t lichess4545/heltour:latest .
+          docker build --target static -t lichess4545/heltour-static:latest .
+      - name: Push
+        run:
+          docker push ghcr.io/nicwest/heltour:latest
+          docker push ghcr.io/nicwest/heltour-static:latest
