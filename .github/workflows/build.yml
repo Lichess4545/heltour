@@ -23,7 +23,7 @@ jobs:
           docker tag heltour:latest ghcr.io/nicwest/heltour:latest
           docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:latest
           docker tag heltour:latest ghcr.io/nicwest/heltour:$heltour_version
-          docker tag heltour-static:latest ghcr.io/nicwest/heltour:$heltour_version
+          docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:$heltour_version
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push
