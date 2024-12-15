@@ -38,7 +38,7 @@ jobs:
         run:
           poetry install --with dev
       - name: Lint
-        run:
+        run: |
           poetry run ruff format --check heltour/
           poetry run ruff check heltour/
       - name: Test
