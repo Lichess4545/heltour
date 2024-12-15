@@ -3,23 +3,30 @@ on:
   push:
     branch:
       - master
+      - docker
+
 jobs:
   Build-And-Push:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+      - name: Get app version
+        run:
+          echo "heltour_version=$(grep "^version = \"\(.*\)\"" pyproject.toml | sed 's/^.*"\(.*\)"/\1/')" >> "$GITHUB_ENV"
       - name: Build
         run: |
           docker build --target app -t heltour:latest .
           docker build --target static -t heltour-static:latest .
       - name: Tag
         run: |
-          docker tag heltour:latest ghcr.io/nicwest/heltour:latest
-          docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:latest
+          docker tag heltour:latest ghcr.io/nicwest/heltour:latest ghcr.io/nicwest/heltour:$heltour_version
+          docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:latest ghcr.io/nicwest/heltour:$heltour_version
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push
         run: |
           docker push ghcr.io/nicwest/heltour:latest
           docker push ghcr.io/nicwest/heltour-static:latest
+          docker push ghcr.io/nicwest/heltour:$heltour_version
+          docker push ghcr.io/nicwest/heltour-static:$heltour_version
