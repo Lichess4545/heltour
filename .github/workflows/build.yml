@@ -3,7 +3,6 @@ on:
   push:
     branch:
       - master
-      - docker
 
 jobs:
   Build-And-Push:
@@ -20,15 +19,15 @@ jobs:
           docker build --target static -t heltour-static:latest .
       - name: Tag
         run: |
-          docker tag heltour:latest ghcr.io/nicwest/heltour:latest
-          docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:latest
-          docker tag heltour:latest ghcr.io/nicwest/heltour:$heltour_version
-          docker tag heltour-static:latest ghcr.io/nicwest/heltour-static:$heltour_version
+          docker tag heltour:latest ghcr.io/Lichess4545/heltour:latest
+          docker tag heltour-static:latest ghcr.io/Lichess4545/heltour-static:latest
+          docker tag heltour:latest ghcr.io/nicwest/Lichess4545:$heltour_version
+          docker tag heltour-static:latest ghcr.io/nicwest/Lichess4545-static:$heltour_version
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push
         run: |
-          docker push ghcr.io/nicwest/heltour:latest
-          docker push ghcr.io/nicwest/heltour-static:latest
-          docker push ghcr.io/nicwest/heltour:$heltour_version
-          docker push ghcr.io/nicwest/heltour-static:$heltour_version
+          docker push ghcr.io/Lichess4545/heltour:latest
+          docker push ghcr.io/Lichess4545/heltour-static:latest
+          docker push ghcr.io/Lichess4545/heltour:$heltour_version
+          docker push ghcr.io/Lichess4545/heltour-static:$heltour_version
