@@ -15,6 +15,15 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -41,3 +50,6 @@ jobs:
           DJANGO_DB_NAME: postgres
           DJANGO_DB_USER: postgres
           DJANGO_DB_PASS: ci
+          DJANGO_CACHE_URL: redis://127.0.0.1:6379/1
+          DJANGO_CACHEOPS_URL: redis://127.0.0.1:6379/1
+          CELERY_BROKER_URL: redis://127.0.0.1:6379/2
