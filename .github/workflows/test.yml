@@ -1,4 +1,4 @@
-name: build
+name: Lint and Test
 on: [push]
 jobs:
   Lint-And-Test:
