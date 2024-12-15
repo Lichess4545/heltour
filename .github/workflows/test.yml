@@ -7,7 +7,6 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
         options: >-
           --health-cmd pg_isready
@@ -37,6 +36,6 @@ jobs:
         env:
           DJANGO_DB_HOST: postgres
           DJANGO_DB_PORT: 5432
-          DJANGO_DB_NAME: ci
-          DJANGO_DB_USER: ci
+          DJANGO_DB_NAME: postgres
+          DJANGO_DB_USER: postgres
           DJANGO_DB_PASS: ci
