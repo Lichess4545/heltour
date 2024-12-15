@@ -2,12 +2,16 @@
 
 export DJANGO_DB_HOST=127.0.0.1
 export DJANGO_DB_PORT=5432
+export DJANGO_DB_NAME=local
 export DJANGO_DB_USER=local
 export DJANGO_DB_PASS=password
 export DJANGO_SETTINGS_MODULE=heltour.settings_development
 export DJANGO_CACHE_URL=redis://127.0.0.1:6379/1
 export DJANGO_CACHEOPS_URL=redis://127.0.0.1:6379/1
 export CELERY_BROKER_URL=redis://127.0.0.1:6379/2
+
+test:
+	python manage.py test
 
 server:
 	python manage.py runserver

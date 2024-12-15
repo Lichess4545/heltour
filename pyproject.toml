@@ -41,6 +41,7 @@ django-select2-forms = "^3.0.0"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
+ruff = "^0.8.3"
 # FIXME: these belong here but there appears to be a hard production dependency on them. 
 # django-stubs = "1.7.0"
 # django-stubs-ext = "^0.3.1"
