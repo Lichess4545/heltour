@@ -1,8 +1,8 @@
-from django.conf.urls import url
+from django.urls import path
 from . import views
 
 urlpatterns = [
-    url(r'^lichessapi/(?P<path>.+)$', views.lichess_api_call, name='lichess_api_call'),
-    url(r'^watch/$', views.watch, name='watch'),
-    url(r'^watch/add/$', views.watch_add, name='watch_add'),
+    path('lichessapi/<path:path>', views.lichess_api_call, name='lichess_api_call'),
+    path('watch/', views.watch, name='watch'),
+    path('watch/add/', views.watch_add, name='watch_add'),
 ]
