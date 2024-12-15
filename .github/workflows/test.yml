@@ -35,8 +35,8 @@ jobs:
         run:
           poetry run python manage.py test --settings=heltour.settings_test
         env:
-          DJANGO_DB_HOST=postgres
-          DJANGO_DB_PORT=5432
-          DJANGO_DB_NAME=ci
-          DJANGO_DB_USER=ci
-          DJANGO_DB_PASS=ci
+          DJANGO_DB_HOST: postgres
+          DJANGO_DB_PORT: 5432
+          DJANGO_DB_NAME: ci
+          DJANGO_DB_USER: ci
+          DJANGO_DB_PASS: ci
