@@ -3,7 +3,8 @@ import responses
 from django.test import TestCase
 from unittest.mock import patch
 from heltour.tournament import oauth
-from .testutils import *
+from heltour.tournament.tests.testutils import createCommonLeagueData, league_tag, league_url
+import re
 
 
 class LoginTestCase(TestCase):
@@ -20,13 +21,18 @@ class LoginTestCase(TestCase):
     @patch('heltour.tournament.oauth._encode_state', return_value='encodedstate')
     def test_oauth_redirect(self, *args):
         response = self.client.get(league_url('team', 'login'))
-        expected_oauth_url = 'https://oauth.lichess.org/oauth/authorize' + \
-                             '?response_type=code' + \
-                             '&client_id=clientid' + \
-                             '&redirect_uri=http://testserver/auth/lichess/' + \
-                             '&scope=email:read%20challenge:read%20challenge:write' + \
-                             '&state=encodedstate'
-        self.assertRedirects(response, expected_oauth_url, fetch_redirect_response=False)
+        url = re.sub("&code_challenge=[0-9A-z-]{43}", "", response.url)
+        expected_oauth_url = ('https://lichess.org/oauth'
+                              '?response_type=code'
+                              '&client_id=heltour'
+                              '&redirect_uri=https://testserver/auth/lichess/'
+                              '&scope=email:read%20challenge:read%20challenge:write'
+                              '&code_challenge_method=S256'
+                              '&state=encodedstate')
+        # TODO: find a more elegant way to solve this with assertRedirects instead of just comparing url and status code with assertEqual.
+        self.assertEqual(url, expected_oauth_url)
+        self.assertEqual(response.status_code, 302)
+#        self.assertRedirects(response, expected_oauth_url, fetch_redirect_response=False)
         oauth._encode_state.assert_called_with({'league': 'teamleague', 'token': None})
 
 
@@ -35,7 +41,7 @@ class LoginTestCase(TestCase):
 @patch('heltour.tournament.oauth._decode_state',
        return_value={'league': league_tag('team'), 'token': None})
 @patch('django.utils.timezone.now',
-       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=timezone.utc))
+       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
 @responses.activate
 class LoginWithCodeTestCase(TestCase):
     def setUp(self):
@@ -67,7 +73,7 @@ class LoginWithCodeTestCase(TestCase):
 
         self.assertEqual('1234', player.oauth_token.access_token)
         self.assertEqual('4567', player.oauth_token.refresh_token)
-        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=timezone.utc),
+        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=datetime.timezone.utc),
                          player.oauth_token.expires)
         self.assertEqual('bearer', player.oauth_token.token_type)
         self.assertEqual('email:read challenge:read challenge:write', player.oauth_token.scope)

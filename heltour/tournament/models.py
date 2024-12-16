@@ -11,10 +11,9 @@ from django.core.exceptions import ValidationError
 from heltour.tournament import signals
 import logging
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
-from django.db.models import Q
+from django.db.models import Q, JSONField
 from heltour import settings
 import reversion
 
@@ -66,7 +65,7 @@ def format_score(score, game_played=None):
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return None
         return value / 2.0
@@ -732,7 +731,7 @@ class OauthToken(_BaseModel):
         return self.account_username
 
 
-username_validator = RegexValidator('^[\w-]+$')
+username_validator = RegexValidator(r'^[\w-]+$')
 
 ACCOUNT_STATUS_OPTIONS = (
     ('normal', 'Normal'),
@@ -1775,7 +1774,7 @@ class Registration(_BaseModel):
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
+    validation_ok = models.BooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
 
     def __str__(self):

@@ -27,6 +27,8 @@ SECRET_KEY = 'gje)lme+inrew)s%@2mvhj+0$vip^n500i22-o23lm$t1)aq8e'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 ALLOWED_HOSTS = [
     'www.lichess4545.tv',
     'lichess4545.tv',
@@ -46,6 +48,7 @@ else:
     HELTOUR_APP = 'tournament'
 
 INSTALLED_APPS = [
+    'cacheops',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -59,10 +62,9 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'debug_toolbar',
-    'cacheops',
     'django_comments',
     'heltour.comments',
-    'captcha',
+    'django_recaptcha',
     'impersonate',
     'static_precompiler',
 ]
@@ -166,8 +168,6 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 # Email
@@ -254,7 +254,11 @@ STATIC_PRECOMPILER_COMPILERS = (
         'output_style': 'compact'
     }),
 )
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+STORAGES = {
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+        },
+}
 
 BOOTSTRAP3 = {
     'set_placeholder': False
@@ -289,9 +293,18 @@ CACHEOPS_REDIS = {
     'db': 1,
 }
 CACHEOPS_DEGRADE_ON_FAILURE = True
-CACHEOPS = {
-    '*.*': {'ops': 'all', 'timeout': 60 * 60},
+CACHEOPS_DEFAULTS = {
+    'timeout': 60*60
 }
+CACHEOPS = {
+    'admin.*': {'ops': 'all'},
+    'auth.*': {'ops': 'all'},
+    'heltour.*': {'ops': 'all'},
+    'tournament.*': {'ops': 'all'},
+    '*.*': {},
+}
+
+CACHEOPS_ENABLED = True
 
 TEAMGEN_PROCESSES_NUMBER = 8
 
