@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournament', '0194_playerpairing_last_time_player_changed'),
+        ('tournament', '0195_auto_20231118_2130'),
     ]
 
     operations = [
