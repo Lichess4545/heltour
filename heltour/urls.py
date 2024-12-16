@@ -15,13 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from . import settings
+from django.conf.urls.static import static
+from heltour import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('impersonate/', include('impersonate.urls')),
     path('', include('heltour.%s.urls' % settings.HELTOUR_APP)),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     import debug_toolbar
