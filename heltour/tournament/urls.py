@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf import settings
 from django.conf.urls.static import static
-from heltour import views, api, android_app, auth
+from heltour.tournament import views, api, android_app, auth
 from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import include, path
 from django.views.decorators.cache import cache_control
