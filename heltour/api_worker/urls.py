@@ -1,5 +1,5 @@
 from django.urls import path
-from heltour.tournament import views
+from heltour.api_worker import views
 
 urlpatterns = [
     path('lichessapi/<path:path>', views.lichess_api_call, name='lichess_api_call'),
