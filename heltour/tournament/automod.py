@@ -154,9 +154,9 @@ def appeal_late_response_approved(instance, **kwargs):
 
 @receiver(signals.automod_noshow, dispatch_uid='heltour.tournament.automod')
 def automod_noshow(pairing, **kwargs):
-    if (pairing.game_link and (not pairing.white_confirmed or not pairing.black_confirmed)) or \
-        pairing.tv_status == 'has_moves' or \
-        pairing.result:
+    if ((pairing.game_link and (not pairing.white_confirmed or not pairing.black_confirmed)) or
+        pairing.tv_status == 'has_moves' or
+        pairing.result):
         # lines in the if above correspond to:
         # Game started, but not by us
         # Game started, and has moves
