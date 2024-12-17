@@ -287,11 +287,19 @@ def update_lichess_presence():
     games_starting = PlayerPairing.objects.filter(
         result='', tv_state='default',
         scheduled_time__lt=timezone.now() + timedelta(minutes=5),
+<<<<<<< HEAD
         scheduled_time__gt=timezone.now() - timedelta(minutes=22)
         ).exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
     games_starting = (games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) |
                       games_starting.filter(
                          teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()))
+=======
+        scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
+        .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
+    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
+                     games_starting.filter(
+                         teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
+>>>>>>> 648e0f8 (remove unneeded escaping)
 
     users = {}
     for game in games_starting:
