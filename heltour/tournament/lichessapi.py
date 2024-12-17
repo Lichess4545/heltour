@@ -170,12 +170,6 @@ def get_peak_rating(lichess_username, perf_type):
 
 
 def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, priority=0, max_retries=0, timeout=30):
-    # tokens, clock.limit, clock.increment, days, pairAt, startClocksAt, rated, variant, fen, message, rules
-    # tokens: white1:black1,white2:black2,...
-    # clock.limit: in seconds
-    # pairAt/startClocksAt: Unix timestamp in milliseconds
-    # message: has {opponent} and {game} placeholders.
-    # rules: noAbort,noRematch,noGiveTime,noClaimWin,noEarlyDraw
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content=application/x-www-form-urlencoded'
     post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}. Clocks will be started in 6 minutes, but you can begin playing at any time.&rules=noClaimWin'
     result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
