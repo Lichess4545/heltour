@@ -252,7 +252,7 @@ def update_tv_state():
                         meta['perf'] == league.rating_type and \
                         meta['rated'] == True:
                         game.game_link = get_gamelink_from_gameid(meta['id'])
-                        if 'moves' in meta and ' ' in meta['moves']: # ' ' indicates >= 2 moves
+                        if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
                             game.tv_state = 'has_moves'
                         game.save()
                 except KeyError:
