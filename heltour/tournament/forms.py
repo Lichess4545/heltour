@@ -473,7 +473,7 @@ class NotificationsForm(forms.Form):
             is_game_started_type = type_ == 'game_started'
             self.fields[type_ + "_lichess"] = forms.BooleanField(required=False,
                                                                  label="Lichess",
-                                                                 initial=is_game_started_type or setting.enable_lichess_mail,
+                                                                 initial=is_game_started_type,
                                                                  disabled=is_game_started_type)
             if type_ == 'before_game_time':
                 offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'),
