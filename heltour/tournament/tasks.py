@@ -385,7 +385,7 @@ def start_games():
         if gameleague is not None and gameleague.get_leaguesetting().start_games:
             white_token = game.white.oauth_token.access_token
             black_token = game.black.oauth_token.access_token
-            if (not white_token is None and not black_token is None and not game.white.oauth_token.is_expired() and not game.black.oauth_token.is_expired()):
+            if (white_token is not None and black_token is not None and not game.white.oauth_token.is_expired() and not game.black.oauth_token.is_expired()):
                 if not gameleague.name in token_dict:
                     token_dict[gameleague.name] = []
                 if not gameleague.name in leagues:
