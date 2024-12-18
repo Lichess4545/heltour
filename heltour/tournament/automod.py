@@ -165,12 +165,9 @@ def automod_noshow(pairing, **kwargs):
     if pairing.white_confirmed and pairing.black_confirmed and pairing.game_id() is not None:
         # We probably tried to start this game, check if there are moves
         game_meta = lichessapi.get_game_meta(pairing.game_id(), priority=0, timeout=300)
-        try:
-            if ' ' in game_meta['moves']:
-                # space in the move lists indicates that both players played at least one move
+        # space in the move lists indicates that both players played at least one move
+        if ' ' in game_meta.get('moves'):
                 return
-        except KeyError:
-            pass
     white_online = pairing.get_player_presence(pairing.white).online_for_game
     black_online = pairing.get_player_presence(pairing.black).online_for_game
     if white_online and not black_online:
