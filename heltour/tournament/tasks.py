@@ -348,7 +348,7 @@ def _start_league_games(tokens, clock, increment, clockstart, variant, leaguenam
            else: # no tokens left after deleting rejected tokens
                result = None
         except KeyError:
-            logger.exeption(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
+            logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
     # use lichess reply to set game ids
     for game in league_games:
         try:
