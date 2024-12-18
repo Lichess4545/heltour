@@ -287,19 +287,11 @@ def update_lichess_presence():
     games_starting = PlayerPairing.objects.filter(
         result='', tv_state='default',
         scheduled_time__lt=timezone.now() + timedelta(minutes=5),
-<<<<<<< HEAD
         scheduled_time__gt=timezone.now() - timedelta(minutes=22)
         ).exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
     games_starting = (games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) |
                       games_starting.filter(
                          teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()))
-=======
-        scheduled_time__gt=timezone.now() - timedelta(minutes=22)) \
-        .exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
-    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
-                     games_starting.filter(
-                         teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
->>>>>>> 648e0f8 (remove unneeded escaping)
 
     users = {}
     for game in games_starting:
@@ -367,8 +359,11 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                        game.save()
                        signals.notify_players_game_started.send(sender=_start_league_games,
                                                                 pairing=game,
+<<<<<<< HEAD
                                                                 do_clockstart=do_clockstart,
                                                                 clockstart_in=clockstart_in,
+=======
+>>>>>>> 09fccbd (more removal of escape backslashes)
                                                                 gameid=gameids['id'])
         except KeyError:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
