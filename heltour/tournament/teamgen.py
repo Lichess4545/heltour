@@ -169,7 +169,7 @@ def make_league(playerdata, boards, balance):
 
     # separate latest joining players into alternate lists as required
     for n, board in enumerate(players_split):
-        board.sort(key=lambda player: (0 if player.previous_season_alt else 1, 0 if not player.alt_fine else 1, player.date))
+        board.sort(key=lambda player: (0 if not player.alt_fine else 1, 0 if player.previous_season_alt else 1, player.date))
         alternates.extend(board[num_teams:])
         del board[num_teams:]
         board.sort(key=lambda player: player.rating, reverse=True)
