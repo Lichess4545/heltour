@@ -8,7 +8,7 @@ import math
 import re
 import reversion
 
-from .decorators import cached_as
+from cacheops.query import cached_as
 from django.core.mail.message import EmailMessage
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse
@@ -22,7 +22,7 @@ from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from ipware import get_client_ip
 
@@ -1807,6 +1807,52 @@ class ScheduleView(LeagueView, LoginRequiredMixin):
     def view_post(self):
         return self.view(post=True)
 
+class ConfirmScheduledTimeView(LeagueView, LoginRequiredMixin):
+    def view(self, post=False):
+        player = Player.get_or_create(self.request.user.username)
+
+        active_seasons = self.league.season_set.filter(is_completed=False).order_by('-start_date')
+        active_seasons_with_sp = [(s, player.seasonplayer_set.filter(season=s).first()) for s in
+                                  active_seasons]
+        active_seasons_with_sp = [s for s in active_seasons_with_sp if s[1]]
+        last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True,
+                                                 season__is_completed=True) \
+            .order_by('-season__start_date').first()
+        last_season = last_sp.season if last_sp is not None else None
+
+        active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
+                                             season__is_active=True)
+        next_pairings = []
+        for r in active_rounds:
+            next_pairings += [(r, p) for p in
+                            r.pairings.filter(white=player).exclude(scheduled_time=None) | r.pairings.filter(
+                                black=player).exclude(scheduled_time=None)]
+
+        context = {
+            'player': player,
+            'active_seasons_with_sp': active_seasons_with_sp,
+            'last_season': last_season,
+            'next_pairings': next_pairings
+        }
+
+        if post:
+            for r in active_rounds:
+                for p in r.pairings:
+                    field_name = '%s_%s' % (r.number, p)
+                    if self.request.POST.get('id') == field_name:
+                        if p.white == player:
+                            p.white_confirmed = not p.white_confirmed
+                        else:
+                            p.black_confirmed = not p.black_confirmed
+                        p.save()
+                        return redirect('/%s/confirm_scheduled_time' % self.league.tag)
+
+
+        return self.render('tournament/confirm_scheduled_time.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
 
 class AvailabilityView(SeasonView, LoginRequiredMixin):
     def view(self, post=False):
@@ -2162,7 +2208,7 @@ class ToggleDarkModeView(BaseView):
 
         redirect_url = self.request.GET.get('redirect_url')
         try:
-            if redirect_url and is_safe_url(redirect_url, settings.ALLOWED_HOSTS):
+            if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
                 return redirect(redirect_url)
         except:
             pass

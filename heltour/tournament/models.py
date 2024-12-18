@@ -11,10 +11,9 @@ from django.core.exceptions import ValidationError
 from heltour.tournament import signals
 import logging
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django_comments.models import Comment
-from django.db.models import Q
+from django.db.models import Q, JSONField
 from heltour import settings
 import reversion
 
@@ -66,7 +65,7 @@ def format_score(score, game_played=None):
 # Represents a positive number in increments of 0.5 (0, 0.5, 1, etc.)
 class ScoreField(models.PositiveIntegerField):
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return None
         return value / 2.0
@@ -185,6 +184,7 @@ class LeagueSetting(_BaseModel):
     carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
+    start_games = models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players')
 
     def __str__(self):
         return '%s Settings' % self.league
@@ -732,7 +732,7 @@ class OauthToken(_BaseModel):
         return self.account_username
 
 
-username_validator = RegexValidator('^[\w-]+$')
+username_validator = RegexValidator(r'^[\w-]+$')
 
 ACCOUNT_STATUS_OPTIONS = (
     ('normal', 'Normal'),
@@ -1421,6 +1421,7 @@ RESULT_OPTIONS = (
 TV_STATE_OPTIONS = (
     ('default', 'Default'),
     ('hide', 'Hide'),
+    ('has_moves', "Has Moves"),
 )
 
 
@@ -1438,7 +1439,12 @@ class PlayerPairing(_BaseModel):
     result = models.CharField(max_length=16, blank=True, choices=RESULT_OPTIONS)
     game_link = models.URLField(max_length=1024, blank=True, validators=[game_link_validator])
     scheduled_time = models.DateTimeField(blank=True, null=True)
+    #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
+    white_confirmed = models.BooleanField(default=False)
+    black_confirmed = models.BooleanField(default=False)
+
     colors_reversed = models.BooleanField(default=False)
+
     
     #We do not want to mark players as unresponsive if their opponents got assigned after round start
     date_player_changed = models.DateTimeField(blank=True, null=True)
@@ -1573,6 +1579,34 @@ class PlayerPairing(_BaseModel):
         if (white_changed and self.initial_white_id is not None) or (black_changed and self.initial_black_id is not None):
             self.date_player_changed = timezone.now()
 
+        # Update scheduled notifications based on the scheduled time
+        if scheduled_time_changed:
+            league = self.get_round().season.league
+            # Calling the save method triggers the logic to recreate notifications
+            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id,
+                                                                     type='before_game_time',
+                                                                     league=league)
+            white_setting.save()
+            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id,
+                                                                     type='before_game_time',
+                                                                     league=league)
+            black_setting.save()
+            if white_changed and self.initial_white_id:
+                old_white_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.initial_white_id, type='before_game_time', league=league)
+                old_white_setting.save()
+            if black_changed and self.initial_black_id:
+                old_black_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.initial_black_id, type='before_game_time', league=league)
+                old_black_setting.save()
+            
+            self.update_available_upon_schedule(self.white_id)
+            self.update_available_upon_schedule(self.black_id)
+
+            # We also want the players to confirm (again) if the scheduled time changes.
+            self.white_confirmed = False
+            self.black_confirmed = False
+
         super(PlayerPairing, self).save(*args, **kwargs)
 
         if hasattr(self, 'teamplayerpairing') and result_changed:
@@ -1599,29 +1633,7 @@ class PlayerPairing(_BaseModel):
             result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
 
-        # Update scheduled notifications based on the scheduled time
-        if scheduled_time_changed:
-            league = self.get_round().season.league
-            # Calling the save method triggers the logic to recreate notifications
-            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
-            white_setting.save()
-            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
-            black_setting.save()
-            if white_changed and self.initial_white_id:
-                old_white_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_white_id, type='before_game_time', league=league)
-                old_white_setting.save()
-            if black_changed and self.initial_black_id:
-                old_black_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_black_id, type='before_game_time', league=league)
-                old_black_setting.save()
-            
-            self.update_available_upon_schedule(self.white_id)
-            self.update_available_upon_schedule(self.black_id)
+
     
     def delete(self, *args, **kwargs):
         team_pairing = None
@@ -1775,7 +1787,7 @@ class Registration(_BaseModel):
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    validation_ok = models.NullBooleanField(blank=True, null=True, default=None)
+    validation_ok = models.BooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
 
     def __str__(self):
@@ -2575,6 +2587,7 @@ class ScheduledEvent(_BaseModel):
 PLAYER_NOTIFICATION_TYPES = (
     ('round_started', 'Round started'),
     ('before_game_time', 'Before game time'),
+    ('game_started', 'Game started'),
     ('game_time', 'Game time'),
     ('unscheduled_game', 'Unscheduled game'),
     ('game_warning', 'Game warning'),
@@ -2629,10 +2642,10 @@ class PlayerNotificationSetting(_BaseModel):
                 return obj
         obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
         obj.enable_slack_im = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game',
+            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game',
             'alternate_needed')
         obj.enable_slack_mpim = type_ in (
-            'round_started', 'before_game_time', 'game_time', 'unscheduled_game')
+            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game')
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
