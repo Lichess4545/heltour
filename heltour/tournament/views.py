@@ -1815,8 +1815,6 @@ class ScheduleView(LeagueView, LoginRequiredMixin):
 
 class ConfirmScheduledTimeView(LeagueView, LoginRequiredMixin):
     def view(self, post=False):
-        if not self.request.user.is_authenticated:
-            return redirect('by_league:league_home', self.league.tag)
         player = Player.get_or_create(self.request.user.username)
 
         active_seasons = self.league.season_set.filter(is_completed=False).order_by('-start_date')
