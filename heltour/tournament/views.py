@@ -454,6 +454,8 @@ class PairingsView(SeasonView):
     def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline):
         if player is None:
             return (None, 'no player')
+        if (player is pairing.white and pairing.white_confirmed) or (player is pairing.black and pairing.black_confirmed):
+            return ('confirmed', 'confirmed')
         pres = presences.get((player.pk, pairing.pk))
         if in_contact_period:
             if not pres or not pres.first_msg_time:
