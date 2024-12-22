@@ -108,6 +108,7 @@ app_urlpatterns = [
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
     path('toggle/darkmode/', views.ToggleDarkModeView.as_view(), name='toggle_darkmode'),
+    path('toggle/zenmode/', views.ToggleZenModeView.as_view(), name='toggle_zenmode'),
     path('player/<slug:username>/calendar.ics', views.ICalPlayerView.as_view(),
         name='player_icalendar'),
     path('api/', include((api_urlpatterns, 'tournament'), 'api')),
