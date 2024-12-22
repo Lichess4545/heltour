@@ -130,7 +130,8 @@
                                                         <td class="cell-player">
                                                 <span class="player-name">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">
-                                                        {{ alt.season_player.player.lichess_username }} ({% player_rating alt.season_player %})
+                                                        {{ alt.season_player.player.lichess_username }}
+																												{% if not zen_mode %}({% player_rating alt.season_player %}){% endif %}
                                                     </a>
                                                 </span>
                                                         </td>
@@ -148,7 +149,8 @@
                                                         <td class="cell-player">
                                                 <span class="player-name">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">
-                                                        {{ alt.season_player.player.lichess_username }} ({% player_rating alt.season_player %})
+                                                        {{ alt.season_player.player.lichess_username }}
+																												{% if not zen_mode %}({% player_rating alt.season_player %}){% endif %}
                                                     </a>
                                                 </span>
                                                         </td>
