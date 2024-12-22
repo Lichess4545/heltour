@@ -20,7 +20,7 @@
                                     <tr>
                                         <th class="sort asc"></th>
                                         <th class="sort">Team</th>
-                                        <th class="text-center hidden-sm hidden-xs sort">Average Rating</th>
+																				{% if not zen_mode %}<th class="text-center hidden-sm hidden-xs sort">Average Rating</th>{% endif %}
                                         <th class="text-center sort">
                                             <span class="visible-sm visible-xs">Match Pts</span>
                                             <span class="hidden-sm hidden-xs">Match Points</span>
@@ -42,7 +42,7 @@
                                             <a class="team-link"
                                                href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
                                         </td>
-                                        <td class="text-center hidden-sm hidden-xs">{{ team_score.team.average_rating|floatformat:2 }}</td>
+																				{% if not zen_mode %}<td class="text-center hidden-sm hidden-xs">{{ team_score.team.average_rating|floatformat:2 }}</td>{% endif %}
                                         <td class="text-center">{{ team_score.match_points_display }}</td>
                                         <td class="text-center">{{ team_score.game_points_display }}</td>
                                         {% for score, opp_score, round_num in team_score.round_scores %}

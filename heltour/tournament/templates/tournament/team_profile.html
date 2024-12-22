@@ -22,7 +22,7 @@
                                         {% if team_member %}
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
                                                 {{ team_member.player.lichess_username }}
-                                                        {% if team_member.player_rating_display %}
+                                                        {% if team_member.player_rating_display and not zen_mode %}
                                                             ({{ team_member.player_rating_display }})
                                                         {% endif %}
                                             </a>
@@ -33,7 +33,9 @@
                         </table>
                     </div>
                     <div class="player-profile-section">
-                        <div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>
+												{% if not zen_mode %}
+		                        <div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>
+												{% endif %}
                         <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag team.number %}">Calendar</a>
                     </div>
                     {% if prev_members %}
@@ -44,7 +46,7 @@
                                     <tr>
                                         <td>
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                                                {{ player.lichess_username }}{% if rating_display %} ({{ rating_display }}){% endif %}
+                                                {{ player.lichess_username }}{% if rating_display and not zen_mode %} ({{ rating_display }}){% endif %}
                                             </a>
                                         </td>
                                         <td>{% if game_count == 1 %}1 game{% else %}{{ game_count }}
