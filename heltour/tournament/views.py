@@ -1324,6 +1324,8 @@ class LeagueDashboardView(LeagueView):
         pending_reg_count = len(Registration.objects.filter(season=reg_season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
 
+        approved = Registration.objects.filter(status='approved') is not None
+
         team_members = TeamMember.objects.filter(team__season=self.season).select_related(
             'player').nocache()
         alternates = Alternate.objects.filter(season_player__season=self.season).select_related(
@@ -1357,7 +1359,8 @@ class LeagueDashboardView(LeagueView):
             'celery_down': uptime.celery.is_down,
             'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard',
                                                              self.league),
-            'can_admin_users': self.request.user.has_module_perms('auth')
+            'can_admin_users': self.request.user.has_module_perms('auth'),
+            'approved': approved,
         }
 
     def team_view(self):
