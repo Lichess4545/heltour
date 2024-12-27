@@ -1324,8 +1324,6 @@ class LeagueDashboardView(LeagueView):
         pending_reg_count = len(Registration.objects.filter(season=reg_season, status='pending'))
         pending_modreq_count = len(ModRequest.objects.filter(season=self.season, status='pending'))
 
-        approved = Registration.objects.filter(status='approved') is not None
-
         team_members = TeamMember.objects.filter(team__season=self.season).select_related(
             'player').nocache()
         alternates = Alternate.objects.filter(season_player__season=self.season).select_related(
@@ -1360,7 +1358,6 @@ class LeagueDashboardView(LeagueView):
             'can_view_dashboard': self.request.user.has_perm('tournament.view_dashboard',
                                                              self.league),
             'can_admin_users': self.request.user.has_module_perms('auth'),
-            'approved': approved,
         }
 
     def team_view(self):
@@ -1396,6 +1393,10 @@ class UserDashboardView(LeagueView):
 
         active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
                                              season__is_active=True)
+
+        approved = Registration.objects.filter(lichess_username=self.request.user.username, status='approved').exists()
+
+
         my_pairings = []
         for r in active_rounds:
             my_pairings += [(r, p) for p in
@@ -1420,7 +1421,8 @@ class UserDashboardView(LeagueView):
             'slack_linked_just_now': slack_linked_just_now,
             'active_seasons_with_sp': active_seasons_with_sp,
             'last_season': last_season,
-            'my_pairings': my_pairings
+            'my_pairings': my_pairings,
+            'approved': approved,
         }
         return self.render('tournament/user_dashboard.html', context)
 
