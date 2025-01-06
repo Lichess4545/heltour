@@ -31,6 +31,9 @@
                     participate in our league with this account you will always need to use it.
                     
                     </p>
+                    {% if registration_season.is_started and league.name == "Lichess4545 League" and not user|is_registered:registration_season %}
+                      <p>The season has already started and you will initially play as an alternate.<p>
+                    {% endif %}
                     <form action="" method="post">
                         {% csrf_token %}
                         {% bootstrap_form form %}
