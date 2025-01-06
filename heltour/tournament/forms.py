@@ -136,14 +136,20 @@ class RegistrationForm(forms.ModelForm):
 
         # Alternate preference
         if league.competitor_type == 'team':
-            self.fields['alternate_preference'] = forms.ChoiceField(required=True,
-                                                                    choices=ALTERNATE_PREFERENCE_OPTIONS,
-                                                                    widget=forms.RadioSelect,
-                                                                    label=_(
-                                                                        'Are you interested in being an alternate or a full time player?'),
-                                                                    help_text=_(
-                                                                        'Players are put into teams on a first come first served basis, based on registration date. \
-                                                                        You may be an alternate even if you request to be a full time player.'))
+            if self.season.is_started():
+                self.fields['alternate_preference'] = forms.ChoiceField(required=False,
+                                                                        choices=ALTERNATE_PREFERENCE_OPTIONS,
+                                                                        initial='full_time',
+                                                                        widget=forms.HiddenInput())
+            else:
+                self.fields['alternate_preference'] = forms.ChoiceField(required=True,
+                                                                        choices=ALTERNATE_PREFERENCE_OPTIONS,
+                                                                        widget=forms.RadioSelect,
+                                                                        label=_(
+                                                                            'Are you interested in being an alternate or a full time player?'),
+                                                                        help_text=_(
+                                                                            'Players are put into teams on a first come first served basis, based on registration date. \
+                                                                            You may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 
