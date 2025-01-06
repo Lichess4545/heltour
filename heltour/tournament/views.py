@@ -755,10 +755,12 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 form.fields['email'].initial = player.email
                 form.fields['has_played_20_games'].initial = not player.provisional_for(
                     reg_season.league)
+                rating_provisional = player.provisional_for(reg_season.league)
 
             context = {
                 'form': form,
-                'registration_season': reg_season
+                'registration_season': reg_season,
+                'rating_provisional': rating_provisional,
             }
             return self.render('tournament/register.html', context)
 
