@@ -39,8 +39,10 @@
                         {% bootstrap_form form %}
                         {% if rating_provisional %}
                            <p><strong>Your rating is provisional.</strong> You may apply with a provisional rating, but your application will only be reviewed once your rating is established.</p>
-                           <p>Some league-specific rules may override this, see rules pages for more information.</p>
-                           <p>We will regularly check whether you played enough games for an established rating. There is no need to change anything about your registration once you did.</p>
+                           {% if league.name != "Lichess4545 League" %}
+                              <p>Some league-specific rules may override this, see rules pages for more information.</p>
+                           {% endif %}
+                              <p>We will regularly check whether you played enough games for an established rating. There is no need to change anything about your registration once you did.</p>
                         {% endif %}
                         {% buttons %}
                             <button type="submit" class="btn btn-primary">Submit</button>
