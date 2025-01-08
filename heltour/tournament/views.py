@@ -753,15 +753,15 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 player = Player.get_or_create(self.request.user.username)
                 form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
                 form.fields['email'].initial = player.email
-                form.fields['has_played_20_games'].initial = not player.provisional_for(
-                    reg_season.league)
                 rating_provisional = player.provisional_for(reg_season.league)
+                form.fields['has_played_20_games'].initial = not rating_provisional
 
             context = {
                 'form': form,
                 'registration_season': reg_season,
-                'rating_provisional': rating_provisional,
             }
+            if not post:
+                context['rating_provisional'] = rating_provisional
             return self.render('tournament/register.html', context)
 
     def view_post(self):

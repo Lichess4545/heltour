@@ -41,23 +41,8 @@ class RegistrationForm(forms.ModelForm):
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
         # Rating fields
-        rating_type = league.get_rating_type_display()
-
-        help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
-        
-        if league.competitor_type != 'team':
-            help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed \
-                once your rating is established. Some league-specific rules may override this, see rules pages for more information.'
         # 20 games
-        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True,
-                                                                    choices=YES_NO_OPTIONS,
-                                                                    widget=forms.RadioSelect,
-                                                                    coerce=lambda x: x == 'True',
-                                                                    label=_(
-                                                                        'Is your %s rating established (not provisional)?' % rating_type.lower()),
-                                                                    help_text=_(
-                                                                        help_text_provisional), )
-
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
         time_control = league.time_control
         if league.rating_type != 'blitz':
