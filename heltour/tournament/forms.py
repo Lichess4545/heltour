@@ -83,7 +83,6 @@ class RegistrationForm(forms.ModelForm):
                     'Are there any players you would NOT like to be teammates with?'),
                                                        help_text=_(
                                                            'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Lou-E, glbert, M0r1'))
->>>>>>> 488f285 (in registration form, hide friend and avoid list once season has started)
         else:
             del self.fields['friends']
             del self.fields['avoid']
