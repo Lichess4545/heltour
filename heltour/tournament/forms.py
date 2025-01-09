@@ -45,30 +45,7 @@ class RegistrationForm(forms.ModelForm):
         self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
         time_control = league.time_control
-        if league.rating_type != 'blitz':
-            self.fields['can_commit'] = forms.TypedChoiceField(required=True,
-                                                               choices=YES_NO_OPTIONS,
-                                                               widget=forms.RadioSelect,
-                                                               coerce=lambda x: x == 'True',
-                                                               label=_(
-                                                                   'Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (
-                                                                       time_control,
-                                                                       league.rating_type)))
-        else:
-            start_time = '' if self.season.start_date is None else \
-                ' on %s at %s UTC' % (
-                    self.season.start_date.strftime('%b %-d'),
-                    self.season.start_date.strftime('%H:%M'))
-            self.fields['can_commit'] = forms.TypedChoiceField(required=True,
-                                                               choices=YES_NO_OPTIONS,
-                                                               widget=forms.RadioSelect,
-                                                               coerce=lambda x: x == 'True',
-                                                               label=_(
-                                                                   'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
-                                                                   % (
-                                                                       self.season.rounds,
-                                                                       time_control,
-                                                                       start_time)))
+        self.fields['can_commit'] = forms.TypedChoiceField(initial=True, widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Friends and avoid
         if league.competitor_type == 'team':
             if self.season.is_started():
