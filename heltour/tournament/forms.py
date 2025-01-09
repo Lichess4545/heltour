@@ -29,7 +29,7 @@ class RegistrationForm(forms.ModelForm):
             'email': _('Your Email'),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, rules_url='', **kwargs):
         self.season = kwargs.pop('season')
         
         self.username = kwargs.pop('user')
@@ -64,10 +64,8 @@ class RegistrationForm(forms.ModelForm):
             del self.fields['friends']
             del self.fields['avoid']
         # Agree to rules
-        rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
-        if rules_doc is not None:
-            doc_url = reverse('by_league:document', args=[league.tag, rules_doc.tag])
-            rules_help_text = _('<a target="_blank" href="%s">Rules Document</a>' % doc_url)
+        if rules_url:
+            rules_help_text = _('You can read the rules here: <a target="_blank" href="%s">Rules Document</a>' % rules_url)
         else:
             rules_help_text = ''
         league_name = league.name

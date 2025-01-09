@@ -751,7 +751,13 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                                               season_tag=self.season.tag))
             else:
                 player = Player.get_or_create(self.request.user.username)
-                form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user)
+
+                rules_doc = LeagueDocument.objects.filter(league=self.league, type='rules').first()
+                if rules_doc is not None:
+                    doc_url = reverse('by_league:document', args=[self.league.tag, rules_doc.tag])
+                else:
+                    doc_url = ''
+                form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user, rules_url=doc_url)
                 form.fields['email'].initial = player.email
                 rating_provisional = player.provisional_for(reg_season.league)
                 form.fields['has_played_20_games'].initial = not rating_provisional
@@ -759,6 +765,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
             context = {
                 'form': form,
                 'registration_season': reg_season,
+                'rules_url': doc_url,
             }
             if not post:
                 context['rating_provisional'] = rating_provisional
