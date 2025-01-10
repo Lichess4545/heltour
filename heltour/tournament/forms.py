@@ -1,6 +1,5 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from django_recaptcha.fields import ReCaptchaField
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
 from .models import *
@@ -17,7 +16,6 @@ YES_NO_OPTIONS = (
 
 
 class RegistrationForm(forms.ModelForm):
-    captcha = ReCaptchaField()
 
     class Meta:
         model = Registration
@@ -200,9 +198,6 @@ class RegistrationForm(forms.ModelForm):
         else:
             del self.fields['weeks_unavailable']
 
-        # Captcha
-        if settings.DEBUG:
-            del self.fields['captcha']
 
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
@@ -401,16 +396,12 @@ class ContactForm(forms.Form):
     your_email_address = forms.EmailField(max_length=255)
     subject = forms.CharField(max_length=140)
     message = forms.CharField(max_length=1024, widget=forms.Textarea)
-    captcha = ReCaptchaField()
 
     def __init__(self, *args, **kwargs):
         leagues = kwargs.pop('leagues')
         super(ContactForm, self).__init__(*args, **kwargs)
 
         self.fields['league'] = forms.ChoiceField(choices=[(l.tag, l.name) for l in leagues])
-
-        if settings.DEBUG:
-            del self.fields['captcha']
 
 
 class BulkEmailForm(forms.Form):
