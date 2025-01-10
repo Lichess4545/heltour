@@ -686,20 +686,6 @@ django = ">=3.2"
 tests = ["coverage"]
 
 [[package]]
-name = "django-recaptcha"
-version = "4.0.0"
-description = "Django recaptcha form field/widget app."
-optional = false
-python-versions = "*"
-files = [
-    {file = "django-recaptcha-4.0.0.tar.gz", hash = "sha256:5316438f97700c431d65351470d1255047e3f2cd9af0f2f13592b637dad9213e"},
-    {file = "django_recaptcha-4.0.0-py3-none-any.whl", hash = "sha256:0d912d5c7c009df4e47accd25029133d47a74342dbd2a8edc2877b6bffa971a3"},
-]
-
-[package.dependencies]
-django = "*"
-
-[[package]]
 name = "django-redis"
 version = "5.4.0"
 description = "Full featured redis cache backend for Django."
@@ -1755,4 +1741,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "f75f9faf2aaa02ea287fd962db3488c6aef7a5d82bfb836e483a6dc3f064e94a"
+content-hash = "ba3813327878e50b6d28f6473e6bcf27b57940e36e35678318e9a3235163385e"

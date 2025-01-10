@@ -64,7 +64,6 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'django_comments',
     'heltour.comments',
-    'django_recaptcha',
     'impersonate',
     'static_precompiler',
 ]
@@ -275,11 +274,6 @@ CKEDITOR_UPLOAD_PATH = 'uploads/'
 MEDIA_ROOT = 'media'
 MEDIA_URL = '/media/'
 CKEDITOR_ALLOW_NONIMAGE_FILES = True
-
-RECAPTCHA_PUBLIC_KEY = ''
-RECAPTCHA_PRIVATE_KEY = ''
-NOCAPTCHA = True
-RECAPTCHA_USE_SSL = True
 
 LOGIN_URL = '/admin/login/'
 SESSION_COOKIE_AGE = 4838400  # 8 weeks
