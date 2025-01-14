@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from datetime import timedelta, date
 from django.utils import timezone
 from django import forms as django_forms
@@ -184,7 +184,19 @@ class LeagueSetting(_BaseModel):
     carry_over_red_cards_as_yellow = models.BooleanField(default=True)
     limit_game_nominations_to_participants = models.BooleanField(default=True)
     max_game_nominations_per_user = models.PositiveIntegerField(default=3)
-    start_games = models.BooleanField(default=False, help_text='Try to start games automatically, if the scheduled time was confirmed by both players')
+    start_games = models.BooleanField(default=False,
+        help_text=('Try to start games automatically, if the scheduled time was confirmed by both players. '
+                   'Games are started in 5 minute batches.'))
+    start_clocks = models.BooleanField(default=False,
+                                       help_text='For games started by us, automatically start clocks too.')
+    start_clock_time = models.PositiveSmallIntegerField(default=6,
+        help_text=('For games started by us, start clocks n minutes later. Since we start games in 5 minute batches, '
+                   'a value of 5 will mean most games are started at the scheduled time. '
+                   'This also means that you should and cannot set this value below 5.'),
+                   validators=[MinValueValidator(5, message='Values below 5 would make clocks start before the scheduled time.'),
+                               MaxValueValidator(30, message=('Pick a value <= 30. If we start clocks too late, '
+                                                              'we might hit lichess api limits.'))]
+                                                                                                                                                                                                                                                                                                                                     )
 
     def __str__(self):
         return '%s Settings' % self.league
