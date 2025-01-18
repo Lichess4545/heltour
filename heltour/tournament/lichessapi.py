@@ -169,9 +169,12 @@ def get_peak_rating(lichess_username, perf_type):
         return None
 
 
-def bulk_start_games(tokens, clock, increment, clockstart, variant, leaguename, priority=0, max_retries=0, timeout=30):
+def bulk_start_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, priority=0, max_retries=0, timeout=30):
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content_type=application/x-www-form-urlencoded'
-    post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}%0AClocks will be started in 6 minutes, but you can begin playing at any time.&rules=noClaimWin'
+    if do_clockstart:
+        post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&startClocksAt={clockstart}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}%0AClocks will be started in {clockstart_in} minutes, but you can begin playing at any time.&rules=noClaimWin'
+    else:
+        post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}&rules=noClaimWin'
     result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
     return json.loads(result)
     
