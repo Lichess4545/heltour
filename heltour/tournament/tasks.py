@@ -317,9 +317,9 @@ def update_slack_users():
             p.save()
 
 
-def _start_league_games(tokens, clock, increment, clockstart, variant, leaguename, league_games):
+def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
     try:
-        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=leaguename)
+        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
     except lichessapi.ApiClientError as err:
         # try to handle errors due to rjected tokens
         e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
@@ -359,6 +359,8 @@ def _start_league_games(tokens, clock, increment, clockstart, variant, leaguenam
                        game.save()
                        signals.notify_players_game_started.send(sender=_start_league_games,
                                                                 pairing=game,
+                                                                do_clockstart=do_clockstart,
+                                                                clockstart_in=clockstart_in,
                                                                 gameid=gameids['id'])
         except KeyError:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
@@ -401,8 +403,10 @@ def start_games():
         league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
         # get tokens per game
         tokens = ','.join(token_dict[leaguename])
-        clockstart = round((datetime.utcnow().timestamp()+360)*1000) # now + 6 minutes in milliseconds
-        _start_league_games(tokens, clock, increment, clockstart, variant, leaguename, league_games)
+        do_clockstart = league.get_leaguesetting().start_clocks
+        clockstart_in = league.get_leaguesetting().start_clock_time
+        clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
+        _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
     logger.info('[FINISHED] Done trying to start games.')
 
 
