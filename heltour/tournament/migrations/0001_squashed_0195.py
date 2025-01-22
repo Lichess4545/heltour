@@ -11,7 +11,6 @@ import django.db.migrations.operations.special
 import django.db.models.deletion
 import heltour.tournament.models
 import re
-import select2.fields
 
 class Migration(migrations.Migration):
 
