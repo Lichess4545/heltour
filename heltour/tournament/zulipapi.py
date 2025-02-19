@@ -1,4 +1,4 @@
-from heltour.settings import ZULIP_CONFIG, ZULIP_ERROR_LOGGING, ZULIP_ERROR_LOG
+from heltour.settings import ZULIP_CONFIG, ZULIP_CONFIG_NOBOT, ZULIP_ERROR_LOGGING, ZULIP_ERROR_LOG
 from collections import namedtuple
 from datetime import datetime
 from zulip import Client
@@ -46,7 +46,12 @@ def invite_user(email, *args, **kwargs):
         'include_realm_default_subscriptions': 'true',
         'notify_referrer_on_join': 'false',
         }
-    r = _client.call_endpoint(url="/invites", method="POST", request=params)
+    try:
+        human_client = Client(config_file=ZULIP_CONFIG_NOBOT, client='ZulipHeltour')
+    except:
+        raise ZulipError('ERROR connecting human client for user invitations.')
+        return
+    r = human_client.call_endpoint(url="/invites", method="POST", request=params)
     if not r['result'] == 'success':
         if ZULIP_ERROR_LOGGING:
             send_message(channel=ZULIP_ERROR_LOG, text=f'Could not invite {email}\nError Code: {r["code"]}\nError msg: {r["msg"]}')
