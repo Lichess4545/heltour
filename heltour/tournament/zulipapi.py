@@ -14,6 +14,8 @@ SlackGroup = namedtuple('SlackGroup', ['id', 'name'])
 
 
 def _initial_connection():
+    if '_client' in globals():
+        return
     try:
         client = Client(config_file=ZULIP_CONFIG, client='ZulipHeltour') 
         register = client.register(event_types=['realm'])
