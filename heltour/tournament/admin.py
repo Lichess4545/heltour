@@ -2220,7 +2220,6 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 url = request.build_absolute_uri(url)
                 text = f'Reminder: You need to link your Slack and Lichess accounts. {link(url=url, text="Click here")} to do that now. Contact a mod if you need help.'
                 direct_user_message(username=uid, text=text, userid=uid)
-
         return redirect('admin:tournament_seasonplayer_changelist')
 
 
