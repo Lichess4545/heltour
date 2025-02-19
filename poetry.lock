@@ -1825,6 +1825,24 @@ enabler = ["pytest-enabler (>=2.2)"]
 test = ["big-O", "importlib-resources ; python_version < \"3.9\"", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-itertools", "pytest (>=6,!=8.1.*)", "pytest-ignore-flaky"]
 type = ["pytest-mypy"]
 
+[[package]]
+name = "zulip"
+version = "0.9.0"
+description = "Bindings for the Zulip message API"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "zulip-0.9.0-py3-none-any.whl", hash = "sha256:a315db3e990c6b94aef323540b7f386485e8fc359dbd26af526c20dbe9068217"},
+    {file = "zulip-0.9.0.tar.gz", hash = "sha256:7a14149e5d9e3fcc53b13e998719fd1f6ccb8289bc60fccbaa1aafcd0a9d0843"},
+]
+
+[package.dependencies]
+click = "*"
+distro = "*"
+requests = {version = ">=0.12.1", extras = ["security"]}
+typing-extensions = ">=4.5.0"
+
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"

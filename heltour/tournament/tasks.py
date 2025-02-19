@@ -1,5 +1,5 @@
 from heltour.tournament.models import *
-from heltour.tournament import lichessapi, slackapi, pairinggen, \
+from heltour.tournament import lichessapi, chatbackend, pairinggen, \
     alternates_manager, signals, uptime
 from heltour import settings
 from heltour.celery import app
@@ -312,7 +312,7 @@ def update_lichess_presence():
 
 @app.task()
 def update_slack_users():
-    slack_users = {u.id: u for u in slackapi.get_user_list()}
+    slack_users = {u.id: u for u in chatbackend.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
         if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
@@ -627,7 +627,7 @@ def pairings_published(round_id, overwrite=False):
             season.registration_open = False
             season.save()
 
-    slackapi.send_control_message('refresh pairings %s' % league.tag)
+    chatbackend.send_control_message(f'refresh pairings {league.tag}')
     alternates_manager.round_pairings_published(round_)
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
@@ -672,7 +672,7 @@ def do_schedule_publish(sender, round_id, eta, **kwargs):
 @app.task()
 def notify_slack_link(lichess_username):
     player = Player.get_or_create(lichess_username)
-    email = slackapi.get_user(player.slack_user_id).email
+    email = chatbackend.get_user(player.slack_user_id).email
     msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
     lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
 
@@ -687,11 +687,12 @@ def create_team_channel(team_ids):
     intro_message = textwrap.dedent("""
             Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!
             You need to pick a team captain and a team name by {season_start}.
-            Once you've chosen (or if you need help with anything), contact one of the moderators using the command `@chesster summon mods` in #general (do not contact them directly.)
+            Once you've chosen (or if you need help with anything), contact one of the moderators using the command
+            {modping} in {modpingchannel} (do not contact them directly.)
 
             Here are some useful links for your team:
-            - <{pairings_url}|View your team pairings>
-            - <{calendar_url}|Import your team pairings to your calendar>""")
+            - {pairings_url}
+            - {calendar_url}""")
 
     for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
         pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team',
@@ -700,52 +701,23 @@ def create_team_channel(team_ids):
                                        args=[team.season.league.tag, team.season.tag,
                                              team.number])).replace('https:', 'webcal:')
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
-        mods_str = ' '.join(('<@%s>' % lm.player.lichess_username.lower() for lm in mods))
+        mods_str = ' '.join((chatbackend.userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
+        modping = chatbackend.inlinecode(chatbackend.ping_mods())
+        modpingchannel = chatbackend.channellink(channel='general', topic='summon mods')
+        pairings_url = chatbackend.link(url=pairings_url, text='View your team pairings')
+        calendar_url = chatbackend.link(url=calendar_url, text='Import your team pairings to your calendar')
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime(
             '%b %-d')
         intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start,
+                                                       modping=modping, modpingchannel=modpingchannel,
                                                        pairings_url=pairings_url,
-                                                       calendar_url=calendar_url)
+                                                       calendar_url=calendar_url,
+                                                       )
         team_members = team.teammember_set.select_related('player').nocache()
         user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
         topic = "Team Pairings: %s | Team Calendar: %s" % (pairings_url, calendar_url)
-
-        try:
-            group = slackapi.create_group(channel_name)
-            time.sleep(1)
-        except slackapi.NameTaken:
-            logger.error('Could not create slack team, name taken: %s' % channel_name)
-            continue
-        channel_ref = '#%s' % group.name
-        try:
-            slackapi.invite_to_group(group.id, user_ids)
-        except slackapi.SlackError:
-            logger.exception('Could not invite %s to channel' % ",".join(user_ids))
-            time.sleep(1)
-        try:
-            slackapi.invite_to_group(group.id, [settings.CHESSTER_USER_ID])
-        except slackapi.SlackError:
-             logger.exception('Could not invite chesster to channel')
-             time.sleep(1)
-        time.sleep(1)
-        with reversion.create_revision():
-            reversion.set_comment('Creating slack channel')
-            team.slack_channel = group.id
-            team.save()
-
-        try:
-            slackapi.set_group_topic(group.id, topic)
-        except slackapi.SlackError:
-            logger.exception('Could not set channel topic for channel %s' % channel_ref)
-        time.sleep(1)
-        try:
-            slackapi.leave_group(group.id)
-        except slackapi.SlackError:
-            logger.exception('Could not leave channel %s' % channel_ref)
-        time.sleep(1)
-        slackapi.send_message(channel_ref, intro_message_formatted)
-        time.sleep(1)
+        chatbackend.create_team_channel(team=team, channel_name=channel_name, user_ids=user_ids, topic=topic, intro_message=intro_message_formatted)
 
 
 @receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
