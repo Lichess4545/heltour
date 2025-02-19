@@ -15,6 +15,7 @@ from django.contrib.sites.models import Site
 from django_comments.models import Comment
 from django.db.models import Q, JSONField
 from heltour import settings
+from heltour.tournament import chatbackend
 import reversion
 
 logger = logging.getLogger(__name__)
@@ -2509,7 +2510,7 @@ class LeagueChannel(_BaseModel):
     def channel_link(self):
         if not self.slack_channel_id:
             return self.slack_channel
-        return '<%s%s|%s>' % (self.slack_channel[0], self.slack_channel_id, self.slack_channel[1:])
+        return chatbackend.channellink(channelprefix=self.slack_channel[0], channelid=self.slack_channel_id, channel=self.slack_channel[1:])
 
     def __str__(self):
         return '%s - %s' % (self.league, self.get_type_display())

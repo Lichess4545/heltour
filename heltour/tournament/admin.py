@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils import timezone
-from heltour.tournament import lichessapi, slackapi, views, forms, signals, simulation
+from heltour.tournament import lichessapi, chatbackend, views, forms, signals, simulation
 from heltour.tournament.models import *
 from reversion.admin import VersionAdmin
 from django.shortcuts import render, redirect, get_object_or_404
@@ -680,7 +680,7 @@ class SeasonAdmin(_BaseAdmin):
                 teams = season.team_set.all()
                 for t in teams:
                     if t.slack_channel:
-                        slackapi.send_message(t.slack_channel, form.cleaned_data['text'])
+                        chatbackend.channel_message(channel=t.slack_channel, text=form.cleaned_data['text'])
                         time.sleep(1)
                 self.message_user(request, 'Spam sent to %d teams.' % len(teams), messages.INFO)
                 return redirect('admin:tournament_season_changelist')
@@ -2188,7 +2188,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     raw_id_fields = ('player', 'registration')
     autocomplete_fields = ('player',)
     league_id_field = 'season__league_id'
-    actions = ['bulk_email', 'link_reminder']
+    actions = ['bulk_email', 'link_reminder', 'link_players']
 
     def in_slack(self, sp):
         return bool(sp.player.slack_user_id)
@@ -2205,7 +2205,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
         return my_urls + urls
 
     def link_reminder(self, request, queryset):
-        slack_users = slackapi.get_user_list()
+        slack_users = chatbackend.get_user_list()
         by_email = {u.email: u.id for u in slack_users}
 
         for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related(
@@ -2218,10 +2218,35 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 url = reverse('by_league:login_with_token',
                               args=[sp.season.league.tag, token.secret_token])
                 url = request.build_absolute_uri(url)
-                text = 'Reminder: You need to link your Slack and Lichess accounts. <%s|Click here> to do that now. Contact a mod if you need help.' % url
-                slackapi.send_message(uid, text)
+                text = f'Reminder: You need to link your Slack and Lichess accounts. {chatbackend.link(url=url, text="Click here")} to do that now. Contact a mod if you need help.'
+                chatbackend.direct_user_message(username=uid, text=text, userid=uid)
 
         return redirect('admin:tournament_seasonplayer_changelist')
+
+
+    def link_players(self, request, queryset):
+        slack_users = chatbackend.get_user_list()
+        by_email = {u.email: u.id for u in slack_users}
+        linked = 0
+
+        for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related(
+            'player').nocache():
+            uid = by_email.get(sp.player.email)
+            if uid:
+                sp.player.slack_user_id = uid
+                sp.player.save()
+                linked += 1
+                lichesslink = f'{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}'
+                text = f'We linked your {chatbackend.chatbackend()} account to the lichess account {chatbackend.link(url=lichesslink, text=sp.player.lichess_username)}. If that is not your lichess account, please contact a '
+                if chatbackend.chatbackend() == 'Zulip':
+                    text = f'{text}@*website moderator*.\nYou can do so by posting `@*website moderator*` to #**general>summon mods**'
+                else:
+                    text = f'{text} moderator.\nYou can do so by posting `@chesster summon mods` in #general'
+                chatbackend.direct_user_message(username=uid, text=text, userid=uid)
+        self.message_user(request, f'Linked {linked} players.')
+
+        return redirect('admin:tournament_seasonplayer_changelist')
+
 
     def bulk_email(self, request, queryset):
         return redirect('admin:bulk_email_by_players',
