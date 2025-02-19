@@ -44,8 +44,8 @@
                 <div class="well-body">
                     {% if player.slack_user_id %}
                         <div>
-                          <a href="https://slack.com/app_redirect?team={{ slack_id }}&channel={{ player.slack_user_id }}">Message {{ player.lichess_username }}
-                                on Slack</a></div>
+                          <a href={{ dm_player }}>Message {{ player.lichess_username }}
+                            on {{ chatbackend }}</a></div>
                     {% endif %}
                     <div>
                         <a href="https://lichess.org/inbox/new?user={{ player.lichess_username }}">Message {{ player.lichess_username }}
