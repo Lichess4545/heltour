@@ -155,12 +155,12 @@ class TeamTestCase(TestCase):
         team = Team.objects.get(number=1)
         bd1 = team.teammember_set.get(board_number=1)
         bd2 = team.teammember_set.get(board_number=2)
-
-        self.assertEqual(None, team.average_rating())
+        # players without rating return 0 now instead of None
+        self.assertEqual(0, team.average_rating())
 
         set_rating(bd1.player, 1800)
         bd1.player.save()
-        self.assertEqual(1800, team.average_rating())
+        self.assertEqual(900, team.average_rating())
 
         set_rating(bd2.player, 1600)
         bd2.player.save()
@@ -211,8 +211,8 @@ class TeamScoreTestCase(TestCase):
         ts2 = TeamScore()
 
         # Only the lt operator is implemented so we have to manually work around that
-        self.assert_(not (ts1 < ts2))
-        self.assert_(not (ts2 < ts1))
+        self.assertTrue(not (ts1 < ts2))
+        self.assertTrue(not (ts2 < ts1))
 
         ts1.match_points = 2
         self.assertLess(ts2, ts1)

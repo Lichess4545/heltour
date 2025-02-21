@@ -1,0 +1,84 @@
+- model: tournament.League
+  pk: 1
+  fields:
+    name: Test4545 League
+    tag: test4545
+    description: Play one game of 45+45 each week as part of a team.
+    theme: blue
+    display_order: 0
+    time_control: 45+45
+    rating_type: classical
+    competitor_type: team
+    pairing_type: swiss-dutch
+    is_active: true
+    is_default: true
+    enable_notifications: false
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+- model: tournament.Season
+  pk: 1
+  fields:
+    league: 1
+    name: Season 1
+    tag: 1
+    rounds: 8
+    round_duration: 7 00:00:00
+    boards: 8
+    playoffs: 0
+    is_active: true
+    is_completed: false
+    registration_open: true
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+
+- model: tournament.League
+  pk: 2
+  fields:
+    name: Test Lonelywolf
+    tag: lonelywolf
+    description: Play one game of 30+30 each week in a large swiss tournament.
+    theme: green
+    display_order: 1
+    time_control: 30+30
+    rating_type: classical
+    competitor_type: individual
+    pairing_type: swiss-dutch
+    is_active: true
+    is_default: false
+    enable_notifications: false
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+- model: tournament.League
+  pk: 3
+  fields:
+    name: Test Blitz
+    tag: blitz
+    description: Play eight games of 3+2 blitz over the course of a 2 hour swiss tournament.
+    theme: red
+    display_order: 2
+    time_control: 3+2
+    rating_type: blitz
+    competitor_type: individual
+    pairing_type: swiss-dutch
+    is_active: true
+    is_default: false
+    enable_notifications: false
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'
+- model: tournament.League
+  pk: 4
+  fields:
+    name: Test960
+    tag: 960
+    description: Play one game of 20+20 Chess960 each week in a 7 week Swiss tournament.
+    theme: yellow
+    display_order: 3
+    time_control: 20+20
+    rating_type: chess960
+    competitor_type: individual
+    pairing_type: swiss-dutch
+    is_active: true
+    is_default: false
+    enable_notifications: false
+    date_created: '2000-01-01T10:00:00+00:00'
+    date_modified: '2000-01-01T10:00:00+00:00'

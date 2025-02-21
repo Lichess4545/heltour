@@ -1,0 +1,55 @@
+name: Lint and Test
+on: [push]
+jobs:
+  Lint-And-Test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: 'poetry'
+      - name: Install dependencies
+        run:
+          poetry install --with dev
+      # - name: Lint
+      #   run:
+      #     poetry run ruff format --check heltour/
+      #     poetry run ruff check heltour/
+      - name: Test
+        run:
+          poetry run python manage.py test --settings=heltour.settings_test
+        env:
+          DJANGO_DB_HOST: 127.0.0.1
+          DJANGO_DB_PORT: 5432
+          DJANGO_DB_NAME: postgres
+          DJANGO_DB_USER: postgres
+          DJANGO_DB_PASS: ci
+          DJANGO_CACHE_URL: redis://127.0.0.1:6379/1
+          DJANGO_CACHEOPS_URL: redis://127.0.0.1:6379/1
+          CELERY_BROKER_URL: redis://127.0.0.1:6379/2
