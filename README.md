@@ -6,7 +6,7 @@ League management software for the Lichess4545 league.
 * [Install docker](https://docs.docker.com/get-started/get-docker/)
 * in a terminal run the following command:
 ```shell
-docker compose up -d redis postges
+docker compose up -d redis postgres
 docker compose run web python manage.py migrate --settings=heltour.settings_development
 docker compose run web python manage.py createsuperuser --settings=heltour.settings_development
 Username (leave blank to use 'root'): admin

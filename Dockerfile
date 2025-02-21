@@ -11,7 +11,7 @@ RUN poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock ./
 
-RUN poetry install --with server
+RUN poetry install --with server --no-root
 
 COPY manage.py .
 COPY heltour/ ./heltour
