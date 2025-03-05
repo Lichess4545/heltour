@@ -26,7 +26,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from ipware import get_client_ip
 
-from heltour.tournament import alternates_manager, uptime, lichessapi, oauth, chatbackend
+from heltour.tournament import alternates_manager, uptime, lichessapi, oauth
+from heltour.tournament.chatbackend import chatbackend, chatbackend_url, dm_link
 from heltour.tournament.templatetags.tournament_extras import leagueurl
 from heltour.tournament.forms import *
 from heltour.tournament.models import *
@@ -102,7 +103,7 @@ class LeagueView(BaseView):
                                       self.season.tag if self.season is not None else None),
             'other_leagues': League.objects.filter(is_active=True).order_by(
                 'display_order').exclude(pk=self.league.pk),
-            'chatbackend': chatbackend.chatbackend(),
+            'chatbackend': chatbackend(),
         })
         context.update(self.extra_context)
         return render(self.request, template, context)
@@ -1419,7 +1420,7 @@ class UserDashboardView(LeagueView):
             'active_seasons_with_sp': active_seasons_with_sp,
             'last_season': last_season,
             'my_pairings': my_pairings,
-            'chat_dm_link': chatbackend.dm_link(usernames=[], userids=[], add_bot=True),
+            'chat_dm_link': dm_link(usernames=[], userids=[], add_bot=True),
         }
         return self.render('tournament/user_dashboard.html', context)
 
@@ -1499,7 +1500,7 @@ class ContactSuccessView(LeagueView):
 
 class AboutView(LeagueView):
     def view(self):
-        context = {'chatbackend_url': chatbackend.chatbackend_url()}
+        context = {'chatbackend_url': chatbackend_url()}
         return self.render('tournament/about.html', context)
 
 
@@ -1666,7 +1667,7 @@ class PlayerProfileView(LeagueView):
             'career_score_total': career_score_total,
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
             'trophies': trophies,
-            'dm_player': chatbackend.dm_link(usernames=[player], userids=[player.slack_user_id], add_bot=False),
+            'dm_player': dm_link(usernames=[player], userids=[player.slack_user_id], add_bot=False),
         }
         return self.render('tournament/player_profile.html', context)
 
