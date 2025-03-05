@@ -320,7 +320,7 @@ CACHEOPS_ENABLED = True
 TEAMGEN_PROCESSES_NUMBER = 8
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
-USE_CHATBACKEND = 'zulip' # or slack
+USE_CHATBACKEND = 'slack' # zulip or slack atm
 SLACK_URL = 'https://lichess4545.slack.com'
 SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
 SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-channel-builder-token.conf'

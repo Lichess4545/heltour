@@ -1,7 +1,7 @@
 import requests
 from heltour import settings
 from collections import namedtuple
-from heltour.tournament import chatbackend
+from heltour.tournament.chatbackend import bold, channel_message, direct_user_message, dm_link, italic, link, multiple_user_message, userlink_ping, userlink_silent
 from django.core.cache import cache
 from django.urls import reverse
 from heltour.tournament.models import *
@@ -19,7 +19,7 @@ def _send_notification(notification_type, league, text):
     if league.enable_notifications:
         for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
             try:
-                chatbackend.channel_message(channel=ln.slack_channel, text=text)
+                channel_message(channel=ln.slack_channel, text=text)
             except Exception:
                 logger.error(sys.exc_info())
 
@@ -27,7 +27,7 @@ def _send_notification(notification_type, league, text):
 def _message_user(league, username, text, userid=0):
     if league.enable_notifications:
         try:
-            chatbackend.direct_user_message(username=username, text=text, userid=userid)
+            direct_user_message(username=username, text=text, userid=userid)
         except Exception:
             logger.error(sys.exc_info())
 
@@ -35,7 +35,7 @@ def _message_user(league, username, text, userid=0):
 def _message_multiple_users(league, usernames, text, userids=0):
     if league.enable_notifications:
         try:
-            chatbackend.multiple_user_message(usernames=usernames, text=text, userids=userids)
+            multiple_user_message(usernames=usernames, text=text, userids=userids)
         except Exception:
             logger.error(sys.exc_info())
 
@@ -64,7 +64,7 @@ def league_comment(league, comment, **kwargs):
     obj = comment.content_object
     admin_url = abs_url(
         reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=[obj.pk]))
-    message = f'{chatbackend.userlink_silent(comment.user_name)} commented on {comment.content_type.name} {chatbackend.link(text=obj, url=admin_url)}:\n> {comment.comment}'
+    message = f'{userlink_silent(comment.user_name)} commented on {comment.content_type.name} {ink(text=obj, url=admin_url)}:\n> {comment.comment}'
     if league.get_leaguesetting().notify_for_comments:
         _send_notification('mod', league, message)
 
@@ -96,7 +96,7 @@ def latereg_saved(instance, created, **kwargs):
         return
     league = instance.round.season.league
     manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
-    message = f'{chatbackend.userlink_silent(instance.player)} {chatbackend.link(url=manage_url, text="added")} for round {instance.round.number}'
+    message = f'{userlink_silent(_slack_user(instance.player))} {link(url=manage_url, text="added")} for round {instance.round.number}'
     if league.get_leaguesetting().notify_for_latereg_and_withdraw:
         _send_notification('mod', league, message)
 
@@ -107,7 +107,7 @@ def withdrawal_saved(instance, created, **kwargs):
         return
     league = instance.round.season.league
     manage_url = abs_url(reverse('admin:manage_players', args=[instance.round.season.pk]))
-    message = f'{chatbackend.userlink_silent(instance.player)} {chatbackend.link(url=manage_url, text="withdrawn")} for round {instance.round.number}'
+    message = f'{userlink_silent(_slack_user(instance.player))} {link(url=manage_url, text="withdrawn")} for round {instance.round.number}'
     if league.get_leaguesetting().notify_for_latereg_and_withdraw:
         _send_notification('mod', league, message)
 
@@ -120,7 +120,7 @@ def pairing_forfeit_changed(instance, **kwargs):
     league = round_.season.league
     white = instance.white.lichess_username.lower() if instance.white is not None else '?'
     black = instance.black.lichess_username.lower() if instance.black is not None else '?'
-    message = f'{chatbackend.userlink_silent(white)} vs {chatbackend.userlink_silent(black)} {instance.result or "*"}'
+    message = f'{userlink_silent(white)} vs {userlink_silent(black)} {instance.result or "*"}'
     if league.get_leaguesetting().notify_for_forfeits:
         _send_notification('mod', league, message)
 
@@ -149,9 +149,9 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
             player_profile_url = abs_url(
                 reverse('by_league:player_profile', args=[league.tag, instance.lichess_username]))
         if old_value == 'normal':
-            message = f'{chatbackend.userlink_silent(_slack_user(instance))} marked as {new_value} on {chatbackend.link(url=lichess_profile_url, text="lichess")}. {chatbackend.link(url=player_profile_url, text="Player profile")}'
+            message = f'{userlink_silent(_slack_user(instance))} marked as {new_value} on {link(url=lichess_profile_url, text="lichess")}. {link(url=player_profile_url, text="Player profile")}'
         else:
-            message = f'{chatbackend.userlink_silent(_slack_user(instance))} {chatbackend.link(url=lichess_profile_url, text="Lichess")} account status changed from {old_value} to {new_value}. {chatbackend.link(url=player_profile_url, text="Player profile")}'
+            message = f'{userlink_silent(_slack_user(instance))} {link(url=lichess_profile_url, text="Lichess")} account status changed from {old_value} to {new_value}. {link(url=player_profile_url, text="Player profile")}'
         _send_notification('mod', league, message)
 
 
@@ -163,7 +163,7 @@ def notify_mods_unscheduled(round_, **kwargs):
         message = f'{round_} - All games are scheduled.'
     else:
         pairing_strs = (
-            f'{chatbackend.userlink_silent(p.white.lichess_username.lower())} vs {chatbackend.userlink_silent(p.black.lichess_username.lower())}' for
+            f'{userlink_silent(p.white.lichess_username.lower())} vs {userlink_silent(p.black.lichess_username.lower())}' for
         p in
             unscheduled_pairings)
         message = '%s - The following games are unscheduled: %s' % (round_, ', '.join(pairing_strs))
@@ -178,7 +178,7 @@ def notify_mods_no_result(round_, **kwargs):
         message = f'{round_} - All games have results.'
     else:
         pairing_strs = (
-            f'{chatbackend.userlink_silent(p.white.lichess_username.lower())} vs {chatbackend.userlink_silent(p.black.lichess_username.lower())}' for
+            f'{userlink_silent(p.white.lichess_username.lower())} vs {userlink_silent(p.black.lichess_username.lower())}' for
         p in
             no_result_pairings)
         message = '%s - The following games are missing results: %s' % (
@@ -196,7 +196,7 @@ def notify_mods_pending_regs(round_, **kwargs):
         'admin:tournament_registration_changelist') + '?status__exact=pending&season__id__exact=' + str(
         round_.season.pk))
     link_text = f'{pending_count} pending registrations'
-    message = f'{chatbackend.link(url=list_url, text=link_text)}'
+    message = f'{link(url=list_url, text=link_text)}'
     _send_notification('mod', round_.season.league, message)
 
 
@@ -216,7 +216,7 @@ def notify_mods_round_start_done(round_, **kwargs):
 def pairings_generated(round_, **kwargs):
     league = round_.season.league
     review_url = abs_url(reverse('admin:review_pairings', args=[round_.pk]))
-    message = f'Pairings generated for round {round_.number}. {chatbackend.link(url=review_url, text="Review")}'
+    message = f'Pairings generated for round {round_.number}. {link(url=review_url, text="Review")}'
     _send_notification('mod', league, message)
 
 
@@ -265,18 +265,18 @@ def alternate_search_started(season, team, board_number, round_, **kwargs):
     # Send a DM to the player being replaced
     availability_url = abs_url(reverse('by_league:by_season:edit_availability', args=[league.tag, season.tag]))
     if player is not None:
-        message_to_replaced_player = f'{chatbackend.userlink_silent(_slack_user(player))}: I am searching for an alternate to replace you for round {round_.number}, since you have been marked as unavailable. To stop the search and set yourself available again, {chatbackend.link(text="click here", url=availability_url)}.'
+        message_to_replaced_player = f'{userlink_silent(_slack_user(player))}: I am searching for an alternate to replace you for round {round_.number}, since you have been marked as unavailable. To stop the search and set yourself available again, {link(text="click here", url=availability_url)}.'
         _message_user(league, _slack_user(player), message_to_replaced_player, userid=player.slack_user_id)
 
     # Send a DM to the opponent
     if pairing is not None:
         opponent = pairing.black if pairing.white_team() == team else pairing.white
         if opponent.is_available_for(round_):
-            message_to_opponent = f'{chatbackend.userlink_silent(_slack_user(opponent))}: Your opponent, {chatbackend.userlink_silent(_slack_user(player))}, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.'
+            message_to_opponent = f'{userlink_silent(_slack_user(opponent))}: Your opponent, {userlink_silent(_slack_user(player))}, has been marked as unavailable. I am searching for an alternate for you to play, please be patient.'
             _message_user(league, _slack_user(opponent), message_to_opponent, userid=opponent.slack_user_id)
 
     # Broadcast a message to both team captains
-    message = f'{_captains_ping(team, round_)} I have started searching for an alternate for {chatbackend.userlink_silent(_slack_user(player))} on board {board_number} of "{team.name}" in round {round_.number}.'
+    message = f'{_captains_ping(team, round_)} I have started searching for an alternate for {userlink_silent(_slack_user(player))} on board {board_number} of "{team.name}" in round {round_.number}.'
     _send_notification('captains', league, message)
 
 
@@ -294,7 +294,7 @@ def alternate_search_reminder(season, team, board_number, round_, **kwargs):
     player = pairing.white if pairing.white_team() == team else pairing.black
 
     # Broadcast a reminder to both team captains
-    message = f'{_captains_ping(team, round_)}I am still searching for an alternate for {chatbackend.userlink_silent(_slack_user(player))} on board {board_number} of "{team.name}" in round {round_.number}.'
+    message = f'{_captains_ping(team, round_)}I am still searching for an alternate for {userlink_silent(_slack_user(player))} on board {board_number} of "{team.name}" in round {round_.number}.'
     _send_notification('captains', league, message)
 
 
@@ -321,33 +321,33 @@ def alternate_assigned(season, alt_assignment, **kwargs):
 
     opponent = _notify_alternate_and_opponent(league, aa)
     if opponent is not None:
-        opponent_notified = f' Their opponent, {chatbackend.userlink_silent(_slack_user(opponent))}, has been notified.'
+        opponent_notified = f' Their opponent, {userlink_silent(_slack_user(opponent))}, has been notified.'
     else:
         opponent_notified = ''
 
     # Send a message to the captains
     if aa.player == aa.replaced_player:
-        message = f'{_captains_ping(aa.team, aa.round)}I have reassigned {chatbackend.userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{opponent_notified}'
+        message = f'{_captains_ping(aa.team, aa.round)}I have reassigned {userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{opponent_notified}'
     else:
-        message = f'{_captains_ping(aa.team, aa.round)}I have assigned {chatbackend.userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" in place of {_slack_user(aa.replaced_player)} for round {aa.round.number}.{opponent_notified}'
+        message = f'{_captains_ping(aa.team, aa.round)}I have assigned {userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" in place of {_slack_user(aa.replaced_player)} for round {aa.round.number}.{opponent_notified}'
     _send_notification('captains', league, message)
 
 
-_pairing_text_tz = f'{{white}} ({chatbackend.italic("white pieces")}, {{white_tz}}) vs {{black}} ({chatbackend.italic("black pieces")}, {{black_tz}})\n'
-_pairing_text = f'{{white}} ({chatbackend.italic("white pieces")}) vs {{black}} ({chatbackend.italic("_black pieces_")})\n'
+_pairing_text_tz = f'{{white}} ({italic("white pieces")}, {{white_tz}}) vs {{black}} ({italic("black pieces")}, {{black_tz}})\n'
+_pairing_text = f'{{white}} ({italic("white pieces")}) vs {{black}} ({italic("_black pieces_")})\n'
 
 
 def _notify_alternate_and_opponent(league, aa):
     captain = aa.team.captain()
     if captain is not None:
-        captain_text = f' The team captain is {chatbackend.userlink_silent(_slack_user(captain))}.'
+        captain_text = f' The team captain is {userlink_silent(_slack_user(captain))}.'
     else:
         captain_text = ''
 
     team_pairing = aa.team.get_teampairing(aa.round)
     if team_pairing is None:
         # Round hasn't started yet
-        message_to_alternate = f'{chatbackend.userlink_silent(_slack_user(aa.player))}: You will be playing on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{captain_text}'
+        message_to_alternate = f'{userlink_silent(_slack_user(aa.player))}: You will be playing on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{captain_text}'
         _message_user(league, _slack_user(aa.player), message_to_alternate, userid=aa.player.slack_user_id)
         return None
 
@@ -355,30 +355,30 @@ def _notify_alternate_and_opponent(league, aa):
         white=None).exclude(black=None).nocache().first()
     if pairing is None:
         # No pairing yet for some reason
-        message_to_alternate = f'{chatbackend.userlink_silent(_slack_user(aa.player))}: You will be playing on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{captain_text}'
+        message_to_alternate = f'{userlink_silent(_slack_user(aa.player))}: You will be playing on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{captain_text}'
         _message_user(league, _slack_user(aa.player), message_to_alternate, userid=aa.player.slack_user_id)
         return None
 
     opponent = pairing.black if pairing.white_team() == aa.team else pairing.white
     if not opponent.is_available_for(aa.round):
         # Still looking for an alternate for the opponent
-        message_to_alternate = f('{chatbackend.userlink_silent(_slack_user(aa.player))}: You are playing on board {aa.board_number} of "{aa.team.name}".{captain_text}\n'
+        message_to_alternate = f('{userlink_silent(_slack_user(aa.player))}: You are playing on board {aa.board_number} of "{aa.team.name}".{captain_text}\n'
                 'I am still searching for another alternate for you to play, please be patient.')
         _message_user(league, _slack_user(aa.player), message_to_alternate, userid=aa.player.slack_user_id)
         return None
 
     # Normal assignment
-    message_to_alternate = (f'{chatbackend.userlink_silent(_slack_user(aa.player))}: You are playing on board {aa.board_number} of "{aa.team.name}".{captain_text}\n'
-            f'Please contact your opponent, {chatbackend.userlink_silent(_slack_user(opponent))}, as soon as possible.')
+    message_to_alternate = (f'{userlink_silent(_slack_user(aa.player))}: You are playing on board {aa.board_number} of "{aa.team.name}".{captain_text}\n'
+            f'Please contact your opponent, {userlink_silent(_slack_user(opponent))}, as soon as possible.')
     _message_user(league, _slack_user(aa.player), message_to_alternate, userid=aa.player.slack_user_id)
 
     # Send a DM to the opponent
     if aa.player == aa.replaced_player:
-        message_to_opponent = f'{chatbackend.userlink_silent(_slack_user(opponent))}: Your opponent, {chatbackend.userlink_silent(_slack_user(aa.replaced.player))}, no longer requires an alternate. Please contact {chatbackend.userlink_silent(_slack_user(aa.player))} as soon as possible.'
+        message_to_opponent = f'{userlink_silent(_slack_user(opponent))}: Your opponent, {userlink_silent(_slack_user(aa.replaced.player))}, no longer requires an alternate. Please contact {userlink_silent(_slack_user(aa.player))} as soon as possible.'
     elif aa.replaced_player is not None:
-        message_to_opponent = f'{chatbackend.userlink_silent(_slack_user(opponent))}: Your opponent, {chatbackend.userlink_silent(_slack_user(aa.replaced_player))}, has been replaced by an alternate. Please contact your new opponent, {chatbackend.userlink_silent(_slack_user(aa.player))}, as soon as possible.'
+        message_to_opponent = f'{userlink_silent(_slack_user(opponent))}: Your opponent, {userlink_silent(_slack_user(aa.replaced_player))}, has been replaced by an alternate. Please contact your new opponent, {userlink_silent(_slack_user(aa.player))}, as soon as possible.'
     else:
-        message_to_opponent = f'{chatbackend.userlink_silent(_slack_user(opponent))}: Your opponent has been replaced by an alternate. Please contact your new opponent, {chatbackend.userlink_silent(_slack_user(aa.player))}, as soon as possible.'
+        message_to_opponent = f'{userlink_silent(_slack_user(opponent))}: Your opponent has been replaced by an alternate. Please contact your new opponent, {userlink_silent(_slack_user(aa.player))}, as soon as possible.'
     _message_user(league, _slack_user(opponent), message_to_opponent, userid=opponent.slack_user_id)
 
     # Send configured notifications
@@ -413,14 +413,14 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
 
     # Send a DM to the alternate, regardless of settings
     round_str = 'this round' if round_.publish_pairings else f'round {round_.number}'
-    message = f'{chatbackend.userlink_silent(_slack_user(alternate.season_player))}: A team needs an alternate for {round_str}. Would you like to play? Please click one of the following links within {_offset_str(response_time)}.\n{chatbackend.link(url=abs_url(accept_url), text="Yes, I want to play")}\n{chatbackend.link(url=abs_url(decline_url), text="No, maybe next week")}'
+    message = f'{userlink_silent(_slack_user(alternate.season_player))}: A team needs an alternate for {round_str}. Would you like to play? Please click one of the following links within {_offset_str(response_time)}.\n{link(url=abs_url(accept_url), text="Yes, I want to play")}\n{link(url=abs_url(decline_url), text="No, maybe next week")}'
     _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
 
     if setting.enable_lichess_mail:
         # Send a lichess message
         li_subject = f'Round {round_.number} - {league.name}'
         li_msg = f'A team needs an alternate for {round_str}. Please check Slack for more information.\n' \
-                 + chatbackend.dm_link(usernames=[], userids=[], add_bot=True) # empty, because the listening bot is added automatically
+                 + dm_link(usernames=[], userids=[], add_bot=True) # empty, because the listening bot is added automatically
         _lichess_message(league, _slack_user(player), li_subject, li_msg)
 
 
@@ -472,9 +472,9 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     send_to_black = player is None or player == pairing.black
 
     common_params = {
-        'white': chatbackend.userlink_silent(white),
+        'white': userlink_silent(white),
         'white_tz': pairing.white.timezone_str,
-        'black': chatbackend.userlink_silent(black),
+        'black': userlink_silent(black),
         'black_tz': pairing.black.timezone_str,
         'round': round_.number,
         'season': season.name,
@@ -486,17 +486,17 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
     }
     white_params = {
-        'self': chatbackend.userlink_silent(white),
-        'opponent': chatbackend.userlink_silent(black),
+        'self': userlink_silent(white),
+        'opponent': userlink_silent(black),
         'color': 'white',
-        'slack_url': chatbackend.dm_link(usernames=[black], userids=[black_id], add_bot=use_mpim),
+        'slack_url': dm_link(usernames=[black], userids=[black_id], add_bot=use_mpim),
     }
     white_params.update(common_params)
     black_params = {
-        'self': chatbackend.userlink_silent(black),
-        'opponent': chatbackend.userlink_silent(white),
+        'self': userlink_silent(black),
+        'opponent': userlink_silent(white),
         'color': 'black',
-        'slack_url': chatbackend.dm_link(usernames=[white], userids=[white_id], add_bot=use_mpim),
+        'slack_url': dm_link(usernames=[white], userids=[white_id], add_bot=use_mpim),
     }
     black_params.update(common_params)
 
@@ -597,7 +597,7 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \
              + _pairing_text \
-             + f'Send a {chatbackend.link(url="https://lichess.org/?user={opponent}#friend", text="lichess challenge")} for a rated {{time_control}} game as {{color}}.'
+             + f'Send a {link(url="https://lichess.org/?user={opponent}#friend", text="lichess challenge")} for a rated {{time_control}} game as {{color}}.'
 
     mp_msg = 'Your game is about to start.\n' \
              + _pairing_text \
@@ -685,7 +685,7 @@ def game_warning(pairing, warning, **kwargs):
     mistakepart = ('If this was a mistake, please correct it and try again.\n'
              'If this is not a league game, you may ignore this message.')
 
-    im_msg = f'Important: Your game is not valid because {chatbackend.bold(warning)}\n{mistakepart}'
+    im_msg = f'Important: Your game is not valid because {bold(warning)}\n{mistakepart}'
 
     mp_msg = im_msg
 
@@ -698,7 +698,7 @@ def game_warning(pairing, warning, **kwargs):
 @receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.notify')
 def mod_request_created(instance, **kwargs):
     review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-    message = f'{chatbackend.userlink_silent(_slack_user(instance.requester))} created a request: {chatbackend.link(url=review_url, text=instance.get_type_display())}'
+    message = f'{userlink_silent(_slack_user(instance.requester))} created a request: {link(url=review_url, text=instance.get_type_display())}'
     _send_notification('mod', instance.season.league, message)
 
 
@@ -710,7 +710,7 @@ def mod_request_approved(instance, **kwargs):
             message += ' Response: %s' % instance.response
     else:
         review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-        message = f'{instance.status_changed_by} approved a request by {chatbackend.userlink_silent(_slack_user(instance.requester))}: {chatbackend.link(text=instance.get_type_display(), url=review_url)}'
+        message = f'{instance.status_changed_by} approved a request by {userlink_silent(_slack_user(instance.requester))}: {link(text=instance.get_type_display(), url=review_url)}'
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been approved.' % (
@@ -728,7 +728,7 @@ def mod_request_rejected(instance, **kwargs):
             message += ' Response: %s' % instance.response
     else:
         review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-        message = f'{chatbackend.userlink_silent(instance.status_changed_by)} rejected a request by {chatbackend.userlink_silent(_slack_user(instance.requester))}: {chatbackend.link(url=review_url, text=instance.get_type_display())}'
+        message = f'{userlink_silent(instance.status_changed_by)} rejected a request by {userlink_silent(_slack_user(instance.requester))}: {link(url=review_url, text=instance.get_type_display())}'
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been declined.' % (
@@ -746,11 +746,11 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
                                  args=[league.tag, season.tag, 'appeal_late_response']))
     message = (f'Notice: You haven\'t messaged your {league.name} opponent in the provided chat. '
             f'You are required to message your opponent within {_offset_str(league.get_leaguesetting().contact_period)} of the round start. {punishment}'
-            f'\nIf you\'ve messaged your opponent elsewhere, {chatbackend.link(url=appeal_url, text="click here")} to send a screenshot to the mods.')
+            f'\nIf you\'ve messaged your opponent elsewhere, {link(url=appeal_url, text="click here")} to send a screenshot to the mods.')
     if allow_continue:
         continue_url = abs_url(reverse('by_league:by_season:modrequest',
                                        args=[league.tag, season.tag, 'request_continuation']))
-        message += f'\nIf you haven\'t but want to continue playing next round, {chatbackend.link(url=continue_url, text="click here")}'
+        message += f'\nIf you haven\'t but want to continue playing next round, {link(url=continue_url, text="click here")}'
     _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
 
     if league.competitor_type == 'team':
@@ -759,7 +759,7 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
             team = tpp.white_team()
         else:
             team = tpp.black_team()
-        message = f'{_captains_ping(tema, round_)}{chatbackend.userlink_silent(_slack_user(player))} appears to be unresponsive on board {tpp.board_number} of "{team.name}" in round {round_.number}.'
+        message = f'{_captains_ping(tema, round_)}{userlink_silent(_slack_user(player))} appears to be unresponsive on board {tpp.board_number} of "{team.name}" in round {round_.number}.'
         _send_notification('captains', league, message)
 
 
@@ -770,7 +770,7 @@ def notify_scheduling_draw_claim(round_, player, **kwargs):
     appeal_url = abs_url(reverse('by_league:by_season:modrequest',
                                  args=[league.tag, season.tag, 'appeal_draw_scheduling']))
     message = (f'Notice: Your {league.name} game has been ruled a scheduling draw. '
-            f'If you disagree with this, {chatbackend.link(url=appeal_url, text="click here")} to appeal. '
+            f'If you disagree with this, {link(url=appeal_url, text="click here")} to appeal. '
             'Please provide reasons and a screenshot of the conversation with your opponent.')
     _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
 
@@ -780,7 +780,7 @@ def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
     season = round_.season
     league = season.league
     if league.competitor_type != 'team':
-        message = (f'Notice: Your {league.name} opponent, {chatbackend.userlink_silent(_slack_user(opponent))}, hasn\'t messaged you in the provided chat. '
+        message = (f'Notice: Your {league.name} opponent, {userlink_silent(_slack_user(opponent))}, hasn\'t messaged you in the provided chat. '
                 'If they haven\'t contacted you, you\'re entitled to a win by forfeit. '
                 'Contact a mod to request a new pairing.')
         _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
@@ -792,8 +792,8 @@ def notify_noshow(round_, player, opponent, **kwargs):
     league = season.league
     claim_url = abs_url(reverse('by_league:by_season:modrequest',
                                 args=[league.tag, season.tag, 'claim_win_noshow']))
-    message = (f'Notice: It appears your opponent, {chatbackend.userlink_silent(_slack_user(opponent))}, has not shown up for your scheduled game time in {league.name}. '
-        f'To claim a win by forfeit, {chatbackend.link(url=claim_url, text="click here")}.')
+    message = (f'Notice: It appears your opponent, {userlink_silent(_slack_user(opponent))}, has not shown up for your scheduled game time in {league.name}. '
+        f'To claim a win by forfeit, {link(url=claim_url, text="click here")}.')
     _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
 
 
@@ -805,11 +805,11 @@ def notify_noshow_claim(round_, player, punishment, allow_continue, **kwargs):
         reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_noshow']))
     message = (f'Notice: You didn\'t show up for your scheduled game time in {league.name}. '
             'Your opponent has been given a win by forfeit. '
-            f'{punishment}\nTo appeal, {chatbackend.link(url=appeal_url, text="click here")}.')
+            f'{punishment}\nTo appeal, {link(url=appeal_url, text="click here")}.')
     if allow_continue:
         continue_url = abs_url(reverse('by_league:by_season:modrequest',
                                        args=[league.tag, season.tag, 'request_continuation']))
-        message += (f'\nOtherwise, if you want to continue playing next round, {chatbackend.link(url=continue_url, text="click here")}.'
+        message += (f'\nOtherwise, if you want to continue playing next round, {link(url=continue_url, text="click here")}.'
                 '\nNote that you can reach out to your opponent and try to reschedule the game.')
     _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
 
@@ -822,7 +822,7 @@ def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
     def list_str(players):
         if players:
             users = sorted((_slack_user(p) for p in players))
-            return ', '.join((chatbackend.userlink_silent(u) for u in users))
+            return ', '.join((userlink_silent(u) for u in users))
         else:
             return '(no players)'
 
@@ -835,9 +835,9 @@ def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
 
 @receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.notify')
 def slack_account_linked(lichess_username, slack_user_id, **kwargs):
-    chatbackend.direct_user_message(username=lichess_username.lower(),
-                          text=f'Your Slack account has been successfully linked to the lichess account {lichess_username}.',
-                          userid=slack_user_id)
+    direct_user_message(username=lichess_username.lower(),
+            text=f'Your Slack account has been successfully linked to the lichess account {lichess_username}.',
+            userid=slack_user_id)
 
 
 def _slack_user(obj):
@@ -860,4 +860,4 @@ def _captains_ping(team, round_):
         opp_captain = opp.captain()
         if opp_captain is not None:
             captains.append(opp_captain)
-    return '' if len(captains) == 0 else f'{chatbackend.userlink_ping(_slack_user(captains[0]))}:' if len(captains) == 1 else f'{chatbackend.userlink_ping(_slack_user(captains[0]))}, {chatbackend.userlink_ping(_slack_user(captains[1]))}:'
+    return '' if len(captains) == 0 else f'{userlink_ping(_slack_user(captains[0]))}:' if len(captains) == 1 else f'{userlink_ping(_slack_user(captains[0]))}, {userlink_ping(_slack_user(captains[1]))}:'
