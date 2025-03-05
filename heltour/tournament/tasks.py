@@ -10,6 +10,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict
 import reversion
+
 from django.core.cache import cache
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
@@ -23,11 +24,20 @@ from heltour import settings
 from heltour.celery import app
 from heltour.tournament import (
     alternates_manager,
-    chatbackend,
     lichessapi,
     pairinggen,
     signals,
     uptime,
+)
+from heltour.tournament.chatbackend import (
+    channellink,
+    get_user,
+    get_user_list,
+    inlinecode,
+    link,
+    ping_mods,
+    send_control_message,
+    userlink_silent
 )
 from heltour.tournament.models import (
     Alternate,
@@ -367,7 +377,7 @@ def update_lichess_presence():
 
 @app.task()
 def update_slack_users():
-    slack_users = {u.id: u for u in chatbackend.get_user_list()}
+    slack_users = {u.id: u for u in get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
         if u is not None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
@@ -961,7 +971,7 @@ def pairings_published(round_id, overwrite=False):
             season.registration_open = False
             season.save()
 
-    chatbackend.send_control_message(f'refresh pairings {league.tag}')
+    send_control_message(f'refresh pairings {league.tag}')
     alternates_manager.round_pairings_published(round_)
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
@@ -1009,7 +1019,7 @@ def do_schedule_publish(sender, round_id, eta, **kwargs):
 @app.task()
 def notify_slack_link(lichess_username):
     player = Player.get_or_create(lichess_username)
-    email = chatbackend.get_user(player.slack_user_id).email
+    email = get_user(player.slack_user_id).email
     msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
     lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
 
@@ -1038,11 +1048,11 @@ def create_team_channel(team_ids):
                                        args=[team.season.league.tag, team.season.tag,
                                              team.number])).replace('https:', 'webcal:')
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
-        mods_str = ' '.join((chatbackend.userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
-        modping = chatbackend.inlinecode(chatbackend.ping_mods())
-        modpingchannel = chatbackend.channellink(channel='general', topic='summon mods')
-        pairings_url = chatbackend.link(url=pairings_url, text='View your team pairings')
-        calendar_url = chatbackend.link(url=calendar_url, text='Import your team pairings to your calendar')
+        mods_str = ' '.join((userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
+        modping = inlinecode(ping_mods())
+        modpingchannel = channellink(channel='general', topic='summon mods')
+        pairings_url = link(url=pairings_url, text='View your team pairings')
+        calendar_url = link(url=calendar_url, text='Import your team pairings to your calendar')
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime(
             '%b %-d')
         intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start,
@@ -1054,7 +1064,7 @@ def create_team_channel(team_ids):
         user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
         topic = "Team Pairings: %s | Team Calendar: %s" % (pairings_url, calendar_url)
-        chatbackend.create_team_channel(team=team, channel_name=channel_name, user_ids=user_ids, topic=topic, intro_message=intro_message_formatted)
+        cb_create_team_channel(team=team, channel_name=channel_name, user_ids=user_ids, topic=topic, intro_message=intro_message_formatted)
 
 
 @receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
