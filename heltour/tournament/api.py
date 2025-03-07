@@ -8,6 +8,7 @@ from django.utils.html import strip_tags
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
 from django.urls import reverse
+from heltour.tournament import uptime
 
 
 # API methods expect an HTTP header in the form:
@@ -590,3 +591,12 @@ def get_season_games(request):
                 games.append(g)
 
     return JsonResponse({'games': games})
+
+
+@require_GET
+def celery_up(request):
+    # no API token required – public for now
+    status = 'up'
+    if uptime.celery.is_down:
+        status = 'down'
+    return JsonResponse({'celery_status': status})

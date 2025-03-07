@@ -96,6 +96,7 @@ api_urlpatterns = [
     path('game_warning/', api.game_warning, name='game_warning'),
     path('player_contact/', api.player_contact, name='player_contact'),
     path('get_season_games/', api.get_season_games, name='get_season_games'),
+    path('celery_up/', api.celery_up, name='celery_up'),
 ]
 
 app_urlpatterns = [
