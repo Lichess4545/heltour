@@ -594,7 +594,7 @@ def get_season_games(request):
 
 
 @require_GET
-def celery_up(request):
+def celery_status(request):
     # no API token required – public for now
     status = 'up'
     if uptime.celery.is_down:
