@@ -807,32 +807,6 @@ files = [
 django = ">=3.2"
 
 [[package]]
-name = "django-select2-forms"
-version = "3.0.0"
-description = "Django form fields using the Select2 jQuery plugin"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "django-select2-forms-3.0.0.tar.gz", hash = "sha256:1be1a9832e42d9d885154013bddd562c153675f466c08d7b8e70c67e46d50515"},
-    {file = "django_select2_forms-3.0.0-py3-none-any.whl", hash = "sha256:46eefef8dee6c2d96a788b818046f373e772d58d562b869d6839407f2eb88d32"},
-]
-
-[package.dependencies]
-django-sortedm2m = "*"
-
-[[package]]
-name = "django-sortedm2m"
-version = "4.0.0"
-description = "Drop-in replacement for Django's many to many field with sorted relations."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "django_sortedm2m-4.0.0-py2.py3-none-any.whl", hash = "sha256:7e76f3f3ea3184b4ca1d4043ec75316c606d00f5534fc71e69981d8b2198ff33"},
-]
-
-[[package]]
 name = "django-static-precompiler"
 version = "2.4"
 description = "Django template tags to compile all kinds of static files"
@@ -1910,4 +1884,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "f75f9faf2aaa02ea287fd962db3488c6aef7a5d82bfb836e483a6dc3f064e94a"
+content-hash = "22dd12477792e64c0dde306371d1ffdc9bd7f02ead8fcde559a587da0ab0d78e"
