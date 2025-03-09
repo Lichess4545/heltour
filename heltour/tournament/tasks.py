@@ -12,10 +12,11 @@ from django.db.models import QuerySet, Q
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.urls import reverse
+from django.utils import timezone
 
 from typing import Dict, List
 from celery.utils.log import get_task_logger
-from datetime import datetime, timedelta
+from datetime import timedelta
 import reversion
 import textwrap
 import time
@@ -43,7 +44,7 @@ def active_player_usernames() -> List[str]:
 def not_updated_recently_usernames(active_usernames) -> List[str]:
     players_qs = Player.objects.all()
     total_players = players_qs.count()
-    _24_hours = datetime.now() - timedelta(hours=24)
+    _24_hours = timezone.now() - timedelta(hours=24)
     qs = players_qs \
             .filter(date_modified__lte=_24_hours) \
             .exclude(lichess_username__in=active_usernames)
