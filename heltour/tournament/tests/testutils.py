@@ -1,4 +1,5 @@
-from heltour.tournament.models import *
+from heltour.tournament.models import (League, LonePlayerScore, Player, Registration, Season, 
+                                       SeasonPlayer, Team, TeamMember, TeamScore)
 from django.urls import reverse
 
 
