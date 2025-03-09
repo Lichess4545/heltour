@@ -110,7 +110,7 @@ def deploylive():
             exclude=['env', 'data', 'lichess4545@marta.lichess.ovh', 'certs']
         )
         run(
-            "echo \"/home/lichess4545/web/www.lichess4545.com/current/\" > /home/lichess4545/web/www.lichess4545.com/env/lib/python3.8/site-packages/heltour.pth")
+            "echo \"/home/lichess4545/web/www.lichess4545.com/current/\" > /home/lichess4545/web/www.lichess4545.com/env/lib/python3.9/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
             run(
@@ -147,7 +147,7 @@ def deploystaging():
             exclude=['env', 'data', 'lichess4545@marta.lichess.ovh', 'certs']
         )
         run(
-            "echo \"/home/lichess4545/web/staging.lichess4545.com/current/\" > /home/lichess4545/web/staging.lichess4545.com/env/lib/python3.8/site-packages/heltour.pth")
+            "echo \"/home/lichess4545/web/staging.lichess4545.com/current/\" > /home/lichess4545/web/staging.lichess4545.com/env/lib/python3.9/site-packages/heltour.pth")
 
         if confirm(colors.red("Would you like to update the dependencies?")):
             run(
