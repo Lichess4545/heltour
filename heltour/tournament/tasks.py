@@ -234,7 +234,10 @@ def update_tv_state():
     for game in games_starting:
         try:
             league = game.get_round().season.league
-            for meta in lichessapi.get_latest_game_metas(game.white.lichess_username, 5, priority=1,
+            roundstart = round(game.get_round().start_date.timestamp()*1000) # round start in miliseconds
+            for meta in lichessapi.get_latest_game_metas(lichess_username=game.white.lichess_username,
+                                                         variant=league.rating_type, since=roundstart,
+                                                         number=5, opponent=game.black.lichess_username, priority=1,
                                                          timeout=300):
                 try:
                     if meta['players']['white']['user'][
@@ -243,6 +246,7 @@ def update_tv_state():
                             'id'].lower() == game.black.lichess_username.lower() and \
                         meta['clock']['initial'] == league.time_control_initial() and \
                         meta['clock']['increment'] == league.time_control_increment() and \
+                        meta['perf'] == league.rating_type and \
                         meta['rated'] == True:
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         game.save()
