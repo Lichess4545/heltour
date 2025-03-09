@@ -39,11 +39,11 @@ ALLOWED_HOSTS = [
     'localhost',
 ]
 CSRF_TRUSTED_ORIGINS = [
-    'www.lichess4545.tv',
-    'lichess4545.tv',
-    'www.lichess4545.com',
-    'lichess4545.com',
-    'localhost',
+    'https://www.lichess4545.tv',
+    'https://lichess4545.tv',
+    'https://www.lichess4545.com',
+    'https://lichess4545.com',
+    'http://localhost',
 ]
 LINK_PROTOCOL = 'https'
 
