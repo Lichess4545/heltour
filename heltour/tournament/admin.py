@@ -2609,7 +2609,7 @@ class ModRequestAdmin(_BaseAdmin):
                 if 'confirm' in form.data:
                     obj.reject(request.user.username, form.cleaned_data['response'])
                     self.message_user(request, 'Request rejected.', messages.INFO)
-                    return redirect_with_params('admin:tournament_registration_changelist',
+                    return redirect_with_params('admin:tournament_modrequest_changelist',
                                                 params='?' + changelist_filters)
                 else:
                     return redirect_with_params('admin:tournament_modrequest_review', object_id,
