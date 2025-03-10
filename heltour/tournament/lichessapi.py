@@ -161,9 +161,8 @@ def get_peak_rating(lichess_username, perf_type):
         try:
             return response.json()['stat']['highest']['int']
         # the KeyError below is caused by players who never had their rating established,
-        # so lichess does not consider them to have a recorded highest rating
+        # so lichess does not consider them to have a recorded highest rating. it can be ignored.
         except KeyError:
-            logger.error(f'User {lichess_username} does not have a recorded {perf_type} peak rating.')
             return None
     except Exception:
         logger.exception('Error retrieving peak rating for %s' % lichess_username)
