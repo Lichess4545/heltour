@@ -41,10 +41,16 @@
                                 <td>{{ form.round_started_slack_wo|label_right }}</td>
                             </tr>
                             <tr>
-                                <td>When my game starts</td>
+                                <td>When my game is supposed to start</td>
                                 <td>{{ form.game_time_lichess|label_right }}</td>
                                 <td>{{ form.game_time_slack|label_right }}</td>
                                 <td>{{ form.game_time_slack_wo|label_right }}</td>
+                            </tr>
+                            <tr>
+                                <td>When Lichess4545.com started my game</td>
+                                <td>{{ form.game_started_lichess|label_right }}</td>
+                                <td>{{ form.game_started_slack|label_right }}</td>
+                                <td>{{ form.game_started_slack_wo|label_right }}</td>
                             </tr>
                             <tr>
                                 <td>{{ form.before_game_time_offset }} before my game starts</td>
