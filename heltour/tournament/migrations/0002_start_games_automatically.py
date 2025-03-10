@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournament', '0195_auto_20231118_2130'),
+        ('tournament', '0001_squashed_0195'),
     ]
 
     operations = [
