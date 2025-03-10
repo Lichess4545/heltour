@@ -261,9 +261,12 @@ STATIC_PRECOMPILER_COMPILERS = (
     }),
 )
 STORAGES = {
-        'staticfiles': {
-            'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
-        },
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+    },
 }
 
 BOOTSTRAP3 = {
