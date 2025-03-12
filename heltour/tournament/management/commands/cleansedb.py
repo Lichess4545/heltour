@@ -15,6 +15,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         Session.objects.all().delete()
         for u in User.objects.all():
+            u.username = f"user-{u.id}"
             u.set_password("09876default1234")
             u.email = "email-{}@example.com".format(u.id)
             u.is_staff = False
