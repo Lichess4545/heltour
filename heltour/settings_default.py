@@ -224,7 +224,7 @@ CELERYBEAT_SCHEDULE = {
     },
     'validate_pending_registrations': {
         'task': 'heltour.tournament.tasks.validate_pending_registrations',
-        'schedule': timedelta(days=1),
+        'schedule': timedelta(minutes=5),
         'args': ()
     },
     'celery_is_up': {

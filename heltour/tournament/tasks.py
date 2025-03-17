@@ -438,6 +438,8 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
 @app.task()
 def validate_registration(reg_id):
     reg = Registration.objects.get(pk=reg_id)
+    reg.last_validation_try = timezone.now()
+    reg.save()
 
     fail_reason = None
     warnings = []
@@ -502,10 +504,9 @@ def do_validate_registration(reg_id, **kwargs):
 @app.task()
 def validate_pending_registrations():
     # we want to re-validate pending registrations if they are not marked valid already
-    regs_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending').exclude(Q(validation_warning=False) & Q(validation_ok=True))
-    logger.info(f'Validating {len(regs_to_validate)} player registrations')
-    for reg in regs_to_validate:
-        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg.pk)
+    reg_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending').exclude(Q(validation_warning=False) & Q(validation_ok=True)).order_by('last_validation_try').first()
+    if reg_to_validate is not None:
+        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg_to_validate)
 
 
 @app.task()
