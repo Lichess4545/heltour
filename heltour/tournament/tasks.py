@@ -503,10 +503,12 @@ def do_validate_registration(reg_id, **kwargs):
 
 @app.task()
 def validate_pending_registrations():
-    # we want to re-validate pending registrations if they are not marked valid already
-    reg_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending').exclude(Q(validation_warning=False) & Q(validation_ok=True)).order_by('last_validation_try').first()
+    # we want to re-validate pending registrations if they are not marked valid already; or have recently been validated
+    reg_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending') \
+            .exclude(Q(validation_warning=False) & Q(validation_ok=True) | Q(last_validation_try__gt=timezone.now() - timedelta(hours=24))) \
+            .order_by('last_validation_try').first()
     if reg_to_validate is not None:
-        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg_to_validate)
+        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg_to_validate.pk)
 
 
 @app.task()
