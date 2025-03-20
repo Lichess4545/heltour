@@ -10,6 +10,7 @@ import reversion
 
 from cacheops.query import cached_as
 from django.core.mail.message import EmailMessage
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -22,6 +23,7 @@ from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from ipware import get_client_ip
@@ -1218,6 +1220,43 @@ class StatsView(SeasonView):
             return self.render('tournament/lone_stats.html', context)
 
         return _view(self.league.tag, self.season.tag, self.user_data)
+
+
+class ActivePlayerTableView(LeagueView):
+    @cached_as(League, Season, Round)
+    def view(self, page=1):
+        if self.league.is_team_league():
+            black_games = Count("pairings_as_black",
+                    filter=Q(pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_black__teamplayerpairing__game_link=""),
+                    distinct=True)
+            white_games = Count("pairings_as_white",
+                    filter=Q(pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_white__teamplayerpairing__game_link=""),
+                    distinct=True)
+        else:
+            black_games = Count("pairings_as_black",
+                    filter=Q(pairings_as_black__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_black__loneplayerpairing__game_link=""),
+                    distinct=True)
+            white_games = Count("pairings_as_white",
+                    filter=Q(pairings_as_white__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_white__loneplayerpairing__game_link=""),
+                    distinct=True)
+        seasons = Count("seasonplayer", filter=Q(seasonplayer__season__league=self.league), distinct=True)
+        newest_seasons = SeasonPlayer.objects.filter(season__league=self.league, player=OuterRef("pk")).order_by("-season__start_date")
+
+        tablesums = Player.objects.annotate(blackcount=black_games) \
+                .annotate(whitecount=white_games) \
+                .annotate(game_count=F("blackcount")+F("whitecount")) \
+                .annotate(season_count=seasons) \
+                .annotate(latest_season=Subquery(newest_seasons.values("season__tag")[:1])) \
+                .order_by("-game_count", "season_count")
+        paginator = Paginator(tablesums, 20)
+
+        page_obj = paginator.get_page(page)
+
+        context = {
+                'page_obj': page_obj,
+        }
+
+        return self.render('tournament/active_players.html', context)
 
 
 class BoardScoresView(SeasonView):
