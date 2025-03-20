@@ -19,7 +19,7 @@ def require_api_token(view_func):
     def _wrapped_view_func(request, *args, **kwargs):
         if not 'HTTP_AUTHORIZATION' in request.META:
             return HttpResponse('Unauthorized', status=401)
-        match = re.match('\s*Token\s*(\w+)\s*', request.META['HTTP_AUTHORIZATION'])
+        match = re.match(r'\s*Token\s*(\w+)\s*', request.META['HTTP_AUTHORIZATION'])
         if match is None or len(ApiKey.objects.filter(secret_token=match.group(1))) == 0:
             return HttpResponse('Unauthorized', status=401)
         return view_func(request, *args, **kwargs)
