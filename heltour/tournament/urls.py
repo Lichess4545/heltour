@@ -67,6 +67,8 @@ season_urlpatterns = [
     path('round/<int:round_number>/alternate/decline/',
         views.AlternateDeclineView.as_view(), name='alternate_decline'),
     path('notifications/', views.NotificationsView.as_view(), name='notifications'),
+    path('active_players/', views.ActivePlayerTableView.as_view(), name='active_players'),
+    path('active_players/<int:page>/', views.ActivePlayerTableView.as_view(), name='active_players'),
 ]
 
 league_urlpatterns = [
