@@ -641,7 +641,7 @@ class PerfRatingCalc():
     def calculate(self):
         if self._game_count < 5:
             return None
-        average_opp_rating = int(round(sum(self._opponent_ratings) / float(self._game_count)))
+        average_opp_rating = int(round(sum(filter(None, self._opponent_ratings)) / float(self._game_count)))
         dp = get_fide_dp(self._score, self._game_count)
         return average_opp_rating + dp
 
