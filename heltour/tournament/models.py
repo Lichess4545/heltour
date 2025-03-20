@@ -1776,6 +1776,7 @@ class Registration(_BaseModel):
 
     validation_ok = models.BooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
+    last_validation_try = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return "%s" % (self.lichess_username)
