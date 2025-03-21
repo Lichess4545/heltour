@@ -104,8 +104,10 @@
                                         {% if pairing.white %}
                                             <div class="pairing-player">
                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-                                                    {{ pairing.white.lichess_username }} <span
-                                                        class="visible-xs"></span> ({% white_rating pairing %})
+                                                    {{ pairing.white.lichess_username }}
+																										{% if not zen_mode %}
+																												<span class="visible-xs"></span> ({% white_rating pairing %})
+																										{% endif %}
                                                 </a>
                                                 {% if white_img %}
                                                     <img src="{% static 'admin/img/icon-'|add:white_img|add:'.svg' %}"
@@ -137,8 +139,10 @@
                                         {% if pairing.black %}
                                             <div class="pairing-player">
                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-                                                    {{ pairing.black.lichess_username }} <span
-                                                        class="visible-xs"></span> ({% black_rating pairing %})
+                                                    {{ pairing.black.lichess_username }}
+																										{% if not zen_mode %}
+																												<span class="visible-xs"></span> ({% black_rating pairing %})
+																										{% endif %}
                                                 </a>
                                                 {% if black_img %}
                                                     <img src="{% static 'admin/img/icon-'|add:black_img|add:'.svg' %}"
