@@ -220,7 +220,7 @@ class Season(_BaseModel):
             ('manage_players', 'Can manage players'),
             ('review_nominated_games', 'Can review nominated games'),
         )
-        ordering = ['league__name', '-name']
+        ordering = ['is_completed', 'league__name', '-name']
 
     def __init__(self, *args, **kwargs):
         super(Season, self).__init__(*args, **kwargs)
