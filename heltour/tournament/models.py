@@ -651,6 +651,7 @@ class Round(_BaseModel):
         permissions = (
             ('generate_pairings', 'Can generate and review pairings'),
         )
+        ordering = ['is_completed', '-start_date']
 
     def __init__(self, *args, **kwargs):
         super(Round, self).__init__(*args, **kwargs)
@@ -1101,6 +1102,7 @@ class Team(_BaseModel):
 
     class Meta:
         unique_together = (('season', 'number'), ('season', 'name'))
+        ordering = ('season__is_completed', '-season__start_date')
 
     def get_teamscore(self):
         try:
