@@ -1277,6 +1277,7 @@ class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
     actions = ['generate_pairings', 'simulate_results']
     league_id_field = 'season__league_id'
+    search_fields = ['season__tag']
 
     def get_urls(self):
         urls = super(RoundAdmin, self).get_urls()
@@ -1482,7 +1483,7 @@ class PlayerLateRegistrationAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
-    autocomplete_fields = ('player',)
+    autocomplete_fields = ('round', 'player')
     actions = ['refresh_fields', 'move_to_next_round']
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
@@ -1552,7 +1553,7 @@ class PlayerWithdrawalAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('round', 'player')
-    autocomplete_fields = ('player',)
+    autocomplete_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -1564,7 +1565,7 @@ class PlayerByeAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
-    autocomplete_fields = ('player',)
+    autocomplete_fields = ('round', 'player')
     exclude = ('player_rating',)
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
@@ -1577,7 +1578,7 @@ class PlayerWarningAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number', 'type')
     raw_id_fields = ('round', 'player')
-    autocomplete_fields = ('player',)
+    autocomplete_fields = ('round', 'player')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -1745,7 +1746,7 @@ class AlternateAssignmentAdmin(_BaseAdmin):
     search_fields = ('team__name', 'player__lichess_username')
     list_filter = ('round__season', 'round__number', 'board_number')
     raw_id_fields = ('round', 'team', 'player', 'replaced_player')
-    autocomplete_fields = ('player', 'replaced_player')
+    autocomplete_fields = ('round', 'player', 'replaced_player')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
@@ -1767,6 +1768,8 @@ class AlternateSearchAdmin(_BaseAdmin):
     search_fields = ('team__name',)
     list_filter = ('round__season', 'round__number', 'board_number', 'status')
     league_id_field = 'round__season__league_id'
+    raw_id_fields = ('round', )
+    autocomplete_fields = ('round', )
     league_competitor_type = 'team'
 
 
@@ -1785,6 +1788,7 @@ class TeamPairingAdmin(_BaseAdmin):
     search_fields = ('white_team__name', 'black_team__name')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white_team', 'black_team', 'round')
+    autocomplete_fields = ('white_team', 'black_team', 'round')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'team'
 
@@ -1891,7 +1895,7 @@ class LonePlayerPairingAdmin(_BaseAdmin):
     search_fields = ('white__lichess_username', 'black__lichess_username', 'game_link')
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('white', 'black', 'round')
-    autocomplete_fields = ('white', 'black')
+    autocomplete_fields = ('white', 'black', 'round')
     league_id_field = 'round__season__league_id'
     league_competitor_type = 'individual'
 
@@ -2291,7 +2295,7 @@ class PlayerAvailabilityAdmin(_BaseAdmin):
     search_fields = ('player__lichess_username',)
     list_filter = ('round__season', 'round__number')
     raw_id_fields = ('player', 'round')
-    autocomplete_fields = ('player',)
+    autocomplete_fields = ('player', 'round')
     league_id_field = 'round__season__league_id'
 
 
