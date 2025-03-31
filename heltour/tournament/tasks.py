@@ -437,9 +437,9 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
 
 @app.task()
 def validate_registration(reg_id):
-    reg = Registration.objects.get(pk=reg_id)
-    reg.last_validation_try = timezone.now()
-    reg.save()
+    regquery = Registration.objects.filter(pk=reg_id)
+    regquery.update(last_validation_try = timezone.now())
+    reg = regquery.get()
 
     fail_reason = None
     warnings = []
