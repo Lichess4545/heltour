@@ -16,6 +16,24 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
+            name='OauthToken',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('date_created', models.DateTimeField(auto_now_add=True)),
+                ('date_modified', models.DateTimeField(auto_now=True)),
+                ('access_token', models.CharField(max_length=4096)),
+                ('token_type', models.CharField(max_length=255)),
+                ('expires', models.DateTimeField()),
+                ('refresh_token', models.CharField(blank=True, max_length=4096)),
+                ('scope', models.TextField(blank=True)),
+                ('account_username', models.CharField(max_length=255)),
+                ('account_email', models.CharField(blank=True, max_length=255)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
             name='League',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -154,6 +172,36 @@ class Migration(migrations.Migration):
             ],
             options={
                 'unique_together': {('white_team', 'black_team', 'round')},
+            },
+        ),
+        migrations.CreateModel(
+            name='SectionGroup',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('date_created', models.DateTimeField(auto_now_add=True)),
+                ('date_modified', models.DateTimeField(auto_now=True)),
+                ('name', models.CharField(max_length=255)),
+                ('league', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.league')),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='Section',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('date_created', models.DateTimeField(auto_now_add=True)),
+                ('date_modified', models.DateTimeField(auto_now=True)),
+                ('name', models.CharField(max_length=255, verbose_name='section name')),
+                ('min_rating', models.PositiveIntegerField(blank=True, null=True)),
+                ('max_rating', models.PositiveIntegerField(blank=True, null=True)),
+                ('season', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.season')),
+                ('section_group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.sectiongroup')),
+                ('order', models.PositiveIntegerField()),
+            ],
+            options={
+                'abstract': False,
             },
         ),
         migrations.CreateModel(
@@ -785,36 +833,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='SectionGroup',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('league', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.league')),
-            ],
-            options={
-                'abstract': False,
-            },
-        ),
-        migrations.CreateModel(
-            name='Section',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255, verbose_name='section name')),
-                ('min_rating', models.PositiveIntegerField(blank=True, null=True)),
-                ('max_rating', models.PositiveIntegerField(blank=True, null=True)),
-                ('season', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.season')),
-                ('section_group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tournament.sectiongroup')),
-                ('order', models.PositiveIntegerField()),
-            ],
-            options={
-                'abstract': False,
-            },
-        ),
-        migrations.CreateModel(
             name='PlayerSetting',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -822,24 +840,6 @@ class Migration(migrations.Migration):
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('dark_mode', models.BooleanField(default=False)),
                 ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='tournament.player')),
-            ],
-            options={
-                'abstract': False,
-            },
-        ),
-        migrations.CreateModel(
-            name='OauthToken',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('access_token', models.CharField(max_length=4096)),
-                ('token_type', models.CharField(max_length=255)),
-                ('expires', models.DateTimeField()),
-                ('refresh_token', models.CharField(blank=True, max_length=4096)),
-                ('scope', models.TextField(blank=True)),
-                ('account_username', models.CharField(max_length=255)),
-                ('account_email', models.CharField(blank=True, max_length=255)),
             ],
             options={
                 'abstract': False,
