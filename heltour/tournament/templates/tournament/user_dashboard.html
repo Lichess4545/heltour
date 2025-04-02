@@ -62,26 +62,36 @@
                                 <td class="league-icon {{ round.season.league.theme }}"></td>
                                 <td>
                                     <div class="details">
-                                <span class="round">
-                                    {{ round.season }} - Round {{ round.number }}
-                                </span>
+                                        <span class="round">
+                                            {{ round.season }} - Round {{ round.number }}
+                                        </span>
                                         <span class="players">
-                                    {{ pairing.white }} - {{ pairing.black }}
-                                </span>
+                                            {{ pairing.white }} - {{ pairing.black }}
+                                        </span>
                                         <span class="time">
-                                    {{ pairing.scheduled_time | date_el:"m/d H:i" }}
-                                </span>
+                                            {{ pairing.scheduled_time | date_el:"m/d H:i" }}
+                                        </span>
                                         <span class="result">
-                                    {% if pairing.game_link %}
-                                        <a href="{{ pairing.game_link }}">
-                                        {% if pairing.result %}{{ pairing.result_display }}{% else %}&#x2694;{% endif %}
-                                    </a>
-                                    {% else %}
-                                        {{ pairing.result_display }}
-                                    {% endif %}
-                                </span>
+                                            {% if pairing.game_link %}
+                                                <a href="{{ pairing.game_link }}">
+                                                {% if pairing.result %}{{ pairing.result_display }}{% else %}&#x2694;{% endif %}
+                                                </a>
+                                            {% else %}
+                                                {{ pairing.result_display }}
+                                            {% endif %}
+                                        </span>
                                     </div>
                                 </td>
+                                <td>
+                                    <div class="well-body">
+                                        {% if round.season.league.get_leaguesetting.start_games and not pairing.game_link and pairing.scheduled_time %}
+                                           <a class="btn btn-default"
+                                               href="{% leagueurl 'confirm_scheduled_time' league.tag active_season.tag %}">
+                                              Confirm
+                                             </a>
+                                        {% endif %}
+                                    </div>
+                                 </td>
                             </tr>
                         {% endfor %}
                     </table>
