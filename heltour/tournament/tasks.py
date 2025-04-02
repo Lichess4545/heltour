@@ -455,12 +455,13 @@ def validate_registration(reg_id):
                                                                reg.season.league.rating_type)
         reg.has_played_20_games = not player.provisional_for(reg.season.league)
         if player.account_status != 'normal':
-            fail_reason = 'The lichess user "%s" has the "%s" mark.' % (
-                reg.lichess_username, player.account_status)
+            fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.acccount_status}" mark.'
         if reg.already_in_slack_group and not player.slack_user_id:
-            reg.already_in_slack_group = False
+            regquery.update(already_in_slack_group = False)
     except lichessapi.ApiWorkerError:
-        fail_reason = 'The lichess user "%s" could not be found.' % reg.lichess_username
+        fail_reason = f'The lichess user "{reg.lichess_username}" could not be found.'
+    except lichessapi.ApiClientError:
+        fail_reason = f'Client error retrieving user "{reg.lichess_username}" from lichess.'
 
     if not reg.has_played_20_games:
         warnings.append('Has a provisional rating.')
@@ -471,22 +472,15 @@ def validate_registration(reg_id):
         warnings.append('Didn\'t agree to rules.')
 
     if fail_reason:
-        reg.validation_ok = False
-        reg.validation_warning = False
-        comment_text = 'Validation error: %s' % fail_reason
+        regquery.update(validation_ok=False, validation_warning=False)
+        comment_text = f'Validation error: {fail_reason}'
     elif warnings:
-        reg.validation_ok = True
-        reg.validation_warning = True
-        comment_text = 'Validation warning: %s' % ' '.join(warnings)
+        regquery.update(validation_ok=True, validation_warning=True)
+        comment_text = f'Validation warning: {" ".join(warnings)}'
     else:
-        reg.validation_ok = True
-        reg.validation_warning = False
+        regquery.update(validation_ok=True, validation_warning=False)
         comment_text = 'Validated.'
     add_system_comment(reg, comment_text)
-
-    with reversion.create_revision():
-        reversion.set_comment('Validated registration.')
-        reg.save()
 
 
 @receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
