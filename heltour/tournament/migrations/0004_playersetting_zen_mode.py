@@ -8,7 +8,7 @@ import re
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournament', '0001_squashed_0195'),
+        ('tournament', '0003_merge_20250331_2336'),
     ]
 
     operations = [
