@@ -614,13 +614,11 @@ def create_team_channel(team_ids):
             logger.error('Could not create slack team, name taken: %s' % channel_name)
             continue
         channel_ref = '#%s' % group.name
-        for user_id in user_ids:
-            if user_id:
-                try:
-                    slackapi.invite_to_group(group.id, user_id)
-                except slackapi.SlackError:
-                    logger.exception('Could not invite %s to slack' % user_id)
-                time.sleep(1)
+        try:
+            slackapi.invite_to_group(group.id, user_ids)
+        except slackapi.SlackError:
+            logger.exception('Could not invite %s to channel' % ",".join(user_ids))
+            time.sleep(1)
         slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
         time.sleep(1)
         with reversion.create_revision():
