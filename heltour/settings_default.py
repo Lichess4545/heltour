@@ -314,6 +314,7 @@ TEAMGEN_PROCESSES_NUMBER = 8
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
 SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
+SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-channel-builder-token.conf'
 SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
 LICHESS_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/lichess-api-token.conf'
 JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
