@@ -55,6 +55,8 @@ if os.path.exists(config_path):
                                                         GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH)
     SLACK_API_TOKEN_FILE_PATH = overrides.get('SLACK_API_TOKEN_FILE_PATH',
                                               SLACK_API_TOKEN_FILE_PATH)
+    SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH = overrides.get('SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH',
+                                              SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH)
     SLACK_WEBHOOK_FILE_PATH = overrides.get('SLACK_WEBHOOK_FILE_PATH', SLACK_WEBHOOK_FILE_PATH)
     LICHESS_API_TOKEN_FILE_PATH = overrides.get('LICHESS_API_TOKEN_FILE_PATH', LICHESS_API_TOKEN_FILE_PATH)
     FCM_API_KEY_FILE_PATH = overrides.get('FCM_API_KEY_FILE_PATH', FCM_API_KEY_FILE_PATH)

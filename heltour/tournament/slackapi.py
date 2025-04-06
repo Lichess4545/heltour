@@ -10,6 +10,9 @@ def _get_slack_token():
     with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
         return fin.read().strip()
 
+def _get_slack_channel_builder_token():
+    with open(settings.SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH) as fin:
+        return fin.read().strip()
 
 def _get_slack_webhook():
     try:
@@ -95,37 +98,41 @@ def send_control_message(text):
 
 
 def create_group(group_name):
-    url = 'https://slack.com/api/groups.create'
-    r = requests.get(url, params={'token': _get_slack_token(), 'name': group_name})
+    url = 'https://slack.com/api/conversations.create'
+    r = requests.post(url, params={'name': group_name, 'is_private':'true'},
+                      headers={'Authorization': _get_slack_channel_builder_token()})
     json = r.json()
     if not json['ok']:
         if json['error'] == 'name_taken':
             raise NameTaken
         raise SlackError(json['error'])
-    g = json['group']
+    g = json['channel']
     return SlackGroup(g['id'], g['name'])
 
 
-def invite_to_group(group_id, user_id):
-    url = 'https://slack.com/api/groups.invite'
-    r = requests.get(url,
-                     params={'token': _get_slack_token(), 'channel': group_id, 'user': user_id})
+def invite_to_group(group_id, user_ids):
+    url = 'https://slack.com/api/conversations.invite'
+    r = requests.post(url,
+                     params={'channel': group_id, 'users': ",".join(user_ids)},
+                     headers={'Authorization': _get_slack_channel_builder_token()})
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
 
 
 def set_group_topic(group_id, topic):
-    url = 'https://slack.com/api/groups.setTopic'
-    r = requests.get(url, params={'token': _get_slack_token(), 'channel': group_id, 'topic': topic})
+    url = 'https://slack.com/api/conversations.setTopic'
+    r = requests.post(url, params={'channel': group_id, 'topic': topic},
+                     headers={'Authorization': _get_slack_channel_builder_token()})
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
 
 
 def leave_group(group_id):
-    url = 'https://slack.com/api/groups.leave'
-    r = requests.get(url, params={'token': _get_slack_token(), 'channel': group_id})
+    url = 'https://slack.com/api/conversations.leave'
+    r = requests.get(url, params={'channel': group_id},
+                     headers={'Authorization': _get_slack_channel_builder_token()})
     json = r.json()
     if not json['ok']:
         raise SlackError(json['error'])
