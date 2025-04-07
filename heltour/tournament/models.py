@@ -743,9 +743,6 @@ ACCOUNT_STATUS_OPTIONS = (
 
 # -------------------------------------------------------------------------------
 class Player(_BaseModel):
-    # TODO: we should find out the real restrictions on a lichess username and
-    #       duplicate them here.
-    # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
@@ -2499,7 +2496,6 @@ LEAGUE_CHANNEL_TYPES = (
 
 # -------------------------------------------------------------------------------
 class LeagueChannel(_BaseModel):
-    # TODO: Rename to LeagueChannel
     league = models.ForeignKey(League, on_delete=models.CASCADE)
     type = models.CharField(max_length=255, choices=LEAGUE_CHANNEL_TYPES)
     slack_channel = models.CharField(max_length=255)
