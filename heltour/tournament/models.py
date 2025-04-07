@@ -896,6 +896,7 @@ class PlayerSetting(_BaseModel):
     player = models.OneToOneField(Player, on_delete=models.CASCADE)
 
     dark_mode = models.BooleanField(default=False)
+    zen_mode = models.BooleanField(default=False)
 
 
 # -------------------------------------------------------------------------------
