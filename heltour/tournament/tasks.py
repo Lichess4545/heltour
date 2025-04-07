@@ -619,16 +619,26 @@ def create_team_channel(team_ids):
         except slackapi.SlackError:
             logger.exception('Could not invite %s to channel' % ",".join(user_ids))
             time.sleep(1)
-        slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
+        try:
+            slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
+        except slackapi.SlackError:
+             logger.exception('Could not invite chesster to channel')
+             time.sleep(1)
         time.sleep(1)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')
             team.slack_channel = group.id
             team.save()
 
-        slackapi.set_group_topic(group.id, topic)
+        try:
+            slackapi.set_group_topic(group.id, topic)
+        except slackapi.SlackError:
+            logger.exception('Could not set channel topic for channel %s' % channel_ref)
         time.sleep(1)
-        slackapi.leave_group(group.id)
+        try:
+            slackapi.leave_group(group.id)
+        except slackapi.SlackError:
+            logger.exception('Could not leave channel %s' % channel_ref)
         time.sleep(1)
         slackapi.send_message(channel_ref, intro_message_formatted)
         time.sleep(1)
