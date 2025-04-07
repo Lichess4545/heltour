@@ -747,6 +747,7 @@ class Player(_BaseModel):
     #       duplicate them here.
     # Note: a case-insensitive unique index for lichess_username is added via migration to the DB
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    gdpr_erased = models.BooleanField(default=False)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
