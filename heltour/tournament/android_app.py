@@ -7,6 +7,7 @@ import logging
 from pyfcm import FCMNotification
 from heltour.tournament.models import FcmSub
 import requests
+import html
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def slack_event(request):
     request_type = args.get('type')
 
     if request_type == 'url_verification':
-        return HttpResponse(args.get('challenge'))
+        return HttpResponse(html.escape(args.get('challenge')))
 
     if request_type == 'event_callback':
         event = args.get('event')
