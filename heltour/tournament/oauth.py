@@ -44,7 +44,11 @@ def login_with_code(request, code, encoded_state):
         logger.error('Missing code/state')
         return redirect('home')
 
-    state = _decode_state(encoded_state)
+    try:
+        state = _decode_state(encoded_state)
+    except signing.BadSignature:
+        return redirect('login_failed')
+
     status, oauth_token = _get_oauth_token(request, code)
     if status:
         return HttpResponse(f'Received {status} from token endpoint', 401)

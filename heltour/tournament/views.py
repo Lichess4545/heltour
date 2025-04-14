@@ -2092,6 +2092,13 @@ class LoginView(LeagueView):
         return oauth.redirect_for_authorization(self.request, self.league.tag, secret_token)
 
 
+class LoginFailedView(BaseView):
+    def view(self):
+        return self.render('tournament/login_failed.html',
+                           {'lichess': settings.LICHESS_NAME,
+                            'lichess_link': settings.LICHESS_DOMAIN})
+
+
 class OAuthCallbackView(View):
     def get(self, request, *args, **kwargs):
         return oauth.login_with_code(request, request.GET.get('code'), request.GET.get('state'))
