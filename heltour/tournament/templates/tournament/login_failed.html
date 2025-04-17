@@ -1,0 +1,24 @@
+{% extends "empty_base.html" %}
+{% load static tournament_extras %}
+
+{% block title %}Lichess Leagues{% endblock %}
+
+{% block body %}
+   <div class="row row-condensed-xs">
+       <div class="col-md-12">
+           <div class="well">
+               <div class="well-head">
+                   <h3>Login Failed</h3>
+               </div>
+               <div class="well-body">
+                   <p>
+											Login failed. If this keeps happening, please inquire on the <a href="{{ lichess_link }}forum/lichess-feedback">{{ lichess }}</a> forums. Mention lichess4545 in your topic name, and we will be sure to notice. Additionally, please describe how you got to this page, because we certainly do not have any idea.
+                   </p>
+									 <p>
+										 <a href="{% url 'home' %}">Home</a>
+									 </p>
+               </div>
+           </div>
+       </div>
+   </div>
+{% endblock %}

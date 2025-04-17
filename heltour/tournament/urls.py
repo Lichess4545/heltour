@@ -114,6 +114,7 @@ urlpatterns = [
     path('app/', include((app_urlpatterns, 'tournament'), 'app')),
     path('auth/slack/', auth.SlackAuth.as_view(), name='slack_auth'),
     path('auth/lichess/', views.OAuthCallbackView.as_view(), name='lichess_auth'),
+    path('auth/lichess/login_failed/', views.LoginFailedView.as_view(), name='login_failed'),
     path('comments/', include('django_comments.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
     path('<slug:league_tag>/', include((league_urlpatterns, 'tournament'), 'by_league')),
