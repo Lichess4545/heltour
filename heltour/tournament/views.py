@@ -1841,7 +1841,6 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
         round_data = None
 
         if player is not None:
-
             # Add team members if the user is a captain
             team_member = TeamMember.objects.filter(player=player, team__season=self.season).first()
             if team_member is not None and (team_member.is_captain or team_member.is_vice_captain):
@@ -1859,7 +1858,7 @@ class AvailabilityView(SeasonView, LoginRequiredMixin):
             season_player_set = SeasonPlayer.objects.filter(player__in=player_list, season=self.season).nocache()
             has_red_card_dict = {sp.player : sp.card_color == "red" for sp in season_player_set}
             
-            if self.league.is_team_league():
+            if self.league.is_team_league() and len(round_list) > 0:
                 #games can only be scheduled for the current round
                 game_is_scheduled_dict = {(round_list[0], sp.player) : sp.has_scheduled_game_in_round(round_list[0]) for sp in season_player_set}
             else:
