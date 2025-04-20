@@ -42,9 +42,14 @@ def redirect_for_authorization(request, league_tag, secret_token):
 def login_with_code(request, code, encoded_state):
     if not code or not encoded_state:
         logger.error('Missing code/state')
-        return redirect('home')
+        return redirect('login_failed')
 
-    state = _decode_state(encoded_state)
+    try:
+        state = _decode_state(encoded_state)
+    except signing.BadSignature:
+        logger.error('Bad state encoding')
+        return redirect('login_failed')
+
     status, oauth_token = _get_oauth_token(request, code)
     if status:
         return HttpResponse(f'Received {status} from token endpoint', 401)
