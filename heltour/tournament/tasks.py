@@ -321,6 +321,8 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
     try:
         result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
     except lichessapi.ApiClientError as err:
+        print(f"Received error from lichess api: {err}")
+        print("Attempting to recover")
         # try to handle errors due to rjected tokens
         e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
         try:
