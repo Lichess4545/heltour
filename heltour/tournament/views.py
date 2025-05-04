@@ -1817,16 +1817,7 @@ class ScheduleView(LoginRequiredMixin, LeagueView):
 
 class ConfirmScheduledTimeView(LoginRequiredMixin, LeagueView):
     def view(self, post=False):
-        player = Player.get_or_create(self.request.user.username)
-
-        active_seasons = self.league.season_set.filter(is_completed=False).order_by('-start_date')
-        active_seasons_with_sp = [(s, player.seasonplayer_set.filter(season=s).first()) for s in
-                                  active_seasons]
-        active_seasons_with_sp = [s for s in active_seasons_with_sp if s[1]]
-        last_sp = player.seasonplayer_set.filter(season__league=self.league, season__is_active=True,
-                                                 season__is_completed=True) \
-            .order_by('-season__start_date').first()
-        last_season = last_sp.season if last_sp is not None else None
+        player = self.player
 
         active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
                                              season__is_active=True)
@@ -1838,8 +1829,6 @@ class ConfirmScheduledTimeView(LoginRequiredMixin, LeagueView):
 
         context = {
             'player': player,
-            'active_seasons_with_sp': active_seasons_with_sp,
-            'last_season': last_season,
             'next_pairings': next_pairings
         }
 
