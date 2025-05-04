@@ -337,6 +337,7 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                        game.black.oauth_token.save()
                        break
                # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
+
                new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
            if new_tokens:
                try:
@@ -359,16 +360,8 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                        game.save()
                        signals.notify_players_game_started.send(sender=_start_league_games,
                                                                 pairing=game,
-<<<<<<< HEAD
-<<<<<<< HEAD
                                                                 do_clockstart=do_clockstart,
                                                                 clockstart_in=clockstart_in,
-=======
->>>>>>> 09fccbd (more removal of escape backslashes)
-=======
-                                                                do_clockstart=do_clockstart,
-                                                                clockstart_in=clockstart_in,
->>>>>>> 222888c (add league settings for gamestart)
                                                                 gameid=gameids['id'])
         except KeyError:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
