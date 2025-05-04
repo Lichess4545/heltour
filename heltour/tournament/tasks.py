@@ -327,6 +327,7 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
         e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
         try:
            result = json.loads(e)
+           new_tokens = None
            for bad_token in result["tokens"]:
                # set expiration of rejected token to yesterday, so we know to not use it anymore.
                for game in league_games:
