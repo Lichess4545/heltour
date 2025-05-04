@@ -891,6 +891,10 @@ class Player(_BaseModel):
         )
 
 
+    def get_access_token(self):
+        return self.oauth_token.access_token
+
+
     def __str__(self):
         if self.rating is None:
             return self.lichess_username
@@ -1501,6 +1505,12 @@ class PlayerPairing(_BaseModel):
             return '%s (%d)' % (self.white.lichess_username, self.white_rating)
         else:
             return self.white
+
+    def get_white_access_token(self):
+        return self.white.get_access_token()
+
+    def get_black_access_token(self):
+        return self.black.get_access_token()
 
     def black_display(self):
         if not self.black:

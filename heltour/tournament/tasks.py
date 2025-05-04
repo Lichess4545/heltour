@@ -328,11 +328,11 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
            for bad_token in result["tokens"]:
                # set expiration of rejected token to yesterday, so we know to not use it anymore.
                for game in league_games:
-                   if game.white.oauth_token.access_token==bad_token:
+                   if game.get_white_access_token()==bad_token:
                        game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
                        game.white.oauth_token.save()
                        break # only one oauth_token can be the bad token, so we do not need to proceed the loop
-                   if game.black.oauth_token.access_token==bad_token:
+                   if game.get_black_access_token==bad_token:
                        game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
                        game.black.oauth_token.save()
                        break
@@ -386,8 +386,8 @@ def start_games():
         if (hasattr(game, 'teamplayerpairing')):
             gameleague = game.teamplayerpairing.team_pairing.round.season.league
         if gameleague is not None and gameleague.get_leaguesetting().start_games:
-            white_token = game.white.oauth_token.access_token
-            black_token = game.black.oauth_token.access_token
+            white_token = game.get_white_access_token()
+            black_token = game.get_black_access_token()
             if (white_token is not None and black_token is not None and not game.white.oauth_token.is_expired() and not game.black.oauth_token.is_expired()):
                 if not gameleague.name in token_dict:
                     token_dict[gameleague.name] = []
