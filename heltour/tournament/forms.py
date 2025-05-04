@@ -469,6 +469,12 @@ class NotificationsForm(forms.Form):
                                                                   label="Slack (with opponent)",
                                                                   initial=is_round_started_type or setting.enable_slack_mpim,
                                                                   disabled=is_round_started_type)
+            # users cannot switch off lichess messages for started games, as the bulk api requires us to send those
+            is_game_started_type = type_ == 'game_started'
+            self.fields[type_ + "_lichess"] = forms.BooleanField(required=False,
+                                                                 label="Lichess",
+                                                                 initial=is_game_started_type,
+                                                                 disabled=is_game_started_type)
             if type_ == 'before_game_time':
                 offset_options = [(5, '5 minutes'), (10, '10 minutes'), (20, '20 minutes'),
                                   (30, '30 minutes'), (60, '1 hour'), (120, '2 hours')]

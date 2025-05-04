@@ -1,5 +1,6 @@
 from heltour import settings
 from heltour.tournament.models import *
+from heltour.tournament import lichessapi
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from heltour.tournament.tasks import pairings_published
@@ -153,9 +154,20 @@ def appeal_late_response_approved(instance, **kwargs):
 
 @receiver(signals.automod_noshow, dispatch_uid='heltour.tournament.automod')
 def automod_noshow(pairing, **kwargs):
-    if pairing.game_link:
-        # Game started, no action necessary
+    if ((pairing.game_link and (not pairing.white_confirmed or not pairing.black_confirmed)) or
+        pairing.tv_state == 'has_moves' or
+        pairing.result):
+        # lines in the if above correspond to:
+        # Game started, but not by us
+        # Game started, and has moves
+        # Game ended, no action necessary.
         return
+    if pairing.white_confirmed and pairing.black_confirmed and pairing.game_id() is not None:
+        # We probably tried to start this game, check if there are moves
+        game_meta = lichessapi.get_game_meta(pairing.game_id(), priority=0, timeout=300)
+        # space in the move lists indicates that both players played at least one move
+        if ' ' in game_meta.get('moves'):
+                return
     white_online = pairing.get_player_presence(pairing.white).online_for_game
     black_online = pairing.get_player_presence(pairing.black).online_for_game
     if white_online and not black_online:
@@ -217,6 +229,7 @@ def claim_win_noshow_approved(instance, **kwargs):
 
     with reversion.create_revision():
         reversion.set_comment('Auto forfeit for no-show')
+        p.game_link = None # remove game link if there was one
         if p.white == instance.requester:
             p.result = '1X-0F'
         if p.black == instance.requester:

@@ -102,7 +102,9 @@ def update_pairing(request):
         league_tag = request.POST.get('league', None)
         season_tag = request.POST.get('season', None)
         white = request.POST.get('white', None)
+        white_confirmed = request.POST.get('white_confirmed', None)
         black = request.POST.get('black', None)
+        black_confirmed = request.POST.get('black_confirmed', None)
         game_link = request.POST.get('game_link', None)
         result = request.POST.get('result', None)
         datetime = request.POST.get('datetime', None)
@@ -141,6 +143,10 @@ def update_pairing(request):
         pairing.result = result
     if datetime is not None:
         pairing.scheduled_time = datetime
+    if white_confirmed is not None:
+        pairing.white_confirmed = white_confirmed
+    if black_confirmed is not None:
+        pairing.black_confirmed = black_confirmed
 
     with reversion.create_revision():
         reversion.set_comment('API: update_pairing')

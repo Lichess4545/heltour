@@ -454,6 +454,8 @@ class PairingsView(SeasonView):
     def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline):
         if player is None:
             return (None, 'no player')
+        if (player is pairing.white and pairing.white_confirmed) or (player is pairing.black and pairing.black_confirmed):
+            return ('confirmed', 'confirmed')
         pres = presences.get((player.pk, pairing.pk))
         if in_contact_period:
             if not pres or not pres.first_msg_time:
@@ -779,7 +781,7 @@ class RegistrationSuccessView(SeasonView):
         return self.render('tournament/registration_success.html', context)
 
 
-class ModRequestView(SeasonView, LoginRequiredMixin):
+class ModRequestView(LoginRequiredMixin, SeasonView):
     def view(self, req_type, post=False):
 
         if req_type not in MOD_REQUEST_SENDER:
@@ -1713,7 +1715,7 @@ class TeamProfileView(LeagueView):
         return self.render('tournament/team_profile.html', context)
 
 
-class NominateView(SeasonView, LoginRequiredMixin):
+class NominateView(LoginRequiredMixin, SeasonView):
     def view(self, post=False):
         can_nominate = False
         current_nominations = []
@@ -1768,7 +1770,7 @@ class NominateView(SeasonView, LoginRequiredMixin):
         return self.view(post=True)
 
 
-class DeleteNominationView(SeasonView, LoginRequiredMixin):
+class DeleteNominationView(LoginRequiredMixin, SeasonView):
     def view(self, nomination_id, post=False):
         form = None
 
@@ -1799,7 +1801,7 @@ class DeleteNominationView(SeasonView, LoginRequiredMixin):
         return self.view(nomination_id, post=True)
 
 
-class ScheduleView(LeagueView, LoginRequiredMixin):
+class ScheduleView(LoginRequiredMixin, LeagueView):
     def view(self, post=False):
         times = self.player.availabletime_set.filter(
             league=self.league) if self.player is not None else None
@@ -1813,8 +1815,43 @@ class ScheduleView(LeagueView, LoginRequiredMixin):
     def view_post(self):
         return self.view(post=True)
 
+class ConfirmScheduledTimeView(LoginRequiredMixin, LeagueView):
+    def view(self, post=False):
+        player = self.player
 
-class AvailabilityView(SeasonView, LoginRequiredMixin):
+        active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
+                                             season__is_active=True)
+        next_pairings = []
+        for r in active_rounds:
+            next_pairings += [(r, p) for p in
+                            r.pairings.filter(white=player).exclude(scheduled_time=None) | r.pairings.filter(
+                                black=player).exclude(scheduled_time=None)]
+
+        context = {
+            'player': player,
+            'next_pairings': next_pairings
+        }
+
+        if post:
+            for r in active_rounds:
+                for p in r.pairings:
+                    field_name = '%s_%s' % (r.number, p)
+                    if self.request.POST.get('id') == field_name:
+                        if p.white == player:
+                            p.white_confirmed = not p.white_confirmed
+                        else:
+                            p.black_confirmed = not p.black_confirmed
+                        p.save()
+                        return redirect('/%s/confirm_scheduled_time' % self.league.tag)
+
+
+        return self.render('tournament/confirm_scheduled_time.html', context)
+
+    def view_post(self):
+        return self.view(post=True)
+
+
+class AvailabilityView(LoginRequiredMixin, SeasonView):
     def view(self, post=False):
         player = self.player
 
@@ -1967,7 +2004,7 @@ class AlternatesView(SeasonView):
         return self.render('tournament/alternates.html', context)
 
 
-class AlternateAcceptView(SeasonView, LoginRequiredMixin):
+class AlternateAcceptView(LoginRequiredMixin, SeasonView):
     def view(self, round_number, post=False):
         round_number = int(round_number)
 
@@ -2015,7 +2052,7 @@ class AlternateAcceptView(SeasonView, LoginRequiredMixin):
         return self.view(round_number, post=True)
 
 
-class AlternateDeclineView(SeasonView, LoginRequiredMixin):
+class AlternateDeclineView(LoginRequiredMixin, SeasonView):
     def view(self, round_number, post=False):
         round_number = int(round_number)
 
@@ -2056,7 +2093,7 @@ class AlternateDeclineView(SeasonView, LoginRequiredMixin):
         return self.view(round_number, post=True)
 
 
-class NotificationsView(SeasonView, LoginRequiredMixin):
+class NotificationsView(LoginRequiredMixin, SeasonView):
     def view(self, post=False):
         player = self.player
         if post:

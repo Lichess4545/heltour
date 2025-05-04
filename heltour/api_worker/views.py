@@ -21,9 +21,10 @@ def _get_lichess_api_token():
         return None
 
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
-                         retry_count=0):
+                         content_type=None, retry_count=0):
     url = settings.LICHESS_DOMAIN  + path
     token = _get_lichess_api_token()
+
 
     logger.info('API call: %s' % url)
 
@@ -33,6 +34,8 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
             headers['Authorization'] = 'Bearer %s' % token
         if format:
             headers['Accept'] = format
+        if content_type:
+            headers['Content-Type'] = content_type
         if method == 'POST':
             r = requests.post(url, params=params, data=post_data, headers=headers)
         else:
@@ -83,6 +86,7 @@ def lichess_api_call(request, path):
     priority = int(params.pop('priority', 0))
     max_retries = int(params.pop('max_retries', 5))
     format = params.pop('format', None)
+    content_type = params.pop('content_type', None)
     redis_key = get_random_string(length=16)
 
     # support either a form encoded body or a raw body
@@ -91,9 +95,8 @@ def lichess_api_call(request, path):
         post_data = request.body.decode('utf-8')
 
     worker.queue_work(priority, _do_lichess_api_call, redis_key, path, request.method,
-                      post_data, params, priority, max_retries, format)
+                      post_data, params, priority, max_retries, format, content_type)
     return HttpResponse(redis_key)
-
 
 @csrf_exempt
 def watch(request):
