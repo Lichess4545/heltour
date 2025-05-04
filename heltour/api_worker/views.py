@@ -21,7 +21,7 @@ def _get_lichess_api_token():
         return None
 
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
-                         content_type, retry_count=0):
+                         content_type=None, retry_count=0):
     url = settings.LICHESS_DOMAIN  + path
     token = _get_lichess_api_token()
 
