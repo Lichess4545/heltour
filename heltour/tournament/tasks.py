@@ -614,7 +614,7 @@ def create_team_channel(team_ids):
             logger.exception('Could not invite %s to channel' % ",".join(user_ids))
             time.sleep(1)
         try:
-            slackapi.invite_to_group(group.id, settings.CHESSTER_USER_ID)
+            slackapi.invite_to_group(group.id, [settings.CHESSTER_USER_ID])
         except slackapi.SlackError:
              logger.exception('Could not invite chesster to channel')
              time.sleep(1)
