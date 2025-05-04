@@ -1644,7 +1644,6 @@ class PlayerPairing(_BaseModel):
             result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
 
-
     
     def delete(self, *args, **kwargs):
         team_pairing = None
