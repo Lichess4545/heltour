@@ -16,7 +16,7 @@ Including another URLconf
 
 from django.conf import settings
 from django.conf.urls.static import static
-from . import views, api, auth
+from heltour.tournament import views, api auth
 from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import include, path
 from django.views.decorators.cache import cache_control
@@ -101,6 +101,10 @@ season_urlpatterns = [
         name="delete_nomination",
     ),
     path("schedule/edit/", views.ScheduleView.as_view(), name="edit_schedule"),
+    path(
+        "confirm_scheduled_time", views.ConfirmScheduledTimeView.as_view(),
+        name="confirm_scheduled_time"
+    ),
     path(
         "availability/edit/", views.AvailabilityView.as_view(), name="edit_availability"
     ),
