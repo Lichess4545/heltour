@@ -203,7 +203,7 @@ class RegistrationForm(forms.ModelForm):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
         registration.lichess_username = str(self.username)
-        if any(x in self.changed_data for x in ['alternate_preference', 'section_preference', 'weeks_unavailable']):
+        if set(self.changed_data) & {'alternate_preference', 'section_preference', 'weeks_unavailable'}:
             registration.status = 'pending'
         if commit:
             registration.save()
