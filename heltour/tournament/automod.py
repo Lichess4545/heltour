@@ -229,7 +229,7 @@ def claim_win_noshow_approved(instance, **kwargs):
 
     with reversion.create_revision():
         reversion.set_comment('Auto forfeit for no-show')
-        p.game_link = None # remove game link if there was one
+        p.game_link = '' # remove game link if there was one
         if p.white == instance.requester:
             p.result = '1X-0F'
         if p.black == instance.requester:
