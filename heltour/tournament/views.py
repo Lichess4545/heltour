@@ -2271,7 +2271,7 @@ def _tv_json(league, board=None, team=None):
                                       league is None and game_league.is_active or league == game_league) and board is None and team is None
             }
 
-    current_games = PlayerPairing.objects.filter(result='', tv_state='default').exclude(
+    current_games = PlayerPairing.objects.filter(result='').exclude(tv_state='hide').exclude(
         game_link='').order_by('scheduled_time') \
         .select_related('teamplayerpairing__team_pairing__round__season__league',
                         'teamplayerpairing__team_pairing__black_team',
