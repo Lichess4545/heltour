@@ -243,14 +243,15 @@ def update_tv_state():
                                                          number=5, opponent=game.black.lichess_username, priority=1,
                                                          timeout=300):
                 try:
-                    if meta['players']['white']['user'][
-                        'id'].lower() == game.white.lichess_username.lower() and \
+                    if (meta['players']['white']['user'][
+                        'id'].lower() == game.white.lichess_username.lower() and
                         meta['players']['black']['user'][
-                            'id'].lower() == game.black.lichess_username.lower() and \
-                        meta['clock']['initial'] == league.time_control_initial() and \
-                        meta['clock']['increment'] == league.time_control_increment() and \
-                        meta['perf'] == league.rating_type and \
-                        meta['rated'] == True:
+                            'id'].lower() == game.black.lichess_username.lower() and
+                        meta['clock']['initial'] == league.time_control_initial() and
+                        meta['clock']['increment'] == league.time_control_increment() and
+                        meta['perf'] == league.rating_type and
+                        meta['rated'] == True and
+                        meta['status'] != 'aborted'):
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
                             game.tv_state = 'has_moves'
@@ -271,6 +272,8 @@ def update_tv_state():
                     game.tv_state = 'has_moves'
                 if 'status' in meta and meta['status'] == 'draw':
                     game.result = '1/2-1/2'
+                if meta.get('status') == 'aborted':
+                    game.game_link = ''
                 elif 'winner' in meta and meta[
                     'status'] != 'timeout':  # timeout = claim victory (which isn't allowed)
                     if meta['winner'] == 'white':
