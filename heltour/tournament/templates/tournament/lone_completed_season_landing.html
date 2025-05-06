@@ -103,7 +103,7 @@
                                 <tr>
                                     <th class="sort asc"></th>
                                     <th class="sort">Name</th>
-                                    <th class="text-center sort">Rtng</th>
+																		{% if not zen_mode %}<th class="text-center sort">Rtng</th>{% endif %}
                                     {% for round_number in round_numbers %}
                                         <th class="text-left">Rd {{ round_number }}</th>
                                     {% endfor %}
@@ -125,7 +125,7 @@
                                                     {{ player.lichess_username }}
                                                 </a>
                                             </td>
-                                            <td class="text-center">{% player_rating player_score.season_player %}</td>
+																						{% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
                                             {% for result_code, opponent_num, _, _ in round_scores %}
                                                 <td>{{ result_code|default_if_none:'' }}{% if opponent_num %}
                                                     {{ opponent_num }}{% else %}---{% endif %}</td>
