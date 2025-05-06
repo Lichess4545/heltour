@@ -1652,8 +1652,8 @@ class PlayerPairing(_BaseModel):
                 old_black_setting.save()
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
+   
 
-    
     def delete(self, *args, **kwargs):
         team_pairing = None
         round_ = None
