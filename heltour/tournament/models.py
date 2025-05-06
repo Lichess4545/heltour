@@ -1653,8 +1653,6 @@ class PlayerPairing(_BaseModel):
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
 
-
-
     
     def delete(self, *args, **kwargs):
         team_pairing = None
