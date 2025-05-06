@@ -1600,31 +1600,8 @@ class PlayerPairing(_BaseModel):
         if (white_changed and self.initial_white_id is not None) or (black_changed and self.initial_black_id is not None):
             self.date_player_changed = timezone.now()
 
-        # Update scheduled notifications based on the scheduled time
+        # We also want the players to confirm (again) if the scheduled time changes.
         if scheduled_time_changed:
-            league = self.get_round().season.league
-            # Calling the save method triggers the logic to recreate notifications
-            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
-            white_setting.save()
-            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id,
-                                                                     type='before_game_time',
-                                                                     league=league)
-            black_setting.save()
-            if white_changed and self.initial_white_id:
-                old_white_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_white_id, type='before_game_time', league=league)
-                old_white_setting.save()
-            if black_changed and self.initial_black_id:
-                old_black_setting = PlayerNotificationSetting.get_or_default(
-                    player_id=self.initial_black_id, type='before_game_time', league=league)
-                old_black_setting.save()
-            
-            self.update_available_upon_schedule(self.white_id)
-            self.update_available_upon_schedule(self.black_id)
-
-            # We also want the players to confirm (again) if the scheduled time changes.
             self.white_confirmed = False
             self.black_confirmed = False
 
@@ -1653,6 +1630,30 @@ class PlayerPairing(_BaseModel):
         if result_changed and (
             result_is_forfeit(self.result) or result_is_forfeit(self.initial_result)):
             signals.pairing_forfeit_changed.send(sender=self.__class__, instance=self)
+        # Update scheduled notifications based on the scheduled time
+        if scheduled_time_changed:
+            league = self.get_round().season.league
+            # Calling the save method triggers the logic to recreate notifications
+            white_setting = PlayerNotificationSetting.get_or_default(player_id=self.white_id,
+                                                                     type='before_game_time',
+                                                                     league=league)
+            white_setting.save()
+            black_setting = PlayerNotificationSetting.get_or_default(player_id=self.black_id,
+                                                                     type='before_game_time',
+                                                                     league=league)
+            black_setting.save()
+            if white_changed and self.initial_white_id:
+                old_white_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.initial_white_id, type='before_game_time', league=league)
+                old_white_setting.save()
+            if black_changed and self.initial_black_id:
+                old_black_setting = PlayerNotificationSetting.get_or_default(
+                    player_id=self.initial_black_id, type='before_game_time', league=league)
+                old_black_setting.save()
+            self.update_available_upon_schedule(self.white_id)
+            self.update_available_upon_schedule(self.black_id)
+
+
 
     
     def delete(self, *args, **kwargs):
