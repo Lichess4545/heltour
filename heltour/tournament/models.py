@@ -890,10 +890,11 @@ class Player(_BaseModel):
             date_first_agreed_to_tos=now
         )
 
-
     def get_access_token(self):
         return self.oauth_token.access_token
 
+    def token_valid(self):
+        return self.oauth_token.access_token not None and not self.oauth_token.is_expired()
 
     def __str__(self):
         if self.rating is None:
@@ -1511,6 +1512,9 @@ class PlayerPairing(_BaseModel):
 
     def get_black_access_token(self):
         return self.black.get_access_token()
+
+    def tokens_valid(self):
+        return self.white.token_valid() and self.black.token_valid()
 
     def black_display(self):
         if not self.black:
