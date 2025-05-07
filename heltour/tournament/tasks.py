@@ -320,6 +320,19 @@ def update_slack_users():
             p.save()
 
 
+def _expire_bad_tokens(*, league_games, bad_token):
+    # set expiration of rejected token to yesterday, so we know to not use it anymore.
+    for game in league_games:
+        if game.get_white_access_token()==bad_token:
+            game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
+            game.white.oauth_token.save()
+            return None # only one oauth_token can be the bad token, so we do not need to proceed the function
+        if game.get_black_access_token==bad_token:
+            game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
+            game.black.oauth_token.save()
+            return None
+
+
 def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
     try:
         result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
@@ -332,19 +345,16 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
            result = json.loads(e)
            new_tokens = None
            for bad_token in result["tokens"]:
-               # set expiration of rejected token to yesterday, so we know to not use it anymore.
-               for game in league_games:
-                   if game.get_white_access_token()==bad_token:
-                       game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                       game.white.oauth_token.save()
-                       break # only one oauth_token can be the bad token, so we do not need to proceed the loop
-                   if game.get_black_access_token==bad_token:
-                       game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                       game.black.oauth_token.save()
-                       break
+               _expire_bad_tokens(league_games=league_games, bad_token=bad_token)
                # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
-
-               new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
+               # the token string is structured as such: white_token_game1:black_token_game1,white_token_game2:black_token_game2 and so on.
+               optional_white_token = "([A-z0-9_]*:)?"
+               optional_black_token = "(:[A-z0-9_]*)?"
+               # either the pairing with the bad token is the first in the string, or there is a comma in front of it
+               start_or_comma = "(^|,)"
+               removed_token = re.sub(f'{start_or_comma}{optional_white_token}{bad_token}{optional_black_token}', '', tokens)
+               # if it was the last token, then we end up with a useless comma in the end, remove that
+               new_tokens = re.sub('^,', '', removed_token)
            if new_tokens:
                try:
                    # if there are still tokens to be paired, retry, and give up afterwards.
@@ -394,7 +404,7 @@ def start_games():
         if gameleague is not None and gameleague.get_leaguesetting().start_games:
             white_token = game.get_white_access_token()
             black_token = game.get_black_access_token()
-            if (white_token is not None and black_token is not None and not game.white.oauth_token.is_expired() and not game.black.oauth_token.is_expired()):
+            if game.tokens_valid():
                 if not gameleague.name in token_dict:
                     token_dict[gameleague.name] = []
                 if not gameleague.name in leagues:
