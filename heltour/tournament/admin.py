@@ -1185,7 +1185,6 @@ class SeasonAdmin(_BaseAdmin):
             if sp.player in old_alternates:
                 purple_players.add(sp.player)
 
-        expected_ratings = {sp.player: sp.expected_rating(league) for sp in season_player_objs}
         season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
 
         context = {
@@ -1208,14 +1207,11 @@ class SeasonAdmin(_BaseAdmin):
             'blue_players': blue_players,
             'green_players': green_players,
             'purple_players': purple_players,
-            'expected_ratings': expected_ratings,
         }
         if teams:
             context.update({
-                'team_rating_variance': team_rating_variance(teams, False),
-                'team_rating_range': team_rating_range(teams, False),
-                'team_expected_rating_variance': team_rating_variance(teams, True),
-                'team_expected_rating_range': team_rating_range(teams, True),
+                'team_rating_variance': team_rating_variance(teams),
+                'team_rating_range': team_rating_range(teams),
             })
         return render(request, 'tournament/admin/edit_rosters.html', context)
 
@@ -1919,8 +1915,7 @@ class RegistrationAdmin(_BaseAdmin):
     def get_list_display(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ['review', 'email', 'status', 'valid', 'season', 'section', 'classical_rating',
-             'date_created']
+            ['review', 'email', 'status', 'valid', 'season', 'section', 'rating', 'date_created']
         )
 
     def get_fields(self, request, obj=None):
