@@ -1576,7 +1576,6 @@ class PlayerPairing(_BaseModel):
             return self.loneplayerpairing.round.get_league()
         return None
 
-
     def get_player_presence(self, player):
         presence = self.playerpresence_set.filter(player=player).first()
         if not presence:
@@ -1670,7 +1669,7 @@ class PlayerPairing(_BaseModel):
                 old_black_setting.save()
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
-   
+    
 
     def delete(self, *args, **kwargs):
         team_pairing = None
