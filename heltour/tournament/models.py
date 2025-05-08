@@ -689,6 +689,12 @@ class Round(_BaseModel):
         pairings = self.pairings
         return (pairings.filter(white=player) | pairings.filter(black=player)).first()
 
+    def league(self):
+        return self.season.league
+
+    def is_team_league(self):
+        return self.season.league.is_team_league()
+
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
 
@@ -1562,6 +1568,14 @@ class PlayerPairing(_BaseModel):
         if hasattr(self, 'loneplayerpairing'):
             return self.loneplayerpairing.round
         return None
+
+    def get_league(self):
+        if hasattr(self, 'teamplayerpairing'):
+            return self.teamplayerpairing.team_pairing.round.get_league()
+        if hasattr(self, 'loneplayerpairing'):
+            return self.loneplayerpairing.round.get_league()
+        return None
+
 
     def get_player_presence(self, player):
         presence = self.playerpresence_set.filter(player=player).first()

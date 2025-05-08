@@ -397,10 +397,7 @@ def start_games():
     leagues = {}
     token_dict = {}
     for game in games_to_start:
-        if (hasattr(game, 'loneplayerpairing')):
-            gameleague = game.loneplayerpairing.round.season.league
-        if (hasattr(game, 'teamplayerpairing')):
-            gameleague = game.teamplayerpairing.team_pairing.round.season.league
+        gameleague = game.get_league()
         if gameleague is not None and gameleague.get_leaguesetting().start_games:
             white_token = game.get_white_access_token()
             black_token = game.get_black_access_token()
