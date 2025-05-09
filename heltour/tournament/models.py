@@ -900,7 +900,7 @@ class Player(_BaseModel):
         return self.oauth_token.access_token
 
     def token_valid(self):
-        return self.oauth_token.access_token not None and not self.oauth_token.is_expired()
+        return self.oauth_token.access_token is not None and not self.oauth_token.is_expired()
 
     def __str__(self):
         if self.rating is None:
