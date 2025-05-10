@@ -689,7 +689,7 @@ class Round(_BaseModel):
         pairings = self.pairings
         return (pairings.filter(white=player) | pairings.filter(black=player)).first()
 
-    def league(self):
+    def get_league(self):
         return self.season.league
 
     def is_team_league(self):
