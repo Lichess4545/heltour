@@ -363,8 +363,6 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertTrue(sno1.notification_time > timezone.now() + timedelta(minutes=55))
         self.assertTrue(sno1.notification_time < timezone.now() + timedelta(hours=1, minutes=5))
 
-        
-
 
 class PlayerPairingTestCase(TestCase):
     def setUp(self):
