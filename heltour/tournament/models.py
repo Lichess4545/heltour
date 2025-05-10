@@ -904,7 +904,10 @@ class Player(_BaseModel):
         )
 
     def get_access_token(self):
-        return self.oauth_token.access_token
+        if self.oauth_token is not None:
+            return self.oauth_token.access_token
+        else:
+            return None
 
     def token_valid(self):
         return self.oauth_token.is_valid()
