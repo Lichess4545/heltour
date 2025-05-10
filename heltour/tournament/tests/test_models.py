@@ -349,7 +349,7 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertEqual(1, pairing2.white_rank)
         self.assertEqual(2, pairing2.black_rank)
 
-    def test_scheduling(self):
+    def test_scheduling_creates_notification(self):
         season = get_season('lone')
         round1 = season.round_set.get(number=1)
         sps = season.seasonplayer_set.all()
