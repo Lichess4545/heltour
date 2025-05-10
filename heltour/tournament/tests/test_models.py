@@ -1,9 +1,9 @@
 from django.test import TestCase
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from heltour.tournament.models import (Alternate, AlternateAssignment, AlternateBucket, League, LonePlayerPairing,
-                                       Player, PlayerBye, PlayerPairing, Round, Season, SeasonPlayer, Team,
-                                       TeamPairing, TeamPlayerPairing, TeamScore)
+                                       Player, PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
+                                       SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, set_rating
 
 class SeasonTestCase(TestCase):
@@ -348,6 +348,22 @@ class LonePlayerPairingTestCase(TestCase):
         pairing2.refresh_ranks()
         self.assertEqual(1, pairing2.white_rank)
         self.assertEqual(2, pairing2.black_rank)
+
+    def test_scheduling(self):
+        season = get_season('lone')
+        round1 = season.round_set.get(number=1)
+        sps = season.seasonplayer_set.all()
+
+        pairing1 = LonePlayerPairing.objects.create(round=round1, white=sps[0].player,
+                                                    black=sps[1].player, pairing_order=1)
+
+        pairing1.scheduled_time = timezone.now() + timedelta(hours=2)
+        pairing1.save()
+        sno1 = ScheduledNotification.objects.get(pairing=pairing1, setting__player=sps[1].player)
+        self.assertTrue(sno1.notification_time > timezone.now() + timedelta(minutes=55))
+        self.assertTrue(sno1.notification_time < timezone.now() + timedelta(hours=1, minutes=5))
+
+        
 
 
 class PlayerPairingTestCase(TestCase):
