@@ -1,8 +1,10 @@
+from datetime import timedelta
 from django.test import TestCase
+from django.utils import timezone
 from django.contrib.auth.models import User
-from heltour.tournament.models import Season
+from heltour.tournament.models import Round, Season, Team, TeamPairing, TeamPlayerPairing
 from heltour.tournament.tests.testutils import (createCommonLeagueData, create_reg, get_season,
-                                                league_url, reverse, season_url)
+                                                league_url, reverse, season_tag, season_url)
 
 
 # For now we just have sanity checks for the templates used
@@ -103,13 +105,38 @@ class WallchartTestCase(TestCase):
 class PairingsTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+        Round.objects.filter(season__league__name="Team League", number=1).update(publish_pairings=True, start_date=timezone.now())
+        rd = Round.objects.get(season__league__name="Team League", number=1)
+        tp = TeamPairing.objects.create(white_team=team1, black_team=team2,
+                                        round=rd, pairing_order=0)
+        TeamPlayerPairing.objects.create(
+                team_pairing=tp, board_number=1,
+                white=team1.teammember_set.get(board_number=1).player,
+                black=team2.teammember_set.get(board_number=1).player,
+                white_confirmed = False,
+                black_confirmed = False
+                )
+        TeamPlayerPairing.objects.create(
+                team_pairing=tp, board_number=2,
+                white=team2.teammember_set.get(board_number=2).player,
+                black=team1.teammember_set.get(board_number=2).player,
+                white_confirmed = False,
+                black_confirmed = False
+                )
 
     def test_template(self):
         response = self.client.get(season_url('team', 'pairings'))
         self.assertTemplateUsed(response, 'tournament/team_pairings.html')
+        self.assertNotContains(response, 'icon-confirmed')
 
         response = self.client.get(season_url('lone', 'pairings'))
         self.assertTemplateUsed(response, 'tournament/lone_pairings.html')
+
+        pp1 = TeamPlayerPairing.objects.filter(board_number=1).update(white_confirmed=True, black_confirmed=True)
+        response = self.client.get(season_url('team', 'pairings'))
+        self.assertContains(response, 'icon-confirmed')
 
 
 class StatsTestCase(TestCase):
