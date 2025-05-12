@@ -1,3 +1,4 @@
+import logging
 from django.test import TestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -470,8 +471,10 @@ class AlternateTestCase(TestCase):
         self.assertEqual(alt.date_created, alt.priority_date())
 
         time1 = timezone.now()
+        logging.disable(logging.CRITICAL)
         sp.registration = create_reg(sp.season, 'testuser')
         sp.save()
+        logging.disable(logging.NOTSET)
         time2 = timezone.now()
 
         self.assertTrue(time1 <= alt.priority_date() <= time2)

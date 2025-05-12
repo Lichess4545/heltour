@@ -1,15 +1,12 @@
 from datetime import timedelta
-#import responses
+import logging
 from django.test import TestCase
 from django.utils import timezone
-# from django.urls import reverse
 from unittest.mock import patch
-# from heltour.tournament import oauth
 from heltour.tournament.models import OauthToken, Player, Round, Team, TeamPairing, TeamPlayerPairing
 from heltour.tournament.tasks import start_games
 from heltour.tournament.tests.testutils import createCommonLeagueData #, get_league, league_tag, league_url, season_url
 from heltour.tournament.lichessapi import ApiClientError
-# import re
 
 
 @patch('heltour.tournament.lichessapi.add_watch',
@@ -56,7 +53,9 @@ class TestAutostartGames(TestCase):
     @patch('heltour.tournament.lichessapi.bulk_start_games',
            return_value={"id": "RVAcwgg7", "games": [{"id": "NKop9IyD", "black": "player2", "white": "player4"}]})
     def test_start_game(self, *args):
+        logging.disable(logging.CRITICAL)
         start_games()
+        logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")    
@@ -67,7 +66,9 @@ class TestAutostartGames(TestCase):
                                                      {"id": "KT837Aut", "black": "player3", "white": "player1"}]})
     def test_start_games(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
+        logging.disable(logging.CRITICAL)
         start_games()
+        logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")    
@@ -78,7 +79,9 @@ class TestAutostartGames(TestCase):
                {"id": "RVAcwgg7", "games": [{"id": "KT837Aut", "black": "player3", "white": "player1"}]}])
     def test_start_invalid_token(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
+        logging.disable(logging.CRITICAL)
         start_games()
+        logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         # test that the tpp2 game link was not set

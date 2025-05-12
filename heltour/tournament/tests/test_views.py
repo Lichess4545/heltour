@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
@@ -62,7 +63,9 @@ class RostersTestCase(TestCase):
         response = self.client.get(season_url('team', 'rosters'))
         self.assertTemplateUsed(response, 'tournament/team_rosters.html')
 
+        logging.disable(logging.CRITICAL)
         response = self.client.get(season_url('lone', 'rosters'))
+        logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -86,7 +89,9 @@ class CrosstableTestCase(TestCase):
         response = self.client.get(season_url('team', 'crosstable'))
         self.assertTemplateUsed(response, 'tournament/team_crosstable.html')
 
+        logging.disable(logging.CRITICAL)
         response = self.client.get(season_url('lone', 'crosstable'))
+        logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -95,7 +100,9 @@ class WallchartTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
+        logging.disable(logging.CRITICAL)
         response = self.client.get(season_url('team', 'wallchart'))
+        logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
         response = self.client.get(season_url('lone', 'wallchart'))

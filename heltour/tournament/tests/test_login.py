@@ -1,5 +1,5 @@
-
 import datetime
+import logging
 import responses
 from django.test import TestCase
 from django.urls import reverse
@@ -154,9 +154,11 @@ class LoginWithCodeTestCase(TestCase):
 class LoginBadTestCase(TestCase):
 
     def test_bad_response(self, *args):
+        logging.disable(logging.CRITICAL)
         response = self.client.get(reverse('lichess_auth'), {'code': 'abc'}, follow=True)
         self.assertTemplateUsed(response, 'tournament/login_failed.html')
         response = self.client.get(reverse('lichess_auth'), {'state': 'abc'}, follow=True)
         self.assertTemplateUsed(response, 'tournament/login_failed.html')
         response = self.client.get(reverse('lichess_auth'), {'code': 'abc', 'state': 'abc'}, follow=True)
+        logging.disable(logging.NOTSET)
         self.assertTemplateUsed(response, 'tournament/login_failed.html')
