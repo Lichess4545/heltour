@@ -74,11 +74,16 @@ class TestAutostartGames(TestCase):
         self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")    
 
     @patch('heltour.tournament.lichessapi.bulk_start_games',
-           return_value=ApiClientError({"tokens": "blah1"}))
+           side_effect=[ApiClientError('{"tokens": ["blah2"]}'),
+               {"id": "RVAcwgg7", "games": [{"id": "KT837Aut", "black": "player3", "white": "player1"}]}])
     def test_start_invalid_token(self, *args):
-        TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = False)
+        TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
         start_games()
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
+        # test that the tpp2 game link was not set
         self.assertEqual(tpp2.game_link, "")
-        self.assertEqual(tpp1.game_link, "")
+        # test that the ttp1 game was set, that is a bad token pairing was removed and the remaining pairing still used
+        self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")
+        # test that the expiry of the bad token was set to a time in the past
+        self.assertTrue(tpp2.black.oauth_token.expires < timezone.now() - timedelta(minutes=30))
