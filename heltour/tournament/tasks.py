@@ -327,7 +327,7 @@ def _expire_bad_tokens(*, league_games, bad_token):
             game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
             game.white.oauth_token.save()
             return None # only one oauth_token can be the bad token, so we do not need to proceed the function
-        if game.get_black_access_token==bad_token:
+        if game.get_black_access_token()==bad_token:
             game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
             game.black.oauth_token.save()
             return None
