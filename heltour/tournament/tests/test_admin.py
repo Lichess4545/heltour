@@ -1,12 +1,7 @@
-from datetime import timedelta
 from django.test import TestCase
-from django.utils import timezone
 from django.urls import reverse
 from django.contrib import admin
 from django.contrib.auth.models import User
-from heltour.tournament.admin import ScheduledNotificationAdmin
-from heltour.tournament.models import LonePlayerPairing, ScheduledNotification
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_season
 
 
 class AdminSearchTestCase(TestCase):
