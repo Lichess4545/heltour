@@ -1,8 +1,9 @@
 from datetime import timedelta
-#from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
-from django.contrib.admin.sites import AdminSite
+from django.urls import reverse
+from django.contrib import admin
+from django.contrib.auth.models import User
 from heltour.tournament.admin import ScheduledNotificationAdmin
 from heltour.tournament.models import LonePlayerPairing, ScheduledNotification
 from heltour.tournament.tests.testutils import createCommonLeagueData, get_season
@@ -10,7 +11,6 @@ from heltour.tournament.tests.testutils import createCommonLeagueData, get_seaso
 
 class AdminSearchTestCase(TestCase):
     def setUp(self):
-        self.site = AdminSite()
         createCommonLeagueData()
         season = get_season('lone')
         round1 = season.round_set.get(number=1)
@@ -27,3 +27,18 @@ class AdminSearchTestCase(TestCase):
             kwargs = {query: 'Player'}
             self.assertEqual(model_admin_class.objects.filter(**kwargs).count(), 2)
 
+    def test_all_search_fields(self):
+        superuser = User(
+            username="superuser",
+            password="Password",
+            is_superuser=True,
+            is_staff=True,
+        )
+        superuser.full_clean()
+        superuser.save()
+        self.client.force_login(superuser)
+        for model_class, admin_class in admin.site._registry.items():
+            with self.subTest(model_class._meta.model_name):
+                path = reverse(f"admin:{model_class._meta.app_label}_{model_class._meta.model_name}_changelist")
+                response = self.client.get(path + "?q=whatever")
+                self.assertEqual(response.status_code, 200)
