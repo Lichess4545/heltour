@@ -2480,7 +2480,7 @@ class PlayerNotificationSettingAdmin(_BaseAdmin):
 class ScheduledNotificationAdmin(_BaseAdmin):
     list_display = ('setting', 'pairing', 'notification_time')
     list_filter = ('setting__type',)
-    search_fields = ('player__lichess_username',)
+    search_fields = ('pairing__white__lichess_username', 'pairing__black__lichess_username',)
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
 
