@@ -2311,7 +2311,7 @@ class SeasonPrizeAdmin(_BaseAdmin):
 @admin.register(SeasonPrizeWinner)
 class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
-    search_fields = ('season_prize__name', 'player__lichess_username')
+    search_fields = ('season_prize__season__name', 'player__lichess_username')
     raw_id_fields = ('season_prize', 'player')
     autocomplete_fields = ('player',)
     league_id_field = 'season_prize__season__league_id'
