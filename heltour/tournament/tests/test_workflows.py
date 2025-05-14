@@ -1,4 +1,3 @@
-import json
 import logging
 from django.test import TestCase
 from heltour.tournament.models import Player
@@ -9,17 +8,9 @@ from heltour.tournament.tests.testutils import createCommonLeagueData, create_re
 class TestLJPCase(TestCase):
     def setUp(self):
         createCommonLeagueData(round_count=7)
-        players = Player.objects.all()
-        rating = 1000
-        for player in players:
-            set_rating(player, rating)
-            rating += 100
-        set_rating(players[0], None)
 
-    def test_ljp(self, *args):
-        new_player = Player.objects.create(lichess_username="newplayer")
-        new_player.profile = json.loads('{"perfs": {"bullet": {"games": 50, "rating": 1650, "rd": 45, "prog": 10}}}')
-        new_player.save()
+    def test_ljp_none_rating(self, *args):
+        new_player = Player.objects.create(lichess_username="newplayer", profile={"perfs": {"bullet": {"games": 50, "rating": 1650, "rd": 45, "prog": 10}}})
         season = get_season("lone")
         logging.disable(logging.CRITICAL)
         reg = create_reg(season, "newplayer")
