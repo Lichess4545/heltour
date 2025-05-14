@@ -845,7 +845,7 @@ class Player(_BaseModel):
                 # self.profile is only None if the player profile has never been downloaded
                 # from lichess or the account had already been closed at that first download.
                 return 0
-            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('rating')
+            return self.profile.get('perfs', {}).get(league.rating_type, {}).get('rating') or 0
         return self.rating
 
     def games_played_for(self, league):
