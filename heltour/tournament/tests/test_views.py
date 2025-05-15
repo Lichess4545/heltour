@@ -3,9 +3,11 @@ from datetime import timedelta
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth.models import User
-from heltour.tournament.models import Round, Season, Team, TeamPairing, TeamPlayerPairing
-from heltour.tournament.tests.testutils import (createCommonLeagueData, create_reg, get_season,
-                                                league_url, reverse, season_tag, season_url)
+from unittest.mock import patch
+from heltour.tournament.models import (Player, Round, Season, Team, TeamPairing,
+        TeamPlayerPairing, LonePlayerPairing)
+from heltour.tournament.tests.testutils import (createCommonLeagueData,
+        create_reg, get_season, league_url, reverse, season_tag, season_url)
 
 
 # For now we just have sanity checks for the templates used
@@ -220,6 +222,30 @@ class RegisterTestCase(TestCase):
             self.assertNotContains(response, 'Register')
             self.assertNotContains(response, 'Change Registration')
 
+
+@patch('heltour.tournament.lichessapi.watch_games',
+       return_value=None)
 class TvTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
+        Round.objects.filter(season__league__name='Lone League', number=1).update(publish_pairings=True, start_date=timezone.now())
+        rd = Round.objects.get(season__league__name='Lone League', number=1)
+        player1 = Player.objects.get(lichess_username='Player1')
+        player2 = Player.objects.get(lichess_username='Player2')
+        LonePlayerPairing.objects.create(round=rd, white=player1, black=player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
+
+    def test_tv(self, *args):
+        response = self.client.get(season_url('lone', 'tv'))
+        self.assertContains(response, 'KT837Aut')
+        self.assertContains(response, 'Player1')
+        self.assertNotContains(response, 'Player3')
+        LonePlayerPairing.objects.filter(white__lichess_username='Player1', black__lichess_username='Player2', game_link='https://lichess.org/KT837Aut').update(tv_state='default')
+        response = self.client.get(season_url('lone', 'tv'))
+        self.assertContains(response, 'KT837Aut')
+        self.assertContains(response, 'Player1')
+        self.assertNotContains(response, 'Player3')
+        LonePlayerPairing.objects.filter(white__lichess_username='Player1', black__lichess_username='Player2', game_link='https://lichess.org/KT837Aut').update(tv_state='hide')
+        response = self.client.get(season_url('lone', 'tv'))
+        self.assertNotContains(response, 'KT837Aut')
+        self.assertNotContains(response, 'Player1')
+        self.assertNotContains(response, 'Player3')
