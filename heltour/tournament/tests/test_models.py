@@ -2,10 +2,12 @@ import logging
 from django.test import TestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
-from heltour.tournament.models import (Alternate, AlternateAssignment, AlternateBucket, League, LonePlayerPairing,
-                                       Player, PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
-                                       SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, set_rating
+from heltour.tournament.models import (Alternate, AlternateAssignment,
+        AlternateBucket, League, LonePlayerPairing, OauthToken, Player,
+        PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
+        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+from heltour.tournament.tests.testutils import (createCommonLeagueData,
+        create_reg, get_season, set_rating)
 
 class SeasonTestCase(TestCase):
     def setUp(self):
@@ -363,6 +365,18 @@ class LonePlayerPairingTestCase(TestCase):
         sno1 = ScheduledNotification.objects.get(pairing=pairing1, setting__player=sps[1].player)
         self.assertTrue(sno1.notification_time > timezone.now() + timedelta(minutes=55))
         self.assertTrue(sno1.notification_time < timezone.now() + timedelta(hours=1, minutes=5))
+
+    def test_loneplayerpairing_token_getters(self):
+        season = get_season('lone')
+        round1 = season.round_set.get(number=1)
+        o1 = OauthToken.objects.create(access_token="blah1", expires=timezone.now() + timedelta(minutes=10))
+        o2 = OauthToken.objects.create(access_token="blah2", expires=timezone.now() + timedelta(minutes=10))
+        Player.objects.filter(lichess_username="Player1").update(oauth_token=o1)
+        Player.objects.filter(lichess_username="Player2").update(oauth_token=o2)
+        pairing1 = LonePlayerPairing.objects.create(round=round1, white=Player.objects.get(lichess_username="Player1"),
+                                                    black=Player.objects.get(lichess_username="Player2"), pairing_order=1)
+        self.assertEqual(pairing1.get_white_access_token(), "blah1")
+        self.assertEqual(pairing1.get_black_access_token(), "blah2")
 
 
 class PlayerPairingTestCase(TestCase):
