@@ -7,7 +7,7 @@ from heltour.tournament.models import (Alternate, AlternateAssignment,
         Player, PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
         SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_season, set_rating)
+        create_reg, get_league, get_season, set_rating)
 
 
 class HelpersTestCase(TestCase):
@@ -19,6 +19,24 @@ class HelpersTestCase(TestCase):
         self.assertEqual(format_score(score=1.0, game_played=False), '1X')
         self.assertEqual(format_score(score=0.5, game_played=False), '\u00BDZ')
         self.assertEqual(format_score(score=0.0, game_played=False), '0F')
+
+
+class LeagueTestCase(TestCase):
+    def setUp(self):
+        League.objects.create(name='Lone League', tag='loneleague',
+                                    competitor_type='lone',
+                                    rating_type='classical')
+
+    def test_time_control(self):
+        league = get_league('lone')
+        self.assertEqual(league.time_control_initial(), None)
+        self.assertEqual(league.time_control_increment(), None)
+        self.assertEqual(league.time_control_total(), None)
+        League.objects.filter(name='Lone League').update(time_control='30+15')
+        league = get_league('lone')
+        self.assertEqual(league.time_control_initial(), 1800)
+        self.assertEqual(league.time_control_increment(), 15)
+        self.assertEqual(league.time_control_total(), 2700)
 
 
 class SeasonTestCase(TestCase):
