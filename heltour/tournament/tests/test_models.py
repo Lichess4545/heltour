@@ -3,9 +3,10 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
 from heltour.tournament.models import (Alternate, AlternateAssignment,
-        AlternateBucket, format_score, League, LonePlayerPairing, OauthToken,
-        Player, PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
-        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+        AlternateBucket, format_score, get_fide_dp, get_gameid_from_gamelink,
+        League, LonePlayerPairing, OauthToken, Player, PlayerBye, PlayerPairing,
+        Round, ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
+        TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, set_rating)
 
@@ -19,6 +20,15 @@ class HelpersTestCase(TestCase):
         self.assertEqual(format_score(score=1.0, game_played=False), '1X')
         self.assertEqual(format_score(score=0.5, game_played=False), '\u00BDZ')
         self.assertEqual(format_score(score=0.0, game_played=False), '0F')
+
+    def test_get_fide_dp(self):
+        self.assertEqual(get_fide_dp(0, 12), -800)
+        self.assertEqual(get_fide_dp(12, 12), 800)
+
+    def test_bad_gamelinks(self):
+        self.assertEqual(get_gameid_from_gamelink(None), None)
+        self.assertEqual(get_gameid_from_gamelink(''), None)
+        self.assertEqual(get_gameid_from_gamelink('lichess.org/ABC2'), None)
 
 
 class LeagueTestCase(TestCase):
