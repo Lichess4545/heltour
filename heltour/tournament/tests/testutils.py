@@ -1,5 +1,4 @@
-from datetime import timedelta
-from heltour.tournament.models import (League, LeagueSetting, LonePlayerScore, Player, Registration, Season, 
+from heltour.tournament.models import (League, LonePlayerScore, Player, Registration, Season, 
                                        SeasonPlayer, Team, TeamMember, TeamScore)
 from django.urls import reverse
 

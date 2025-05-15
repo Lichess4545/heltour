@@ -58,8 +58,8 @@ class TestAutostartGames(TestCase):
         logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
-        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")    
-        self.assertEqual(tpp1.game_link, "")    
+        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
+        self.assertEqual(tpp1.game_link, "")
 
     @patch('heltour.tournament.lichessapi.bulk_start_games',
            return_value={"id": "RVAcwgg7", "games": [{"id": "NKop9IyD", "black": "player2", "white": "player4"},
@@ -71,8 +71,8 @@ class TestAutostartGames(TestCase):
         logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
-        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")    
-        self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")    
+        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
+        self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")
 
     @patch('heltour.tournament.lichessapi.bulk_start_games',
            side_effect=[ApiClientError('{"tokens": ["blah2"]}'),
