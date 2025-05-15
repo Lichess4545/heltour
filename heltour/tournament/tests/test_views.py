@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth.models import User
 from heltour.tournament.models import Round, Season, Team, TeamPairing, TeamPlayerPairing
@@ -157,7 +157,7 @@ class StatsTestCase(TestCase):
         response = self.client.get(season_url('lone', 'stats'))
         self.assertTemplateUsed(response, 'tournament/lone_stats.html')
 
-
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class RegisterTestCase(TestCase):
     def setUp(self):
         createCommonLeagueData()
@@ -219,3 +219,7 @@ class RegisterTestCase(TestCase):
             response = self.client.get(league_url(league_type, 'league_home'))
             self.assertNotContains(response, 'Register')
             self.assertNotContains(response, 'Change Registration')
+
+class TvTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
