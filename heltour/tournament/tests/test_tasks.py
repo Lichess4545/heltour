@@ -6,7 +6,7 @@ from unittest.mock import patch
 from heltour.tournament.models import League, OauthToken, Player, Round, Team, TeamPairing, TeamPlayerPairing
 from heltour.tournament.tasks import (active_player_usernames, not_updated_recently_usernames, start_games,
                                       update_player_ratings)
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_league
+from heltour.tournament.tests.testutils import createCommonLeagueData, get_league, get_player, get_round
 from heltour.tournament.lichessapi import ApiClientError
 
 
@@ -37,10 +37,11 @@ class TestUpdateRatings(TestCase):
         logging.disable(logging.NOTSET)
         tl = get_league('team')
         l960 = get_league('960')
-        self.assertEqual(Player.objects.get(lichess_username='Player1').rating_for(league=tl), 2200)
-        self.assertEqual(Player.objects.get(lichess_username='Player2').rating_for(league=tl), 1800)
-        self.assertEqual(Player.objects.get(lichess_username='Player2').rating_for(league=l960), 1000)
-        self.assertEqual(Player.objects.get(lichess_username='Player3').rating_for(league=tl), 0)
+        p2 = get_player('Player2')
+        self.assertEqual(get_player('Player1').rating_for(league=tl), 2200)
+        self.assertEqual(p2.rating_for(league=tl), 1800)
+        self.assertEqual(p2.rating_for(league=l960), 1000)
+        self.assertEqual(get_player('Player3').rating_for(league=tl), 0)
 
 
 @patch('heltour.tournament.lichessapi.add_watch',
@@ -50,8 +51,8 @@ class TestAutostartGames(TestCase):
         createCommonLeagueData()
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
-        Round.objects.filter(season__league__name="Team League", number=1).update(publish_pairings=True, start_date=timezone.now())
-        rd = Round.objects.get(season__league__name="Team League", number=1)
+        Round.objects.filter(season__league__name='Team League', number=1).update(publish_pairings=True, start_date=timezone.now())
+        rd = get_round(league_type='team', round_number=1)
         rd.season.league.get_leaguesetting().start_games = True
         rd.season.league.get_leaguesetting().save()
         tp = TeamPairing.objects.create(white_team=team1, black_team=team2,
