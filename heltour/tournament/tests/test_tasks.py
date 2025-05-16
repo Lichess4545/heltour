@@ -1,12 +1,46 @@
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 from unittest.mock import patch
-from heltour.tournament.models import OauthToken, Player, Round, Team, TeamPairing, TeamPlayerPairing
-from heltour.tournament.tasks import start_games
-from heltour.tournament.tests.testutils import createCommonLeagueData #, get_league, league_tag, league_url, season_url
+from heltour.tournament.models import League, OauthToken, Player, Round, Team, TeamPairing, TeamPlayerPairing
+from heltour.tournament.tasks import (active_player_usernames, not_updated_recently_usernames, start_games,
+                                      update_player_ratings)
+from heltour.tournament.tests.testutils import createCommonLeagueData, get_league
 from heltour.tournament.lichessapi import ApiClientError
+
+
+class TestHelpers(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_username_helpers(self, *args):
+        playernames = ['Player' + str(i) for i in range(1, 9)]
+        self.assertEqual(active_player_usernames(), playernames) # names are Player1, ..., Player8
+        self.assertEqual(not_updated_recently_usernames(playernames), [])
+        # could mock.patch timezone.now to change what "recently" means for more tests
+
+
+class TestUpdateRatings(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+        League.objects.create(name='c960 League', tag='960league',
+                              competitor_type='lone', rating_type='chess960')
+
+    @patch('heltour.tournament.lichessapi.enumerate_user_metas',
+           return_value=[{"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200}}},
+                         {"id":"Player2", "perfs":{"chess960":{"games":12, "rating":1000},
+                                                   "classical":{"games":10, "rating":1800}}}])
+    def test_update_ratings(self, *args):
+        logging.disable(logging.CRITICAL)
+        update_player_ratings()
+        logging.disable(logging.NOTSET)
+        tl = get_league('team')
+        l960 = get_league('960')
+        self.assertEqual(Player.objects.get(lichess_username='Player1').rating_for(league=tl), 2200)
+        self.assertEqual(Player.objects.get(lichess_username='Player2').rating_for(league=tl), 1800)
+        self.assertEqual(Player.objects.get(lichess_username='Player2').rating_for(league=l960), 1000)
+        self.assertEqual(Player.objects.get(lichess_username='Player3').rating_for(league=tl), 0)
 
 
 @patch('heltour.tournament.lichessapi.add_watch',
