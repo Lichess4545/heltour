@@ -3,15 +3,32 @@ from datetime import timedelta
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.http.response import Http404
 from unittest.mock import patch
-from heltour.tournament.models import (Player, Round, Season, Team, TeamPairing,
-        TeamPlayerPairing, LonePlayerPairing)
+from heltour.tournament.models import (League, Player, Round, Season, Team,
+        TeamPairing, TeamPlayerPairing, LonePlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_season, league_url, reverse, season_tag, season_url)
+        create_reg, get_league, get_season, league_url, reverse, season_tag,
+        season_url)
+from heltour.tournament.views import _get_league, _get_season
 
 
-# For now we just have sanity checks for the templates used
-# This could be enhanced by verifying the context data
+class HelperWoLeagueTestCase(TestCase):
+    def test_get_league(self):
+        self.assertRaises(Http404, lambda: _get_league(None, False))
+        self.assertEqual(_get_league(None, True), None)
+        League.objects.create(name='c960 League', tag='960league',
+                              competitor_type='lone', rating_type='chess960')
+        self.assertRaises(Http404,
+                          lambda: _get_season(season_tag=None, league_tag='960league',
+                                              allow_none=False))
+
+class HelperTestCase(TestCase):
+    def setUp(self):
+        createCommonLeagueData()
+
+    def test_get_league(self):
+        self.assertEqual(_get_league(None), get_league('team'))
 
 
 class HomeTestCase(TestCase):
