@@ -559,12 +559,9 @@ def validate_registration(reg_id):
                                                  defaults={
                                                      'lichess_username': reg.lichess_username})
         player.update_profile(user_meta)
-        reg.classical_rating = player.rating_for(reg.season.league)
-        reg.peak_classical_rating = lichessapi.get_peak_rating(reg.lichess_username,
-                                                               reg.season.league.rating_type)
         reg.has_played_20_games = not player.provisional_for(reg.season.league)
         if player.account_status != 'normal':
-            fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.acccount_status}" mark.'
+            fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.account_status}" mark.'
         if reg.already_in_slack_group and not player.slack_user_id:
             regquery.update(already_in_slack_group = False)
     except lichessapi.ApiWorkerError:
