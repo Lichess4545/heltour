@@ -2311,7 +2311,7 @@ class SeasonPrizeAdmin(_BaseAdmin):
 @admin.register(SeasonPrizeWinner)
 class SeasonPrizeWinnerAdmin(_BaseAdmin):
     list_display = ('season_prize', 'player',)
-    search_fields = ('season_prize__name', 'player__lichess_username')
+    search_fields = ('season_prize__season__name', 'player__lichess_username')
     raw_id_fields = ('season_prize', 'player')
     autocomplete_fields = ('player',)
     league_id_field = 'season_prize__season__league_id'
@@ -2480,7 +2480,7 @@ class PlayerNotificationSettingAdmin(_BaseAdmin):
 class ScheduledNotificationAdmin(_BaseAdmin):
     list_display = ('setting', 'pairing', 'notification_time')
     list_filter = ('setting__type',)
-    search_fields = ('player__lichess_username',)
+    search_fields = ('pairing__white__lichess_username', 'pairing__black__lichess_username',)
     raw_id_fields = ('setting', 'pairing')
     league_id_field = 'setting__league_id'
 
