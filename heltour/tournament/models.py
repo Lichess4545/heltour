@@ -2554,6 +2554,7 @@ LEAGUE_CHANNEL_TYPES = (
     ('mod', 'Mods'),
     ('captains', 'Captains'),
     ('scheduling', 'Scheduling'),
+    ('games', 'Games'),
 )
 
 
