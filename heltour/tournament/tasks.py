@@ -323,14 +323,10 @@ def update_slack_users():
 def _expire_bad_tokens(*, league_games, bad_token):
     # set expiration of rejected token to yesterday, so we know to not use it anymore.
     for game in league_games:
-        if game.get_white_access_token()==bad_token:
-            game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
-            game.white.oauth_token.save()
-            return None # only one oauth_token can be the bad token, so we do not need to proceed the function
-        if game.get_black_access_token()==bad_token:
-            game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
-            game.black.oauth_token.save()
-            return None
+        for token in [game.get_white_oauth_token(), game.get_black_oauth_token()]:
+            if token.access_token==bad_token:
+                token.expire()
+                return None # only one oauth_token can be the bad token, so we do not need to proceed the function
 
 
 def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
