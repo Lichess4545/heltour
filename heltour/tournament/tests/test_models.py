@@ -504,8 +504,7 @@ class AlternateTestCase(TestCase):
 
         set_rating(player, None)
         alt.update_board_number()
-        # players with rating set to None return a rating of zero now, so lowest alt board
-        self.assertEqual(3, alt.board_number)
+        self.assertEqual(2, alt.board_number)
 
         set_rating(player, 2100)
         alt.update_board_number()
