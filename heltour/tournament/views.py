@@ -69,18 +69,24 @@ class BaseView(View):
 
     def read_user_data(self):
         self.dark_mode = False
+        self.zen_mode = False
+
         if self.request.user.is_authenticated:
             player_setting = PlayerSetting.objects \
                 .filter(player__lichess_username__iexact=self.request.user.username).first()
             if player_setting:
                 self.dark_mode = player_setting.dark_mode
+                self.zen_mode = player_setting.zen_mode
         else:
             self.dark_mode = self.request.session.get('dark_mode', False)
+            self.zen_mode = self.request.session.get('zen_mode', False)
         self.extra_context['dark_mode'] = self.dark_mode
+        self.extra_context['zen_mode'] = self.zen_mode
         self.user_data = {
             'username': self.request.user.username,
             'is_staff': self.request.user.is_staff,
-            'dark_mode': self.dark_mode
+            'dark_mode': self.dark_mode,
+            'zen_mode': self.zen_mode,
         }
 
 
@@ -2208,6 +2214,28 @@ class ToggleDarkModeView(BaseView):
         else:
             original_value = self.request.session.get('dark_mode', False)
         self.request.session['dark_mode'] = not original_value
+
+        redirect_url = self.request.GET.get('redirect_url')
+        try:
+            if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
+                return redirect(redirect_url)
+        except:
+            pass
+        return redirect('home')
+
+
+class ToggleZenModeView(BaseView):
+    def view(self):
+        original_value = False
+        if self.request.user.is_authenticated:
+            player = Player.get_or_create(self.request.user.username)
+            player_setting, _ = PlayerSetting.objects.get_or_create(player=player)
+            original_value = player_setting.zen_mode
+            player_setting.zen_mode = not original_value
+            player_setting.save()
+        else:
+            original_value = self.request.session.get('zen_mode', False)
+        self.request.session['zen_mode'] = not original_value
 
         redirect_url = self.request.GET.get('redirect_url')
         try:
