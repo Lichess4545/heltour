@@ -2,11 +2,12 @@ import logging
 from django.test import TestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
-from heltour.tournament.models import (Alternate, AlternateAssignment,
-        AlternateBucket, format_score, get_fide_dp, get_gameid_from_gamelink,
-        League, LonePlayerPairing, normalize_gamelink, OauthToken, Player,
-        PlayerBye, PlayerPairing, Round, ScheduledNotification, Season,
-        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+from heltour.tournament.models import (add_system_comment, Alternate,
+        AlternateAssignment, AlternateBucket, format_score, get_fide_dp,
+        get_gameid_from_gamelink, League, LonePlayerPairing, normalize_gamelink,
+        OauthToken, Player, PlayerBye, PlayerPairing, Round,
+        ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
+        TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, set_rating)
 
@@ -451,6 +452,21 @@ class PlayerPairingTestCase(TestCase):
         pp.result = '0-1'
         self.assertEqual(0.0, pp.white_score())
         self.assertEqual(1.0, pp.black_score())
+
+    def test_comments(self):
+        team1 = Team.objects.get(number=1)
+        try:
+            add_system_comment(obj=team1, text='comment by system')
+        except:
+            self.fail("add_system_comment failed for system comment on team")
+        try:
+            add_system_comment(obj=team1, text='comment by glbert', user_name='glbert')
+        except:
+            self.fail("add_system_comment failed for comment by glbert on team")
+        try:
+            add_system_comment(obj=team1.teammember_set.all()[0].player, text='Player got a moderator warning', user_name='glbert')
+        except:
+            self.fail("add_system_comment failed for comment by glbert on player")
 
 
 class RegistrationTestCase(TestCase):
