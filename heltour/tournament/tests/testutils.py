@@ -52,9 +52,8 @@ def get_round(league_type, round_number):
     return Round.objects.get(season=get_season(league_type), number=round_number)
 
 
-def createCommonLeagueData():
+def createCommonLeagueData(round_count=3):
     team_count = 4
-    round_count = 3
     board_count = 2
 
     league = League.objects.create(name='Team League', tag=league_tag('team'),
