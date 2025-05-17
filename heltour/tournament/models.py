@@ -689,6 +689,12 @@ class Round(_BaseModel):
         pairings = self.pairings
         return (pairings.filter(white=player) | pairings.filter(black=player)).first()
 
+    def get_league(self):
+        return self.season.league
+
+    def is_team_league(self):
+        return self.season.league.is_team_league()
+
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
 
@@ -740,6 +746,13 @@ class OauthToken(_BaseModel):
 
     def is_expired(self):
         return self.expires < timezone.now()
+
+    def expire(self):
+        self.expires = timezone.now() + timedelta(days=-1)
+        self.save()
+
+    def is_valid(self):
+        return self.access_token is not None and not self.is_expired()
 
     def __str__(self):
         return self.account_username
@@ -890,10 +903,11 @@ class Player(_BaseModel):
             date_first_agreed_to_tos=now
         )
 
-
     def get_access_token(self):
         return self.oauth_token.access_token
 
+    def token_valid(self):
+        return self.oauth_token.is_valid()
 
     def __str__(self):
         if self.rating is None:
@@ -1512,6 +1526,15 @@ class PlayerPairing(_BaseModel):
     def get_black_access_token(self):
         return self.black.get_access_token()
 
+    def get_white_oauth_token(self):
+        return self.white.oauth_token
+
+    def get_black_oauth_token(self):
+        return self.black.oauth_token
+
+    def tokens_valid(self):
+        return self.white.token_valid() and self.black.token_valid()
+
     def black_display(self):
         if not self.black:
             return '?'
@@ -1557,6 +1580,13 @@ class PlayerPairing(_BaseModel):
             return self.teamplayerpairing.team_pairing.round
         if hasattr(self, 'loneplayerpairing'):
             return self.loneplayerpairing.round
+        return None
+
+    def get_league(self):
+        if hasattr(self, 'teamplayerpairing'):
+            return self.teamplayerpairing.team_pairing.round.get_league()
+        if hasattr(self, 'loneplayerpairing'):
+            return self.loneplayerpairing.round.get_league()
         return None
 
     def get_player_presence(self, player):
@@ -1652,8 +1682,8 @@ class PlayerPairing(_BaseModel):
                 old_black_setting.save()
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
-
     
+
     def delete(self, *args, **kwargs):
         team_pairing = None
         round_ = None

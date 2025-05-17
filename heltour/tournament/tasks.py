@@ -243,14 +243,15 @@ def update_tv_state():
                                                          number=5, opponent=game.black.lichess_username, priority=1,
                                                          timeout=300):
                 try:
-                    if meta['players']['white']['user'][
-                        'id'].lower() == game.white.lichess_username.lower() and \
+                    if (meta['players']['white']['user'][
+                        'id'].lower() == game.white.lichess_username.lower() and
                         meta['players']['black']['user'][
-                            'id'].lower() == game.black.lichess_username.lower() and \
-                        meta['clock']['initial'] == league.time_control_initial() and \
-                        meta['clock']['increment'] == league.time_control_increment() and \
-                        meta['perf'] == league.rating_type and \
-                        meta['rated'] == True:
+                            'id'].lower() == game.black.lichess_username.lower() and
+                        meta['clock']['initial'] == league.time_control_initial() and
+                        meta['clock']['increment'] == league.time_control_increment() and
+                        meta['perf'] == league.rating_type and
+                        meta['rated'] == True and
+                        meta['status'] != 'aborted'):
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
                             game.tv_state = 'has_moves'
@@ -271,6 +272,8 @@ def update_tv_state():
                     game.tv_state = 'has_moves'
                 if 'status' in meta and meta['status'] == 'draw':
                     game.result = '1/2-1/2'
+                if meta.get('status') == 'aborted':
+                    game.game_link = ''
                 elif 'winner' in meta and meta[
                     'status'] != 'timeout':  # timeout = claim victory (which isn't allowed)
                     if meta['winner'] == 'white':
@@ -317,31 +320,37 @@ def update_slack_users():
             p.save()
 
 
+def _expire_bad_tokens(*, league_games, bad_token):
+    # set expiration of rejected token to yesterday, so we know to not use it anymore.
+    for game in league_games:
+        for token in [game.get_white_oauth_token(), game.get_black_oauth_token()]:
+            if token.access_token==bad_token:
+                token.expire()
+                return None # only one oauth_token can be the bad token, so we do not need to proceed the function
+
+
 def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
     try:
         result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
     except lichessapi.ApiClientError as err:
-        print(f"Received error from lichess api: {err}")
-        print("Attempting to recover")
+        logger.info(f"Received error from lichess api: {err}")
+        logger.info("Attempting to recover by removing rejected tokens.")
         # try to handle errors due to rjected tokens
         e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
         try:
            result = json.loads(e)
            new_tokens = None
            for bad_token in result["tokens"]:
-               # set expiration of rejected token to yesterday, so we know to not use it anymore.
-               for game in league_games:
-                   if game.get_white_access_token()==bad_token:
-                       game.white.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                       game.white.oauth_token.save()
-                       break # only one oauth_token can be the bad token, so we do not need to proceed the loop
-                   if game.get_black_access_token==bad_token:
-                       game.black.oauth_token.expires = timezone.now() + timedelta(days=-1)
-                       game.black.oauth_token.save()
-                       break
+               _expire_bad_tokens(league_games=league_games, bad_token=bad_token)
                # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
-
-               new_tokens = re.sub('^,', '', re.sub(f'(^|,)([A-z0-9_]*:)?{bad_token}(:[A-z0-9_]*)?', '', tokens))
+               # the token string is structured as such: white_token_game1:black_token_game1,white_token_game2:black_token_game2 and so on.
+               optional_white_token = "([A-z0-9_]*:)?"
+               optional_black_token = "(:[A-z0-9_]*)?"
+               # either the pairing with the bad token is the first in the string, or there is a comma in front of it
+               start_or_comma = "(^|,)"
+               removed_token = re.sub(f'{start_or_comma}{optional_white_token}{bad_token}{optional_black_token}', '', tokens)
+               # if it was the last token, then we end up with a useless comma in the end, remove that
+               new_tokens = re.sub('^,', '', removed_token)
            if new_tokens:
                try:
                    # if there are still tokens to be paired, retry, and give up afterwards.
@@ -384,14 +393,11 @@ def start_games():
     leagues = {}
     token_dict = {}
     for game in games_to_start:
-        if (hasattr(game, 'loneplayerpairing')):
-            gameleague = game.loneplayerpairing.round.season.league
-        if (hasattr(game, 'teamplayerpairing')):
-            gameleague = game.teamplayerpairing.team_pairing.round.season.league
+        gameleague = game.get_league()
         if gameleague is not None and gameleague.get_leaguesetting().start_games:
             white_token = game.get_white_access_token()
             black_token = game.get_black_access_token()
-            if (white_token is not None and black_token is not None and not game.white.oauth_token.is_expired() and not game.black.oauth_token.is_expired()):
+            if game.tokens_valid():
                 if not gameleague.name in token_dict:
                     token_dict[gameleague.name] = []
                 if not gameleague.name in leagues:
