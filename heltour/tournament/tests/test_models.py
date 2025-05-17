@@ -42,6 +42,7 @@ class LeagueTestCase(TestCase):
 
     def test_time_control(self):
         league = get_league('lone')
+        self.assertEqual(str(league), 'Lone League')
         self.assertEqual(league.time_control_initial(), None)
         self.assertEqual(league.time_control_increment(), None)
         self.assertEqual(league.time_control_total(), None)
