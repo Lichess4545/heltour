@@ -69,7 +69,7 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
         # Retry
         logger.warning('API queuing retry for %s' % path)
         worker.queue_work(priority, _do_lichess_api_call, redis_key, path, method, post_data,
-                          params, priority, max_retries, format, retry_count + 1)
+                          params, priority, max_retries, format, content_type, retry_count + 1)
 
     if r is not None and r.status_code == 429:
         # Too many requests
