@@ -1833,7 +1833,7 @@ class Registration(_BaseModel):
 
     @property
     def rating(self):
-        return self.player().rating
+        return self.player().rating_for(league=self.season.league)
 
     @classmethod
     def can_register(cls, user, season):
