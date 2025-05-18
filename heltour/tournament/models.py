@@ -1799,10 +1799,8 @@ class Registration(_BaseModel):
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
-
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
     email = models.EmailField(max_length=255)
-    
     has_played_20_games = models.BooleanField()
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
@@ -1833,6 +1831,7 @@ class Registration(_BaseModel):
     def player(self):
         return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
 
+    @property
     def rating(self):
         return self.player().rating
 

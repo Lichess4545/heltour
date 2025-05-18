@@ -45,21 +45,28 @@ class RegistrationForm(forms.ModelForm):
         self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
         time_control = league.time_control
+        # We do not want to ask about this anymore, it was decided that it is a useless question. Hide it for now.
         self.fields['can_commit'] = forms.TypedChoiceField(initial=True, widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Friends and avoid
         if league.competitor_type == 'team':
             if self.season.is_started():
+                # the friends and avoid fields are for team creation. once a season is started and a teams are
+                # created we do not need to ask people about this. hide those fields in that case.
                 self.fields['friends'] = forms.CharField(required=False, widget=forms.HiddenInput)
                 self.fields['avoid'] = forms.CharField(required=False, widget=forms.HiddenInput)
             else:
                 self.fields['friends'] = forms.CharField(required=False, label=_(
                     'Are there any friends you would like to be teammates with?'),
                                                          help_text=_(
-                                                             'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. All players must register. All players must join Slack. All players should also request each other.'))
+                                                             'Note: Please enter their exact Lichess usernames. '
+                                                             'Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. '
+                                                             'All players must register. All players must join Slack. '))
                 self.fields['avoid'] = forms.CharField(required=False, label=_(
                     'Are there any players you would NOT like to be teammates with?'),
                                                        help_text=_(
-                                                           'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Lou-E, glbert, M0r1'))
+                                                           'Note: Please enter their exact Lichess usernames. '
+                                                           'Usernames can be separated by commas, '
+                                                           'e.g.: Lou-E, glbert, M0r1'))
         else:
             del self.fields['friends']
             del self.fields['avoid']
@@ -107,8 +114,8 @@ class RegistrationForm(forms.ModelForm):
                                                                         label=_(
                                                                             'Are you interested in being an alternate or a full time player?'),
                                                                         help_text=_(
-                                                                            'Players are put into teams on a first come first served basis, based on registration date. \
-                                                                            You may be an alternate even if you request to be a full time player.'))
+                                                                            'Players are put into teams on a first come first served basis, based on registration date. '
+                                                                            'You may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 
