@@ -204,12 +204,12 @@ def do_alternate_search(season, round_, board_number, setting):
                                      args=[league_tag, season_tag, round_.number])
                 decline_url = reverse('by_league:by_season:alternate_decline',
                                       args=[league_tag, season_tag, round_.number])
-                logger.info(f('[ALT SEARCH] Trying to contact {alt_to_contact} for an open alternate spot.'))
+                logger.info(f'[ALT SEARCH] Trying to contact {alt_to_contact} for an open alternate spot.')
                 signals.alternate_needed.send(sender=do_alternate_search, alternate=alt_to_contact,
                                               response_time=setting.unresponsive_interval, \
                                               round_=round_, accept_url=accept_url,
                                               decline_url=decline_url)
-                logger.info(f('[ALT SEARCH] Successfully contacted {alt_to_contact} for an open alternate spot.'))
+                logger.info(f'[ALT SEARCH] Successfully contacted {alt_to_contact} for an open alternate spot.')
                 time.sleep(1)
                 current_date = timezone.now()
                 with reversion.create_revision():
