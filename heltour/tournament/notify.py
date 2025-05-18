@@ -47,7 +47,6 @@ def _lichess_message(league, username, subject, text):
             logger.error(f"[Error] Sending lichess messsage failed with reason: {str(e)}")
 
 
-
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
 def league_comment(league, comment, **kwargs):
     if comment.user is None:
