@@ -43,6 +43,8 @@ def _lichess_message(league, username, subject, text):
             if "The message was rejected" in reason:
                 return
             raise
+        except lichessapi.ApiWorkerError as e:
+            logger.error(f"[Error] Sending lichess messsage failed with reason: {str(e)}")
 
 
 @receiver(signals.league_comment, dispatch_uid='heltour.tournament.notify')
