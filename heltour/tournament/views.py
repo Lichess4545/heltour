@@ -1229,8 +1229,8 @@ class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
     def view(self, page: int = 1):
         tablesums = Player.objects.annotate(
-            blackcount=Count("blackcount", filter=self.black_games_Q(), distinct=True),
-            whitecount=Count("whitecount", filter=self.white_games_Q(), distinct=True),
+            blackcount=Count("pairings_as_black", filter=self.black_games_Q(), distinct=True),
+            whitecount=Count("pairings_as_white", filter=self.white_games_Q(), distinct=True),
             game_count=F("blackcount") + F("whitecount"),
             season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
             latest_season=Subquery(self.latest_season_subquery()),
