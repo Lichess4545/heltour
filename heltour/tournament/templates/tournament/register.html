@@ -31,9 +31,19 @@
                     participate in our league with this account you will always need to use it.
                     
                     </p>
+                    {% if registration_season.is_started and league.name == "Lichess4545 League" and not user|is_registered:registration_season %}
+                      <p>The season has already started and you will initially play as an alternate.<p>
+                    {% endif %}
                     <form action="" method="post">
                         {% csrf_token %}
                         {% bootstrap_form form %}
+                        {% if rating_provisional %}
+                           <p><strong>Your rating is provisional.</strong> You may apply with a provisional rating, but your application will only be reviewed once your rating is established.</p>
+                           {% if league.name != "Lichess4545 League" %}
+													 <p>Some league-specific rules may override this{% if rules_url %}, see <a href={{ rules_url }}>rules pages</a> for more information{% endif %}.</p>
+                           {% endif %}
+                              <p>We will regularly check whether you played enough games for an established rating. There is no need to change anything about your registration once you did.</p>
+                        {% endif %}
                         {% buttons %}
                             <button type="submit" class="btn btn-primary">Submit</button>
                         {% endbuttons %}

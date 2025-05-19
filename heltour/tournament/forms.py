@@ -20,9 +20,8 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
         fields = (
-            'email', 'classical_rating',
-            'has_played_20_games', 'already_in_slack_group',
-            'previous_season_alternate',
+            'email',
+            'has_played_20_games',
             'can_commit', 'friends', 'avoid', 'agreed_to_rules', 'agreed_to_tos',
             'alternate_preference', 'section_preference', 'weeks_unavailable',
         )
@@ -30,7 +29,7 @@ class RegistrationForm(forms.ModelForm):
             'email': _('Your Email'),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, rules_url='', **kwargs):
         self.season = kwargs.pop('season')
         
         self.username = kwargs.pop('user')
@@ -42,85 +41,38 @@ class RegistrationForm(forms.ModelForm):
         super(RegistrationForm, self).__init__(*args, **kwargs)
 
         # Rating fields
-        rating_type = league.get_rating_type_display()
-        self.fields['classical_rating'] = forms.IntegerField(required=True, label=_(
-            'Your Lichess %s Rating' % rating_type))
-
-        help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed once your rating is established.'
-        
-        if league.competitor_type != 'team':
-            help_text_provisional = 'You may apply with a provisional rating, but your application will only be reviewed \
-                once your rating is established. Some league-specific rules may override this, see rules pages for more information.'
         # 20 games
-        self.fields['has_played_20_games'] = forms.TypedChoiceField(required=True,
-                                                                    choices=YES_NO_OPTIONS,
-                                                                    widget=forms.RadioSelect,
-                                                                    coerce=lambda x: x == 'True',
-                                                                    label=_(
-                                                                        'Is your %s rating established (not provisional)?' % rating_type.lower()),
-                                                                    help_text=_(
-                                                                        help_text_provisional), )
-
-        # In slack
-        self.fields['already_in_slack_group'] = forms.TypedChoiceField(required=True, label=_(
-            'Are you in our Slack group?'), choices=YES_NO_OPTIONS,
-                                                                       widget=forms.RadioSelect,
-                                                                       coerce=lambda x: x == 'True')
-
-        # Previous season status
-        if league.competitor_type == 'team':
-            self.fields['previous_season_alternate'] = forms.ChoiceField(required=True,
-                                                                         choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS,
-                                                                         widget=forms.RadioSelect,
-                                                                         label=_(
-                                                                             'Were you an alternate for the previous season?'))
-        else:
-            del self.fields['previous_season_alternate']
-
+        self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
         time_control = league.time_control
-        if league.rating_type != 'blitz':
-            self.fields['can_commit'] = forms.TypedChoiceField(required=True,
-                                                               choices=YES_NO_OPTIONS,
-                                                               widget=forms.RadioSelect,
-                                                               coerce=lambda x: x == 'True',
-                                                               label=_(
-                                                                   'Are you able to commit to 1 long time control game (%s currently) of %s chess on Lichess.org per week?' % (
-                                                                       time_control,
-                                                                       league.rating_type)))
-        else:
-            start_time = '' if self.season.start_date is None else \
-                ' on %s at %s UTC' % (
-                    self.season.start_date.strftime('%b %-d'),
-                    self.season.start_date.strftime('%H:%M'))
-            self.fields['can_commit'] = forms.TypedChoiceField(required=True,
-                                                               choices=YES_NO_OPTIONS,
-                                                               widget=forms.RadioSelect,
-                                                               coerce=lambda x: x == 'True',
-                                                               label=_(
-                                                                   'Are you able to commit to playing %d rounds of %s blitz games back to back%s?'
-                                                                   % (
-                                                                       self.season.rounds,
-                                                                       time_control,
-                                                                       start_time)))
+        # We do not want to ask about this anymore, it was decided that it is a useless question. Hide it for now.
+        self.fields['can_commit'] = forms.TypedChoiceField(initial=True, widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Friends and avoid
         if league.competitor_type == 'team':
-            self.fields['friends'] = forms.CharField(required=False, label=_(
-                'Are there any friends you would like to be teammates with?'),
-                                                     help_text=_(
-                                                         'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. All players must register. All players must join Slack. All players should also request each other.'))
-            self.fields['avoid'] = forms.CharField(required=False, label=_(
-                'Are there any players you would NOT like to be teammates with?'),
-                                                   help_text=_(
-                                                       'Note: Please enter their exact Lichess usernames. Usernames can be separated by commas, e.g.: Lou-E, glbert, M0r1'))
+            if self.season.is_started():
+                # the friends and avoid fields are for team creation. once a season is started and a teams are
+                # created we do not need to ask people about this. hide those fields in that case.
+                self.fields['friends'] = forms.CharField(required=False, widget=forms.HiddenInput)
+                self.fields['avoid'] = forms.CharField(required=False, widget=forms.HiddenInput)
+            else:
+                self.fields['friends'] = forms.CharField(required=False, label=_(
+                    'Are there any friends you would like to be teammates with?'),
+                                                         help_text=_(
+                                                             'Note: Please enter their exact Lichess usernames. '
+                                                             'Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. '
+                                                             'All players must register. All players must join Slack. '))
+                self.fields['avoid'] = forms.CharField(required=False, label=_(
+                    'Are there any players you would NOT like to be teammates with?'),
+                                                       help_text=_(
+                                                           'Note: Please enter their exact Lichess usernames. '
+                                                           'Usernames can be separated by commas, '
+                                                           'e.g.: Lou-E, glbert, M0r1'))
         else:
             del self.fields['friends']
             del self.fields['avoid']
         # Agree to rules
-        rules_doc = LeagueDocument.objects.filter(league=league, type='rules').first()
-        if rules_doc is not None:
-            doc_url = reverse('by_league:document', args=[league.tag, rules_doc.tag])
-            rules_help_text = _('<a target="_blank" href="%s">Rules Document</a>' % doc_url)
+        if rules_url:
+            rules_help_text = _('You can read the rules here: <a target="_blank" href="%s">Rules Document</a>' % rules_url)
         else:
             rules_help_text = ''
         league_name = league.name
@@ -150,14 +102,20 @@ class RegistrationForm(forms.ModelForm):
 
         # Alternate preference
         if league.competitor_type == 'team':
-            self.fields['alternate_preference'] = forms.ChoiceField(required=True,
-                                                                    choices=ALTERNATE_PREFERENCE_OPTIONS,
-                                                                    widget=forms.RadioSelect,
-                                                                    label=_(
-                                                                        'Are you interested in being an alternate or a full time player?'),
-                                                                    help_text=_(
-                                                                        'Players are put into teams on a first come first served basis, based on registration date. \
-                                                                        You may be an alternate even if you request to be a full time player.'))
+            if self.season.is_started():
+                self.fields['alternate_preference'] = forms.ChoiceField(required=False,
+                                                                        choices=ALTERNATE_PREFERENCE_OPTIONS,
+                                                                        initial='full_time',
+                                                                        widget=forms.HiddenInput())
+            else:
+                self.fields['alternate_preference'] = forms.ChoiceField(required=True,
+                                                                        choices=ALTERNATE_PREFERENCE_OPTIONS,
+                                                                        widget=forms.RadioSelect,
+                                                                        label=_(
+                                                                            'Are you interested in being an alternate or a full time player?'),
+                                                                        help_text=_(
+                                                                            'Players are put into teams on a first come first served basis, based on registration date. '
+                                                                            'You may be an alternate even if you request to be a full time player.'))
         else:
             del self.fields['alternate_preference']
 

@@ -334,7 +334,7 @@ class ApproveRegistrationWorkflow():
 
     @property
     def default_invite_to_slack(self):
-        return not self.reg.already_in_slack_group
+        return not self.player.slack_user_id
 
     @property
     def default_byes(self):

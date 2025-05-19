@@ -270,7 +270,6 @@ class Season(_BaseModel):
             if reg is not None:
                 info.update({
                     'date_created': reg.date_created.isoformat(),
-                    'peak_classical_rating': reg.peak_classical_rating,
                     'friends': reg.friends,
                     'avoid': reg.avoid,
                     'prefers_alt': reg.alternate_preference == 'alternate',
@@ -1143,22 +1142,19 @@ class Team(_BaseModel):
         return [(n, find(team_members, board_number=n)) for n in
                 Season.objects.get(pk=self.season_id).board_number_list()]
 
-    def average_rating(self, expected_rating=False):
+    def average_rating(self):
         n = 0
         total = 0.0
         for _, board in self.boards():
             if board is not None:
-                if expected_rating:
-                    rating = board.expected_rating()
-                else:
-                    rating = board.player.rating_for(self.season.league)
+                rating = board.player.rating_for(self.season.league)
                 if rating is not None:
                     n += 1
                     total += rating
         return total / n if n > 0 else None
 
-    def get_mean(self, expected_rating=False):
-        return self.average_rating(expected_rating)
+    def get_mean(self):
+        return self.average_rating()
 
     def captain(self):
         return self.teammember_set.filter(is_captain=True).first()
@@ -1790,15 +1786,6 @@ REGISTRATION_STATUS_OPTIONS = (
     ('rejected', 'Rejected'),
 )
 
-PREVIOUS_SEASON_ALTERNATE_OPTIONS = (
-    ('alternate', 'Yes, I was an alternate at the end of the last season.'),
-    ('alternate_to_full_time',
-     'Yes, but I was able to find a consistent team (did not simply fill in for a week or two).'),
-    ('full_time', 'No, I was not an alternate for the last season. I played the season.'),
-    ('new',
-     'No, I was not an alternate for the last season. I am a new member / I took last season off.'),
-)
-
 ALTERNATE_PREFERENCE_OPTIONS = (
     ('alternate', 'Alternate'),
     ('full_time', 'Full Time'),
@@ -1812,19 +1799,9 @@ class Registration(_BaseModel):
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
-
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
-    slack_username = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=255)
-
-    classical_rating = models.PositiveIntegerField(verbose_name='rating')
-    peak_classical_rating = models.PositiveIntegerField(blank=True, null=True,
-                                                        verbose_name='peak rating')
     has_played_20_games = models.BooleanField()
-    already_in_slack_group = models.BooleanField()
-    previous_season_alternate = models.CharField(blank=True, max_length=255,
-                                                 choices=PREVIOUS_SEASON_ALTERNATE_OPTIONS)
-
     can_commit = models.BooleanField()
     friends = models.CharField(blank=True, max_length=1023)
     avoid = models.CharField(blank=True, max_length=1023)
@@ -1853,6 +1830,10 @@ class Registration(_BaseModel):
 
     def player(self):
         return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+
+    @property
+    def rating(self):
+        return self.player().rating_for(league=self.season.league)
 
     @classmethod
     def can_register(cls, user, season):
@@ -1941,15 +1922,6 @@ class SeasonPlayer(_BaseModel):
             self._set_unavailable_for_season()
 
         super(SeasonPlayer, self).save(*args, **kwargs)
-
-    def expected_rating(self, league=None):
-        rating = self.player.rating_for(league)
-        if rating is None:
-            return None
-        if self.registration is not None:
-            peak = max(self.registration.peak_classical_rating or 0, rating)
-            return (rating + peak) / 2
-        return rating
 
     def seed_rating_display(self, league=None):
         if self.seed_rating is not None:

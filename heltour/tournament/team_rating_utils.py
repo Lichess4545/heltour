@@ -14,13 +14,13 @@ def variance(mean, xs):
 
 
 # -------------------------------------------------------------------------------
-def team_rating_variance(teams, expected_rating=False):
-    means = [team.get_mean(expected_rating) for team in teams]
+def team_rating_variance(teams):
+    means = [team.get_mean() for team in teams]
     league_mean = sum(means) / len(teams)
     return variance(league_mean, means)
 
 
 # -------------------------------------------------------------------------------
-def team_rating_range(teams, expected_rating=False):
-    means = [team.get_mean(expected_rating) for team in teams]
+def team_rating_range(teams):
+    means = [team.get_mean() for team in teams]
     return max(means) - min(means)
