@@ -102,8 +102,9 @@ season_urlpatterns = [
     ),
     path("schedule/edit/", views.ScheduleView.as_view(), name="edit_schedule"),
     path(
-        "confirm_scheduled_time", views.ConfirmScheduledTimeView.as_view(),
-        name="confirm_scheduled_time"
+        "confirm_scheduled_time",
+        views.ConfirmScheduledTimeView.as_view(),
+        name="confirm_scheduled_time",
     ),
     path(
         "availability/edit/", views.AvailabilityView.as_view(), name="edit_availability"
@@ -125,16 +126,16 @@ season_urlpatterns = [
         name="alternate_decline",
     ),
     path("notifications/", views.NotificationsView.as_view(), name="notifications"),
-    path(
-        "active_players/",
-        views.ActivePlayerTableView.as_view(),
-        name="active_players"
-    ),
-    path(
-        "active_players/<int:page>/",
-        views.ActivePlayerTableView.as_view(),
-        name="active_players"
-    ),
+    # path(
+    # "active_players/",
+    # views.ActivePlayerTableView.as_view(),
+    # name="active_players"
+    # ),
+    # path(
+    # "active_players/<int:page>/",
+    # views.ActivePlayerTableView.as_view(),
+    # name="active_players"
+    # ),
 ]
 
 league_urlpatterns = [
@@ -184,9 +185,7 @@ urlpatterns = [
     path(
         "toggle/darkmode/", views.ToggleDarkModeView.as_view(), name="toggle_darkmode"
     ),
-    path(
-        "toggle/zenmode/", views.ToggleZenModeView.as_view(), name="toggle_zenmode"
-    ),
+    path("toggle/zenmode/", views.ToggleZenModeView.as_view(), name="toggle_zenmode"),
     path(
         "player/<slug:username>/calendar.ics",
         views.ICalPlayerView.as_view(),
