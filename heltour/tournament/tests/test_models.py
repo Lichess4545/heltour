@@ -1,5 +1,5 @@
 import logging
-from django.test import TestCase
+from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
@@ -12,7 +12,7 @@ from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, set_rating)
 
 
-class HelpersTestCase(TestCase):
+class HelpersTestCase(SimpleTestCase):
     def test_format_score(self):
         self.assertEqual(format_score(score=None), '')
         self.assertEqual(format_score(score=0.5), '\u00BD')
