@@ -1220,47 +1220,52 @@ class StatsView(SeasonView):
 
 class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
-    def view(self, page: int=1):
-        black_games = self.games_as_black()
-        white_games = self.games_as_white()
-        seasons = Count("seasonplayer", filter=Q(seasonplayer__season__league=self.league), distinct=True)
-        newest_seasons = SeasonPlayer.objects.filter(season__league=self.league, player=OuterRef("pk")).order_by("-season__start_date")
+    def view(self, page: int = 1):
+        tablesums = Player.objects.annotate(
+            blackcount=Count("blackcount", filter=self.black_games_Q(), distinct=True),
+            whitecount=Count("whitecount", filter=self.white_games_Q(), distinct=True),
+            game_count=F("blackcount") + F("whitecount"),
+            season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
+            latest_season=Subquery(
+                SeasonPlayer.objects.filter(
+                    season__league=self.league, player=OuterRef("pk")
+                )
+                .order_by("-season__start_date")
+                .values("season__tag")[:1]
+            ),
+        ).order_by("-game_count", "season_count")
 
-        tablesums = Player.objects.annotate(blackcount=black_games) \
-                .annotate(whitecount=white_games) \
-                .annotate(game_count=F("blackcount")+F("whitecount")) \
-                .annotate(season_count=seasons) \
-                .annotate(latest_season=Subquery(newest_seasons.values("season__tag")[:1])) \
-                .order_by("-game_count", "season_count")
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
-
         page_obj = paginator.get_page(page)
 
         context = {
-                'page_obj': page_obj,
+            "page_obj": page_obj,
         }
 
-        return self.render('tournament/active_players.html', context)
+        return self.render("tournament/active_players.html", context)
 
-    def games_as_black(self):
+    def black_games_Q(self):
         if self.league.is_team_league():
-            return Count("pairings_as_black",
-                    filter=Q(pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_black__teamplayerpairing__game_link=""),
-                    distinct=True)
+            return Q(
+                pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league
+            ) & ~Q(pairings_as_black__teamplayerpairing__game_link="")
         else:
-            return Count("pairings_as_black",
-                    filter=Q(pairings_as_black__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_black__loneplayerpairing__game_link=""),
-                    distinct=True)
+            return Q(
+                pairings_as_black__loneplayerpairing__round__season__league=self.league
+            ) & ~Q(pairings_as_black__loneplayerpairing__game_link="")
 
-    def games_as_white(self):
+    def white_games_Q(self):
         if self.league.is_team_league():
-            return Count("pairings_as_white",
-                    filter=Q(pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_white__teamplayerpairing__game_link=""),
-                    distinct=True)
+            return Q(
+                pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league
+            ) & ~Q(pairings_as_white__teamplayerpairing__game_link="")
         else:
-            return Count("pairings_as_white",
-                    filter=Q(pairings_as_white__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_white__loneplayerpairing__game_link=""),
-                    distinct=True)
+            return Q(
+                pairings_as_white__loneplayerpairing__round__season__league=self.league
+            ) & ~Q(pairings_as_white__loneplayerpairing__game_link="")
+
+    def seasons_Q(self):
+        return Q(seasonplayer__season__league=self.league)
 
 
 class BoardScoresView(SeasonView):
