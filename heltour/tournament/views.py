@@ -2219,8 +2219,8 @@ class ToggleDarkModeView(BaseView):
         try:
             if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
                 return redirect(redirect_url)
-        except:
-            pass
+        except (ValueError, SuspiciousOperation) as e:
+            logger.warning(f'Redirect URL Validation failed: {e}')
         return redirect('home')
 
 
@@ -2241,8 +2241,8 @@ class ToggleZenModeView(BaseView):
         try:
             if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
                 return redirect(redirect_url)
-        except:
-            pass
+        except (ValueError, SuspiciousOperation) as e:
+            logger.warning(f'Redirect URL Validation failed: {e}')
         return redirect('home')
 
 
