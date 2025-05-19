@@ -1233,7 +1233,7 @@ class ActivePlayerTableView(LeagueView):
             whitecount=Count("whitecount", filter=self.white_games_Q(), distinct=True),
             game_count=F("blackcount") + F("whitecount"),
             season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
-            latest_season=SubQuery(self.latest_season_subquery()),
+            latest_season=Subquery(self.latest_season_subquery()),
         ).order_by("-game_count", "season_count")
 
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
