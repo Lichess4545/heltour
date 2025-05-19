@@ -10,6 +10,7 @@ import reversion
 
 from cacheops.query import cached_as
 from django.core.mail.message import EmailMessage
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -22,6 +23,7 @@ from django.core.cache import cache
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from ipware import get_client_ip
@@ -38,6 +40,9 @@ common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing,
                       PlayerBye, SeasonPlayer,
                       Player, SeasonPrize, SeasonPrizeWinner]
 
+
+# default page size for pages using Paginator
+DEFAULT_PAGE_SIZE: int = 20
 
 # -------------------------------------------------------------------------------
 # Base classes
@@ -1226,6 +1231,57 @@ class StatsView(SeasonView):
         return _view(self.league.tag, self.season.tag, self.user_data)
 
 
+class ActivePlayerTableView(LeagueView):
+    @cached_as(League, Season, Round)
+    def view(self, page: int = 1):
+        tablesums = Player.objects.annotate(
+            blackcount=Count("pairings_as_black", filter=self.black_games_Q(), distinct=True),
+            whitecount=Count("pairings_as_white", filter=self.white_games_Q(), distinct=True),
+            game_count=F("blackcount") + F("whitecount"),
+            season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
+            latest_season=Subquery(self.latest_season_subquery()),
+        ).order_by("-game_count", "season_count")
+
+        paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
+        page_obj = paginator.get_page(page)
+
+        context = {
+            "page_obj": page_obj,
+        }
+
+        return self.render("tournament/active_players.html", context)
+
+    def black_games_Q(self):
+        if self.league.is_team_league():
+            return Q(
+                pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league
+            ) & ~Q(pairings_as_black__teamplayerpairing__game_link="")
+        else:
+            return Q(
+                pairings_as_black__loneplayerpairing__round__season__league=self.league
+            ) & ~Q(pairings_as_black__loneplayerpairing__game_link="")
+
+    def white_games_Q(self):
+        if self.league.is_team_league():
+            return Q(
+                pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league
+            ) & ~Q(pairings_as_white__teamplayerpairing__game_link="")
+        else:
+            return Q(
+                pairings_as_white__loneplayerpairing__round__season__league=self.league
+            ) & ~Q(pairings_as_white__loneplayerpairing__game_link="")
+
+    def seasons_Q(self):
+        return Q(seasonplayer__season__league=self.league)
+
+    def latest_season_subquery(self):
+        return (
+            SeasonPlayer.objects.filter(
+                season__league=self.league, player=OuterRef("pk")
+            )
+            .order_by("-season__start_date")
+            .values("season__tag")[:1]
+        )
 class BoardScoresView(SeasonView):
     def view(self, board_number):
         if self.league.is_team_league():
