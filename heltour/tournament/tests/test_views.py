@@ -82,9 +82,12 @@ class RostersTestCase(TestCase):
         response = self.client.get(season_url('team', 'rosters'))
         self.assertTemplateUsed(response, 'tournament/team_rosters.html')
 
+        # triggering a 404 writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        response = self.client.get(season_url('lone', 'rosters'))
-        logging.disable(logging.NOTSET)
+        try:
+            response = self.client.get(season_url('lone', 'rosters'))
+        finally:
+            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -108,9 +111,12 @@ class CrosstableTestCase(TestCase):
         response = self.client.get(season_url('team', 'crosstable'))
         self.assertTemplateUsed(response, 'tournament/team_crosstable.html')
 
+        # triggering a 404 writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        response = self.client.get(season_url('lone', 'crosstable'))
-        logging.disable(logging.NOTSET)
+        try:
+            response = self.client.get(season_url('lone', 'crosstable'))
+        finally:
+            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -119,9 +125,12 @@ class WallchartTestCase(TestCase):
         createCommonLeagueData()
 
     def test_template(self):
+        # triggering a 404 writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        response = self.client.get(season_url('team', 'wallchart'))
-        logging.disable(logging.NOTSET)
+        try:
+            response = self.client.get(season_url('team', 'wallchart'))
+        finally:
+            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
         response = self.client.get(season_url('lone', 'wallchart'))

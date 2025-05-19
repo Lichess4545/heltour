@@ -32,9 +32,12 @@ class TestUpdateRatings(TestCase):
                          {"id":"Player2", "perfs":{"chess960":{"games":12, "rating":1000},
                                                    "classical":{"games":10, "rating":1800}}}])
     def test_update_ratings(self, *args):
+        # updating player ratings writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        update_player_ratings()
-        logging.disable(logging.NOTSET)
+        try:
+            update_player_ratings()
+        finally:
+            logging.disable(logging.NOTSET)
         tl = get_league('team')
         l960 = get_league('960')
         p2 = get_player('Player2')
@@ -88,9 +91,12 @@ class TestAutostartGames(TestCase):
     @patch('heltour.tournament.lichessapi.bulk_start_games',
            return_value={"id": "RVAcwgg7", "games": [{"id": "NKop9IyD", "black": "player2", "white": "player4"}]})
     def test_start_game(self, *args):
+        # start_games writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        start_games()
-        logging.disable(logging.NOTSET)
+        try:
+            start_games()
+        finally:
+            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
@@ -101,9 +107,12 @@ class TestAutostartGames(TestCase):
                                                      {"id": "KT837Aut", "black": "player3", "white": "player1"}]})
     def test_start_games(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
+        # start_games writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        start_games()
-        logging.disable(logging.NOTSET)
+        try:
+            start_games()
+        finally:
+            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
@@ -114,9 +123,12 @@ class TestAutostartGames(TestCase):
                {"id": "RVAcwgg7", "games": [{"id": "KT837Aut", "black": "player3", "white": "player1"}]}])
     def test_start_invalid_token(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
+        # start_games writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        start_games()
-        logging.disable(logging.NOTSET)
+        try:
+            start_games()
+        finally:
+            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         # test that the tpp2 game link was not set

@@ -548,10 +548,13 @@ class AlternateTestCase(TestCase):
         self.assertEqual(alt.date_created, alt.priority_date())
 
         time1 = timezone.now()
+        # creating a reg writes to the log, disable that temporarily for nicer test output
         logging.disable(logging.CRITICAL)
-        sp.registration = create_reg(sp.season, 'testuser')
-        sp.save()
-        logging.disable(logging.NOTSET)
+        try:
+            sp.registration = create_reg(sp.season, 'testuser')
+            sp.save()
+        finally:
+            logging.disable(logging.NOTSET)
         time2 = timezone.now()
 
         self.assertTrue(time1 <= alt.priority_date() <= time2)
