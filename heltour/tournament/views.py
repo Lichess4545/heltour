@@ -41,6 +41,9 @@ common_lone_models = [League, Season, Round, LonePlayerScore, LonePlayerPairing,
                       Player, SeasonPrize, SeasonPrizeWinner]
 
 
+# default page size for pages using Paginator
+DEFAULT_PAGE_SIZE: int = 20
+
 # -------------------------------------------------------------------------------
 # Base classes
 
@@ -1217,7 +1220,7 @@ class StatsView(SeasonView):
 
 class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
-    def view(self, page=1):
+    def view(self, page: int=1):
         if self.league.is_team_league():
             black_games = Count("pairings_as_black",
                     filter=Q(pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_black__teamplayerpairing__game_link=""),
@@ -1241,7 +1244,7 @@ class ActivePlayerTableView(LeagueView):
                 .annotate(season_count=seasons) \
                 .annotate(latest_season=Subquery(newest_seasons.values("season__tag")[:1])) \
                 .order_by("-game_count", "season_count")
-        paginator = Paginator(tablesums, 20)
+        paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
 
         page_obj = paginator.get_page(page)
 
