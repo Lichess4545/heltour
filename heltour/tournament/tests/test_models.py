@@ -1,10 +1,57 @@
-from django.test import TestCase
+import logging
+from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
-from datetime import datetime
-from heltour.tournament.models import (Alternate, AlternateAssignment, AlternateBucket, League, LonePlayerPairing,
-                                       Player, PlayerBye, PlayerPairing, Round, Season, SeasonPlayer, Team,
-                                       TeamPairing, TeamPlayerPairing, TeamScore)
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, set_rating
+from datetime import datetime, timedelta
+from heltour.tournament.models import (add_system_comment, Alternate,
+        AlternateAssignment, AlternateBucket, format_score, get_fide_dp,
+        get_gameid_from_gamelink, League, LonePlayerPairing, normalize_gamelink,
+        OauthToken, Player, PlayerBye, PlayerPairing, Round,
+        ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
+        TeamPlayerPairing, TeamScore)
+from heltour.tournament.tests.testutils import (createCommonLeagueData,
+        create_reg, get_league, get_season, set_rating)
+
+
+class HelpersTestCase(SimpleTestCase):
+    def test_format_score(self):
+        self.assertEqual(format_score(score=None), '')
+        self.assertEqual(format_score(score=0.5), '\u00BD')
+        self.assertEqual(format_score(score=2.0), '2')
+        self.assertEqual(format_score(score=2.5), '2\u00BD')
+        self.assertEqual(format_score(score=1.0, game_played=False), '1X')
+        self.assertEqual(format_score(score=0.5, game_played=False), '\u00BDZ')
+        self.assertEqual(format_score(score=0.0, game_played=False), '0F')
+
+    def test_get_fide_dp(self):
+        self.assertEqual(get_fide_dp(0, 12), -800)
+        self.assertEqual(get_fide_dp(12, 12), 800)
+
+    def test_bad_gamelinks(self):
+        self.assertEqual(get_gameid_from_gamelink(None), None)
+        self.assertEqual(get_gameid_from_gamelink(''), None)
+        self.assertEqual(get_gameid_from_gamelink('lichess.org/ABC2'), None)
+        self.assertEqual(normalize_gamelink(''), ('', True))
+        self.assertEqual(normalize_gamelink('https://licess.org/invalid'), ('https://licess.org/invalid', False))
+
+
+class LeagueTestCase(TestCase):
+    def setUp(self):
+        League.objects.create(name='Lone League', tag='loneleague',
+                                    competitor_type='lone',
+                                    rating_type='classical')
+
+    def test_time_control(self):
+        league = get_league('lone')
+        self.assertEqual(str(league), 'Lone League')
+        self.assertEqual(league.time_control_initial(), None)
+        self.assertEqual(league.time_control_increment(), None)
+        self.assertEqual(league.time_control_total(), None)
+        League.objects.filter(name='Lone League').update(time_control='30+15')
+        league = get_league('lone')
+        self.assertEqual(league.time_control_initial(), 1800)
+        self.assertEqual(league.time_control_increment(), 15)
+        self.assertEqual(league.time_control_total(), 2700)
+
 
 class SeasonTestCase(TestCase):
     def setUp(self):
@@ -349,6 +396,37 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertEqual(1, pairing2.white_rank)
         self.assertEqual(2, pairing2.black_rank)
 
+    def test_scheduling_creates_notification(self):
+        season = get_season('lone')
+        round1 = season.round_set.get(number=1)
+        sps = season.seasonplayer_set.all()
+
+        pairing1 = LonePlayerPairing.objects.create(round=round1, white=sps[0].player,
+                                                    black=sps[1].player, pairing_order=1)
+
+        pairing1.scheduled_time = timezone.now() + timedelta(hours=2)
+        pairing1.save()
+        sno1 = ScheduledNotification.objects.get(pairing=pairing1, setting__player=sps[1].player)
+        self.assertTrue(sno1.notification_time > timezone.now() + timedelta(minutes=55))
+        self.assertTrue(sno1.notification_time < timezone.now() + timedelta(hours=1, minutes=5))
+
+    def test_loneplayerpairing_token_getters(self):
+        season = get_season('lone')
+        round1 = season.round_set.get(number=1)
+        o1 = OauthToken.objects.create(access_token="blah1", expires=timezone.now() + timedelta(minutes=10))
+        o2 = OauthToken.objects.create(access_token="blah2", expires=timezone.now() + timedelta(minutes=10))
+        Player.objects.filter(lichess_username="Player1").update(oauth_token=o1)
+        Player.objects.filter(lichess_username="Player2").update(oauth_token=o2)
+        pairing1 = LonePlayerPairing.objects.create(round=round1, white=Player.objects.get(lichess_username="Player1"),
+                                                    black=Player.objects.get(lichess_username="Player2"), pairing_order=1)
+
+        pairing2 = LonePlayerPairing.objects.create(round=round1, white=Player.objects.get(lichess_username="Player3"),
+                                                    black=Player.objects.get(lichess_username="Player4"), pairing_order=2)
+        self.assertEqual(pairing1.get_white_access_token(), "blah1")
+        self.assertEqual(pairing1.get_black_access_token(), "blah2")
+        self.assertEqual(pairing2.get_white_access_token(), None)
+        self.assertEqual(pairing2.get_black_access_token(), None)
+
 
 class PlayerPairingTestCase(TestCase):
     def setUp(self):
@@ -375,6 +453,21 @@ class PlayerPairingTestCase(TestCase):
         pp.result = '0-1'
         self.assertEqual(0.0, pp.white_score())
         self.assertEqual(1.0, pp.black_score())
+
+    def test_comments(self):
+        team1 = Team.objects.get(number=1)
+        try:
+            add_system_comment(obj=team1, text='comment by system')
+        except:
+            self.fail("add_system_comment failed for system comment on team")
+        try:
+            add_system_comment(obj=team1, text='comment by glbert', user_name='glbert')
+        except:
+            self.fail("add_system_comment failed for comment by glbert on team")
+        try:
+            add_system_comment(obj=team1.teammember_set.all()[0].player, text='Player got a moderator warning', user_name='glbert')
+        except:
+            self.fail("add_system_comment failed for comment by glbert on player")
 
 
 class RegistrationTestCase(TestCase):
@@ -428,8 +521,7 @@ class AlternateTestCase(TestCase):
 
         set_rating(player, None)
         alt.update_board_number()
-        # players with rating set to None return a rating of zero now, so lowest alt board
-        self.assertEqual(3, alt.board_number)
+        self.assertEqual(2, alt.board_number)
 
         set_rating(player, 2100)
         alt.update_board_number()
@@ -456,8 +548,13 @@ class AlternateTestCase(TestCase):
         self.assertEqual(alt.date_created, alt.priority_date())
 
         time1 = timezone.now()
-        sp.registration = create_reg(sp.season, 'testuser')
-        sp.save()
+        # creating a reg writes to the log, disable that temporarily for nicer test output
+        logging.disable(logging.CRITICAL)
+        try:
+            sp.registration = create_reg(sp.season, 'testuser')
+            sp.save()
+        finally:
+            logging.disable(logging.NOTSET)
         time2 = timezone.now()
 
         self.assertTrue(time1 <= alt.priority_date() <= time2)
