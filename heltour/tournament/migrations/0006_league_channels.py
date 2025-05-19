@@ -8,7 +8,7 @@ import re
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournament', '0004_start_games_automatically'),
+        ('tournament', '0005_remove_registration_fields'),
     ]
 
     operations = [
