@@ -175,6 +175,9 @@ urlpatterns = [
         "toggle/darkmode/", views.ToggleDarkModeView.as_view(), name="toggle_darkmode"
     ),
     path(
+        "toggle/zenmode/", views.ToggleZenModeView.as_view(), name="toggle_zenmode"
+    ),
+    path(
         "player/<slug:username>/calendar.ics",
         views.ICalPlayerView.as_view(),
         name="player_icalendar",

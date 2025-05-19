@@ -12,7 +12,7 @@
                     <h3>{{ player.lichess_username }}</h3>
                 </div>
                 <div class="well-body">
-                    <div class="profile-links">{{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{league.rating_type}}">{% rating player %}</a></div>
+									{% if not zen_mode %}<div class="profile-links">{{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{league.rating_type}}">{% rating player %}</a></div>{% endif %}
                     <div class="profile-links"><a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a></div>
                     <div class="profile-links"><a href="https://lichess.org/api/games/user/{{ player.lichess_username }}?perfType={{league.rating_type}}">Download games</a></div>
                     <div class="profile-links"><a href="https://lichess.org/analysis#explorer/{{ player.lichess_username }}">Opening book</a></div>
@@ -114,18 +114,18 @@
                                                     <td>
                                                         {% if pairing.white == player %}
                                                             {{ pairing.white.lichess_username }}
-                                                            <span class="hidden-xs">({% white_rating pairing %})</span>
+																														{% if not zen_mode %}<span class="hidden-xs">({% white_rating pairing %})</span>{% endif %}
                                                             </span>
                                                             - {% if pairing.black %}
                                                             <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
-                                                                ({% black_rating pairing %})</a>{% else %} ?{% endif %}
+																															{% if not zen_mode %}({% black_rating pairing %}){% endif %}</a>{% else %} ?{% endif %}
                                                         {% else %}
                                                             {% if pairing.white %}
                                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
-                                                                    ({% white_rating pairing %})</a>{% else %} ?
+																																	{% if not zen_mode %}({% white_rating pairing %}){% endif %}</a>{% else %} ?
                                                             {% endif %}
                                                             - {{ pairing.black.lichess_username }}
-                                                            <span class="hidden-xs">({% black_rating pairing %})</span>
+																														<span class="hidden-xs">{% if not zen_mode %}({% black_rating pairing %}){% endif %}</span>
                                                             </span>
                                                         {% endif %}
                                                     </td>
@@ -151,7 +151,7 @@
                                             <td>
                                                 <strong>Score:</strong> {{ season_score|floatformat }}/{{ season_score_total }}
                                             </td>
-                                            {% if season_perf_rating %}
+                                            {% if season_perf_rating and not zen_mode %}
                                                 <td><strong>Perf rating:</strong> <span
                                                         title="{{ season_perf.debug }}">{{ season_perf_rating }}</span>
                                                 </td>{% endif %}
@@ -232,7 +232,7 @@
                                 <tr>
                                     <td><strong>Career
                                         Score:</strong> {{ career_score|floatformat }}/{{ career_score_total }}</td>
-                                    {% if career_perf %}
+                                    {% if career_perf and not zen_mode %}
                                         <td><strong>Perf rating:</strong> <span
                                                 title="{{ career_perf.debug }}">{{ career_perf }}</span></td>{% endif %}
                                 </tr>

@@ -134,9 +134,11 @@
                                                 <a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
                                                    href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
                                                     {{ pairing.white_team_player.lichess_username }}<span
-                                                        class="visible-xs"></span><span
-                                                        class="color-dot left visible-xs-inline"></span>
-                                                    ({% white_team_rating pairing %})
+                                                        class="visible-xs"></span>
+                                                    <span class="color-dot left visible-xs-inline"></span>
+                                                    {% if not zen_mode %}
+                                                        ({% white_team_rating pairing %})
+                                                    {% endif %}
                                                     {% if pairing.white_team_player in captains %}
                                                         <span class="captain"></span>{% endif %}
                                                 </a>
@@ -173,7 +175,10 @@
                                                 <a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
                                                    href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
                                                     {{ pairing.black_team_player.lichess_username }} <span
-                                                        class="visible-xs"></span> ({% black_team_rating pairing %})
+                                                        class="visible-xs"></span>
+                                                    {% if not zen_mode %}
+                                                        ({% black_team_rating pairing %})
+                                                    {% endif %}
                                                     {% if pairing.black_team_player in captains %}
                                                         <span class="captain"></span>{% endif %}
                                                 </a>

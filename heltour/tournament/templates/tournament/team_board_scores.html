@@ -24,13 +24,13 @@
                             {% endfor %}
                         </ul>
                     </div>
-                    <p>"Score" includes all games on the selected board. "Perf rating" excludes forfeits.</p>
+                    <p>"Score" includes all games on the selected board.{% if not zen_mode %} "Perf rating" excludes forfeits.{% endif %}</p>
                     <div class="table-responsive">
                         <table class="table table-condensed-xs table-board-scores">
                             <tr class="header-row">
                                 <th>Player</th>
                                 <th>Score</th>
-                                <th>Perf Rating</th>
+                                {% if not zen_mode %}<th>Perf Rating</th>{% endif %}
                             </tr>
                             {% for ps in player_scores %}
                                 <tr>
@@ -38,10 +38,10 @@
                                         <a href="{% leagueurl 'player_profile' league.tag season.tag ps.name %}">{{ ps.name }}</a>
                                     </td>
                                     <td>{{ ps.score|floatformat:1 }} / {{ ps.score_total }}</td>
-                                    <td>
+                                    {% if not zen_mode %}<td>
                                         <span title="{{ ps.perf.debug }}">{{ ps.perf_rating|default_if_none:'---' }}
                                                 {% if not ps.eligible and ps.perf_rating %}*{% endif %}</span>
-                                    </td>
+                                    </td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </table>
