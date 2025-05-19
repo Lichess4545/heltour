@@ -130,7 +130,9 @@ class LoginWithCodeTestCase(TestCase):
         self.assertRedirects(response, league_url('team', 'user_dashboard'))
         self.assertContains(response, '<h3>testuser</h3>', status_code=200)
 
-# TODO: fixme, unclear why the below assert should even work, LoginToken.objects.create(slack_user_id='whatever') does not set the player.slack_user_id atm.
+# TODO: fixme - LoginToken.objects.create(slack_user_id='whatever') does not set the player.slack_user_id,
+# so it cannot magically get from the LoginToken object into the Player object. it is unclear what the test
+# below was supposed to achieve. the test fails anyway. disable it for now.
 #        player = Player.objects.get(lichess_username='testuser')
 #        self.assertEqual('U1234', player.slack_user_id)
 
