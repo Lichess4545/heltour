@@ -362,6 +362,7 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                result = None
         except KeyError:
             logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
+    gamechannel = LeagueChannel.objects.filter(league__name=leaguename, type='games').first()
     # use lichess reply to set game ids
     for game in league_games:
         try:
@@ -375,6 +376,11 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                                                                 do_clockstart=do_clockstart,
                                                                 clockstart_in=clockstart_in,
                                                                 gameid=gameids['id'])
+                       if gamechannel is not None:
+                           slackapi.send_message(channel=gamechannel.slack_channel,
+                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+        except slackapi.SlackError:
+            logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
         except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
