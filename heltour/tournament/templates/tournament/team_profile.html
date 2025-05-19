@@ -33,9 +33,9 @@
                         </table>
                     </div>
                     <div class="player-profile-section">
-												{% if not zen_mode %}
-		                        <div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>
-												{% endif %}
+                        {% if not zen_mode %}
+                        <div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>
+                        {% endif %}
                         <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag team.number %}">Calendar</a>
                     </div>
                     {% if prev_members %}

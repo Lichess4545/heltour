@@ -30,7 +30,7 @@
                             <tr>
                                 <th></th>
                                 <th>Name</th>
-																{% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
+                                {% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
                                 <th class="text-center">Total</th>
                                 <th class="text-center">TBrk[M]</th>
                             </tr>
@@ -44,7 +44,7 @@
                                             {{ player_score.season_player.player.lichess_username }}
                                         </a>
                                     </td>
-																		{% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
+                                    {% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
                                     <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
                                     <td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
                                 </tr>
@@ -89,7 +89,7 @@
                                     </td>
                                     <td>
                                         <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-																					{{ pairing.white.lichess_username }}{% if not zen_mode %} ({% white_rating pairing %}){% endif %}
+                                          {{ pairing.white.lichess_username }}{% if not zen_mode %} ({% white_rating pairing %}){% endif %}
                                         </a>
                                     </td>
                                     <td class="cell-score {% if pairing.black_score == 1 %}cell-win{% elif pairing.black_score == 0 %}cell-loss{% elif pairing.black_score == 0.5 %}cell-tie{% endif %}">
@@ -101,7 +101,7 @@
                                     </td>
                                     <td>
                                         <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-																					{{ pairing.black.lichess_username }}{% if not zen_mode %} ({% black_rating pairing %}){% endif %}
+                                          {{ pairing.black.lichess_username }}{% if not zen_mode %} ({% black_rating pairing %}){% endif %}
                                         </a>
                                     </td>
                                 </tr>

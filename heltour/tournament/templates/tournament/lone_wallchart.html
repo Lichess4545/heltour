@@ -22,7 +22,7 @@
                                 <thead>
                                 <tr>
                                     <th></th>
-																		<th>Name{% if not zen_mode %}/Rating{% endif %}</th>
+                                    <th>Name{% if not zen_mode %}/Rating{% endif %}</th>
                                     {% for round_number in round_numbers %}
                                         <th class="text-left">Rd {{ round_number }}</th>
                                     {% endfor %}
@@ -54,7 +54,7 @@
                                         </tr>
                                         <tr>
                                             <td></td>
-																						<td class="text-left">{% if not zen_mode %}{% seed_rating sp %}{% endif %}</td>
+                                            <td class="text-left">{% if not zen_mode %}{% seed_rating sp %}{% endif %}</td>
                                             {% for result_code, opponent_num, color, cumul_score in round_scores %}
                                                 <td class="text-left">
                                                     {% if result_code %}

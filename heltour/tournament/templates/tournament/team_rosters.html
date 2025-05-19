@@ -33,9 +33,9 @@
                                                 Board {{ board_number }}
                                             </a>
                                         </th>
-																				{% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
+                                        {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
                                     {% endfor %}
-																		{% if not zen_mode %}<th class="cell-average-rating sort">Average</th>{% endif %}
+                                    {% if not zen_mode %}<th class="cell-average-rating sort">Average</th>{% endif %}
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -60,9 +60,9 @@
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>{% endif %}
                                                 </span>
                                             </td>
-																						{% if not zen_mode %}<td class="cell-rating">{{ board.player_rating_display|default_if_none:"" }}</td>{% endif %}
+                                            {% if not zen_mode %}<td class="cell-rating">{{ board.player_rating_display|default_if_none:"" }}</td>{% endif %}
                                         {% endfor %}
-																				{% if not zen_mode %}<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>{% endif %}
+                                        {% if not zen_mode %}<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>{% endif %}
                                     </tr>
                                 {% endfor %}
                                 </tbody>
@@ -73,7 +73,7 @@
                                     <th class="cell-alternates" colspan="3">Alternates</th>
                                     {% for board_number in board_numbers %}
                                         <th class="cell-player" colspan="2">Board {{ board_number }}</th>
-																				{% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
+                                        {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
                                     {% endfor %}
                                     <th>&nbsp;</th>
                                 </tr>
@@ -113,11 +113,11 @@
                                                     {% endif %}
                                                 </td>
                                                 {% if not zen_mode %}
-																								<td class="cell-rating"
+                                                <td class="cell-rating"
                                                     title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
                                                     {{ alt.player_rating_display|default_if_none:"" }}
                                                 </td>
-																								{% endif %}
+                                                {% endif %}
                                             {% endwith %}
                                         {% endfor %}
                                         <td>&nbsp;</td>

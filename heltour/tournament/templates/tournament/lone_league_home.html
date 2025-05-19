@@ -67,7 +67,7 @@
                             <div class="gameLabel top-label">
                                 <div class="player-div" style="display:none">
                                     <a class="player-link">
-																			<span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
+                                        <span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
                                     </a>
                                 </div>
                             </div>
@@ -76,7 +76,7 @@
                             <div class="gameLabel bottom-label">
                                 <div class="player-div" style="display:none">
                                     <a class="player-link">
-																			<span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
+                                        <span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
                                     </a>
                                 </div>
                             </div>
@@ -101,7 +101,7 @@
                                 <tr>
                                     <th></th>
                                     <th>Name</th>
-																		{% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
+                                    {% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
                                     <th class="text-center">Total</th>
                                     <th class="text-center">TBrk[M]</th>
                                 </tr>
@@ -115,7 +115,7 @@
                                                 {{ player_score.season_player.player.lichess_username }}
                                             </a>
                                         </td>
-																				{% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
+                                        {% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
                                         <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
                                         <td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
                                     </tr>

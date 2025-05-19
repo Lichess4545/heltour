@@ -135,10 +135,10 @@
                                                    href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
                                                     {{ pairing.white_team_player.lichess_username }}<span
                                                         class="visible-xs"></span>
-																												<span class="color-dot left visible-xs-inline"></span>
-																										{% if not zen_mode %}
-		                                                    ({% white_team_rating pairing %})
-																										{% endif %}
+                                                    <span class="color-dot left visible-xs-inline"></span>
+                                                    {% if not zen_mode %}
+                                                        ({% white_team_rating pairing %})
+                                                    {% endif %}
                                                     {% if pairing.white_team_player in captains %}
                                                         <span class="captain"></span>{% endif %}
                                                 </a>
@@ -176,9 +176,9 @@
                                                    href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
                                                     {{ pairing.black_team_player.lichess_username }} <span
                                                         class="visible-xs"></span>
-																										{% if not zen_mode %}
-																										 	({% black_team_rating pairing %})
-																										{% endif %}
+                                                    {% if not zen_mode %}
+                                                        ({% black_team_rating pairing %})
+                                                    {% endif %}
                                                     {% if pairing.black_team_player in captains %}
                                                         <span class="captain"></span>{% endif %}
                                                 </a>
