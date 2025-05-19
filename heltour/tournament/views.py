@@ -1233,13 +1233,7 @@ class ActivePlayerTableView(LeagueView):
             whitecount=Count("whitecount", filter=self.white_games_Q(), distinct=True),
             game_count=F("blackcount") + F("whitecount"),
             season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
-            latest_season=Subquery(
-                SeasonPlayer.objects.filter(
-                    season__league=self.league, player=OuterRef("pk")
-                )
-                .order_by("-season__start_date")
-                .values("season__tag")[:1]
-            ),
+            latest_season=SubQuery(self.latest_season_subquery()),
         ).order_by("-game_count", "season_count")
 
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
@@ -1274,7 +1268,14 @@ class ActivePlayerTableView(LeagueView):
     def seasons_Q(self):
         return Q(seasonplayer__season__league=self.league)
 
-
+    def latest_season_subquery(self):
+        return (
+            SeasonPlayer.objects.filter(
+                season__league=self.league, player=OuterRef("pk")
+            )
+            .order_by("-season__start_date")
+            .values("season__tag")[:1]
+        )
 class BoardScoresView(SeasonView):
     def view(self, board_number):
         if self.league.is_team_league():
