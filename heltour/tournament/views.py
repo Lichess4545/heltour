@@ -1221,20 +1221,8 @@ class StatsView(SeasonView):
 class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
     def view(self, page: int=1):
-        if self.league.is_team_league():
-            black_games = Count("pairings_as_black",
-                    filter=Q(pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_black__teamplayerpairing__game_link=""),
-                    distinct=True)
-            white_games = Count("pairings_as_white",
-                    filter=Q(pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_white__teamplayerpairing__game_link=""),
-                    distinct=True)
-        else:
-            black_games = Count("pairings_as_black",
-                    filter=Q(pairings_as_black__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_black__loneplayerpairing__game_link=""),
-                    distinct=True)
-            white_games = Count("pairings_as_white",
-                    filter=Q(pairings_as_white__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_white__loneplayerpairing__game_link=""),
-                    distinct=True)
+        black_games = self.games_as_black()
+        white_games = self.games_as_white()
         seasons = Count("seasonplayer", filter=Q(seasonplayer__season__league=self.league), distinct=True)
         newest_seasons = SeasonPlayer.objects.filter(season__league=self.league, player=OuterRef("pk")).order_by("-season__start_date")
 
@@ -1253,6 +1241,26 @@ class ActivePlayerTableView(LeagueView):
         }
 
         return self.render('tournament/active_players.html', context)
+
+    def games_as_black(self):
+        if self.league.is_team_league():
+            return Count("pairings_as_black",
+                    filter=Q(pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_black__teamplayerpairing__game_link=""),
+                    distinct=True)
+        else:
+            return Count("pairings_as_black",
+                    filter=Q(pairings_as_black__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_black__loneplayerpairing__game_link=""),
+                    distinct=True)
+
+    def games_as_white(self):
+        if self.league.is_team_league():
+            return Count("pairings_as_white",
+                    filter=Q(pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league) & ~Q(pairings_as_white__teamplayerpairing__game_link=""),
+                    distinct=True)
+        else:
+            return Count("pairings_as_white",
+                    filter=Q(pairings_as_white__loneplayerpairing__round__season__league=self.league) & ~Q(pairings_as_white__loneplayerpairing__game_link=""),
+                    distinct=True)
 
 
 class BoardScoresView(SeasonView):
