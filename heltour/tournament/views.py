@@ -1234,7 +1234,7 @@ class StatsView(SeasonView):
 class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
     def view(self, page: int = 1):
-        tablesums = Player.objects.annotate(
+        tablesums = Player.objects.only("lichess_username").annotate(
             blackcount=Count("pairings_as_black", filter=self.black_games_Q(), distinct=True),
             whitecount=Count("pairings_as_white", filter=self.white_games_Q(), distinct=True),
             game_count=F("blackcount") + F("whitecount"),
