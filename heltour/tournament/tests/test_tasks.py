@@ -10,7 +10,8 @@ from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
 
 
 class TestHelpers(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
 
     def test_username_helpers(self, *args):
@@ -21,9 +22,10 @@ class TestHelpers(TestCase):
 
 
 class TestUpdateRatings(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
-        League.objects.create(name='c960 League', tag='960league',
+        self.l960 = League.objects.create(name='c960 League', tag='960league',
                               competitor_type='lone', rating_type='chess960')
 
     @patch('heltour.tournament.lichessapi.enumerate_user_metas',
@@ -35,18 +37,18 @@ class TestUpdateRatings(TestCase):
         with Shush():
             update_player_ratings()
         tl = get_league('team')
-        l960 = get_league('960')
         p2 = get_player('Player2')
         self.assertEqual(get_player('Player1').rating_for(league=tl), 2200)
         self.assertEqual(p2.rating_for(league=tl), 1800)
-        self.assertEqual(p2.rating_for(league=l960), 1000)
+        self.assertEqual(p2.rating_for(league=self.l960), 1000)
         self.assertEqual(get_player('Player3').rating_for(league=tl), 0)
 
 
 @patch('heltour.tournament.lichessapi.add_watch',
        return_value=None)
 class TestAutostartGames(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
