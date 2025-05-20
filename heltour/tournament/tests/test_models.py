@@ -565,11 +565,6 @@ class AlternateTestCase(TestCase):
 
         self.assertTrue(time5 <= alt.priority_date() <= time6)
 
-
-class AlternateAssignmentTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
     def test_alternateassignment_save(self):
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
