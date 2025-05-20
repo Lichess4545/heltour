@@ -27,6 +27,7 @@ def createCommonAPIData():
 
 
 class _ApiTestsBase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         self.api_key = ApiKey.objects.create(name='test_key')
         self.client = Client(HTTP_AUTHORIZATION="Token {}".format(self.api_key.secret_token))
