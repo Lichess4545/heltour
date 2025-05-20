@@ -147,25 +147,25 @@ class TestValidateRegistration(TestCase):
         s = get_season('team')
         logging.disable(logging.CRITICAL)
         try:
-            self.reg = create_reg(s, name="newPlayer")
+            self.reg = create_reg(s, name="Player1")
         finally:
             logging.disable(logging.NOTSET)
 
     @patch('heltour.tournament.lichessapi.get_user_meta',
-           return_value={"id":"newPlayer", "perfs":{"classical":{"games":25,"rating":2200,"prov":False}}})
+           return_value={"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200,"prov":False}}})
     def test_validation_ok(self, user_meta):
         validate_registration(self.reg.id)
         # validate_registration does not change the object directly but updates it from a new query,
         # so for checks we have to as well
         reg = Registration.objects.get(pk=self.reg.id)
         self.assertTrue(user_meta.called)
-        self.assertEqual(user_meta.call_args[0], ('newPlayer', 1))
+        self.assertEqual(user_meta.call_args[0], ('Player1', 1))
         self.assertTrue(reg.has_played_20_games)
         self.assertTrue(reg.validation_ok)
         self.assertFalse(reg.validation_warning)
 
     @patch('heltour.tournament.lichessapi.get_user_meta',
-           return_value={"id":"newPlayer", "perfs":{"classical":{"games":25,"rating":2200,"prov":True}}})
+           return_value={"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200,"prov":True}}})
     def test_validation_prov(self, user_meta):
         validate_registration(self.reg.id)
         reg = Registration.objects.get(pk=self.reg.id)
