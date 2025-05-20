@@ -34,26 +34,26 @@ class HelpersTestCase(SimpleTestCase):
 
 
 class LeagueTestCase(TestCase):
-    def setUp(self):
-        League.objects.create(name='Lone League', tag='loneleague',
-                                    competitor_type='lone',
-                                    rating_type='classical')
+    @classmethod
+    def setUpTestData(self):
+        self.league = League.objects.create(name='Lone League', tag='loneleague',
+                                            competitor_type='lone',
+                                            rating_type='classical')
 
     def test_time_control(self):
-        league = get_league('lone')
-        self.assertEqual(str(league), 'Lone League')
-        self.assertEqual(league.time_control_initial(), None)
-        self.assertEqual(league.time_control_increment(), None)
-        self.assertEqual(league.time_control_total(), None)
-        League.objects.filter(name='Lone League').update(time_control='30+15')
-        league = get_league('lone')
-        self.assertEqual(league.time_control_initial(), 1800)
-        self.assertEqual(league.time_control_increment(), 15)
-        self.assertEqual(league.time_control_total(), 2700)
+        self.assertEqual(str(self.league), 'Lone League')
+        self.assertEqual(self.league.time_control_initial(), None)
+        self.assertEqual(self.league.time_control_increment(), None)
+        self.assertEqual(self.league.time_control_total(), None)
+        self.league.time_control = '30+15'
+        self.assertEqual(self.league.time_control_initial(), 1800)
+        self.assertEqual(self.league.time_control_increment(), 15)
+        self.assertEqual(self.league.time_control_total(), 2700)
 
 
 class SeasonTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
 
     def test_season_save_round_creation(self):
@@ -187,40 +187,38 @@ class SeasonTestCase(TestCase):
 
 
 class TeamTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.team = Team.objects.get(number=1)
+        self.bd1 = self.team.teammember_set.get(board_number=1)
+        self.bd2 = self.team.teammember_set.get(board_number=2)
 
     def test_team_boards(self):
-        team = Team.objects.get(number=1)
-        bd1 = team.teammember_set.get(board_number=1)
-        bd2 = team.teammember_set.get(board_number=2)
+        self.assertEqual([(1, self.bd1), (2, self.bd2)], self.team.boards())
 
-        self.assertEqual([(1, bd1), (2, bd2)], team.boards())
-
-        bd1.delete()
-        self.assertEqual([(1, None), (2, bd2)], team.boards())
+        self.bd1.delete()
+        self.assertEqual([(1, None), (2, self.bd2)], self.team.boards())
 
     def test_team_average_rating(self):
-        team = Team.objects.get(number=1)
-        bd1 = team.teammember_set.get(board_number=1)
-        bd2 = team.teammember_set.get(board_number=2)
         # players without rating return 0 now instead of None
-        self.assertEqual(0, team.average_rating())
+        self.assertEqual(0, self.team.average_rating())
 
-        set_rating(bd1.player, 1800)
-        bd1.player.save()
-        self.assertEqual(900, team.average_rating())
+        set_rating(self.bd1.player, 1800)
+        self.bd1.player.save()
+        self.assertEqual(900, self.team.average_rating())
 
-        set_rating(bd2.player, 1600)
-        bd2.player.save()
-        self.assertEqual(1700, team.average_rating())
+        set_rating(self.bd2.player, 1600)
+        self.bd2.player.save()
+        self.assertEqual(1700, self.team.average_rating())
 
-        bd1.delete()
-        self.assertEqual(1600, team.average_rating())
+        self.bd1.delete()
+        self.assertEqual(1600, self.team.average_rating())
 
 
 class TeamScoreTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
@@ -229,31 +227,24 @@ class TeamScoreTestCase(TestCase):
         round1 = Round.objects.get(season__tag='teamseason', number=1)
         round1.is_completed = True
         round1.save()
-        TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1,
-                                   pairing_order=0, white_points=1.5, black_points=0.5)
+        self.pairing1 = TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1,
+                                                   pairing_order=0, white_points=1.5, black_points=0.5)
 
         round2 = Round.objects.get(season__tag='teamseason', number=2)
         round2.is_completed = True
         round2.save()
-        TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2,
-                                   pairing_order=0, black_points=1.0, white_points=1.0)
+        self.pairing2 = TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2,
+                                                   pairing_order=0, black_points=1.0, white_points=1.0)
+        self.teamscore = TeamScore.objects.get(team__number=1)
 
     def test_teamscore_round_scores(self):
-        teamscore = TeamScore.objects.get(team__number=1)
-        pairing1 = TeamPairing.objects.get(round__number=1)
-        pairing2 = TeamPairing.objects.get(round__number=2)
-
         self.assertEqual([(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)],
-                         list(teamscore.round_scores()))
+                         list(self.teamscore.round_scores()))
 
     def test_teamscore_cross_scores(self):
-        teamscore = TeamScore.objects.get(team__number=1)
-        pairing1 = TeamPairing.objects.get(round__number=1)
-        pairing2 = TeamPairing.objects.get(round__number=2)
-
         self.assertEqual(
             [(1, None, None, None), (2, 1.5, 0.5, 1), (3, 1.0, 1.0, 2), (4, None, None, None)],
-            list(teamscore.cross_scores()))
+            list(self.teamscore.cross_scores()))
 
     def test_teamscore_cmp(self):
         ts1 = TeamScore()
@@ -272,7 +263,8 @@ class TeamScoreTestCase(TestCase):
 
 
 class TeamPairingTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
 
     def test_teampairing_refresh_points(self):
@@ -332,23 +324,26 @@ class TeamPairingTestCase(TestCase):
 
 
 class LonePlayerPairingTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.season = get_season('lone')
+        self.round1 = self.season.round_set.get(number=1)
+        self.round2 = self.season.round_set.get(number=2)
+        self.sps = self.season.seasonplayer_set.all()
 
     def test_loneplayerpairing_save_and_delete(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
-        sp1 = season.seasonplayer_set.all()[0]
-        sp2 = season.seasonplayer_set.all()[1]
+        sp1 = self.season.seasonplayer_set.all()[0]
+        sp2 = self.season.seasonplayer_set.all()[1]
         score1 = sp1.loneplayerscore
         score2 = sp2.loneplayerscore
 
-        round1.is_completed = True
-        round1.save()
+        self.round1.is_completed = True
+        self.round1.save()
         self.assertEqual(0, score1.points)
         self.assertEqual(0, score2.points)
 
-        pairing = LonePlayerPairing.objects.create(round=round1, white=sp1.player, black=sp2.player,
+        pairing = LonePlayerPairing.objects.create(round=self.round1, white=sp1.player, black=sp2.player,
                                                    pairing_order=1, result='1/2-1/2')
         score1.refresh_from_db()
         score2.refresh_from_db()
@@ -369,21 +364,16 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertEqual(0, score2.points)
 
     def test_loneplayerpairing_refresh_ranks(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
-        round2 = season.round_set.get(number=2)
-        sps = season.seasonplayer_set.all()
+        self.round1.is_completed = True
+        self.round1.save()
+        self.round2.is_completed = True
+        self.round2.save()
 
-        round1.is_completed = True
-        round1.save()
-        round2.is_completed = True
-        round2.save()
-
-        pairing1 = LonePlayerPairing.objects.create(round=round1, white=sps[0].player,
-                                                    black=sps[1].player, pairing_order=1,
+        pairing1 = LonePlayerPairing.objects.create(round=self.round1, white=self.sps[0].player,
+                                                    black=self.sps[1].player, pairing_order=1,
                                                     result='1-0')
-        pairing2 = LonePlayerPairing.objects.create(round=round2, white=sps[1].player,
-                                                    black=sps[0].player, pairing_order=1,
+        pairing2 = LonePlayerPairing.objects.create(round=self.round2, white=self.sps[1].player,
+                                                    black=self.sps[0].player, pairing_order=1,
                                                     result='1/2-1/2')
         pairing2.refresh_ranks()
         self.assertEqual(2, pairing2.white_rank)
@@ -396,30 +386,25 @@ class LonePlayerPairingTestCase(TestCase):
         self.assertEqual(2, pairing2.black_rank)
 
     def test_scheduling_creates_notification(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
-        sps = season.seasonplayer_set.all()
-
-        pairing1 = LonePlayerPairing.objects.create(round=round1, white=sps[0].player,
-                                                    black=sps[1].player, pairing_order=1)
+        pairing1 = LonePlayerPairing.objects.create(round=self.round1, white=self.sps[0].player,
+                                                    black=self.sps[1].player, pairing_order=1)
 
         pairing1.scheduled_time = timezone.now() + timedelta(hours=2)
         pairing1.save()
-        sno1 = ScheduledNotification.objects.get(pairing=pairing1, setting__player=sps[1].player)
+        sno1 = ScheduledNotification.objects.get(pairing=pairing1, setting__player=self.sps[1].player)
         self.assertTrue(sno1.notification_time > timezone.now() + timedelta(minutes=55))
         self.assertTrue(sno1.notification_time < timezone.now() + timedelta(hours=1, minutes=5))
 
     def test_loneplayerpairing_token_getters(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
         o1 = OauthToken.objects.create(access_token="blah1", expires=timezone.now() + timedelta(minutes=10))
         o2 = OauthToken.objects.create(access_token="blah2", expires=timezone.now() + timedelta(minutes=10))
         Player.objects.filter(lichess_username="Player1").update(oauth_token=o1)
         Player.objects.filter(lichess_username="Player2").update(oauth_token=o2)
-        pairing1 = LonePlayerPairing.objects.create(round=round1, white=Player.objects.get(lichess_username="Player1"),
+        pairing1 = LonePlayerPairing.objects.create(round=self.round1,
+                                                    white=Player.objects.get(lichess_username="Player1"),
                                                     black=Player.objects.get(lichess_username="Player2"), pairing_order=1)
-
-        pairing2 = LonePlayerPairing.objects.create(round=round1, white=Player.objects.get(lichess_username="Player3"),
+        pairing2 = LonePlayerPairing.objects.create(round=self.round1,
+                                                    white=Player.objects.get(lichess_username="Player3"),
                                                     black=Player.objects.get(lichess_username="Player4"), pairing_order=2)
         self.assertEqual(pairing1.get_white_access_token(), "blah1")
         self.assertEqual(pairing1.get_black_access_token(), "blah2")
@@ -428,14 +413,15 @@ class LonePlayerPairingTestCase(TestCase):
 
 
 class PlayerPairingTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.team1 = Team.objects.get(number=1)
 
     def test_playerpairing_score(self):
-        team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
 
-        pp = PlayerPairing.objects.create(white=team1.teammember_set.all()[0].player,
+        pp = PlayerPairing.objects.create(white=self.team1.teammember_set.all()[0].player,
                                           black=team2.teammember_set.all()[0].player)
 
         self.assertEqual(None, pp.white_score())
@@ -454,102 +440,98 @@ class PlayerPairingTestCase(TestCase):
         self.assertEqual(1.0, pp.black_score())
 
     def test_comments(self):
-        team1 = Team.objects.get(number=1)
         try:
-            add_system_comment(obj=team1, text='comment by system')
+            add_system_comment(obj=self.team1, text='comment by system')
         except:
             self.fail("add_system_comment failed for system comment on team")
         try:
-            add_system_comment(obj=team1, text='comment by glbert', user_name='glbert')
+            add_system_comment(obj=self.team1, text='comment by glbert', user_name='glbert')
         except:
             self.fail("add_system_comment failed for comment by glbert on team")
         try:
-            add_system_comment(obj=team1.teammember_set.all()[0].player, text='Player got a moderator warning', user_name='glbert')
+            add_system_comment(obj=self.team1.teammember_set.all()[0].player, text='Player got a moderator warning', user_name='glbert')
         except:
             self.fail("add_system_comment failed for comment by glbert on player")
 
 
 class RegistrationTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.season = get_season('team')
 
     def test_registration_previous(self):
-        season = get_season('team')
-        reg = create_reg(season, 'Player1')
+        reg = create_reg(self.season, 'Player1')
 
         self.assertEqual([], list(reg.previous_registrations()))
 
-        reg2 = create_reg(season, 'Player1')
+        reg2 = create_reg(self.season, 'Player1')
         self.assertEqual([], list(reg.previous_registrations()))
         self.assertEqual([reg], list(reg2.previous_registrations()))
 
     def test_registration_other_seasons(self):
-        season = get_season('team')
         season2 = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4,
                                         boards=6)
 
         player = Player.objects.create(lichess_username='testuser')
-        sp = SeasonPlayer.objects.create(season=season, player=player)
+        sp = SeasonPlayer.objects.create(season=self.season, player=player)
         reg = create_reg(season2, 'testuser')
 
         self.assertEqual([sp], list(reg.other_seasons()))
 
 
 class AlternateTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.season = get_season('team')
+        self.player = Player.objects.all()[0]
+        self.sp = SeasonPlayer.objects.create(season=self.season, player=self.player)
 
     def test_alternate_update_board_number(self):
-        season = get_season('team')
-        season.boards = 3
-        season.save()
+        self.season.boards = 3
 
-        player = Player.objects.all()[0]
-        sp = SeasonPlayer.objects.create(season=season, player=player)
-        alt = Alternate.objects.create(season_player=sp, board_number=2)
+        alt = Alternate.objects.create(season_player=self.sp, board_number=2)
 
         alt.update_board_number()
         self.assertEqual(2, alt.board_number)
 
-        AlternateBucket.objects.create(season=season, board_number=1, max_rating=None,
+        AlternateBucket.objects.create(season=self.season, board_number=1, max_rating=None,
                                        min_rating=2000)
-        AlternateBucket.objects.create(season=season, board_number=2, max_rating=2000,
+        AlternateBucket.objects.create(season=self.season, board_number=2, max_rating=2000,
                                        min_rating=1800)
-        AlternateBucket.objects.create(season=season, board_number=3, max_rating=1800,
+        AlternateBucket.objects.create(season=self.season, board_number=3, max_rating=1800,
                                        min_rating=None)
 
-        set_rating(player, None)
+        set_rating(self.player, None)
         alt.update_board_number()
         self.assertEqual(2, alt.board_number)
 
-        set_rating(player, 2100)
+        set_rating(self.player, 2100)
         alt.update_board_number()
         self.assertEqual(1, alt.board_number)
 
-        set_rating(player, 1900)
+        set_rating(self.player, 1900)
         alt.update_board_number()
         self.assertEqual(2, alt.board_number)
 
-        set_rating(player, 1800)
+        set_rating(self.player, 1800)
         alt.update_board_number()
         self.assertEqual(3, alt.board_number)
 
-        set_rating(player, 1700)
+        set_rating(self.player, 1700)
         alt.update_board_number()
         self.assertEqual(3, alt.board_number)
 
     def test_priority_date(self):
-        season = get_season('team')
-        player = Player.objects.all()[0]
-        sp = SeasonPlayer.objects.create(season=season, player=player)
-        alt = Alternate.objects.create(season_player=sp, board_number=1)
+        alt = Alternate.objects.create(season_player=self.sp, board_number=1)
 
         self.assertEqual(alt.date_created, alt.priority_date())
 
         time1 = timezone.now()
         # creating a reg writes to the log, disable that temporarily for nicer test output
         with Shush():
-            sp.registration = create_reg(sp.season, 'Player1')
+            self.sp.registration = create_reg(self.sp.season, 'Player1')
         time2 = timezone.now()
 
         self.assertTrue(time1 <= alt.priority_date() <= time2)
@@ -559,7 +541,7 @@ class AlternateTestCase(TestCase):
         r.end_date = time3
         r.save()
         AlternateAssignment.objects.create(round=r, team=Team.objects.all()[0], board_number=1,
-                                           player=sp.player)
+                                           player=self.sp.player)
 
         self.assertEqual(time3, alt.priority_date())
 
@@ -570,16 +552,15 @@ class AlternateTestCase(TestCase):
         self.assertEqual(time4, alt.priority_date())
 
         time5 = timezone.now()
-        sp.unresponsive = True
-        sp.save()
+        self.sp.unresponsive = True
+        self.sp.save()
         time6 = timezone.now()
         alt.refresh_from_db()
 
         self.assertTrue(time5 <= alt.priority_date() <= time6)
 
-        sp = SeasonPlayer.objects.get(pk=sp.pk)
-        sp.unresponsive = False
-        sp.save()
+        self.sp.unresponsive = False
+        self.sp.save()
         alt.refresh_from_db()
 
         self.assertTrue(time5 <= alt.priority_date() <= time6)
@@ -610,20 +591,21 @@ class AlternateAssignmentTestCase(TestCase):
 
 
 class PlayerByeTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(self):
         createCommonLeagueData()
+        self.season = get_season('lone')
+        self.round1 = self.season.round_set.get(number=1)
+        self.round1.is_completed = True
+        self.round1.save()
+        self.sp1 = self.season.seasonplayer_set.all()[0]
+        self.sp2 = self.season.seasonplayer_set.all()[1]
 
     def test_playerbye_save_and_delete(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
-        sp = season.seasonplayer_set.all()[0]
-        score = sp.loneplayerscore
-
-        round1.is_completed = True
-        round1.save()
+        score = self.sp1.loneplayerscore
         self.assertEqual(0, score.points)
 
-        bye = PlayerBye.objects.create(round=round1, player=sp.player, type='half-point-bye')
+        bye = PlayerBye.objects.create(round=self.round1, player=self.sp1.player, type='half-point-bye')
         score.refresh_from_db()
         self.assertEqual(0.5, score.points)
 
@@ -647,16 +629,8 @@ class PlayerByeTestCase(TestCase):
         self.assertEqual(0, score.points)
 
     def test_playerbye_refresh_rank(self):
-        season = get_season('lone')
-        round1 = season.round_set.get(number=1)
-        sp1 = season.seasonplayer_set.all()[0]
-        sp2 = season.seasonplayer_set.all()[1]
-
-        round1.is_completed = True
-        round1.save()
-
-        bye1 = PlayerBye.objects.create(round=round1, player=sp1.player, type='half-point-bye')
-        bye2 = PlayerBye.objects.create(round=round1, player=sp2.player, type='full-point-bye')
+        bye1 = PlayerBye.objects.create(round=self.round1, player=self.sp1.player, type='half-point-bye')
+        bye2 = PlayerBye.objects.create(round=self.round1, player=self.sp2.player, type='full-point-bye')
 
         bye1.refresh_rank()
         self.assertEqual(2, bye1.player_rank)
