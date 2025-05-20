@@ -5,8 +5,8 @@ from django.utils import timezone
 from unittest.mock import patch
 from heltour.tournament.models import League, OauthToken, Player, Round, Team, TeamPairing, TeamPlayerPairing
 from heltour.tournament.tasks import (active_player_usernames, not_updated_recently_usernames, start_games,
-                                      update_player_ratings)
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_league, get_player, get_round
+                                      update_player_ratings, validate_registration)
+from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_league, get_player, get_round, get_season
 from heltour.tournament.lichessapi import ApiClientError
 
 
@@ -137,3 +137,26 @@ class TestAutostartGames(TestCase):
         self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")
         # test that the expiry of the bad token was set to a time in the past
         self.assertTrue(tpp2.black.oauth_token.expires < timezone.now() - timedelta(minutes=30))
+
+
+class TestValidateRegistration(TestCase):
+    @classmethod
+    def setUpTestData(self):
+        createCommonLeagueData()
+        # updating player ratings writes to the log, disable that temporarily for nicer test output
+        s = get_season('team')
+        logging.disable(logging.CRITICAL)
+        try:
+            self.reg = create_reg(s, name="newPlayer")
+        finally:
+            logging.disable(logging.NOTSET)
+
+    @patch('heltour.tournament.lichessapi.get_user_meta',
+           return_value={"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200,"prov":False}}})
+    def test_validation(self, user_meta):
+        validate_registration(self.reg.id)
+        self.assertTrue(user_meta.called)
+        self.assertTrue(self.reg.has_played_20_games)
+        self.assertTrue(self.reg.validation_ok)
+        self.assertFalse(self.reg.validation_warning)
+
