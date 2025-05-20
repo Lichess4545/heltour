@@ -77,7 +77,7 @@ def registration_saved(instance, created, **kwargs):
         instance.season.pk))
     pending_count = instance.season.registration_set.filter(status='pending',
                                                             season=instance.season).count()
-    message = f'@{instance.lichess_username} (instance.rating) has <{reg_url}|registered> for {league.name}. <{list_url}|{pending_count} pending>'
+    message = f'@{instance.lichess_username} ({instance.rating}) has <{reg_url}|registered> for {league.name}. <{list_url}|{pending_count} pending>'
 
     pre_season = instance.season.start_date and timezone.now() < instance.season.start_date
     setting = league.get_leaguesetting()

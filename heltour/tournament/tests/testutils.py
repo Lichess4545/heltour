@@ -1,3 +1,4 @@
+import logging
 from heltour.tournament.models import (League, LonePlayerScore, Player, Registration, Round,
                                        Season, SeasonPlayer, Team, TeamMember, TeamScore)
 from django.urls import reverse
@@ -74,3 +75,17 @@ def createCommonLeagueData(round_count=3):
             LonePlayerScore.objects.create(season_player=sp)
             player_num += 1
             TeamMember.objects.create(team=team, player=player, board_number=b)
+
+
+class Shush:
+    def __init__(self):
+        logging.disable(logging.CRITICAL)
+
+    def __enter__(self):
+        return(self)
+
+    def __exit__(self, type, value, traceback):
+        logging.disable(logging.NOTSET)
+        if type is not None:
+            logging.getLogger(__name__).error(f"Error {type}: {value}")
+        return True

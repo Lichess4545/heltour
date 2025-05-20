@@ -1,4 +1,3 @@
-import logging
 from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -9,7 +8,7 @@ from heltour.tournament.models import (add_system_comment, Alternate,
         ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
         TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_season, set_rating)
+        create_reg, get_league, get_season, set_rating, Shush)
 
 
 class HelpersTestCase(SimpleTestCase):
@@ -476,11 +475,11 @@ class RegistrationTestCase(TestCase):
 
     def test_registration_previous(self):
         season = get_season('team')
-        reg = create_reg(season, 'testuser')
+        reg = create_reg(season, 'Player1')
 
         self.assertEqual([], list(reg.previous_registrations()))
 
-        reg2 = create_reg(season, 'testuser')
+        reg2 = create_reg(season, 'Player1')
         self.assertEqual([], list(reg.previous_registrations()))
         self.assertEqual([reg], list(reg2.previous_registrations()))
 
@@ -549,12 +548,8 @@ class AlternateTestCase(TestCase):
 
         time1 = timezone.now()
         # creating a reg writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
-            sp.registration = create_reg(sp.season, 'testuser')
-            sp.save()
-        finally:
-            logging.disable(logging.NOTSET)
+        with Shush():
+            sp.registration = create_reg(sp.season, 'Player1')
         time2 = timezone.now()
 
         self.assertTrue(time1 <= alt.priority_date() <= time2)
