@@ -568,8 +568,6 @@ def validate_registration(reg_id):
         reg.has_played_20_games = not player.provisional_for(reg.season.league)
         if player.account_status != 'normal':
             fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.account_status}" mark.'
-        if reg.already_in_slack_group and not player.slack_user_id:
-            regquery.update(already_in_slack_group = False)
     except lichessapi.ApiWorkerError:
         fail_reason = f'The lichess user "{reg.lichess_username}" could not be found.'
     except lichessapi.ApiClientError:
