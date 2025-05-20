@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
@@ -6,7 +5,7 @@ from unittest.mock import patch
 from heltour.tournament.models import League, OauthToken, Player, Registration, Round, Team, TeamPairing, TeamPlayerPairing
 from heltour.tournament.tasks import (active_player_usernames, not_updated_recently_usernames, start_games,
                                       update_player_ratings, validate_registration)
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_league, get_player, get_round, get_season
+from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_league, get_player, get_round, get_season, Shush
 from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
 
 
@@ -33,11 +32,8 @@ class TestUpdateRatings(TestCase):
                                                    "classical":{"games":10, "rating":1800}}}])
     def test_update_ratings(self, *args):
         # updating player ratings writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             update_player_ratings()
-        finally:
-            logging.disable(logging.NOTSET)
         tl = get_league('team')
         l960 = get_league('960')
         p2 = get_player('Player2')
@@ -92,11 +88,8 @@ class TestAutostartGames(TestCase):
            return_value={"id": "RVAcwgg7", "games": [{"id": "NKop9IyD", "black": "player2", "white": "player4"}]})
     def test_start_game(self, *args):
         # start_games writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             start_games()
-        finally:
-            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
@@ -108,11 +101,8 @@ class TestAutostartGames(TestCase):
     def test_start_games(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
         # start_games writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             start_games()
-        finally:
-            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
@@ -124,11 +114,8 @@ class TestAutostartGames(TestCase):
     def test_start_invalid_token(self, *args):
         TeamPlayerPairing.objects.filter(board_number=1).update(black_confirmed = True)
         # start_games writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             start_games()
-        finally:
-            logging.disable(logging.NOTSET)
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
         # test that the tpp2 game link was not set
@@ -143,13 +130,10 @@ class TestValidateRegistration(TestCase):
     @classmethod
     def setUpTestData(self):
         createCommonLeagueData()
-        # updating player ratings writes to the log, disable that temporarily for nicer test output
         s = get_season('team')
-        logging.disable(logging.CRITICAL)
-        try:
+        # updating player ratings writes to the log, disable that temporarily for nicer test output
+        with Shush():
             self.reg = create_reg(s, name="Player1")
-        finally:
-            logging.disable(logging.NOTSET)
 
     @patch('heltour.tournament.lichessapi.get_user_meta',
            return_value={"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200,"prov":False}}})

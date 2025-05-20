@@ -1,12 +1,11 @@
 import datetime
-import logging
 import responses
 from django.test import TestCase
 from django.urls import reverse
 from unittest.mock import patch
 from heltour.tournament import oauth
 from heltour.tournament.models import LoginToken, Player, User
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_league, league_tag, league_url, season_url
+from heltour.tournament.tests.testutils import createCommonLeagueData, get_league, league_tag, league_url, season_url, Shush
 import re
 
 
@@ -157,13 +156,10 @@ class LoginBadTestCase(TestCase):
 
     def test_bad_response(self, *args):
         # failed logins write to the log, disable logging temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             response = self.client.get(reverse('lichess_auth'), {'code': 'abc'}, follow=True)
             self.assertTemplateUsed(response, 'tournament/login_failed.html')
             response = self.client.get(reverse('lichess_auth'), {'state': 'abc'}, follow=True)
             self.assertTemplateUsed(response, 'tournament/login_failed.html')
             response = self.client.get(reverse('lichess_auth'), {'code': 'abc', 'state': 'abc'}, follow=True)
-        finally:
-            logging.disable(logging.NOTSET)
         self.assertTemplateUsed(response, 'tournament/login_failed.html')

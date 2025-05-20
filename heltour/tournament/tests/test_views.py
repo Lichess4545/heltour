@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -9,7 +8,7 @@ from heltour.tournament.models import (League, Player, Round, Season, Team,
         TeamPairing, TeamPlayerPairing, LonePlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, league_url, reverse, season_tag,
-        season_url)
+        season_url, Shush)
 from heltour.tournament.views import _get_league, _get_season
 
 
@@ -83,11 +82,8 @@ class RostersTestCase(TestCase):
         self.assertTemplateUsed(response, 'tournament/team_rosters.html')
 
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             response = self.client.get(season_url('lone', 'rosters'))
-        finally:
-            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -110,13 +106,9 @@ class CrosstableTestCase(TestCase):
     def test_template(self):
         response = self.client.get(season_url('team', 'crosstable'))
         self.assertTemplateUsed(response, 'tournament/team_crosstable.html')
-
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             response = self.client.get(season_url('lone', 'crosstable'))
-        finally:
-            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
 
@@ -126,11 +118,8 @@ class WallchartTestCase(TestCase):
 
     def test_template(self):
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
-        logging.disable(logging.CRITICAL)
-        try:
+        with Shush():
             response = self.client.get(season_url('team', 'wallchart'))
-        finally:
-            logging.disable(logging.NOTSET)
         self.assertEqual(404, response.status_code)
 
         response = self.client.get(season_url('lone', 'wallchart'))
