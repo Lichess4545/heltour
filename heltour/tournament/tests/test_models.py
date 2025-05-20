@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
         AlternateAssignment, AlternateBucket, format_score, get_fide_dp,
         get_gameid_from_gamelink, League, LonePlayerPairing, normalize_gamelink,
-        OauthToken, Player, PlayerBye, PlayerPairing, Round,
+        OauthToken, Player, PlayerBye, PlayerPairing, Registration, Round,
         ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
         TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_season, set_rating, Shush)
+        create_reg, get_league, get_player, get_season, set_rating, Shush)
 
 
 class HelpersTestCase(SimpleTestCase):
@@ -184,6 +184,29 @@ class SeasonTestCase(TestCase):
         rounds[2].save()
         self.assertEqual([(2, 2, 2, 5, 2.5), (0.5, 1.5, 4, 1, 7.5), (0.5, 1.5, 4, 1.5, 7.5),
                           (1, 1, 2, 2.5, 2.5)], score_matrix())
+
+    def test_export_players_basic(self):
+        Season.objects.filter(name='Test Season').update(start_date=timezone.now())
+        SeasonPlayer.objects.create(season=get_season('team'), player=get_player('Player1'))
+        self.assertEqual(Season.objects.get(name='Test Season', tag='teamseason').export_players(),
+                         [{'name': 'Player1', 'rating': 0, 'has_20_games': False, 'in_slack': False,
+                           'account_status': 'normal', 'date_created': None, 'friends': None, 'avoid': None,
+                           'prefers_alt': False, 'alt_fine': False, 'previous_season_alternate': False}])
+
+    def test_export_players_detailed(self):
+        Season.objects.filter(name='Test Season').update(start_date=timezone.now())
+        reg = Registration.objects.create(season=get_season('team'), status='approved', lichess_username='Player1',
+                                          email='a@test.com', has_played_20_games=True, can_commit=True,
+                                          agreed_to_rules=True, agreed_to_tos=True, alternate_preference='full_time')
+        SeasonPlayer.objects.create(season=get_season('team'), player=get_player('Player1'), registration=reg)
+        season_old = Season.objects.create(league=get_league('team'), name='Previous Season', tag='Prev Team', rounds=1, boards=1, start_date=timezone.now() - timedelta(days=7))
+        sp = SeasonPlayer.objects.create(season=season_old, player=get_player('Player1'))
+        Alternate.objects.create(season_player=sp, board_number=1)
+        self.assertEqual(Season.objects.get(name='Test Season', tag='teamseason').export_players(),
+                         [{'name': 'Player1', 'rating': 0, 'has_20_games': False, 'in_slack': False,
+                           'account_status': 'normal', 'date_created': reg.date_created.isoformat(),
+                           'friends': '', 'avoid': '',
+                           'prefers_alt': False, 'alt_fine': False, 'previous_season_alternate': True}])
 
 
 class TeamTestCase(TestCase):
@@ -583,6 +606,14 @@ class AlternateTestCase(TestCase):
                                                lichess_username='Test User'))
         pp1.refresh_from_db()
         self.assertEqual('Test User', pp1.white.lichess_username)
+
+    def test_last_season_alternates(self):
+        Season.objects.filter(pk=self.season.pk).update(start_date=timezone.now())
+        season_old = Season.objects.create(league=self.season.league, name='Previous Season', tag='Prev Team', rounds=1, boards=1, start_date=timezone.now() - timedelta(days=7))
+        sp = SeasonPlayer.objects.create(season=season_old, player=self.player)
+        Alternate.objects.create(season_player=sp, board_number=1)
+        self.assertEqual(Season.objects.get(pk=self.season.pk).last_season_alternates(), {self.sp.player})
+
 
 
 class PlayerByeTestCase(TestCase):
