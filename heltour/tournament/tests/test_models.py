@@ -2,11 +2,11 @@ from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
-        AlternateAssignment, AlternateBucket, format_score, get_fide_dp,
-        get_gameid_from_gamelink, League, LonePlayerPairing, normalize_gamelink,
-        OauthToken, Player, PlayerBye, PlayerPairing, Registration, Round,
-        ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
-        TeamPlayerPairing, TeamScore)
+        AlternateAssignment, AlternateBucket, AlternatesManagerSetting,
+        format_score, get_fide_dp, get_gameid_from_gamelink, League,
+        LonePlayerPairing, normalize_gamelink, OauthToken, Player, PlayerBye,
+        PlayerPairing, Registration, Round, ScheduledNotification, Season,
+        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_player, get_season, set_rating, Shush)
 
@@ -199,6 +199,13 @@ class SeasonTestCase(TestCase):
                            'account_status': 'normal', 'date_created': reg.date_created.isoformat(),
                            'friends': '', 'avoid': '',
                            'prefers_alt': False, 'alt_fine': False, 'previous_season_alternate': True}])
+
+    def test_season_alternates_manager(self):
+        self.assertFalse(self.season.alternates_manager_enabled())
+        self.assertEqual(self.season.alternates_manager_setting(), None)
+        am = AlternatesManagerSetting.objects.create(league=self.season.league)
+        self.assertTrue(self.season.alternates_manager_enabled())
+        self.assertEqual(self.season.alternates_manager_setting(), am)
 
 
 class TeamTestCase(TestCase):
