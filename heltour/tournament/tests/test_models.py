@@ -55,17 +55,18 @@ class SeasonTestCase(TestCase):
     @classmethod
     def setUpTestData(self):
         createCommonLeagueData()
+        self.season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
+                                            start_date=datetime(2016, 7, 1,
+                                                                tzinfo=timezone.get_current_timezone()),
+                                            rounds=4, boards=6)
 
     def test_season_save_round_creation(self):
-        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=4,
-                                       boards=6)
+        self.assertEqual(4, self.season.round_set.count())
 
-        self.assertEqual(4, season.round_set.count())
+        self.season.rounds = 6
+        self.season.save()
 
-        season.rounds = 6
-        season.save()
-
-        self.assertEqual(6, season.round_set.count())
+        self.assertEqual(6, self.season.round_set.count())
 
     def test_season_save_prize_creation(self):
         season = get_season('team')
@@ -79,38 +80,28 @@ class SeasonTestCase(TestCase):
         self.assertEqual(1, season2.seasonprize_set.filter(rank=3).count())
 
     def test_season_save_round_date(self):
-        season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
-                                       start_date=datetime(2016, 7, 1,
-                                                           tzinfo=timezone.get_current_timezone()),
-                                       rounds=4, boards=6)
-
         self.assertEqual(datetime(2016, 7, 22, tzinfo=timezone.get_current_timezone()),
-                         season.round_set.order_by('-number')[0].start_date)
+                         self.season.round_set.order_by('-number')[0].start_date)
         self.assertEqual(datetime(2016, 7, 29, tzinfo=timezone.get_current_timezone()),
-                         season.round_set.order_by('-number')[0].end_date)
+                         self.season.round_set.order_by('-number')[0].end_date)
 
-        season.start_date = datetime(2016, 7, 2, tzinfo=timezone.get_current_timezone())
-        season.save()
+        self.season.start_date = datetime(2016, 7, 2, tzinfo=timezone.get_current_timezone())
+        self.season.save()
 
         self.assertEqual(datetime(2016, 7, 23, tzinfo=timezone.get_current_timezone()),
-                         season.round_set.order_by('-number')[0].start_date)
+                         self.season.round_set.order_by('-number')[0].start_date)
         self.assertEqual(datetime(2016, 7, 30, tzinfo=timezone.get_current_timezone()),
-                         season.round_set.order_by('-number')[0].end_date)
+                         self.season.round_set.order_by('-number')[0].end_date)
 
     def test_season_end_date(self):
-        season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
-                                       start_date=datetime(2016, 7, 1,
-                                                           tzinfo=timezone.get_current_timezone()),
-                                       rounds=4, boards=6)
-
         self.assertEqual(datetime(2016, 7, 29, tzinfo=timezone.get_current_timezone()),
-                         season.end_date())
+                         self.season.end_date())
 
     def test_season_board_number_list(self):
-        season = Season.objects.create(league=League.objects.all()[0], name='Test 2', rounds=2,
-                                       boards=4)
+        self.season.boards=4
+        self.season.save()
 
-        self.assertEqual([1, 2, 3, 4], season.board_number_list())
+        self.assertEqual([1, 2, 3, 4], self.season.board_number_list())
 
     def test_season_calculate_team_scores(self):
         season = get_season('team')
@@ -195,9 +186,10 @@ class SeasonTestCase(TestCase):
 
     def test_export_players_detailed(self):
         Season.objects.filter(name='Test Season').update(start_date=timezone.now())
-        reg = Registration.objects.create(season=get_season('team'), status='approved', lichess_username='Player1',
-                                          email='a@test.com', has_played_20_games=True, can_commit=True,
-                                          agreed_to_rules=True, agreed_to_tos=True, alternate_preference='full_time')
+        with Shush():
+            reg = Registration.objects.create(season=get_season('team'), status='approved', lichess_username='Player1',
+                                              email='a@test.com', has_played_20_games=True, can_commit=True,
+                                              agreed_to_rules=True, agreed_to_tos=True, alternate_preference='full_time')
         SeasonPlayer.objects.create(season=get_season('team'), player=get_player('Player1'), registration=reg)
         season_old = Season.objects.create(league=get_league('team'), name='Previous Season', tag='Prev Team', rounds=1, boards=1, start_date=timezone.now() - timedelta(days=7))
         sp = SeasonPlayer.objects.create(season=season_old, player=get_player('Player1'))
