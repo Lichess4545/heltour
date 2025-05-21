@@ -5,10 +5,10 @@ from django.contrib.auth.models import User
 from django.http.response import Http404
 from unittest.mock import patch
 from heltour.tournament.models import (League, Player, Round, Season, Team,
-        TeamPairing, TeamPlayerPairing, LonePlayerPairing)
+        TeamPairing, TeamPlayerPairing, LonePlayerPairing, SeasonPlayer)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_season, league_url, reverse, season_tag,
-        season_url, Shush)
+        create_reg, get_league, get_season, league_tag, league_url, reverse,
+        season_tag, season_url, Shush)
 from heltour.tournament.views import _get_league, _get_season
 
 
@@ -204,9 +204,9 @@ class TvTestCase(TestCase):
         createCommonLeagueData()
         Round.objects.filter(season__league__name='Lone League', number=1).update(publish_pairings=True, start_date=timezone.now())
         rd = Round.objects.get(season__league__name='Lone League', number=1)
-        player1 = Player.objects.get(lichess_username='Player1')
-        player2 = Player.objects.get(lichess_username='Player2')
-        LonePlayerPairing.objects.create(round=rd, white=player1, black=player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
+        self.player1 = Player.objects.get(lichess_username='Player1')
+        self.player2 = Player.objects.get(lichess_username='Player2')
+        LonePlayerPairing.objects.create(round=rd, white=self.player1, black=self.player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
 
     def test_tv(self, *args):
         response = self.client.get(season_url('lone', 'tv'))
@@ -223,3 +223,31 @@ class TvTestCase(TestCase):
         self.assertNotContains(response, 'KT837Aut')
         self.assertNotContains(response, 'Player1')
         self.assertNotContains(response, 'Player3')
+
+    def test_non_classical_tv(self, *args):
+        l960 = League.objects.create(name='c960 League', tag=league_tag('960'),
+                                     competitor_type='lone', rating_type='chess960')
+        s960 = Season.objects.create(league=l960, name='Season960', tag=season_tag('960'),
+                                    rounds=1, is_active=True, is_completed=False)
+        r960 = Round.objects.get(season=s960)
+#        sp1 = SeasonPlayer.objects.create(season=s960, player=self.player1)
+#        sp2 = SeasonPlayer.objects.create(season=s960, player=self.player2)
+        Player.objects.filter(pk=self.player1.pk).update(rating=1911,
+                                                         profile={"id":"Player1",
+                                                                  "perfs":{"chess960":{"games":12, "rating":1621},
+                                                                           "classical":{"games":10, "rating":1911}}}
+                                                         )
+        Player.objects.filter(pk=self.player2.pk).update(rating=1833,
+                                                         profile={"id":"Player2",
+                                                                  "perfs":{"chess960":{"games":12, "rating":1684},
+                                                                           "classical":{"games":10, "rating":1833}}}
+                                                         )
+        p960 = LonePlayerPairing.objects.create(round=r960, white=self.player1, black=self.player2,
+                                                game_link='https://lichess.org/KT837Aut',
+                                                tv_state='has_moves', pairing_order=1)
+        response = self.client.get(season_url('960', 'tv'))
+        self.assertNotContains(response, '"white_rating": 1911')
+        self.assertNotContains(response, '"black_rating": 1833')
+        self.assertContains(response, '"white_rating": 1621')
+        self.assertContains(response, '"black_rating": 1684')
+
