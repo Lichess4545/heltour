@@ -246,8 +246,9 @@ class TvTestCase(TestCase):
                                                 game_link='https://lichess.org/KT837Aut',
                                                 tv_state='has_moves', pairing_order=1)
         response = self.client.get(season_url('960', 'tv'))
+        self.assertNotContains(response, '"white": "Player1 (1911)"')
+        self.assertNotContains(response, '"black": "Player2 (1833)"')
         self.assertNotContains(response, '"white_rating": 1911')
         self.assertNotContains(response, '"black_rating": 1833')
         self.assertContains(response, '"white_rating": 1621')
         self.assertContains(response, '"black_rating": 1684')
-
