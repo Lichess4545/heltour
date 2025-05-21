@@ -2316,10 +2316,8 @@ def _tv_json(league, board=None, team=None):
             game_league = game_season.league
             return {
                 'id': game.game_id(),
-                'white': str(game.white),
                 'white_name': game.white.lichess_username,
                 'white_rating': game.white_rating_display(league),
-                'black': str(game.black),
                 'black_name': game.black.lichess_username,
                 'black_rating': game.black_rating_display(league),
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
@@ -2349,10 +2347,8 @@ def _tv_json(league, board=None, team=None):
             game_league = game_season.league
             return {
                 'id': game.game_id(),
-                'white': str(game.white),
                 'white_name': game.white.lichess_username,
                 'white_rating': game.white_rating_display(league),
-                'black': str(game.black),
                 'black_name': game.black.lichess_username,
                 'black_rating': game.black_rating_display(league),
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
