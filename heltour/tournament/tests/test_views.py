@@ -24,7 +24,7 @@ class HelperWoLeagueTestCase(TestCase):
 
 class TemplatesRedirectTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
 
     def test_helper_get_league(self):
@@ -133,7 +133,7 @@ class TemplatesRedirectTestCase(TestCase):
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class RegisterTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
         User.objects.create_user('Player1', password='test')
 
@@ -200,13 +200,13 @@ class RegisterTestCase(TestCase):
        return_value=None)
 class TvTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
         Round.objects.filter(season__league__name='Lone League', number=1).update(publish_pairings=True, start_date=timezone.now())
         rd = Round.objects.get(season__league__name='Lone League', number=1)
-        self.player1 = Player.objects.get(lichess_username='Player1')
-        self.player2 = Player.objects.get(lichess_username='Player2')
-        LonePlayerPairing.objects.create(round=rd, white=self.player1, black=self.player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
+        cls.player1 = Player.objects.get(lichess_username='Player1')
+        cls.player2 = Player.objects.get(lichess_username='Player2')
+        LonePlayerPairing.objects.create(round=rd, white=cls.player1, black=cls.player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
 
     def test_tv(self, *args):
         response = self.client.get(season_url('lone', 'tv'))

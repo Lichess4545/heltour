@@ -11,7 +11,7 @@ import re
 
 class LoginTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
 
     def test_encode_decode_state(self, *args):
@@ -47,7 +47,7 @@ class LoginTestCase(TestCase):
        return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
 class LoginWithCodeTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
 
     @responses.activate

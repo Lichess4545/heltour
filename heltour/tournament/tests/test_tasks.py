@@ -11,7 +11,7 @@ from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
 
 class TestHelpers(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
 
     def test_username_helpers(self, *args):
@@ -23,10 +23,10 @@ class TestHelpers(TestCase):
 
 class TestUpdateRatings(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.l960 = League.objects.create(name='c960 League', tag='960league',
-                              competitor_type='lone', rating_type='chess960')
+        cls.l960 = League.objects.create(name='c960 League', tag='960league',
+                                         competitor_type='lone', rating_type='chess960')
 
     @patch('heltour.tournament.lichessapi.enumerate_user_metas',
            return_value=[{"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200}}},
@@ -48,7 +48,7 @@ class TestUpdateRatings(TestCase):
        return_value=None)
 class TestAutostartGames(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
@@ -130,12 +130,12 @@ class TestAutostartGames(TestCase):
 
 class TestValidateRegistration(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
         s = get_season('team')
         # updating player ratings writes to the log, disable that temporarily for nicer test output
         with Shush():
-            self.reg = create_reg(s, name="Player1")
+            cls.reg = create_reg(s, name="Player1")
 
     @patch('heltour.tournament.lichessapi.get_user_meta',
            return_value={"id":"Player1", "perfs":{"classical":{"games":25,"rating":2200,"prov":False}}})

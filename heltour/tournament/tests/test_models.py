@@ -36,10 +36,10 @@ class HelpersTestCase(SimpleTestCase):
 
 class LeagueTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
-        self.league = League.objects.create(name='Lone League', tag='loneleague',
-                                            competitor_type='lone',
-                                            rating_type='classical')
+    def setUpTestData(cls):
+        cls.league = League.objects.create(name='Lone League', tag='loneleague',
+                                           competitor_type='lone',
+                                           rating_type='classical')
 
     def test_time_control(self):
         self.assertEqual(str(self.league), 'Lone League')
@@ -54,12 +54,12 @@ class LeagueTestCase(TestCase):
 
 class SeasonTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
-                                            start_date=datetime(2016, 7, 1,
-                                                                tzinfo=timezone.get_current_timezone()),
-                                            rounds=4, boards=6)
+        cls.season = Season.objects.create(league=League.objects.all()[0], name='Test 2',
+                                           start_date=datetime(2016, 7, 1,
+                                                               tzinfo=timezone.get_current_timezone()),
+                                           rounds=4, boards=6)
 
     def test_season_save_round_creation(self):
         self.assertEqual(4, self.season.round_set.count())
@@ -223,11 +223,11 @@ class SeasonTestCase(TestCase):
 
 class TeamTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.team = Team.objects.get(number=1)
-        self.bd1 = self.team.teammember_set.get(board_number=1)
-        self.bd2 = self.team.teammember_set.get(board_number=2)
+        cls.team = Team.objects.get(number=1)
+        cls.bd1 = cls.team.teammember_set.get(board_number=1)
+        cls.bd2 = cls.team.teammember_set.get(board_number=2)
 
     def test_team_boards(self):
         self.assertEqual([(1, self.bd1), (2, self.bd2)], self.team.boards())
@@ -253,7 +253,7 @@ class TeamTestCase(TestCase):
 
 class TeamScoreTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
@@ -262,15 +262,15 @@ class TeamScoreTestCase(TestCase):
         round1 = Round.objects.get(season__tag='teamseason', number=1)
         round1.is_completed = True
         round1.save()
-        self.pairing1 = TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1,
+        cls.pairing1 = TeamPairing.objects.create(white_team=team1, black_team=team2, round=round1,
                                                    pairing_order=0, white_points=1.5, black_points=0.5)
 
         round2 = Round.objects.get(season__tag='teamseason', number=2)
         round2.is_completed = True
         round2.save()
-        self.pairing2 = TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2,
-                                                   pairing_order=0, black_points=1.0, white_points=1.0)
-        self.teamscore = TeamScore.objects.get(team__number=1)
+        cls.pairing2 = TeamPairing.objects.create(white_team=team3, black_team=team1, round=round2,
+                                                  pairing_order=0, black_points=1.0, white_points=1.0)
+        cls.teamscore = TeamScore.objects.get(team__number=1)
 
     def test_teamscore_round_scores(self):
         self.assertEqual([(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)],
@@ -299,7 +299,7 @@ class TeamScoreTestCase(TestCase):
 
 class TeamPairingTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
 
     def test_teampairing_refresh_points(self):
@@ -360,12 +360,12 @@ class TeamPairingTestCase(TestCase):
 
 class LonePlayerPairingTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.season = get_season('lone')
-        self.round1 = self.season.round_set.get(number=1)
-        self.round2 = self.season.round_set.get(number=2)
-        self.sps = self.season.seasonplayer_set.all()
+        cls.season = get_season('lone')
+        cls.round1 = cls.season.round_set.get(number=1)
+        cls.round2 = cls.season.round_set.get(number=2)
+        cls.sps = cls.season.seasonplayer_set.all()
 
     def test_loneplayerpairing_save_and_delete(self):
         sp1 = self.season.seasonplayer_set.all()[0]
@@ -449,9 +449,9 @@ class LonePlayerPairingTestCase(TestCase):
 
 class PlayerPairingTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.team1 = Team.objects.get(number=1)
+        cls.team1 = Team.objects.get(number=1)
 
     def test_playerpairing_score(self):
         team2 = Team.objects.get(number=2)
@@ -491,9 +491,9 @@ class PlayerPairingTestCase(TestCase):
 
 class RegistrationTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.season = get_season('team')
+        cls.season = get_season('team')
 
     def test_registration_previous(self):
         reg = create_reg(self.season, 'Player1')
@@ -517,11 +517,11 @@ class RegistrationTestCase(TestCase):
 
 class AlternateTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.season = get_season('team')
-        self.player = Player.objects.all()[0]
-        self.sp = SeasonPlayer.objects.create(season=self.season, player=self.player)
+        cls.season = get_season('team')
+        cls.player = Player.objects.all()[0]
+        cls.sp = SeasonPlayer.objects.create(season=cls.season, player=cls.player)
 
     def test_alternate_update_board_number(self):
         self.season.boards = 3
@@ -630,14 +630,14 @@ class AlternateTestCase(TestCase):
 
 class PlayerByeTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.season = get_season('lone')
-        self.round1 = self.season.round_set.get(number=1)
-        self.round1.is_completed = True
-        self.round1.save()
-        self.sp1 = self.season.seasonplayer_set.all()[0]
-        self.sp2 = self.season.seasonplayer_set.all()[1]
+        cls.season = get_season('lone')
+        cls.round1 = cls.season.round_set.get(number=1)
+        cls.round1.is_completed = True
+        cls.round1.save()
+        cls.sp1 = cls.season.seasonplayer_set.all()[0]
+        cls.sp2 = cls.season.seasonplayer_set.all()[1]
 
     def test_playerbye_save_and_delete(self):
         score = self.sp1.loneplayerscore
