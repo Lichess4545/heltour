@@ -1,5 +1,6 @@
 from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
+from unittest.mock import patch
 from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
         AlternateAssignment, AlternateBucket, AlternatesManagerSetting,
@@ -206,6 +207,18 @@ class SeasonTestCase(TestCase):
         am = AlternatesManagerSetting.objects.create(league=self.season.league)
         self.assertTrue(self.season.alternates_manager_enabled())
         self.assertEqual(self.season.alternates_manager_setting(), am)
+
+    @patch('heltour.tournament.signals.slack_account_linked.send')
+    def test_player_link_slack(self, linked_signal):
+        p1 = get_player('Player1')
+        link = p1.link_slack_account('Player1', 'SLACKID')
+        self.assertTrue(link)
+        self.assertTrue(linked_signal.called)
+        p1.refresh_from_db()
+        self.assertEqual(p1.slack_user_id, 'SLACKID')
+        link = p1.link_slack_account('Player1', 'SLACKID')
+        self.assertFalse(link)
+
 
 
 class TeamTestCase(TestCase):
