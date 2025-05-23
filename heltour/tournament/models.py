@@ -1225,13 +1225,6 @@ class TeamMember(_BaseModel):
                 league = self.team.season.league
             return self.player.rating_for(league)
 
-    def expected_rating(self):
-        try:
-            sp = SeasonPlayer.objects.get(season=self.team.season, player=self.player)
-            return sp.expected_rating(self.team.season.league)
-        except SeasonPlayer.DoesNotExist:
-            return None
-
     def save(self, *args, **kwargs):
         player_changed = self.pk is None or self.player_id != self.initial_player_id
         if player_changed:
