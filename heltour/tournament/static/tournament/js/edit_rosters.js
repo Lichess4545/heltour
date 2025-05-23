@@ -134,18 +134,11 @@ function updateAverage($teams) {
         var $players = $team.find('.player');
         var n = 0;
         var total = 0.0;
-        var nExp = 0;
-        var totalExp = 0.0;
         for (var j = 0; j < $players.length; j++) {
             var rating = parseInt($players.eq(j).attr('data-rating'));
             if (!isNaN(rating)) {
                 n += 1;
                 total += rating;
-            }
-            var ratingExp = parseInt($players.eq(j).attr('data-exp-rating'));
-            if (!isNaN(ratingExp)) {
-                nExp += 1;
-                totalExp += ratingExp;
             }
         }
         if (n > 0) {
@@ -153,16 +146,11 @@ function updateAverage($teams) {
         } else {
             $team.find('.average-rating').text('');
         }
-        if (nExp > 0) {
-            $team.find('.average-exp-rating').text((totalExp / nExp).toFixed(2));
-        } else {
-            $team.find('.average-exp-rating').text('');
-        }
     }
 }
 
 function updateDisplayedRatings() {
-    attrName = $('#id_rating_type').val() === 'expected' ? 'data-exp-rating' : 'data-rating';
+    attrName = $('#id_rating_type').val() === 'data-rating';
     $('.rating').each(function (i, el) {
         $(el).text($(el).closest('.player').attr(attrName));
     });
@@ -350,9 +338,6 @@ $(function () {
 
     updateAverage($('.team'));
 
-    $('#id_rating_type').on('change', function (e) {
-        updateDisplayedRatings();
-    });
     updateDisplayedRatings();
 
     // Allow team names to be edited by clicking on them
