@@ -78,10 +78,8 @@ def createCommonLeagueData(round_count=3):
 
 
 class Shush:
-    def __init__(self):
-        logging.disable(logging.CRITICAL)
-
     def __enter__(self):
+        logging.disable(logging.CRITICAL)
         return(self)
 
     def __exit__(self, type, value, traceback):

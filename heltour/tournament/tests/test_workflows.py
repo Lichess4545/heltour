@@ -5,7 +5,8 @@ from heltour.tournament.tests.testutils import createCommonLeagueData, create_re
 
 
 class TestLJPCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         createCommonLeagueData(round_count=7)
 
     def test_ljp_none_rating(self, *args):

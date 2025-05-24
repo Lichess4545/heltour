@@ -5,10 +5,10 @@ from django.contrib.auth.models import User
 from django.http.response import Http404
 from unittest.mock import patch
 from heltour.tournament.models import (League, Player, Round, Season, Team,
-        TeamPairing, TeamPlayerPairing, LonePlayerPairing)
+        TeamPairing, TeamPlayerPairing, LonePlayerPairing, SeasonPlayer)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_season, league_url, reverse, season_tag,
-        season_url, Shush)
+        create_reg, get_league, get_season, league_tag, league_url, reverse,
+        season_tag, season_url, Shush)
 from heltour.tournament.views import _get_league, _get_season
 
 
@@ -22,40 +22,26 @@ class HelperWoLeagueTestCase(TestCase):
                           lambda: _get_season(season_tag=None, league_tag='960league',
                                               allow_none=False))
 
-class HelperTestCase(TestCase):
-    def setUp(self):
+class TemplatesRedirectTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
         createCommonLeagueData()
 
-    def test_get_league(self):
+    def test_helper_get_league(self):
         self.assertEqual(_get_league(None), get_league('team'))
 
-
-class HomeTestCase(TestCase):
-    def setUp(self):
-        pass
-
-    def test_template(self):
+    def test_home_template(self):
         response = self.client.get(reverse('home'))
         self.assertTemplateUsed(response, 'tournament/home.html')
 
-
-class LeagueHomeTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_league_home_template(self):
         response = self.client.get(league_url('team', 'league_home'))
         self.assertTemplateUsed(response, 'tournament/team_league_home.html')
 
         response = self.client.get(league_url('lone', 'league_home'))
         self.assertTemplateUsed(response, 'tournament/lone_league_home.html')
 
-
-class SeasonLandingTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_season_landing_template(self):
         response = self.client.get(season_url('team', 'season_landing'))
         self.assertTemplateUsed(response, 'tournament/team_season_landing.html')
 
@@ -72,12 +58,7 @@ class SeasonLandingTestCase(TestCase):
         response = self.client.get(season_url('lone', 'season_landing'))
         self.assertTemplateUsed(response, 'tournament/lone_completed_season_landing.html')
 
-
-class RostersTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_rosters_template(self):
         response = self.client.get(season_url('team', 'rosters'))
         self.assertTemplateUsed(response, 'tournament/team_rosters.html')
 
@@ -86,24 +67,14 @@ class RostersTestCase(TestCase):
             response = self.client.get(season_url('lone', 'rosters'))
         self.assertEqual(404, response.status_code)
 
-
-class StandingsTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_standings_template(self):
         response = self.client.get(season_url('team', 'standings'))
         self.assertTemplateUsed(response, 'tournament/team_standings.html')
 
         response = self.client.get(season_url('lone', 'standings'))
         self.assertTemplateUsed(response, 'tournament/lone_standings.html')
 
-
-class CrosstableTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_crosstable_template(self):
         response = self.client.get(season_url('team', 'crosstable'))
         self.assertTemplateUsed(response, 'tournament/team_crosstable.html')
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
@@ -111,12 +82,7 @@ class CrosstableTestCase(TestCase):
             response = self.client.get(season_url('lone', 'crosstable'))
         self.assertEqual(404, response.status_code)
 
-
-class WallchartTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_wallchart_template(self):
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
         with Shush():
             response = self.client.get(season_url('team', 'wallchart'))
@@ -125,10 +91,7 @@ class WallchartTestCase(TestCase):
         response = self.client.get(season_url('lone', 'wallchart'))
         self.assertTemplateUsed(response, 'tournament/lone_wallchart.html')
 
-
-class PairingsTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
+    def test_pairings_template(self):
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
         Round.objects.filter(season__league__name="Team League", number=1).update(publish_pairings=True, start_date=timezone.now())
@@ -149,8 +112,6 @@ class PairingsTestCase(TestCase):
                 white_confirmed = False,
                 black_confirmed = False
                 )
-
-    def test_template(self):
         response = self.client.get(season_url('team', 'pairings'))
         self.assertTemplateUsed(response, 'tournament/team_pairings.html')
         self.assertNotContains(response, 'icon-confirmed')
@@ -162,12 +123,7 @@ class PairingsTestCase(TestCase):
         response = self.client.get(season_url('team', 'pairings'))
         self.assertContains(response, 'icon-confirmed')
 
-
-class StatsTestCase(TestCase):
-    def setUp(self):
-        createCommonLeagueData()
-
-    def test_template(self):
+    def test_stats_template(self):
         response = self.client.get(season_url('team', 'stats'))
         self.assertTemplateUsed(response, 'tournament/team_stats.html')
 
@@ -176,7 +132,8 @@ class StatsTestCase(TestCase):
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class RegisterTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         createCommonLeagueData()
         User.objects.create_user('Player1', password='test')
 
@@ -216,9 +173,10 @@ class RegisterTestCase(TestCase):
             self.assertContains(response, 'Register')
             self.assertNotContains(response, 'Change Registration')
 
-            registration = create_reg(season, user.username)
-            registration.classical_rating = 1600
-            registration.save()
+            with Shush():
+                registration = create_reg(season, user.username)
+                registration.classical_rating = 1600
+                registration.save()
 
             response = self.client.get(league_url(league_type, 'league_home'))
             self.assertContains(response, 'Change Registration')
@@ -241,13 +199,14 @@ class RegisterTestCase(TestCase):
 @patch('heltour.tournament.lichessapi.watch_games',
        return_value=None)
 class TvTestCase(TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         createCommonLeagueData()
         Round.objects.filter(season__league__name='Lone League', number=1).update(publish_pairings=True, start_date=timezone.now())
         rd = Round.objects.get(season__league__name='Lone League', number=1)
-        player1 = Player.objects.get(lichess_username='Player1')
-        player2 = Player.objects.get(lichess_username='Player2')
-        LonePlayerPairing.objects.create(round=rd, white=player1, black=player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
+        cls.player1 = Player.objects.get(lichess_username='Player1')
+        cls.player2 = Player.objects.get(lichess_username='Player2')
+        LonePlayerPairing.objects.create(round=rd, white=cls.player1, black=cls.player2, game_link='https://lichess.org/KT837Aut', scheduled_time=timezone.now(), pairing_order=1, tv_state='has_moves')
 
     def test_tv(self, *args):
         response = self.client.get(season_url('lone', 'tv'))
@@ -264,3 +223,32 @@ class TvTestCase(TestCase):
         self.assertNotContains(response, 'KT837Aut')
         self.assertNotContains(response, 'Player1')
         self.assertNotContains(response, 'Player3')
+
+    def test_non_classical_tv(self, *args):
+        l960 = League.objects.create(name='c960 League', tag=league_tag('960'),
+                                     competitor_type='lone', rating_type='chess960')
+        s960 = Season.objects.create(league=l960, name='Season960', tag=season_tag('960'),
+                                    rounds=1, is_active=True, is_completed=False)
+        r960 = Round.objects.get(season=s960)
+#        sp1 = SeasonPlayer.objects.create(season=s960, player=self.player1)
+#        sp2 = SeasonPlayer.objects.create(season=s960, player=self.player2)
+        Player.objects.filter(pk=self.player1.pk).update(rating=1911,
+                                                         profile={"id":"Player1",
+                                                                  "perfs":{"chess960":{"games":12, "rating":1621},
+                                                                           "classical":{"games":10, "rating":1911}}}
+                                                         )
+        Player.objects.filter(pk=self.player2.pk).update(rating=1833,
+                                                         profile={"id":"Player2",
+                                                                  "perfs":{"chess960":{"games":12, "rating":1684},
+                                                                           "classical":{"games":10, "rating":1833}}}
+                                                         )
+        p960 = LonePlayerPairing.objects.create(round=r960, white=self.player1, black=self.player2,
+                                                game_link='https://lichess.org/KT837Aut',
+                                                tv_state='has_moves', pairing_order=1)
+        response = self.client.get(season_url('960', 'tv'))
+        self.assertNotContains(response, '"white": "Player1 (1911)"')
+        self.assertNotContains(response, '"black": "Player2 (1833)"')
+        self.assertNotContains(response, '"white_rating": 1911')
+        self.assertNotContains(response, '"black_rating": 1833')
+        self.assertContains(response, '"white_rating": 1621')
+        self.assertContains(response, '"black_rating": 1684')

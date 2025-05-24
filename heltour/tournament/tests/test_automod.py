@@ -8,14 +8,14 @@ from heltour.tournament.tests.testutils import createCommonLeagueData, get_leagu
 
 class NoShowTestCase(TestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         createCommonLeagueData()
-        self.rd = get_round('team', round_number=1)
-        self.player1 = get_player('Player1')
-        self.player2 = get_player('Player2')
-        self.pairing = LonePlayerPairing.objects.create(round=self.rd, white=self.player1, black=self.player2, game_link='', scheduled_time=timezone.now(), pairing_order=1, tv_state='default')
-        PlayerPresence.objects.create(player=self.player1, pairing=self.pairing, round=self.rd)
-        PlayerPresence.objects.create(player=self.player2, pairing=self.pairing, round=self.rd)
+        cls.rd = get_round('team', round_number=1)
+        cls.player1 = get_player('Player1')
+        cls.player2 = get_player('Player2')
+        cls.pairing = LonePlayerPairing.objects.create(round=cls.rd, white=cls.player1, black=cls.player2, game_link='', scheduled_time=timezone.now(), pairing_order=1, tv_state='default')
+        PlayerPresence.objects.create(player=cls.player1, pairing=cls.pairing, round=cls.rd)
+        PlayerPresence.objects.create(player=cls.player2, pairing=cls.pairing, round=cls.rd)
 
     @patch('heltour.tournament.signals.notify_noshow.send')
     def test_has_moves(self, noshow_sender):
