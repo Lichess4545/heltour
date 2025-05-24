@@ -150,7 +150,7 @@ function updateAverage($teams) {
 }
 
 function updateDisplayedRatings() {
-    attrName = $('#id_rating_type').val() === 'data-rating';
+    attrName = 'data-rating';
     $('.rating').each(function (i, el) {
         $(el).text($(el).closest('.player').attr(attrName));
     });
