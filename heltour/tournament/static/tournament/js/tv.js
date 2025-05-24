@@ -220,8 +220,8 @@ function render(data) {
         var $tbody = $('<tbody></tbody>').appendTo('#schedule');
         for (var j = 0; j < day_schedules[i].length; j++) {
             var g = day_schedules[i][j];
-            $('<tr><td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.white_name + '">' + g.white + '</a></td><td>-</td>' +
-                '<td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.black_name + '">' + g.black + '</a></td>' +
+            $('<tr><td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.white_name + '">' + g.white_name + ' (' + g.white_rating + ')</a></td><td>-</td>' +
+                '<td><a href="/' + g.league + '/season/' + g.season + '/player/' + g.black_name + '">' + g.black_name + ' (' + g.black_rating + ')</a></td>' +
                 '<td>' + g.time.format('HH:mm') + '</td></tr>').appendTo($tbody);
 //	  		if (g.board_number) {
 //	  			$('<tr class="team-row"><td><a href="/' + g.league + '/season/' + g.season + '/team/' + g.white_team.number + '">' + g.white_team.name + '</a></td>' +
