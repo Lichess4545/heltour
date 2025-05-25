@@ -768,7 +768,7 @@ ACCOUNT_STATUS_OPTIONS = (
 
 # -------------------------------------------------------------------------------
 class Player(_BaseModel):
-    lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)

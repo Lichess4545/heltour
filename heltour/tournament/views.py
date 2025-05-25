@@ -1283,6 +1283,30 @@ class ActivePlayerTableView(LeagueView):
             .order_by("-season__start_date")
             .values("season__tag")[:1]
         )
+
+
+def get_top_players(limit: int=10, tournament_id: int=10):
+    from django.db import connection
+    query = """
+        SELECT player_id, COUNT(player_id) as game_count
+        FROM (
+            SELECT white_id as player_id
+            FROM {table_name}
+            WHERE game_link != ''
+            UNION ALL
+            SELECT black_id as player_id
+            FROM {table_name}
+            WHERE game_link != ''
+        ) as all_games
+        GROUP BY player_id
+        ORDER BY game_count DESC
+        LIMIT %s
+    """.format(table_name=PlayerPairing._meta.db_table)
+    with connection.cursor() as cursor:
+        cursor.execute(query, [tournament_id, limit])
+        return cursor.fetchall()
+
+
 class BoardScoresView(SeasonView):
     def view(self, board_number):
         if self.league.is_team_league():

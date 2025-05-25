@@ -57,5 +57,10 @@
             <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.paginator.num_pages }}">last &raquo;</a>
         {% endif %}
     </span>
+		{% if page_obj.number == 1 %}
+				<div class="well">
+						A total of {{ total_players }} players played {{ total_games }} games.
+				</div>
+		{% endif %}
 </div>
 {% endblock %}
