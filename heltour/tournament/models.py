@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models, transaction, connection
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
@@ -166,6 +166,44 @@ class League(_BaseModel):
         
     def is_team_league(self):
         return self.competitor_type == 'team'
+
+    def get_active_players(self):
+        if self.is_team_league():
+            query = """
+                SELECT player_id, COUNT(player_id) as game_count
+                FROM (
+                    SELECT pp.white_id as player_id
+                    FROM tournament_playerpairing pp
+                    INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
+                    INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                    INNER JOIN tournament_round r ON tp.round_id = r.id
+                    INNER JOIN tournament_season s ON r.season_id = s.id
+                    INNER JOIN tournament_league l ON s.league_id = l.id
+                    WHERE pp.game_link != '' AND l.id = %s
+
+                    UNION ALL
+
+                    SELECT pp.black_id as player_id
+                    FROM tournament_playerpairing pp
+                    INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
+                    INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                    INNER JOIN tournament_round r ON tp.round_id = r.id
+                    INNER JOIN tournament_season s ON r.season_id = s.id
+                    INNER JOIN tournament_league l ON s.league_id = l.id
+                   WHERE pp.game_link != '' AND l.id = %s
+                ) as all_games
+                GROUP BY player_id
+                ORDER BY game_count DESC
+            """
+        else:
+            query = ""
+            return namedtuple('Player', ['player_id', 'game_count'])
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.pk, self.pk])
+            desc = cursor.description
+            nt_result = namedtuple("Player", [col[0] for col in desc])
+            return [nt_result(*row) for row in cursor.fetchall()]
+
 
     def __str__(self):
         return self.name

@@ -1235,76 +1235,32 @@ class StatsView(SeasonView):
 class ActivePlayerTableView(LeagueView):
     @cached_as(League, Season, Round)
     def view(self, page: int = 1):
-        tablesums = Player.objects.only("lichess_username").annotate(
-            blackcount=Count("pairings_as_black", filter=self.black_games_Q(), distinct=True),
-            whitecount=Count("pairings_as_white", filter=self.white_games_Q(), distinct=True),
-            game_count=F("blackcount") + F("whitecount"),
-            season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
-            latest_season=Subquery(self.latest_season_subquery()),
-        ).order_by("-game_count", "season_count")
+        tablesums = self.league.get_active_players()
 
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
         page_obj = paginator.get_page(page)
 
+        oneplayer = namedtuple('oneplayer', ['lichess_username', 'game_count'])
+        subtable = []
+
+        for player in page_obj.object_list:
+            subtable.append(oneplayer._make([Player.objects.get(pk = player.player_id).lichess_username, player.game_count]))
+
         context = {
             "page_obj": page_obj,
+            "subtable": subtable,
         }
+
+        if page == 1:
+            total_players = len(tablesums)
+            total_games = 0
+            for player in tablesums:
+                total_games += player.game_count
+            total_games = int(total_games/2) # there's always 2 players that play the game.
+            context.update({"total_games": total_games, "total_players": total_players})
 
         return self.render("tournament/active_players.html", context)
 
-    def black_games_Q(self):
-        if self.league.is_team_league():
-            return Q(
-                pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league
-            ) & ~Q(pairings_as_black__teamplayerpairing__game_link="")
-        else:
-            return Q(
-                pairings_as_black__loneplayerpairing__round__season__league=self.league
-            ) & ~Q(pairings_as_black__loneplayerpairing__game_link="")
-
-    def white_games_Q(self):
-        if self.league.is_team_league():
-            return Q(
-                pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league
-            ) & ~Q(pairings_as_white__teamplayerpairing__game_link="")
-        else:
-            return Q(
-                pairings_as_white__loneplayerpairing__round__season__league=self.league
-            ) & ~Q(pairings_as_white__loneplayerpairing__game_link="")
-
-    def seasons_Q(self):
-        return Q(seasonplayer__season__league=self.league)
-
-    def latest_season_subquery(self):
-        return (
-            SeasonPlayer.objects.filter(
-                season__league=self.league, player=OuterRef("pk")
-            )
-            .order_by("-season__start_date")
-            .values("season__tag")[:1]
-        )
-
-
-def get_top_players(limit: int=10, tournament_id: int=10):
-    from django.db import connection
-    query = """
-        SELECT player_id, COUNT(player_id) as game_count
-        FROM (
-            SELECT white_id as player_id
-            FROM {table_name}
-            WHERE game_link != ''
-            UNION ALL
-            SELECT black_id as player_id
-            FROM {table_name}
-            WHERE game_link != ''
-        ) as all_games
-        GROUP BY player_id
-        ORDER BY game_count DESC
-        LIMIT %s
-    """.format(table_name=PlayerPairing._meta.db_table)
-    with connection.cursor() as cursor:
-        cursor.execute(query, [tournament_id, limit])
-        return cursor.fetchall()
 
 
 class BoardScoresView(SeasonView):
