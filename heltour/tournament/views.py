@@ -20,11 +20,13 @@ from django.utils.text import slugify
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.core.exceptions import SuspiciousOperation
 from smtplib import SMTPException
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.urls import NoReverseMatch
 from django.conf import settings
 from ipware import get_client_ip
 
@@ -2282,7 +2284,7 @@ class ToggleDarkModeView(BaseView):
         try:
             if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
                 return redirect(redirect_url)
-        except (ValueError, SuspiciousOperation) as e:
+        except (ValueError, SuspiciousOperation, NoReverseMatch) as e:
             logger.warning(f'Redirect URL Validation failed: {e}')
         return redirect('home')
 
@@ -2304,7 +2306,7 @@ class ToggleZenModeView(BaseView):
         try:
             if redirect_url and url_has_allowed_host_and_scheme(redirect_url, settings.ALLOWED_HOSTS):
                 return redirect(redirect_url)
-        except (ValueError, SuspiciousOperation) as e:
+        except (ValueError, SuspiciousOperation, NoReverseMatch) as e:
             logger.warning(f'Redirect URL Validation failed: {e}')
         return redirect('home')
 

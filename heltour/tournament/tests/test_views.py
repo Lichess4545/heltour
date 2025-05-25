@@ -22,6 +22,14 @@ class HelperWoLeagueTestCase(TestCase):
                           lambda: _get_season(season_tag=None, league_tag='960league',
                                               allow_none=False))
 
+class DarkModeTestCase(TestCase):
+    def test_suspicious_redirect(self):
+        with Shush():
+            response = self.client.get('/toggle/darkmode/?redirect_url=test', follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.redirect_chain, [('/', 302)])
+
+
 class TemplatesRedirectTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
