@@ -25,7 +25,7 @@
                                   </tr>
                              </thead>
                              <tbody>
-                               {% for player in page_obj.object_list %}
+                               {% for player in subtable %}
                                 <tr>
                                   <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
                                   <td class="text-center"><a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
