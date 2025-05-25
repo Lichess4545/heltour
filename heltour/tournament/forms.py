@@ -292,8 +292,6 @@ class ReviewPairingsForm(forms.Form):
 
 class EditRostersForm(forms.Form):
     changes = forms.CharField(widget=forms.HiddenInput)
-    rating_type = forms.ChoiceField(
-        choices=[('actual', 'Actual Ratings'), ('expected', 'Expected Ratings')])
 
 
 class RoundTransitionForm(forms.Form):
