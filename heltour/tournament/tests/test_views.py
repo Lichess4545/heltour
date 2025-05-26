@@ -205,16 +205,28 @@ class RegisterTestCase(TestCase):
 
     def test_register_post(self):
         self.client.login(username='Player1', password='test')
+        Season.objects.filter(league__name="Team League", name="Test Season").update(registration_open = True,
+                start_date=timezone.now() + timedelta(hours = 1),
+                round_duration=timedelta(hours=1))
         season = get_season('team')
-        registration_open = True
-        start_date = timezone.now() + timedelta(hours=1)
-        season.save()
-        response = self.client.post(league_url('team', 'register'),
-                data={'items':('[{"email": "player1@example.com", "has_played_20_games": False, "can_commit": True,'
-                                        '"agreed_to_rules": True, "agreed_to_tos": True, "weeks_unavailable": 5}]')})
+        Round.objects.filter(season=season).update(start_date=timezone.now() + timedelta(hours=1))
+        # invalid form
+        response = self.client.post(season_url('team', 'register'),
+                                    data={"email": "player1@example.com", "has_played_20_games": False,
+                                          "can_commit": True, "agreed_to_rules": True, "agreed_to_tos": True,
+                                          "weeks_unavailable": '', "friends": '', "avoid": ''})
+
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(Registration.objects.get(pk=1).email, 'player1@example.com')
-    
+        self.assertEqual(Registration.objects.filter(lichess_username='Player1').count(), 0)
+        with Shush():
+            response = self.client.post(season_url('team', 'register'),
+                                        data={"email": "player1@example.com", "has_played_20_games": False,
+                                              "can_commit": True, "agreed_to_rules": True, "agreed_to_tos": True,
+                                              "weeks_unavailable": '', "friends": '', "avoid": '',
+                                              "alternate_preference": "full_time"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Registration.objects.filter(lichess_username='Player1').first().email, 'player1@example.com')
+
 
 @patch('heltour.tournament.lichessapi.watch_games',
        return_value=None)
