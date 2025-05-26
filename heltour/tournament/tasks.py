@@ -379,8 +379,8 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                                                                 clockstart_in=clockstart_in,
                                                                 gameid=gameids['id'])
                        if gamechannel is not None:
-                           slackapi.send_message(channel=gamechannel.slack_channel,
-                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+#TODO do this with zuulip                           signals.notify_(channel=gamechannel.slack_channel,
+#                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
         except slackapi.SlackError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError:
