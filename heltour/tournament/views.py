@@ -778,10 +778,9 @@ class RegisterView(LoginRequiredMixin, LeagueView):
             context = {
                 'form': form,
                 'registration_season': reg_season,
-                'rules_url': doc_url,
             }
             if not post:
-                context['rating_provisional'] = rating_provisional
+                context.update({'rating_provisional': rating_provisional, 'rules_url': doc_url})
             return self.render('tournament/register.html', context)
 
     def view_post(self):
