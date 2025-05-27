@@ -168,36 +168,38 @@ class League(_BaseModel):
         return self.competitor_type == 'team'
 
     def get_active_players(self):
-        if self.is_team_league():
-            query = """
-                SELECT player_id, COUNT(player_id) as game_count
-                FROM (
-                    SELECT pp.white_id as player_id
+        def loneteam_query(*, team: bool) -> str:
+            if team:
+                return """
+                       INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
+                       INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                       """
+            else:
+                return """
+                       INNER JOIN tournament_loneplayerpairing tp ON tp.playerpairing_ptr_id = pp.id
+                       """
+
+        def games_query(*, colour: str, team: bool) -> str:
+            return f"""
+                    SELECT pp.{colour}_id as player_id
                     FROM tournament_playerpairing pp
-                    INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
-                    INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                    {loneteam_query(team=team)}
                     INNER JOIN tournament_round r ON tp.round_id = r.id
                     INNER JOIN tournament_season s ON r.season_id = s.id
                     INNER JOIN tournament_league l ON s.league_id = l.id
                     WHERE pp.game_link != '' AND l.id = %s
+                    """
 
-                    UNION ALL
-
-                    SELECT pp.black_id as player_id
-                    FROM tournament_playerpairing pp
-                    INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
-                    INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
-                    INNER JOIN tournament_round r ON tp.round_id = r.id
-                    INNER JOIN tournament_season s ON r.season_id = s.id
-                    INNER JOIN tournament_league l ON s.league_id = l.id
-                   WHERE pp.game_link != '' AND l.id = %s
-                ) as all_games
-                GROUP BY player_id
-                ORDER BY game_count DESC
-            """
-        else:
-            query = ""
-            return namedtuple('Player', ['player_id', 'game_count'])
+        query = f"""
+                 SELECT player_id, COUNT(player_id) as game_count
+                 FROM (
+                 {games_query(colour='white', team=self.is_team_league())}
+                 UNION ALL
+                 {games_query(colour='black', team=self.is_team_league())}
+                 ) as all_games
+                 GROUP BY player_id
+                 ORDER BY game_count DESC
+                 """
         with connection.cursor() as cursor:
             cursor.execute(query, [self.pk, self.pk])
             desc = cursor.description
