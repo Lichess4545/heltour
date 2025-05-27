@@ -168,8 +168,8 @@ class League(_BaseModel):
         return self.competitor_type == 'team'
 
     def get_active_players(self):
-        def loneteam_query(*, team: bool) -> str:
-            if team:
+        def loneteam_query() -> str:
+            if self.is_team_league():
                 return """
                        INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
                        INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
@@ -179,11 +179,11 @@ class League(_BaseModel):
                        INNER JOIN tournament_loneplayerpairing tp ON tp.playerpairing_ptr_id = pp.id
                        """
 
-        def games_query(*, colour: str, team: bool) -> str:
+        def games_query(*, colour: str) -> str:
             return f"""
                     SELECT pp.{colour}_id as player_id
                     FROM tournament_playerpairing pp
-                    {loneteam_query(team=team)}
+                    {loneteam_query()}
                     INNER JOIN tournament_round r ON tp.round_id = r.id
                     INNER JOIN tournament_season s ON r.season_id = s.id
                     INNER JOIN tournament_league l ON s.league_id = l.id
@@ -193,9 +193,9 @@ class League(_BaseModel):
         query = f"""
                  SELECT player_id, COUNT(player_id) as game_count
                  FROM (
-                 {games_query(colour='white', team=self.is_team_league())}
+                 {games_query(colour='white')}
                  UNION ALL
-                 {games_query(colour='black', team=self.is_team_league())}
+                 {games_query(colour='black')}
                  ) as all_games
                  GROUP BY player_id
                  ORDER BY game_count DESC
