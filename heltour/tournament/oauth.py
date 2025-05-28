@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import requests
+from unicodedata import normalize
 from django.contrib.auth import login
 from django.core import signing
 from django.http.response import HttpResponse
@@ -59,18 +60,18 @@ def login_with_code(request, code, encoded_state):
     # oauth_token.account_email = _get_account_email(oauth_token)
     player = Player.get_or_create(username)
 
-    # Ensure the player's profile is present so we can display ratings, etc.
-    _ensure_profile_present(player)
-
     # At this point all http requests are successful, so we can start persisting everything
     oauth_token.save()
     player.oauth_token = oauth_token
     player.save()
 
     # a password starting with ! signifies an unusable password to django
-    user, _ = User.objects.get_or_create(username=username, defaults={"password": f"!{create_api_token(length=40)}"})
+    user, _ = User.objects.get_or_create(username=normalize('NFKC', username), defaults={"password": f"!{create_api_token(length=40)}"})
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
+
+    # Ensure the player's profile is present so we can display ratings, etc.
+    _ensure_profile_present(player)
 
     # Slack linking?
     if state['token']:
