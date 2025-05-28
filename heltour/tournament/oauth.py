@@ -67,12 +67,8 @@ def login_with_code(request, code, encoded_state):
     player.oauth_token = oauth_token
     player.save()
 
-    user = User.objects.filter(username__iexact=username).first()
-    if not user:
-        # Create the user with a password no one will ever use; it can always be manually reset if needed
-        with reversion.create_revision():
-            reversion.set_comment('Create user from lichess OAuth2 login')
-            user = User.objects.create_user(username=username, password=create_api_token())
+    # a password starting with ! signifies an unusable password to django
+    user, = User.objects.get_or_create(username=username, defaults={"password": f"!{create_api_token(length=40)}"})
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
 
