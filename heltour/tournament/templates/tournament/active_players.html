@@ -17,7 +17,7 @@
                          <table class="table table-striped table-condensed-sm sortable">
                              <thead>
                                  <tr>
-								   <th class="sort">Rank</th>
+                                   <th class="sort">Rank</th>
                                    <th class="text-center sort">Player</th>
                                    <th class="text-center sort">Games played</th>
                                    <th class="text-center sort">Seasons</th>
@@ -31,7 +31,7 @@
                                   <td class="text-center"><a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
                                   <td class="text-center">{{ player.game_count }}</td>
                                   <td class="text-center">{{ player.season_count }}</td>
-                                  <td class="text-center">{{ player.latest_season}}</td>
+                                  <td class="text-center">{{ player.latest_season | date:"Y-m-d"}}</td>
                                 </tr>
                                {% endfor %}
                              </tbody>
@@ -47,20 +47,26 @@
             <a href="{% leagueurl 'active_players' league.tag season.tag %}">&laquo; first</a> |
             <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.previous_page_number }}">previous</a> |
         {% endif %}
-
         <span class="current">
             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
         </span>
-
         {% if page_obj.has_next %}
             | <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.next_page_number }}">next</a> |
             <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.paginator.num_pages }}">last &raquo;</a>
         {% endif %}
-    </span>
-		{% if page_obj.number == 1 %}
-				<div class="well">
-						A total of {{ total_players }} players played {{ total_games }} games.
-				</div>
-		{% endif %}
-</div>
+        </span>
+    </div>
+    <div class="row row-condensed-xs">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    {% if page_obj.number == 1 %}
+                        A total of {{ total_players }} players played {{ total_games }} games.
+                    {% else %}
+                        &nbsp;
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

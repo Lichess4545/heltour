@@ -10,7 +10,7 @@ import reversion
 
 from cacheops.query import cached_as
 from django.core.mail.message import EmailMessage
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count, Max
 from django.db.models.query import Prefetch
 from django.http.response import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -1240,11 +1240,22 @@ class ActivePlayerTableView(LeagueView):
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
         page_obj = paginator.get_page(page)
 
-        oneplayer = namedtuple('oneplayer', ['lichess_username', 'game_count'])
+        pks = []
+        for player in page_obj.object_list:
+            pks.append(player.player_id)
+        seasondata = list(SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
+                season_count = Count("player__pk"),
+                latest_season = Max("season__start_date")
+                ).values("player__lichess_username", "player__pk", "season_count", "latest_season"))
+
+        oneplayer = namedtuple('oneplayer', ['lichess_username', 'game_count', 'season_count', 'latest_season'])
         subtable = []
 
         for player in page_obj.object_list:
-            subtable.append(oneplayer._make([Player.objects.get(pk = player.player_id).lichess_username, player.game_count]))
+            for pk in seasondata:
+                if pk['player__pk'] == player.player_id:
+                    subtable.append(oneplayer._make([pk['player__lichess_username'], player.game_count, pk['season_count'], pk['latest_season']]))
+                    break
 
         context = {
             "page_obj": page_obj,
@@ -1260,7 +1271,6 @@ class ActivePlayerTableView(LeagueView):
             context.update({"total_games": total_games, "total_players": total_players})
 
         return self.render("tournament/active_players.html", context)
-
 
 
 class BoardScoresView(SeasonView):
