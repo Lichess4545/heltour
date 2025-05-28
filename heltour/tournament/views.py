@@ -1240,22 +1240,19 @@ class ActivePlayerTableView(LeagueView):
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
         page_obj = paginator.get_page(page)
 
-        pks = []
-        for player in page_obj.object_list:
-            pks.append(player.player_id)
-        seasondata = list(SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
+        pks = [player.player_id for player in page_obj.object_list]
+        seasondatafull = list(SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
                 season_count = Count("player__pk"),
                 latest_season = Max("season__start_date")
                 ).values("player__lichess_username", "player__pk", "season_count", "latest_season"))
 
-        oneplayer = namedtuple('oneplayer', ['lichess_username', 'game_count', 'season_count', 'latest_season'])
+        seasondata = {f'{pl["player__pk"]}': [pl["player__lichess_username"], pl["season_count"], pl["latest_season"]] for pl in seasondatafull}
+
+        oneplayer = namedtuple('oneplayer', ['game_count', 'lichess_username', 'season_count', 'latest_season'])
         subtable = []
 
         for player in page_obj.object_list:
-            for pk in seasondata:
-                if pk['player__pk'] == player.player_id:
-                    subtable.append(oneplayer._make([pk['player__lichess_username'], player.game_count, pk['season_count'], pk['latest_season']]))
-                    break
+            subtable.append(oneplayer._make([player.game_count, *seasondata[str(player.player_id)]]))
 
         context = {
             "page_obj": page_obj,
