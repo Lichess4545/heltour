@@ -82,6 +82,9 @@ class LoginWithCodeTestCase(TestCase):
 # TODO fixme: unclear why below assert should work, emails is not set ...
 #        self.assertEqual('testuser@example.com', player.oauth_token.account_email)
 
+        user = User.objects.get(username='testuser')
+        self.assertFalse(user.has_usable_password())
+
     @responses.activate
     def test_existing_user(self, *args):
         responses.add(responses.POST, 'https://lichess.org/api/token',
