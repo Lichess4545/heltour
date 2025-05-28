@@ -68,7 +68,7 @@ def login_with_code(request, code, encoded_state):
     player.save()
 
     # a password starting with ! signifies an unusable password to django
-    user, = User.objects.get_or_create(username=username, defaults={"password": f"!{create_api_token(length=40)}"})
+    user, _ = User.objects.get_or_create(username=username, defaults={"password": f"!{create_api_token(length=40)}"})
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
 
