@@ -2248,8 +2248,8 @@ class AlternateBucket(_BaseModel):
         return "Board %d (%s, %s]" % (self.board_number, self.min_rating, self.max_rating)
 
 
-def create_api_token():
-    return get_random_string(length=32)
+def create_api_token(length: int=32) -> str:
+    return get_random_string(length=length)
 
 
 ALTERNATE_SEARCH_STATUS_OPTIONS = (
