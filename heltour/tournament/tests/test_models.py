@@ -1,13 +1,15 @@
 from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
         AlternateAssignment, AlternateBucket, AlternatesManagerSetting,
         format_score, get_fide_dp, get_gameid_from_gamelink, League,
         LonePlayerPairing, ModRequest, normalize_gamelink, OauthToken, Player,
-        PlayerBye, PlayerPairing, Registration, Round, ScheduledNotification,
-        Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+        PlayerBye, PlayerLateRegistration, PlayerPairing, Registration, Round,
+        ScheduledNotification, Season, SeasonPlayer, Team, TeamPairing,
+        TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_player, get_round, get_season, set_rating,
         Shush)
@@ -514,6 +516,34 @@ class RegistrationTestCase(TestCase):
         reg = create_reg(season2, 'testuser')
 
         self.assertEqual([sp], list(reg.other_seasons()))
+
+
+class PlayerLateRegistrationTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.r1 = get_round('lone', 1)
+        cls.r2 = get_round('lone', 2)
+        cls.p, _ = Player.objects.get_or_create(lichess_username='lateplayer')
+        cls.lr = PlayerLateRegistration.objects.create(player=cls.p, round=cls.r2, retroactive_byes=3)
+
+    @patch('heltour.tournament.models.Player.rating_for',
+           return_value=100)
+    def test_lateregistration_perform(self, rating_for):
+        self.lr.perform_registration()
+        self.assertEqual(str(self.lr), 'Test Season - Round 2 - lateplayer')
+        sp = SeasonPlayer.objects.get(player__lichess_username='lateplayer')
+        self.assertTrue(sp.is_active)
+        self.assertTrue(rating_for.called)
+        self.assertEqual(sp.seed_rating, 100)
+        self.assertEqual(sp.get_loneplayerscore().late_join_points, 0)
+        pb = PlayerBye.objects.get(round=self.r1, player=self.p)
+        self.assertEqual(pb.type, 'half-point-bye')
+
+    def test_lateregistration_team(self):
+        lr = PlayerLateRegistration.objects.create(player=self.p, round=get_round('team', 1))
+        with self.assertRaises(ValidationError):
+            lr.clean()
 
 
 class AlternateTestCase(TestCase):
