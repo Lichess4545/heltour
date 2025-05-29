@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
         AlternateAssignment, AlternateBucket, AlternatesManagerSetting,
         format_score, get_fide_dp, get_gameid_from_gamelink, League,
-        LonePlayerPairing, normalize_gamelink, OauthToken, Player, PlayerBye,
-        PlayerPairing, Registration, Round, ScheduledNotification, Season,
-        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+        LonePlayerPairing, ModRequest, normalize_gamelink, OauthToken, Player,
+        PlayerBye, PlayerPairing, Registration, Round, ScheduledNotification,
+        Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_player, get_season, set_rating, Shush)
+        create_reg, get_league, get_player, get_round, get_season, set_rating,
+        Shush)
 
 
 class HelpersTestCase(SimpleTestCase):
@@ -675,3 +676,25 @@ class PlayerByeTestCase(TestCase):
 
         bye2.refresh_rank()
         self.assertEqual(1, bye2.player_rank)
+
+
+class ModRequestTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.p1 = get_player('Player1')
+        cls.p2 = get_player('Player2')
+        cls.r = get_round('team', 1)
+        cls.s = get_season('team')
+        cls.tp = PlayerPairing.objects.create(white=cls.p1, black=cls.p2)
+
+    @patch('heltour.tournament.signals.mod_request_approved.send')
+    def test_withdraw(self, approved_send):
+        mr = ModRequest.objects.create(season=self.s, round=self.r, pairing=self.tp, requester=self.p1,
+                                      type='withdraw', status='pending')
+        mr.approve()
+        self.assertEqual(mr.status, 'approved')
+        self.assertEqual(mr.status_changed_by, 'System')
+        self.assertTrue(approved_send.called)
+        mr.reject()
+        self.assertEqual(mr.status, 'rejected')
