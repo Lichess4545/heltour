@@ -65,8 +65,8 @@ def login_with_code(request, code, encoded_state):
     player.oauth_token = oauth_token
     player.save()
 
-    # a password starting with ! signifies an unusable password to django
-    user, _ = User.objects.get_or_create(username=normalize('NFKC', username), defaults={"password": f"!{create_api_token(length=40)}"})
+    user, _ = User.objects.get_or_create(username=_normalize_username(username),
+                                         defaults={"password": _unusable_password()})
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
 
@@ -87,6 +87,18 @@ def login_with_code(request, code, encoded_state):
         return redirect(redir_url)
     else:
         return redirect('by_league:user_dashboard', state['league'])
+
+
+def _normalize_username(username: str) -> str:
+    # normalize('NFKC', username) reproduces what the django method create_user() would do
+    return normalize('NFKC', username)
+
+
+def _unusable_password() -> str:
+    # a password starting with ! signifies an unusable password to django, at least for versions 4.2 - 5.2
+    # additionally, those unusable passwords are by default of length 40,
+    # however django only checks that they start with !, and will then return False for User.has_usable_password()
+    return f"!{create_api_token(length=40)}"
 
 
 def _ensure_profile_present(player):
