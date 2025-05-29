@@ -1233,7 +1233,7 @@ class StatsView(SeasonView):
 
 
 class ActivePlayerTableView(LeagueView):
-    @cached_as(League, Season, Round, PlayerPairing)
+    @cached_as(PlayerPairing)
     def view(self, page: int = 1):
         tablesums = self.league.get_active_players()
 
