@@ -65,6 +65,8 @@ def login_with_code(request, code, encoded_state):
     player.oauth_token = oauth_token
     player.save()
 
+    # We are using get_or_create here instead of django's create_user
+    # to minimize the occurrence of race conditions
     user, _ = User.objects.get_or_create(username=_normalize_username(username),
                                          defaults={"password": _unusable_password()})
     user.backend = 'django.contrib.auth.backends.ModelBackend'
