@@ -67,8 +67,10 @@ def login_with_code(request, code, encoded_state):
 
     # We are using get_or_create here instead of django's create_user
     # to minimize the occurrence of race conditions
-    user, _ = User.objects.get_or_create(username=_normalize_username(username),
-                                         defaults={"password": _unusable_password()})
+    user, _ = User.objects.get_or_create(username__iexact=_normalize_username(username),
+                                         defaults={"password": _unusable_password(),
+                                                   "username": _normalize_username(username),
+                                                   })
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
 
