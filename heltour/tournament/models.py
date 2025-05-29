@@ -181,7 +181,7 @@ class League(_BaseModel):
 
         def games_query(*, colour: str) -> str:
             return f"""
-                    SELECT pp.{colour}_id as player_id
+                    SELECT pp.{colour}_id as player_id, scheduled_time as played_time
                     FROM tournament_playerpairing pp
                     {loneteam_query()}
                     INNER JOIN tournament_round r ON tp.round_id = r.id
@@ -191,7 +191,7 @@ class League(_BaseModel):
                     """
 
         query = f"""
-                 SELECT player_id, COUNT(player_id) as game_count
+                 SELECT player_id, COUNT(player_id) as game_count, MAX(played_time) as last_played
                  FROM (
                  {games_query(colour='white')}
                  UNION ALL

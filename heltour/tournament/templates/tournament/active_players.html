@@ -21,7 +21,7 @@
                                    <th class="text-center sort">Player</th>
                                    <th class="text-center sort">Games played</th>
                                    <th class="text-center sort">Seasons</th>
-                                   <th class="text-center sort">Latest Season</th>
+                                   <th class="text-center sort">Last Played</th>
                                   </tr>
                              </thead>
                              <tbody>
@@ -31,7 +31,7 @@
                                   <td class="text-center"><a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">{{ player.lichess_username }}</a></td>
                                   <td class="text-center">{{ player.game_count }}</td>
                                   <td class="text-center">{{ player.season_count }}</td>
-                                  <td class="text-center">{{ player.latest_season | date:"Y-m-d"}}</td>
+                                  <td class="text-center">{{ player.last_played | date:"Y-m-d"}}</td>
                                 </tr>
                                {% endfor %}
                              </tbody>

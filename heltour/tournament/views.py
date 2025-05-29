@@ -1233,7 +1233,7 @@ class StatsView(SeasonView):
 
 
 class ActivePlayerTableView(LeagueView):
-    @cached_as(League, Season, Round)
+    @cached_as(League, Season, Round, PlayerPairing)
     def view(self, page: int = 1):
         tablesums = self.league.get_active_players()
 
@@ -1241,18 +1241,17 @@ class ActivePlayerTableView(LeagueView):
         page_obj = paginator.get_page(page)
 
         pks = [player.player_id for player in page_obj.object_list]
-        seasondatafull = list(SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
+        seasondatafull = SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
                 season_count = Count("player__pk"),
-                latest_season = Max("season__start_date")
-                ).values("player__lichess_username", "player__pk", "season_count", "latest_season"))
+                ).values("player__lichess_username", "player__pk", "season_count")
 
-        seasondata = {f'{pl["player__pk"]}': [pl["player__lichess_username"], pl["season_count"], pl["latest_season"]] for pl in seasondatafull}
+        seasondata = {f'{pl["player__pk"]}': [pl["player__lichess_username"], pl["season_count"]] for pl in seasondatafull}
 
-        oneplayer = namedtuple('oneplayer', ['game_count', 'lichess_username', 'season_count', 'latest_season'])
+        oneplayer = namedtuple('oneplayer', ['game_count', 'lichess_username', 'season_count', 'last_played'])
         subtable = []
 
         for player in page_obj.object_list:
-            subtable.append(oneplayer._make([player.game_count, *seasondata[str(player.player_id)]]))
+            subtable.append(oneplayer._make([player.game_count, *seasondata[str(player.player_id)], player.last_played]))
 
         context = {
             "page_obj": page_obj,
