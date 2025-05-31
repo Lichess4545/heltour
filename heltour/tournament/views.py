@@ -1245,13 +1245,13 @@ class ActivePlayerTableView(LeagueView):
                 season_count = Count("player__pk"),
                 ).values("player__lichess_username", "player__pk", "season_count")
 
-        seasondata = {f'{pl["player__pk"]}': [pl["player__lichess_username"], pl["season_count"]] for pl in seasondatafull}
+        seasondata = {pl["player__pk"]: [pl["player__lichess_username"], pl["season_count"]] for pl in seasondatafull}
 
         oneplayer = namedtuple('oneplayer', ['game_count', 'lichess_username', 'season_count', 'last_played'])
         subtable = []
 
         for player in page_obj.object_list:
-            subtable.append(oneplayer._make([player.game_count, *seasondata[str(player.player_id)], player.last_played]))
+            subtable.append(oneplayer._make([player.game_count, *seasondata[player.player_id], player.last_played]))
 
         context = {
             "page_obj": page_obj,
