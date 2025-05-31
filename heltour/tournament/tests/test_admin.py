@@ -97,6 +97,13 @@ class SeasonAdminTestCase(TestCase):
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'Scores recalculated.')
 
-    def test_verify(self):
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    def test_verify(self, message):
         self.client.force_login(user=self.superuser)
-        
+        path = reverse('admin:tournament_season_changelist')
+        response = self.client.post(path,
+                                    data={'action': 'verify_data',
+                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Data verified.')
