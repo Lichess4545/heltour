@@ -6,8 +6,8 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http.response import HttpResponseForbidden
-from heltour.tournament.models import (Alternate, Player, Round, Season, SeasonPlayer,
-    Team, TeamPairing)
+from heltour.tournament.models import (Alternate, LonePlayerPairing, Player,
+    Round, Season, SeasonPlayer, Team, TeamPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
     get_season, get_player, get_round)
 
@@ -39,7 +39,6 @@ class ManagePlayerTestCase(TestCase):
         cls.superuser = User.objects.create(username='superuser', password='Password', is_superuser=True, is_staff=True)
         cls.p = get_player('Player1')
         cls.sp = SeasonPlayer.objects.create(player=cls.p, season=cls.season)
-
 
     def test_add_alternate(self):
         self.client.force_login(user=self.superuser)
@@ -98,7 +97,10 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(message.call_args.args[1], 'Scores recalculated.')
 
     @patch('django.contrib.admin.ModelAdmin.message_user')
-    def test_verify(self, message):
+    @patch('heltour.tournament.admin.normalize_gamelink',
+           side_effect=[('incorrectlink1', False), ('mockedlink2', True)]
+           )
+    def test_verify(self, gamelink, message):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:tournament_season_changelist')
         response = self.client.post(path,
@@ -107,3 +109,22 @@ class SeasonAdminTestCase(TestCase):
                                     follow=True)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'Data verified.')
+        message.reset_mock()
+        lr1 = get_round('lone', 1)
+        p1 = Player.objects.get(lichess_username="Player1")
+        p2 = Player.objects.get(lichess_username="Player2")
+        p3 = Player.objects.get(lichess_username="Player3")
+        p4 = Player.objects.get(lichess_username="Player4")
+        lpp1 = LonePlayerPairing.objects.create(round=lr1, white=p1, black=p2, game_link='incorrectlink1', pairing_order=0)
+        lpp2 = LonePlayerPairing.objects.create(round=lr1, white=p3, black=p4, game_link='incorrectlink2', pairing_order=1)
+        response = self.client.post(path,
+                                    data={'action': 'verify_data',
+                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                                    follow=True)
+        lpp2.refresh_from_db()
+        self.assertEqual(gamelink.call_count, 2)
+        self.assertTrue(message.call_count, 2)
+        self.assertEqual(message.call_args_list[0][0][1], '1 bad gamelinks for Test Season.')
+        self.assertEqual(message.call_args_list[1][0][1], 'Data verified.')
+        self.assertEqual(lpp1.game_link, 'incorrectlink1')
+        self.assertEqual(lpp2.game_link, 'mockedlink2')
