@@ -55,12 +55,13 @@ class SeasonAdminTestCase(TestCase):
         cls.superuser = User.objects.create(username='superuser', password='password', is_superuser=True, is_staff=True)
         t1 = Team.objects.get(number=1)
         t2 = Team.objects.get(number=2)
-        r1 = get_round('team', 1)
-        cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=r1, pairing_order=1)
+        cls.r1 = get_round('team', 1)
+        cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=cls.r1, pairing_order=1)
         cls.p1 = Player.objects.get(lichess_username='Player1')
         cls.p2 = Player.objects.get(lichess_username='Player2')
         cls.p3 = Player.objects.get(lichess_username='Player3')
         cls.p4 = Player.objects.get(lichess_username='Player4')
+        cls.s = get_season('team')
 
     @patch('heltour.tournament.simulation.simulate_season')
     @patch('django.contrib.admin.ModelAdmin.message_user')
@@ -137,7 +138,6 @@ class SeasonAdminTestCase(TestCase):
                 game_link='https://lichess.org/rgame01')
         tpp2 = TeamPlayerPairing.objects.create(white=self.p3, black=self.p4, board_number=2, team_pairing=self.tp1,
                 game_link='https://lichess.org/rgame02')
-        s = get_season('team')
         response = self.client.post(path,
                                     data={'action': 'review_nominated_games',
                                           '_selected_action': Season.objects.all().values_list('pk', flat=True)},
@@ -147,16 +147,33 @@ class SeasonAdminTestCase(TestCase):
         message.reset_mock()
         response = self.client.post(path,
                                     data={'action': 'review_nominated_games',
-                                          '_selected_action': s.pk},
+                                          '_selected_action': self.s.pk},
                                     follow=True)
-        self.assertEqual(response.context['original'], s)
+        self.assertEqual(response.context['original'], self.s)
         self.assertEqual(response.context['title'], 'Review nominated games')
         self.assertEqual(response.context['nominations'], [])
         self.assertFalse(message.called)
-        Season.objects.filter(pk=s.pk).update(nominations_open=True)
+        Season.objects.filter(pk=self.s.pk).update(nominations_open=True)
         response = self.client.post(path,
                                     data={'action': 'review_nominated_games',
-                                          '_selected_action': s.pk},
+                                          '_selected_action': self.s.pk},
                                     follow=True)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'Nominations are still open. You should edit the season and close nominations before reviewing.')
+
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    def test_round_transition(self, message):
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:tournament_season_changelist')
+        response = self.client.post(path,
+                                    data={'action': 'round_transition',
+                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Rounds can only be transitioned one season at a time.')
+        message.reset_mock()
+        response = self.client.post(path,
+                                    data={'action': 'round_transition',
+                                          '_selected_action': self.s.pk},
+                                    follow=True)
+        self.assertFalse(message.called)
