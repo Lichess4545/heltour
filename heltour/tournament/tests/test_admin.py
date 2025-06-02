@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http.response import HttpResponseForbidden
 from heltour.tournament.models import (Alternate, LonePlayerPairing, Player,
-    Round, Season, SeasonPlayer, Team, TeamPairing)
+    Round, Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
     get_season, get_player, get_round)
 
@@ -55,8 +55,12 @@ class SeasonAdminTestCase(TestCase):
         cls.superuser = User.objects.create(username='superuser', password='password', is_superuser=True, is_staff=True)
         t1 = Team.objects.get(number=1)
         t2 = Team.objects.get(number=2)
-        r1 = get_round("team", 1)
-        tp = TeamPairing.objects.create(white_team=t1, black_team=t2, round=r1, pairing_order=1)
+        r1 = get_round('team', 1)
+        cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=r1, pairing_order=1)
+        cls.p1 = Player.objects.get(lichess_username='Player1')
+        cls.p2 = Player.objects.get(lichess_username='Player2')
+        cls.p3 = Player.objects.get(lichess_username='Player3')
+        cls.p4 = Player.objects.get(lichess_username='Player4')
 
     @patch('heltour.tournament.simulation.simulate_season')
     @patch('django.contrib.admin.ModelAdmin.message_user')
@@ -111,12 +115,8 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(message.call_args.args[1], 'Data verified.')
         message.reset_mock()
         lr1 = get_round('lone', 1)
-        p1 = Player.objects.get(lichess_username="Player1")
-        p2 = Player.objects.get(lichess_username="Player2")
-        p3 = Player.objects.get(lichess_username="Player3")
-        p4 = Player.objects.get(lichess_username="Player4")
-        lpp1 = LonePlayerPairing.objects.create(round=lr1, white=p1, black=p2, game_link='incorrectlink1', pairing_order=0)
-        lpp2 = LonePlayerPairing.objects.create(round=lr1, white=p3, black=p4, game_link='incorrectlink2', pairing_order=1)
+        lpp1 = LonePlayerPairing.objects.create(round=lr1, white=self.p1, black=self.p2, game_link='incorrectlink1', pairing_order=0)
+        lpp2 = LonePlayerPairing.objects.create(round=lr1, white=self.p3, black=self.p4, game_link='incorrectlink2', pairing_order=1)
         response = self.client.post(path,
                                     data={'action': 'verify_data',
                                           '_selected_action': Season.objects.all().values_list('pk', flat=True)},
@@ -128,3 +128,35 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(message.call_args_list[1][0][1], 'Data verified.')
         self.assertEqual(lpp1.game_link, 'incorrectlink1')
         self.assertEqual(lpp2.game_link, 'mockedlink2')
+
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    def test_review_nominated(self, message):
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:tournament_season_changelist')
+        tpp1 = TeamPlayerPairing.objects.create(white=self.p1, black=self.p2, board_number=1, team_pairing=self.tp1,
+                game_link='https://lichess.org/rgame01')
+        tpp2 = TeamPlayerPairing.objects.create(white=self.p3, black=self.p4, board_number=2, team_pairing=self.tp1,
+                game_link='https://lichess.org/rgame02')
+        s = get_season('team')
+        response = self.client.post(path,
+                                    data={'action': 'review_nominated_games',
+                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Nominated games can only be reviewed one season at a time.')
+        message.reset_mock()
+        response = self.client.post(path,
+                                    data={'action': 'review_nominated_games',
+                                          '_selected_action': s.pk},
+                                    follow=True)
+        self.assertEqual(response.context['original'], s)
+        self.assertEqual(response.context['title'], 'Review nominated games')
+        self.assertEqual(response.context['nominations'], [])
+        self.assertFalse(message.called)
+        Season.objects.filter(pk=s.pk).update(nominations_open=True)
+        response = self.client.post(path,
+                                    data={'action': 'review_nominated_games',
+                                          '_selected_action': s.pk},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Nominations are still open. You should edit the season and close nominations before reviewing.')
