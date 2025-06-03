@@ -9,3 +9,5 @@ STORAGES = {
             'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
         },
 }
+
+SLEEP_UNIT = 0
