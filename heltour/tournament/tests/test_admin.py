@@ -170,6 +170,14 @@ class SeasonAdminTestCase(TestCase):
     def test_round_transition_view(self, workflow, message):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:round_transition', args=[self.s.pk])
+        # test invalid form
+        response = self.client.post(path,
+                                    data={'round_to_open': 2,
+                                          'generate_pairings': True},
+                                    follow=True)
+        self.assertFalse(message.called)
+        self.assertTemplateUsed(response, 'tournament/admin/round_transition.html')
+        # test valid form
         response = self.client.post(path,
                                     data={'round_to_close': 1,
                                           'round_to_open': 2,
@@ -177,6 +185,14 @@ class SeasonAdminTestCase(TestCase):
                                     follow=True)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'workflow_mock')
+        self.assertTemplateUsed(response, 'tournament/admin/review_team_pairings.html')
+        # don't generate pairings
+        response = self.client.post(path,
+                                    data={'round_to_close': 1,
+                                          'round_to_open': 2,
+                                          'generate_pairings': False},
+                                    follow=True)
+        self.assertTemplateUsed(response, 'admin/change_list.html')
 
     def test_manage_players_add_alternate(self):
         self.s.start_date = timezone.now()
