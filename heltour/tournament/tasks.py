@@ -713,7 +713,7 @@ def create_team_channel(team_ids):
 
         try:
             group = slackapi.create_group(channel_name)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
         except slackapi.NameTaken:
             logger.error('Could not create slack team, name taken: %s' % channel_name)
             continue
@@ -722,13 +722,13 @@ def create_team_channel(team_ids):
             slackapi.invite_to_group(group.id, user_ids)
         except slackapi.SlackError:
             logger.exception('Could not invite %s to channel' % ",".join(user_ids))
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT1)
         try:
             slackapi.invite_to_group(group.id, [settings.CHESSTER_USER_ID])
         except slackapi.SlackError:
              logger.exception('Could not invite chesster to channel')
-             time.sleep(1)
-        time.sleep(1)
+             time.sleep(settings.SLEEP_UNIT)
+        time.sleep(settings.SLEEP_UNIT)
         with reversion.create_revision():
             reversion.set_comment('Creating slack channel')
             team.slack_channel = group.id
@@ -738,14 +738,14 @@ def create_team_channel(team_ids):
             slackapi.set_group_topic(group.id, topic)
         except slackapi.SlackError:
             logger.exception('Could not set channel topic for channel %s' % channel_ref)
-        time.sleep(1)
+        time.sleep(settings.SLEEP_UNIT)
         try:
             slackapi.leave_group(group.id)
         except slackapi.SlackError:
             logger.exception('Could not leave channel %s' % channel_ref)
-        time.sleep(1)
+        time.sleep(settings.SLEEP_UNIT)
         slackapi.send_message(channel_ref, intro_message_formatted)
-        time.sleep(1)
+        time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
