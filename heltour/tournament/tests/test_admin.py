@@ -1,8 +1,8 @@
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http.response import HttpResponseForbidden
@@ -56,6 +56,8 @@ class SeasonAdminTestCase(TestCase):
         t1 = Team.objects.get(number=1)
         t2 = Team.objects.get(number=2)
         cls.r1 = get_round('team', 1)
+        cls.r1.publish_pairings=True
+        cls.r1.save()
         cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=cls.r1, pairing_order=1)
         cls.p1 = Player.objects.get(lichess_username='Player1')
         cls.p2 = Player.objects.get(lichess_username='Player2')
@@ -177,3 +179,18 @@ class SeasonAdminTestCase(TestCase):
                                           '_selected_action': self.s.pk},
                                     follow=True)
         self.assertFalse(message.called)
+
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    @patch('heltour.tournament.workflows.RoundTransitionWorkflow.run',
+           return_value=[('workflow_mock', messages.INFO)]
+           )
+    def test_round_transition_view(self, workflow, message):
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:round_transition', args=[self.s.pk])
+        response = self.client.post(path,
+                                    data={'round_to_close': 1,
+                                          'round_to_open': 2,
+                                          'generate_pairings': True},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'workflow_mock')
