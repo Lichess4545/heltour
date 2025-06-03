@@ -38,7 +38,6 @@ ALLOWED_HOSTS = [
     'heltour.lakin.ca',
     'heltour.lakin.ca',
     'localhost',
-    'testserver',
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://www.lichess4545.tv',

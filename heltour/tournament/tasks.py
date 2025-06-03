@@ -35,7 +35,6 @@ def to_usernames(users: UsernamesQuerySet):
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
         .order_by('lichess_username') \
-        .distinct('lichess_username') \
         .values('lichess_username')
 
 def active_player_usernames() -> List[str]:
