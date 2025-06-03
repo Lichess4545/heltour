@@ -9,7 +9,7 @@ from django.http.response import HttpResponseForbidden
 from heltour.tournament.models import (Alternate, LonePlayerPairing, Player,
     Round, Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-    get_season, get_player, get_round)
+    get_season, get_player, get_round, Shush)
 
 
 class AdminSearchTestCase(TestCase):
@@ -29,25 +29,6 @@ class AdminSearchTestCase(TestCase):
                 self.assertEqual(response.status_code, 200)
 
 
-class ManagePlayerTestCase(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        createCommonLeagueData()
-        cls.season = get_season('team')
-        cls.season.start_date = timezone.now()
-        cls.season.save()
-        cls.superuser = User.objects.create(username='superuser', password='Password', is_superuser=True, is_staff=True)
-        cls.p = get_player('Player1')
-        cls.sp = SeasonPlayer.objects.create(player=cls.p, season=cls.season)
-
-    def test_add_alternate(self):
-        self.client.force_login(user=self.superuser)
-        response = self.client.post(f'/admin/tournament/season/{self.season.pk}/manage_players/',
-                                    data={"changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'})
-        self.assertEqual(Alternate.objects.all().count(), 1)
-        self.assertEqual(Alternate.objects.all().first().season_player.player.lichess_username, 'Player1')
-
-
 class SeasonAdminTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -57,13 +38,15 @@ class SeasonAdminTestCase(TestCase):
         t2 = Team.objects.get(number=2)
         cls.r1 = get_round('team', 1)
         cls.r1.publish_pairings=True
-        cls.r1.save()
+        with Shush():
+            cls.r1.save()
         cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=cls.r1, pairing_order=1)
         cls.p1 = Player.objects.get(lichess_username='Player1')
         cls.p2 = Player.objects.get(lichess_username='Player2')
         cls.p3 = Player.objects.get(lichess_username='Player3')
         cls.p4 = Player.objects.get(lichess_username='Player4')
         cls.s = get_season('team')
+        cls.sp1 = SeasonPlayer.objects.create(player=cls.p1, season=cls.s)
 
     @patch('heltour.tournament.simulation.simulate_season')
     @patch('django.contrib.admin.ModelAdmin.message_user')
@@ -194,3 +177,13 @@ class SeasonAdminTestCase(TestCase):
                                     follow=True)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'workflow_mock')
+
+    def test_manage_players_add_alternate(self):
+        self.s.start_date = timezone.now()
+        self.s.save()
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:manage_players', args=[self.s.pk])
+        response = self.client.post(path,
+                                    data={"changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'})
+        self.assertEqual(Alternate.objects.all().count(), 1)
+        self.assertEqual(Alternate.objects.all().first().season_player.player.lichess_username, 'Player1')
