@@ -211,6 +211,40 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         self.assertTemplateUsed(response, 'tournament/admin/team_spam.html')
 
+    @patch('heltour.tournament.slackapi.send_message')
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    def test_team_spam_view(self, message, slack_message):
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:team_spam', args=[self.s.pk])
+        # no confirm_send, no messages
+        response = self.client.post(path,
+                                    data={'text': 'message sent to teams',
+                                          'confirm_send': False},
+                                    follow=True)
+        self.assertFalse(message.called)
+        self.assertFalse(slack_message.called)
+        self.assertTemplateUsed(response, 'tournament/admin/team_spam.html')
+        # teams have no slack channels
+        response = self.client.post(path,
+                                    data={'text': 'message sent to teams',
+                                          'confirm_send': True},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Spam sent to 4 teams.') # bug that should be fixed, spam was not sent to 4 teams.
+        self.assertFalse(slack_message.called)
+        self.assertTemplateUsed(response, 'admin/change_list.html')
+        # create slack channels
+        Team.objects.all().update(slack_channel='channel')
+        response = self.client.post(path,
+                                    data={'text': 'message sent to teams',
+                                          'confirm_send': True},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Spam sent to 4 teams.') # correct now.
+        self.assertEqual(slack_message.call_count, 4)
+        self.assertEqual(slack_message.call_args.args[1], 'message sent to teams')
+        self.assertTemplateUsed(response, 'admin/change_list.html')
+
     def test_manage_players_add_alternate(self):
         Season.objects.filter(pk=self.s.pk).update(start_date = timezone.now())
         self.client.force_login(user=self.superuser)
