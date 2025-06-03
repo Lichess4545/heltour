@@ -9,7 +9,7 @@ from django.http.response import HttpResponseForbidden
 from heltour.tournament.models import (Alternate, LonePlayerPairing, Player,
     Round, Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-    get_season, get_player, get_round, Shush)
+    get_season, get_player, get_round)
 
 
 class AdminSearchTestCase(TestCase):
@@ -37,9 +37,7 @@ class SeasonAdminTestCase(TestCase):
         t1 = Team.objects.get(number=1)
         t2 = Team.objects.get(number=2)
         cls.r1 = get_round('team', 1)
-        cls.r1.publish_pairings=True
-        with Shush():
-            cls.r1.save()
+        Round.objects.filter(pk=cls.r1.pk).update(publish_pairings=True)
         cls.tp1 = TeamPairing.objects.create(white_team=t1, black_team=t2, round=cls.r1, pairing_order=1)
         cls.p1 = Player.objects.get(lichess_username='Player1')
         cls.p2 = Player.objects.get(lichess_username='Player2')
@@ -162,6 +160,7 @@ class SeasonAdminTestCase(TestCase):
                                           '_selected_action': self.s.pk},
                                     follow=True)
         self.assertFalse(message.called)
+        self.assertTemplateUsed(response, 'tournament/admin/round_transition.html')
 
     @patch('django.contrib.admin.ModelAdmin.message_user')
     @patch('heltour.tournament.workflows.RoundTransitionWorkflow.run',
@@ -194,12 +193,30 @@ class SeasonAdminTestCase(TestCase):
                                     follow=True)
         self.assertTemplateUsed(response, 'admin/change_list.html')
 
+    @patch('django.contrib.admin.ModelAdmin.message_user')
+    def test_team_spam(self, message):
+        self.client.force_login(user=self.superuser)
+        path = reverse('admin:tournament_season_changelist')
+        response = self.client.post(path,
+                                    data={'action': 'team_spam',
+                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                                    follow=True)
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args.args[1], 'Team spam can only be sent one season at a time.')
+        message.reset_mock()
+        response = self.client.post(path,
+                                    data={'action': 'team_spam',
+                                          '_selected_action': self.s.pk},
+                                    follow=True)
+        self.assertFalse(message.called)
+        self.assertTemplateUsed(response, 'tournament/admin/team_spam.html')
+
     def test_manage_players_add_alternate(self):
-        self.s.start_date = timezone.now()
-        self.s.save()
+        Season.objects.filter(pk=self.s.pk).update(start_date = timezone.now())
         self.client.force_login(user=self.superuser)
         path = reverse('admin:manage_players', args=[self.s.pk])
         response = self.client.post(path,
                                     data={"changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'})
+        # check that the correct alternate was created
         self.assertEqual(Alternate.objects.all().count(), 1)
         self.assertEqual(Alternate.objects.all().first().season_player.player.lichess_username, 'Player1')
