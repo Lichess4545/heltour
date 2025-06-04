@@ -1,7 +1,7 @@
 from django.test import TestCase
 from heltour.tournament.models import Player
-from heltour.tournament.workflows import ApproveRegistrationWorkflow
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, set_rating, Shush
+from heltour.tournament.workflows import ApproveRegistrationWorkflow, UpdateBoardOrderWorkflow
+from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_player, get_season, set_rating, Shush
 
 
 class TestLJPCase(TestCase):
@@ -19,3 +19,20 @@ class TestLJPCase(TestCase):
         self.assertEqual(arw.default_byes, 2)
         self.assertEqual(arw.active_round_count, 3)
         self.assertEqual(arw.default_ljp, 0)
+
+
+class UpdateBoardOrderWorkflow(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        s = get_season('team')
+        cls.ubo = UpdateBoardOrderWorkflow(season=s)
+        cls.players = []
+        rating = 1000
+        for player in Players.objects.all():
+            rating += 100
+            Player.objects.filter(pk=player.pk).update(profile={"perfs": {"classical": {"rating": rating}}})
+            cls.players.append(player)
+
+    def test_lone(self):
+        self.ubo.run()
