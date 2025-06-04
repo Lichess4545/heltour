@@ -36,6 +36,8 @@ try:
     exec('from .local.%s import *' % re.sub('[^\\w]', '_', hostname))
 except ImportError:
     pass  # ignore missing local settings
+except SyntaxError:
+    pass # ignore missing local settings for glbert
 
 # Allow live settings (which aren't in the repository) to override the development settings.
 config_path = '/home/lichess4545/etc/heltour/%s.json' % ('staging' if STAGING else 'production')
