@@ -48,5 +48,3 @@ exclude-newer = "2025-06-04T00:00:00Z"
 
 [tool.django-stubs]
 django_settings_module = "heltour.settings"
-
-[project.scripts]
