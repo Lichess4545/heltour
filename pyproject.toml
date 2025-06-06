@@ -53,3 +53,9 @@ exclude-newer = "2025-06-04T00:00:00Z"
 
 [tool.django-stubs]
 django_settings_module = "heltour.settings"
+
+[project.scripts]
+server = "heltour.commands:runserver"
+apiworker = "heltour.commands:runapiworker"
+test = "heltour.commands:test"
+coverage = "heltour.commands:coverage"
