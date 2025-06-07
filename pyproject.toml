@@ -38,7 +38,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "coverage>=7.8.2",
+    "coverage[toml]>=7.8.2",
 ]
 
 [build-system]
@@ -58,4 +58,5 @@ django_settings_module = "heltour.settings"
 server = "heltour.commands:runserver"
 apiworker = "heltour.commands:runapiworker"
 test = "heltour.commands:test"
-coverage = "heltour.commands:coverage"
+showmigrations = "heltour.commands:showmigrations"
+migrate = "heltour.commands:migrate"

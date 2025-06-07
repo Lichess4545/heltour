@@ -492,6 +492,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/1a/0b9c32220ad694d66062f571cc5cedfa9997b64a591e8a500bb63de1bd40/coverage-7.8.2-py3-none-any.whl", hash = "sha256:726f32ee3713f7359696331a18daf0c3b3a70bb0ae71141b9d3c52be7c595e32", size = 203623, upload-time = "2025-05-23T11:39:53.846Z" },
 ]
 
+[package.optional-dependencies]
+toml = [
+    { name = "tomli", marker = "python_full_version <= '3.11'" },
+]
+
 [[package]]
 name = "cryptography"
 version = "45.0.3"
@@ -806,7 +811,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "coverage" },
+    { name = "coverage", extra = ["toml"] },
 ]
 
 [package.metadata]
@@ -840,7 +845,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "coverage", specifier = ">=7.8.2" }]
+dev = [{ name = "coverage", extras = ["toml"], specifier = ">=7.8.2" }]
 
 [[package]]
 name = "httplib2"
