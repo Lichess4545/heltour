@@ -58,7 +58,7 @@ django_settings_module = "heltour.settings"
 branch = true
 
 [tool.coverage.html]
-directory = "coverate_html"
+directory = "coverage_html"
 
 [project.scripts]
 server = "heltour.commands:runserver"
