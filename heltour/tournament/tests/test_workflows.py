@@ -1,5 +1,5 @@
 from django.test import TestCase
-from heltour.tournament.models import Player
+from heltour.tournament.models import AlternatesManagerSetting, Player, TeamMember
 from heltour.tournament.workflows import ApproveRegistrationWorkflow, UpdateBoardOrderWorkflow
 from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_player, get_season, set_rating, Shush
 
@@ -21,18 +21,27 @@ class TestLJPCase(TestCase):
         self.assertEqual(arw.default_ljp, 0)
 
 
-class UpdateBoardOrderWorkflow(TestCase):
+class UpdateBoardOrderWorkflowTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        s = get_season('team')
-        cls.ubo = UpdateBoardOrderWorkflow(season=s)
+        cls.s = get_season('team')
+        AlternatesManagerSetting(league=cls.s.league)
+        cls.ubo = UpdateBoardOrderWorkflow(cls.s)
         cls.players = []
         rating = 1000
-        for player in Players.objects.all():
+        for player in Player.objects.all():
             rating += 100
             Player.objects.filter(pk=player.pk).update(profile={"perfs": {"classical": {"rating": rating}}})
             cls.players.append(player)
 
-    def test_lone(self):
-        self.ubo.run()
+    def test_lonewolf(self):
+        UpdateBoardOrderWorkflow(get_season('lone'))
+
+    def test_team_board_order(self):
+        self.assertEqual(TeamMember.objects.get(player=self.players[0]).board_number, 1)
+        self.assertEqual(TeamMember.objects.get(player=self.players[1]).board_number, 2)
+        self.ubo.run(alternates_only=False)
+        self.assertEqual(TeamMember.objects.get(player=self.players[0]).board_number, 2)
+        self.assertEqual(TeamMember.objects.get(player=self.players[1]).board_number, 1)
+        
