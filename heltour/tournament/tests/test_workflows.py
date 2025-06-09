@@ -36,7 +36,7 @@ class UpdateBoardOrderWorkflowTestCase(TestCase):
             cls.players.append(player)
 
     def test_lonewolf(self):
-        UpdateBoardOrderWorkflow(get_season('lone'))
+        self.assertEqual(UpdateBoardOrderWorkflow(get_season('lone')).run(alternates_only=True), None)
 
     def test_team_board_order(self):
         self.assertEqual(TeamMember.objects.get(player=self.players[0]).board_number, 1)
@@ -44,4 +44,3 @@ class UpdateBoardOrderWorkflowTestCase(TestCase):
         self.ubo.run(alternates_only=False)
         self.assertEqual(TeamMember.objects.get(player=self.players[0]).board_number, 2)
         self.assertEqual(TeamMember.objects.get(player=self.players[1]).board_number, 1)
-        
