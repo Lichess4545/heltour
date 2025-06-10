@@ -35,3 +35,7 @@ def migrate():
         call(["python", "manage.py", "migrate"])
     else:
         call(["python", "manage.py", "migrate"] + argv[1:])
+
+
+def celeryworker():
+    call(["celery", "-A", "heltour", "worker", "-B", "-c 4", "--loglevel=INFO", "-Ofair"])
