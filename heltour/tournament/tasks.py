@@ -28,7 +28,7 @@ logger = get_task_logger(__name__)
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
-def to_usernames(users: UsernamesQuerySet):
+def to_usernames(users: UsernamesQuerySet) -> List[str]:
     return [p['lichess_username'] for p in users if p['lichess_username'].strip()]
 
 
