@@ -2,10 +2,12 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 from unittest.mock import patch
-from heltour.tournament.models import League, OauthToken, Player, Registration, Round, Team, TeamPairing, TeamPlayerPairing
+from heltour.tournament.models import (League, OauthToken, Player, Registration, Round, SeasonPlayer, Team,
+        TeamPairing, TeamPlayerPairing)
 from heltour.tournament.tasks import (active_player_usernames, not_updated_recently_usernames, start_games,
-                                      update_player_ratings, validate_registration)
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_league, get_player, get_round, get_season, Shush
+        update_player_ratings, validate_registration)
+from heltour.tournament.tests.testutils import (createCommonLeagueData, create_reg, get_league, get_player,
+        get_round, get_season, Shush)
 from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
 
 
@@ -13,12 +15,17 @@ class TestHelpers(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
+        cls.playernames = ['Player' + str(i) for i in range(1, 9)]
 
     def test_username_helpers(self, *args):
-        playernames = ['Player' + str(i) for i in range(1, 9)]
-        self.assertEqual(active_player_usernames(), playernames) # names are Player1, ..., Player8
-        self.assertEqual(not_updated_recently_usernames(playernames), [])
+        self.assertEqual(active_player_usernames(), self.playernames) # names are Player1, ..., Player8
+        self.assertEqual(not_updated_recently_usernames(self.playernames), [])
         # could mock.patch timezone.now to change what "recently" means for more tests
+
+    def test_username_duplicates(self):
+        SeasonPlayer.objects.create(season=get_season('team'), player=get_player('Player1'))
+        self.assertEqual(SeasonPlayer.objects.all().count(), 9)
+        self.assertEqual(active_player_usernames(), self.playernames) # no duplicate names
 
 
 class TestUpdateRatings(TestCase):
