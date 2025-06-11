@@ -43,7 +43,7 @@ def active_player_usernames() -> List[str]:
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
-def not_updated_recently_usernames(active_usernames) -> List[str]:
+def not_updated_recently_usernames(active_usernames: List[str]) -> List[str]:
     players_qs = Player.objects.all()
     total_players = players_qs.count()
     _24_hours = timezone.now() - timedelta(hours=24)
