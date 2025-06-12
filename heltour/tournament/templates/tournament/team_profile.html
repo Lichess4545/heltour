@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load tournament_extras %}
-
 {% block title %}{{ team.name }} - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs player-profile-row">
         <div class="col-md-5 col-xs-12">
@@ -16,15 +14,14 @@
                         <table>
                             {% for n, team_member in team.boards %}
                                 <tr>
-                                    <td><span class="hidden-xs">Board {{ n }}:</span><span
-                                            class="visible-xs">Bd {{ n }}</span></td>
-                                    <td{% if team_member.is_captain %} class="captain"{% endif %}>
+                                    <td>
+                                        <span class="hidden-xs">Board {{ n }}:</span><span class="visible-xs">Bd {{ n }}</span>
+                                    </td>
+                                    <td {% if team_member.is_captain %}class="captain"{% endif %}>
                                         {% if team_member %}
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
                                                 {{ team_member.player.lichess_username }}
-                                                        {% if team_member.player_rating_display and not zen_mode %}
-                                                            ({{ team_member.player_rating_display }})
-                                                        {% endif %}
+                                                {% if team_member.player_rating_display and not zen_mode %}({{ team_member.player_rating_display }}){% endif %}
                                             </a>
                                         {% endif %}
                                     </td>
@@ -33,9 +30,7 @@
                         </table>
                     </div>
                     <div class="player-profile-section">
-                        {% if not zen_mode %}
-                        <div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>
-                        {% endif %}
+                        {% if not zen_mode %}<div>Average Rating: {{ team.average_rating|floatformat:2 }}</div>{% endif %}
                         <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag team.number %}">Calendar</a>
                     </div>
                     {% if prev_members %}
@@ -46,11 +41,18 @@
                                     <tr>
                                         <td>
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                                                {{ player.lichess_username }}{% if rating_display and not zen_mode %} ({{ rating_display }}){% endif %}
+                                                {{ player.lichess_username }}
+                                                {% if rating_display and not zen_mode %}({{ rating_display }}){% endif %}
                                             </a>
                                         </td>
-                                        <td>{% if game_count == 1 %}1 game{% else %}{{ game_count }}
-                                            games{% endif %}</td>
+                                        <td>
+                                            {% if game_count == 1 %}
+                                                1 game
+                                            {% else %}
+                                                {{ game_count }}
+                                                games
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -75,17 +77,16 @@
                                             <td>
                                                 <a class="team-link"
                                                    href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_.number team.number %}">
-                                                    <span class="hidden-xs">Round {{ round_.number }}:</span><span
-                                                        class="visible-xs">Rd {{ round_.number }}</span>
+                                                    <span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span>
                                                 </a>
                                             </td>
                                             <td>
                                                 {% if pairing.white_team == team %}
                                                     vs <a class="team-link"
-                                                         href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team.name }}</a>
+    href="{% leagueurl 'team_profile' league.tag season.tag pairing.black_team.number %}">{{ pairing.black_team.name }}</a>
                                                 {% else %}
                                                     vs <a class="team-link"
-                                                         href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team.name }}</a>
+    href="{% leagueurl 'team_profile' league.tag season.tag pairing.white_team.number %}">{{ pairing.white_team.name }}</a>
                                                 {% endif %}
                                             </td>
                                             <td class="text-center">

@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}Rosters - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_rosters %}active{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -12,117 +9,132 @@
                 <div class="well-head">
                     <div class="inline">
                         <h3>Rosters</h3>
-                    </div>{% if can_edit %}
-                    <div class="inline document-edit">
-                        <a href="{% url 'admin:manage_players' season.pk %}" id="edit-rosters" title="Edit rosters">
-                            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-                        </a>
-                    </div>{% endif %}
+                    </div>
+                    {% if can_edit %}
+                        <div class="inline document-edit">
+                            <a href="{% url 'admin:manage_players' season.pk %}"
+                               id="edit-rosters"
+                               title="Edit rosters">
+                                <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="well-body">
                     {% if teams %}
                         <div class="table-responsive">
-                            <table class="table table-striped table-condensed-sm sortable" id="table-rosters">
+                            <table class="table table-striped table-condensed-sm sortable"
+                                   id="table-rosters">
                                 <thead>
-                                <tr>
-                                    <th class="cell-team sort" colspan="3">Team</th>
-                                    {% for board_number in board_numbers %}
-                                        <th class="cell-player" colspan="2">
-                                            <a class="board-link"
-                                               href="{% leagueurl 'board_scores' league.tag season.tag board_number %}">
-                                                Board {{ board_number }}
-                                            </a>
-                                        </th>
-                                        {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
-                                    {% endfor %}
-                                    {% if not zen_mode %}<th class="cell-average-rating sort">Average</th>{% endif %}
-                                </tr>
+                                    <tr>
+                                        <th class="cell-team sort" colspan="3">Team</th>
+                                        {% for board_number in board_numbers %}
+                                            <th class="cell-player" colspan="2">
+                                                <a class="board-link"
+                                                   href="{% leagueurl 'board_scores' league.tag season.tag board_number %}">
+                                                    Board {{ board_number }}
+                                                </a>
+                                            </th>
+                                            {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
+                                        {% endfor %}
+                                        {% if not zen_mode %}<th class="cell-average-rating sort">Average</th>{% endif %}
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                {% for team in teams %}
-                                    <tr>
-                                        <td class="cell-team" colspan="3">
-                                            <a class="team-link"
-                                               href="{% leagueurl 'team_profile' league.tag season.tag team.number %}">{{ team.name }}</a>
-                                        </td>
-                                        {% for board_number, board in team.boards %}
-                                            <td class="cell-player{% if board.is_captain %} captain{% endif %}"
-                                                colspan="2">
-                                    <span class="player-name{% if board.player in unresponsive_players %} player-unresponsive"
-                                          title="unresponsive"
-                                    {% elif board.player in unavailable_players %}
-                                          player-unavailable" title="unavailable"
-                                    {% elif board.player in yellow_card_players %} player-yellow-card" title="1 game
-                                        missed"
-                                    {% elif board.player in red_card_players %} player-red-card" title="2+ games missed"
-                                    {% else %}"{% endif %}>
-                                                {% if board.player %}
-                                                    <a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>{% endif %}
-                                                </span>
+                                    {% for team in teams %}
+                                        <tr>
+                                            <td class="cell-team" colspan="3">
+                                                <a class="team-link"
+                                                   href="{% leagueurl 'team_profile' league.tag season.tag team.number %}">{{ team.name }}</a>
                                             </td>
-                                            {% if not zen_mode %}<td class="cell-rating">{{ board.player_rating_display|default_if_none:"" }}</td>{% endif %}
-                                        {% endfor %}
-                                        {% if not zen_mode %}<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>{% endif %}
-                                    </tr>
-                                {% endfor %}
+                                            {% for board_number, board in team.boards %}
+                                                <td class="cell-player{% if board.is_captain %} captain{% endif %}"
+                                                    colspan="2">
+                                                    <span class="player-name{% if board.player in unresponsive_players %} player-unresponsive"
+                                                          title="unresponsive"
+                                                          {% elif board.player in unavailable_players %}
+                                                          player-unavailable
+                                                          "
+                                                          title="unavailable"
+                                                          {% elif board.player in yellow_card_players %}
+                                                          player-yellow-card
+                                                          "
+                                                          title="1 game missed"
+                                                          {% elif board.player in red_card_players %}
+                                                          player-red-card
+                                                          "
+                                                          title="2+ games missed"
+                                                          {% else %}
+                                                          "
+                                                          {% endif %}>
+                                                        {% if board.player %}
+                                                            <a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{{ board.player.lichess_username }}</a>
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                                {% if not zen_mode %}<td class="cell-rating">{{ board.player_rating_display|default_if_none:"" }}</td>{% endif %}
+                                            {% endfor %}
+                                            {% if not zen_mode %}<td class="cell-average-rating">{{ team.average_rating|floatformat:2 }}</td>{% endif %}
+                                        </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
-                            <table class="table table-striped table-condensed-sm sortable" id="table-rosters">
+                            <table class="table table-striped table-condensed-sm sortable"
+                                   id="table-rosters">
                                 <thead>
-                                <tr>
-                                    <th class="cell-alternates" colspan="3">Alternates</th>
-                                    {% for board_number in board_numbers %}
-                                        <th class="cell-player" colspan="2">Board {{ board_number }}</th>
-                                        {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
-                                    {% endfor %}
-                                    <th>&nbsp;</th>
-                                </tr>
+                                    <tr>
+                                        <th class="cell-alternates" colspan="3">Alternates</th>
+                                        {% for board_number in board_numbers %}
+                                            <th class="cell-player" colspan="2">Board {{ board_number }}</th>
+                                            {% if not zen_mode %}<th class="cell-rating sort">Rtg</th>{% endif %}
+                                        {% endfor %}
+                                        <th>&nbsp;</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                {% for row_num, row in alternate_rows %}
-                                    <tr>
-                                        <td colspan="3">
-                                            {% if row_num == 1 and not season.is_completed %}
-                                                <a href="{% leagueurl 'alternates' league.tag season.tag %}">Searches</a>
-                                            {% else %}
-                                                &nbsp;
-                                            {% endif %}
-                                        </td>
-                                        {% for alt in row %}
-                                            {% with priority_date_and_reason=alt.priority_date_and_reason %}
-                                                <td class="cell-player" colspan="2"
-                                                    title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
-                                                    {% if alt == None %}
-                                                        {% if row_num == 1 %}
-                                                            -
-                                                        {% endif %}
-                                                    {% else %}
-                                                        <span class="player-name{% if alt.season_player.player in unresponsive_players or alt.status == 'unresponsive' %} player-unresponsive"
-                                                              title="unresponsive"
-                                                        {% elif alt.season_player.player in unavailable_players %}
-                                                              player-unavailable" title="unavailable"
-                                                        {% elif alt.season_player.player in scheduled_alternates %}
-                                                            player-scheduled" title="scheduled"
-                                                        {% elif alt.season_player.player in yellow_card_players %}
-                                                            player-yellow-card" title="1 game missed"
-                                                        {% elif alt.season_player.player in red_card_players %}
-                                                            player-red-card" title="2+ games missed"
-                                                        {% else %}"{% endif %}>
-                                                        <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">{{ alt.season_player.player.lichess_username }}</a>
-                                                        </span>
-                                                    {% endif %}
-                                                </td>
-                                                {% if not zen_mode %}
-                                                <td class="cell-rating"
-                                                    title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
-                                                    {{ alt.player_rating_display|default_if_none:"" }}
-                                                </td>
+                                    {% for row_num, row in alternate_rows %}
+                                        <tr>
+                                            <td colspan="3">
+                                                {% if row_num == 1 and not season.is_completed %}
+                                                    <a href="{% leagueurl 'alternates' league.tag season.tag %}">Searches</a>
+                                                {% else %}
+                                                    &nbsp;
                                                 {% endif %}
-                                            {% endwith %}
-                                        {% endfor %}
-                                        <td>&nbsp;</td>
-                                    </tr>
-                                {% endfor %}
+                                            </td>
+                                            {% for alt in row %}
+                                                {% with priority_date_and_reason=alt.priority_date_and_reason %}
+                                                    <td class="cell-player"
+                                                        colspan="2"
+                                                        title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
+                                                        {% if alt == None %}
+                                                            {% if row_num == 1 %}-{% endif %}
+                                                        {% else %}
+                                                            <span class="player-name{% if alt.season_player.player in unresponsive_players or alt.status == 'unresponsive' %} player-unresponsive"
+                                                                title="unresponsive"
+                                                            {% elif alt.season_player.player in unavailable_players %}
+                                                                player-unavailable" title="unavailable"
+                                                            {% elif alt.season_player.player in scheduled_alternates %}
+                                                                player-scheduled" title="scheduled"
+                                                            {% elif alt.season_player.player in yellow_card_players %}
+                                                                player-yellow-card" title="1 game missed"
+                                                            {% elif alt.season_player.player in red_card_players %}
+                                                                player-red-card" title="2+ games missed"
+                                                            {% else %}"{% endif %}>
+                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">{{ alt.season_player.player.lichess_username }}</a>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    {% if not zen_mode %}
+                                                        <td class="cell-rating"
+                                                            title="{{ priority_date_and_reason.1 }}: {{ priority_date_and_reason.0|date }}">
+                                                            {{ alt.player_rating_display|default_if_none:"" }}
+                                                        </td>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% endfor %}
+                                            <td>&nbsp;</td>
+                                        </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
                             {% if show_legend %}
