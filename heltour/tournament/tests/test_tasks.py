@@ -215,7 +215,7 @@ class TestTeamChannel(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        cls.team_ids = Team.objects.all().values("pk")        
+        cls.team_ids = Team.objects.all().values("pk")
 
     @patch('heltour.tournament.slackapi.create_group',
             side_effect=[SlackGroup(id='g1', name='g1'),
