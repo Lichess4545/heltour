@@ -870,6 +870,17 @@ class Player(_BaseModel):
             self.profile = user_meta
         self.save()
 
+    def profile_update_after(self) -> datetime:
+        # lichess gives us "seenAt" in miliseconds as the last time the user was online
+        # thus, the profile was last updated *after* this seenAt.
+        if self.profile is None:
+            return None
+        seenAt = self.profile.get('seenAt')
+        if seenAt is None:
+            return None
+        else:
+            return datetime.utcfromtimestamp(seenAt / 1000)
+
     @classmethod
     def get_or_create(cls, lichess_username):
         player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username,
