@@ -1,142 +1,123 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 {% load static tournament_extras comments %}
-
 {% block content %}
     <form action="" method="post">
         {% csrf_token %}
-        <input type="hidden" name="_changelist_filters" value="{{ changelist_filters }}"/>
-
+        <input type="hidden"
+               name="_changelist_filters"
+               value="{{ changelist_filters }}" />
         <div class="aligned-text">
-
             <div class="form-row">
                 <label>Registration date:</label>
                 {{ original.date_created }}
             </div>
-
             <div class="form-row">
                 <label>Registration status:</label>
                 <span class="{% if original.status == 'approved' %}text-approved{% elif original.status == 'rejected' %}text-rejected{% endif %}">{{ original.get_status_display }}</span>
             </div>
-
             <h2>{{ original.season.name }}</h2>
-
             <div class="form-row">
                 <label>Season start:</label>
                 {{ original.season.start_date|date_or_q }}
             </div>
-
             <h2>Registration form</h2>
-
             <div class="form-row">
                 <label>Lichess username:</label>
                 {{ original.lichess_username }}
                 {% if original.validation_warning == True %}
-                    <img src="{% static 'admin/img/icon-alert.svg' %}"/>
+                    <img src="{% static 'admin/img/icon-alert.svg' %}" />
                 {% elif original.validation_ok == True %}
-                    <img src="{% static 'admin/img/icon-yes.svg' %}"/>
+                    <img src="{% static 'admin/img/icon-yes.svg' %}" />
                 {% elif original.validation_ok == False %}
-                    <img src="{% static 'admin/img/icon-no.svg' %}"/>
+                    <img src="{% static 'admin/img/icon-no.svg' %}" />
                 {% endif %}
             </div>
-
             {% if perms.tournament.dox %}
                 <div class="form-row">
                     <label>Email:</label>
                     {{ original.email }}
                 </div>
             {% endif %}
-
-
             <div class="form-row">
                 <label>Classical rating:</label>
                 {{ original.player.rating }}
             </div>
-
             <div class="form-row">
                 <label>Has established rating:</label>
                 <span class="{% if not original.has_played_20_games %}text-rejected{% endif %}">{{ original.has_played_20_games|yesno:'Yes,No' }}</span>
             </div>
-
             <div class="form-row">
                 <label>Slack ID:</label>
                 {{ original.player.slack_user_id|default:'Not on slack' }}
             </div>
-
             <div class="form-row">
                 <label>Can commit to 1 long game per week:</label>
                 <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
             </div>
-
             {% if is_team %}
                 <div class="form-row">
                     <label>Friends for pairing:</label>
                     {{ original.friends }}
                 </div>
             {% endif %}
-
             {% if is_team %}
                 <div class="form-row">
                     <label>Avoid for pairings:</label>
                     {{ original.avoid }}
                 </div>
             {% endif %}
-
             <div class="form-row">
                 <label>Agreed to rules:</label>
                 <span class="{% if not original.agreed_to_rules %}text-rejected{% endif %}">{{ original.agreed_to_rules|yesno:'Yes,No' }}</span>
             </div>
-
             <div class="form-row">
                 <label>Agreed to tos:</label>
                 <span class="{% if not original.agreed_to_tos %}text-rejected{% endif %}">{{ original.agreed_to_tos|yesno:'Yes,No' }}</span>
             </div>
-
             {% if is_team %}
                 <div class="form-row">
                     <label>Alternate preference:</label>
                     {{ original.get_alternate_preference_display }}
                 </div>
             {% endif %}
-
             {% if original.section_preference %}
                 <div class="form-row">
                     <label>Section preference:</label>
                     {{ original.section_preference.name }}
                 </div>
             {% endif %}
-
             <div class="form-row">
                 <label>Weeks unavailable:</label>
                 {{ original.weeks_unavailable }}
             </div>
-
             <h2>Additional info</h2>
-
             <div class="form-row">
-                <a href="https://lichess.org/@/{{ original.lichess_username }}?mod">Lichess profile</a> for <span
-                    class="text-username">{{ original.lichess_username }}</span>
+                <a href="https://lichess.org/@/{{ original.lichess_username }}?mod">Lichess profile</a> for <span class="text-username">{{ original.lichess_username }}</span>
             </div>
-
             {% for prev in original.previous_registrations %}
                 <div class="form-row">
                     A <a href="{% url 'admin:review_registration' prev.id %}">previous registration</a> for
-                    <span class="text-username">{{ original.lichess_username }}</span> in <span
-                        class="text-season">{{ prev.season }}</span>
-                    {% if prev.status == 'approved' %}was
-                        <span class="text-approved">approved</span>{% elif prev.status == 'rejected' %}was
-                        <span class="text-rejected">rejected</span>{% else %}is
-                        <span class="text-pending">pending</span>.{% endif %}
-                    {% if prev.status != 'pending' %}by {{ prev.status_changed_by }} on {{ prev.status_changed_date }}
-                        .{% endif %}
+                    <span class="text-username">{{ original.lichess_username }}</span> in <span class="text-season">{{ prev.season }}</span>
+                    {% if prev.status == 'approved' %}
+                        was
+                        <span class="text-approved">approved</span>
+                    {% elif prev.status == 'rejected' %}
+                        was
+                        <span class="text-rejected">rejected</span>
+                    {% else %}
+                        is
+                        <span class="text-pending">pending</span>.
+                    {% endif %}
+                    {% if prev.status != 'pending' %}
+                        by {{ prev.status_changed_by }} on {{ prev.status_changed_date }}
+                        .
+                    {% endif %}
                 </div>
             {% endfor %}
-
             {% for season_player in original.other_seasons %}
                 <div class="form-row">
                     The player
-                    <span class="text-username">
-                {{ original.lichess_username }}
-            </span>
+                    <span class="text-username">{{ original.lichess_username }}</span>
                     participated in
                     <a href="{% leagueurl 'player_profile' season_player.season.league.tag season_player.season.tag original.lichess_username %}">
                         {{ season_player.season }}
@@ -145,7 +126,6 @@
                     <strong>{{ season_player.games_missed }} game(s) missed</strong>.
                 </div>
             {% endfor %}
-
             {% if original.player %}
                 {% get_comment_list for original.player as comments %}
                 {% if comments %}
@@ -155,9 +135,7 @@
                     </div>
                 {% endif %}
             {% endif %}
-
         </div>
-
         <div class="submit-row">
             <input value="Edit" name="edit" type="submit">
             {% if original.status == 'pending' %}
@@ -166,7 +144,6 @@
             {% endif %}
         </div>
     </form>
-
     <h2>Comments</h2>
     {% render_comment_list for original %}
     {% render_comment_form for original %}
