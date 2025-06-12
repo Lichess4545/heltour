@@ -1,7 +1,7 @@
 from django.test import TestCase
 from heltour.tournament.models import AlternatesManagerSetting, Player, TeamMember
 from heltour.tournament.workflows import ApproveRegistrationWorkflow, UpdateBoardOrderWorkflow
-from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_player, get_season, set_rating, Shush
+from heltour.tournament.tests.testutils import createCommonLeagueData, create_reg, get_season, Shush
 
 
 class TestLJPCase(TestCase):
@@ -10,7 +10,7 @@ class TestLJPCase(TestCase):
         createCommonLeagueData(round_count=7)
 
     def test_ljp_none_rating(self, *args):
-        new_player = Player.objects.create(lichess_username="newplayer", profile={"perfs": {"bullet": {"games": 50, "rating": 1650, "rd": 45, "prog": 10}}})
+        Player.objects.create(lichess_username="newplayer", profile={"perfs": {"bullet": {"games": 50, "rating": 1650, "rd": 45, "prog": 10}}})
         season = get_season("lone")
         # creating a reg writes to the log, disable that temporarily for nicer test output
         with Shush():
