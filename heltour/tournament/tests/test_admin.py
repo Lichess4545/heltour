@@ -1,15 +1,13 @@
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib import admin, messages
 from django.contrib.auth.models import User
-from django.core.exceptions import PermissionDenied
-from django.http.response import HttpResponseForbidden
 from heltour.tournament.models import (Alternate, LonePlayerPairing, Player,
     Round, Season, SeasonPlayer, Team, TeamPairing, TeamPlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-    get_season, get_player, get_round)
+    get_season, get_round)
 
 
 class AdminSearchTestCase(TestCase):
@@ -51,7 +49,7 @@ class SeasonAdminTestCase(TestCase):
     def test_simulate(self, message, simulate):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:tournament_season_changelist')
-        response = self.client.post(path, data={'action': 'simulate_tournament', '_selected_action': get_season('lone').pk}, follow=True)
+        self.client.post(path, data={'action': 'simulate_tournament', '_selected_action': get_season('lone').pk}, follow=True)
         self.assertTrue(simulate.called)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'Simulation complete.')
@@ -63,9 +61,10 @@ class SeasonAdminTestCase(TestCase):
     def test_recalculate(self, message, tpsave, tprefresh, scalculate):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:tournament_season_changelist')
-        response = self.client.post(path, data={'action': 'recalculate_scores',
-                                                '_selected_action': get_season('lone').pk},
-                                    follow=True)
+        self.client.post(path,
+                data={'action': 'recalculate_scores',
+                      '_selected_action': get_season('lone').pk},
+                follow=True)
         self.assertFalse(tprefresh.called)
         self.assertFalse(tpsave.called)
         self.assertTrue(scalculate.called)
@@ -73,10 +72,10 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(message.call_args.args[1], 'Scores recalculated.')
         message.reset_mock()
         scalculate.reset_mock()
-        response = self.client.post(path,
-                                    data={'action': 'recalculate_scores',
-                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
-                                    follow=True)
+        self.client.post(path,
+                data={'action': 'recalculate_scores',
+                      '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                follow=True)
         self.assertTrue(tprefresh.called)
         self.assertTrue(tpsave.called)
         self.assertTrue(scalculate.called)
@@ -91,20 +90,20 @@ class SeasonAdminTestCase(TestCase):
     def test_verify(self, gamelink, message):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:tournament_season_changelist')
-        response = self.client.post(path,
-                                    data={'action': 'verify_data',
-                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
-                                    follow=True)
+        self.client.post(path,
+                data={'action': 'verify_data',
+                      '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                follow=True)
         self.assertTrue(message.called)
         self.assertEqual(message.call_args.args[1], 'Data verified.')
         message.reset_mock()
         lr1 = get_round('lone', 1)
         lpp1 = LonePlayerPairing.objects.create(round=lr1, white=self.p1, black=self.p2, game_link='incorrectlink1', pairing_order=0)
         lpp2 = LonePlayerPairing.objects.create(round=lr1, white=self.p3, black=self.p4, game_link='incorrectlink2', pairing_order=1)
-        response = self.client.post(path,
-                                    data={'action': 'verify_data',
-                                          '_selected_action': Season.objects.all().values_list('pk', flat=True)},
-                                    follow=True)
+        self.client.post(path, 
+                data={'action': 'verify_data',
+                      '_selected_action': Season.objects.all().values_list('pk', flat=True)},
+                follow=True)
         lpp2.refresh_from_db()
         self.assertEqual(gamelink.call_count, 2)
         self.assertTrue(message.call_count, 2)
@@ -117,9 +116,9 @@ class SeasonAdminTestCase(TestCase):
     def test_review_nominated(self, message):
         self.client.force_login(user=self.superuser)
         path = reverse('admin:tournament_season_changelist')
-        tpp1 = TeamPlayerPairing.objects.create(white=self.p1, black=self.p2, board_number=1, team_pairing=self.tp1,
+        TeamPlayerPairing.objects.create(white=self.p1, black=self.p2, board_number=1, team_pairing=self.tp1,
                 game_link='https://lichess.org/rgame01')
-        tpp2 = TeamPlayerPairing.objects.create(white=self.p3, black=self.p4, board_number=2, team_pairing=self.tp1,
+        TeamPlayerPairing.objects.create(white=self.p3, black=self.p4, board_number=2, team_pairing=self.tp1,
                 game_link='https://lichess.org/rgame02')
         response = self.client.post(path,
                                     data={'action': 'review_nominated_games',
@@ -249,8 +248,8 @@ class SeasonAdminTestCase(TestCase):
         Season.objects.filter(pk=self.s.pk).update(start_date = timezone.now())
         self.client.force_login(user=self.superuser)
         path = reverse('admin:manage_players', args=[self.s.pk])
-        response = self.client.post(path,
-                                    data={"changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'})
+        self.client.post(path,
+                data={"changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'})
         # check that the correct alternate was created
         self.assertEqual(Alternate.objects.all().count(), 1)
         self.assertEqual(Alternate.objects.all().first().season_player.player.lichess_username, 'Player1')
