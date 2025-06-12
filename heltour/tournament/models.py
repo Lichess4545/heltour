@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from datetime import timedelta, date
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django import forms as django_forms
 from collections import namedtuple, defaultdict
@@ -825,6 +825,17 @@ class Player(_BaseModel):
         if not is_closed:
             self.profile = user_meta
         self.save()
+
+    def profile_update_after(self) -> datetime:
+        # lichess gives us "seenAt" in miliseconds as the last time the user was online
+        # thus, the profile was last updated *after* this seenAt.
+        if self.profile is None:
+            return None
+        seenAt = self.profile.get('seenAt')
+        if seenAt is None:
+            return None
+        else:
+            return datetime.utcfromtimestamp(seenAt / 1000)
 
     @classmethod
     def get_or_create(cls, lichess_username):
