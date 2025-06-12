@@ -5,8 +5,7 @@ from django.contrib.auth.models import User
 from django.http.response import Http404
 from unittest.mock import patch
 from heltour.tournament.models import (League, Player, Registration, Round,
-        Season, Team, TeamPairing, TeamPlayerPairing, LonePlayerPairing,
-        SeasonPlayer)
+        Season, Team, TeamPairing, TeamPlayerPairing, LonePlayerPairing)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, league_tag, league_url, reverse,
         season_tag, season_url, Shush)
@@ -128,7 +127,7 @@ class TemplatesRedirectTestCase(TestCase):
         response = self.client.get(season_url('lone', 'pairings'))
         self.assertTemplateUsed(response, 'tournament/lone_pairings.html')
 
-        pp1 = TeamPlayerPairing.objects.filter(board_number=1).update(white_confirmed=True, black_confirmed=True)
+        TeamPlayerPairing.objects.filter(board_number=1).update(white_confirmed=True, black_confirmed=True)
         response = self.client.get(season_url('team', 'pairings'))
         self.assertContains(response, 'icon-confirmed')
 
@@ -138,6 +137,7 @@ class TemplatesRedirectTestCase(TestCase):
 
         response = self.client.get(season_url('lone', 'stats'))
         self.assertTemplateUsed(response, 'tournament/lone_stats.html')
+
 
 class RegisterTestCase(TestCase):
     @classmethod
@@ -273,9 +273,9 @@ class TvTestCase(TestCase):
                                                                   "perfs":{"chess960":{"games":12, "rating":1684},
                                                                            "classical":{"games":10, "rating":1833}}}
                                                          )
-        p960 = LonePlayerPairing.objects.create(round=r960, white=self.player1, black=self.player2,
-                                                game_link='https://lichess.org/KT837Aut',
-                                                tv_state='has_moves', pairing_order=1)
+        LonePlayerPairing.objects.create(round=r960, white=self.player1, black=self.player2,
+                                         game_link='https://lichess.org/KT837Aut',
+                                         tv_state='has_moves', pairing_order=1)
         response = self.client.get(season_url('960', 'tv'))
         self.assertNotContains(response, '"white": "Player1 (1911)"')
         self.assertNotContains(response, '"black": "Player2 (1833)"')
