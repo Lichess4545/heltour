@@ -1,117 +1,98 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 {% load comments %}
-
 {% block content %}
     <h2>Selected games</h2>
     {% if selections %}
         <table>
             <thead>
-            <tr>
-                {% if is_team %}
-                    <th>Board</th>
-                {% endif %}
-                <th>Count</th>
-                <th>Link</th>
-                <th>PGN</th>
-                <th>Action</th>
-                <th>Comments</th>
-            </tr>
+                <tr>
+                    {% if is_team %}<th>Board</th>{% endif %}
+                    <th>Count</th>
+                    <th>Link</th>
+                    <th>PGN</th>
+                    <th>Action</th>
+                    <th>Comments</th>
+                </tr>
             </thead>
             <tbody>
-            {% for count, s, n in selections %}
-                <tr>
-                    {% if is_team %}
-                        <td>Bd {{ s.pairing.teamplayerpairing.board_number }}</td>
-                    {% endif %}
-                    <td>
-                        {{ count }}
-                    </td>
-                    <td>
-                        <a href="{{ s.game_link }}" class="game-link">{{ s.game_link }}</a>
-                    </td>
-                    <td>
-                        <a href="#" class="pgn-link">PGN</a>
-                    </td>
-                    <td>
-                        <a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
-                    </td>
-                    <td>
-                        {{ n.comments }}
-                        {% if n %}
-                            <a class="add-comment-link" href="#">Add Comment</a>
-                            <div style="display: none">
-                                {% render_comment_form for n %}
-                            </div>
-                            {% render_comment_list for n %}
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr style="display: none">
-                    <td colspan="4">
-                        <textarea readonly="readonly"></textarea>
-                    </td>
-                </tr>
-            {% endfor %}
+                {% for count, s, n in selections %}
+                    <tr>
+                        {% if is_team %}<td>Bd {{ s.pairing.teamplayerpairing.board_number }}</td>{% endif %}
+                        <td>{{ count }}</td>
+                        <td>
+                            <a href="{{ s.game_link }}" class="game-link">{{ s.game_link }}</a>
+                        </td>
+                        <td>
+                            <a href="#" class="pgn-link">PGN</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin:review_nominated_games_deselect' original.pk s.pk %}">Deselect</a>
+                        </td>
+                        <td>
+                            {{ n.comments }}
+                            {% if n %}
+                                <a class="add-comment-link" href="#">Add Comment</a>
+                                <div style="display: none">{% render_comment_form for n %}</div>
+                                {% render_comment_list for n %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr style="display: none">
+                        <td colspan="4">
+                            <textarea readonly="readonly"></textarea>
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     {% else %}
         <p>No games selected.</p>
     {% endif %}
-
     <h2>Nominated games</h2>
     {% if nominations %}
         <table>
             <thead>
-            <tr>
-                {% if is_team %}
-                    <th>Board</th>
-                {% endif %}
-                <th>Count</th>
-                <th>Link</th>
-                <th>PGN</th>
-                <th>Action</th>
-                <th>Comments</th>
-            </tr>
+                <tr>
+                    {% if is_team %}<th>Board</th>{% endif %}
+                    <th>Count</th>
+                    <th>Link</th>
+                    <th>PGN</th>
+                    <th>Action</th>
+                    <th>Comments</th>
+                </tr>
             </thead>
             <tbody>
-            {% for count, n in nominations %}
-                <tr>
-                    {% if is_team %}
-                        <td>Bd {{ n.pairing.teamplayerpairing.board_number }}</td>
-                    {% endif %}
-                    <td>
-                        {{ count }}
-                    </td>
-                    <td>
-                        <a href="{{ n.game_link }}" class="game-link">{{ n.game_link }}</a>
-                    </td>
-                    <td>
-                        <a href="#" class="pgn-link">PGN</a>
-                    </td>
-                    <td>
-                        <a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
-                    </td>
-                    <td>
-                        {{ n.comments }}
-                        <a class="add-comment-link" href="#">Add Comment</a>
-                        <div style="display: none">
-                            {% render_comment_form for n %}
-                        </div>
-                        {% render_comment_list for n %}
-                    </td>
-                </tr>
-                <tr style="display: none">
-                    <td colspan="4">
-                        <textarea readonly="readonly"></textarea>
-                    </td>
-                </tr>
-            {% endfor %}
+                {% for count, n in nominations %}
+                    <tr>
+                        {% if is_team %}<td>Bd {{ n.pairing.teamplayerpairing.board_number }}</td>{% endif %}
+                        <td>{{ count }}</td>
+                        <td>
+                            <a href="{{ n.game_link }}" class="game-link">{{ n.game_link }}</a>
+                        </td>
+                        <td>
+                            <a href="#" class="pgn-link">PGN</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin:review_nominated_games_select' original.pk n.pk %}">Select</a>
+                        </td>
+                        <td>
+                            {{ n.comments }}
+                            <a class="add-comment-link" href="#">Add Comment</a>
+                            <div style="display: none">{% render_comment_form for n %}</div>
+                            {% render_comment_list for n %}
+                        </td>
+                    </tr>
+                    <tr style="display: none">
+                        <td colspan="4">
+                            <textarea readonly="readonly"></textarea>
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     {% else %}
         <p>No remaining nominations.</p>
     {% endif %}
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script>
         $('.pgn-link').on('click', function (e) {

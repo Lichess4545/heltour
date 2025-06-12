@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load tournament_extras %}
-
 {% block title %}Stats - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_stats %}active{% endblock %}
-
 {% block js %}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
@@ -81,7 +78,6 @@
         }
     </script>
 {% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -114,7 +110,7 @@
                                     <td>Max: {{ all_player_ratings|maximum }}</td>
                                 </tr>
                             </table>
-                            <br/>
+                            <br />
                         </div>
                     {% endif %}
                     {% if has_win_rate_stats %}

@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras static %}
-
 {% block title %}Login - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -12,10 +10,10 @@
                 </div>
                 <div class="well-body">
                     <p>
-                        Enter your lichess username to login. You will be redirected to your lichess mail.<br/>
+                        Enter your lichess username to login. You will be redirected to your lichess mail.
+                        <br />
                         Click the link in the mail to complete the login process.
                     </p>
-
                     <form action="" method="post">
                         {% csrf_token %}
                         {% bootstrap_field form.lichess_username form_group_class='form-group input-xlarge' %}

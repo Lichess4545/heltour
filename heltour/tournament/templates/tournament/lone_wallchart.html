@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}Wallchart - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_wallchart %}active{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -18,55 +15,66 @@
                     {% include 'tournament/section_switcher.html' %}
                     {% if player_scores %}
                         <div class="table-responsive">
-                            <table class="table table-striped table-condensed-sm" id="table-lone-standings">
+                            <table class="table table-striped table-condensed-sm"
+                                   id="table-lone-standings">
                                 <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>Name{% if not zen_mode %}/Rating{% endif %}</th>
-                                    {% for round_number in round_numbers %}
-                                        <th class="text-left">Rd {{ round_number }}</th>
-                                    {% endfor %}
-                                    <th class="text-center">Tot</th>
-                                </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th>
+                                            Name
+                                            {% if not zen_mode %}/Rating{% endif %}
+                                        </th>
+                                        {% for round_number in round_numbers %}<th class="text-left">Rd {{ round_number }}</th>{% endfor %}
+                                        <th class="text-center">Tot</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                {% for number, player_score, round_scores in player_scores %}
-                                    {% with player_score.season_player as sp %}
-                                        <tr>
-                                            <td class="text-center">{{ number }}</td>
-                                            <td class="
-                                                    {% highlightclass player_highlights sp.player %}{% if sp.games_missed > 1 %}with-red-card{% elif sp.games_missed > 0 %}with-yellow-card{% endif %}">
-                                                <a href="{% leagueurl 'player_profile' league.tag season.tag sp.player.lichess_username %}">
-                                                    {{ sp.player.lichess_username }}
-                                                </a>
-                                            </td>
-                                            {% for result_code, opponent_num, color, cumul_score in round_scores %}
+                                    {% for number, player_score, round_scores in player_scores %}
+                                        {% with player_score.season_player as sp %}
+                                            <tr>
+                                                <td class="text-center">{{ number }}</td>
+                                                <td class=" {% highlightclass player_highlights sp.player %}{% if sp.games_missed > 1 %}with-red-card{% elif sp.games_missed > 0 %}with-yellow-card{% endif %}">
+                                                    <a href="{% leagueurl 'player_profile' league.tag season.tag sp.player.lichess_username %}">
+                                                        {{ sp.player.lichess_username }}
+                                                    </a>
+                                                </td>
+                                                {% for result_code, opponent_num, color, cumul_score in round_scores %}
+                                                    <td class="text-left">
+                                                        {% if result_code == 'H' %}
+                                                            bye
+                                                        {% else %}
+                                                            {{ color|default_if_none:'--' }}
+                                                            {% if opponent_num %}
+                                                                {{ opponent_num }}
+                                                            {% else %}
+                                                                --
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                                <td class="text-center">{{ player_score.final_standings_points_display }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
                                                 <td class="text-left">
-                                                    {% if result_code == 'H' %}
-                                                        bye
-                                                    {% else %}
-                                                        {{ color|default_if_none:'--' }}{% if opponent_num %}
-                                                            {{ opponent_num }}{% else %}--{% endif %}
+                                                    {% if not zen_mode %}
+                                                        {% seed_rating sp %}
                                                     {% endif %}
                                                 </td>
-                                            {% endfor %}
-                                            <td class="text-center">{{ player_score.final_standings_points_display }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td class="text-left">{% if not zen_mode %}{% seed_rating sp %}{% endif %}</td>
-                                            {% for result_code, opponent_num, color, cumul_score in round_scores %}
-                                                <td class="text-left">
-                                                    {% if result_code %}
-                                                        {% if result_code == 'U' or result_code == 'X' or result_code == 'F' or result_code == 'Z' %}
-                                                            {{ result_code }}{% endif %}{{ cumul_score }}
-                                                    {% endif %}
-                                                </td>
-                                            {% endfor %}
-                                            <td class="text-center">{{ player_score.final_standings_points_display }}</td>
-                                        </tr>
-                                    {% endwith %}
-                                {% endfor %}
+                                                {% for result_code, opponent_num, color, cumul_score in round_scores %}
+                                                    <td class="text-left">
+                                                        {% if result_code %}
+                                                            {% if result_code == 'U' or result_code == 'X' or result_code == 'F' or result_code == 'Z' %}
+                                                                {{ result_code }}
+                                                            {% endif %}
+                                                            {{ cumul_score }}
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                                <td class="text-center">{{ player_score.final_standings_points_display }}</td>
+                                            </tr>
+                                        {% endwith %}
+                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>
