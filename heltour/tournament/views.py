@@ -1018,7 +1018,15 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     )
             else:
                 player = Player.get_or_create(self.request.user.username)
-
+                # ensure an update of the player profile if it wasn't updated in a while, for current rating information
+                last_profile_update = player.profile_update_after()
+                if last_profile_update is None or last_profile_update < (
+                    timezone.now() - timedelta(hours=48)
+                ):
+                    user_meta = lichessapi.get_user_meta(
+                        player.lichess_username, priority=100
+                    )
+                    player.update_profile(user_meta)
                 rules_doc = LeagueDocument.objects.filter(
                     league=self.league, type="rules"
                 ).first()
