@@ -1,5 +1,5 @@
 from datetime import timedelta
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.http.response import Http404
@@ -139,7 +139,6 @@ class TemplatesRedirectTestCase(TestCase):
         response = self.client.get(season_url('lone', 'stats'))
         self.assertTemplateUsed(response, 'tournament/lone_stats.html')
 
-@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class RegisterTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
