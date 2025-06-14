@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import requests
+from unicodedata import normalize
 from django.contrib.auth import login
 from django.core import signing
 from django.http.response import HttpResponse
@@ -59,22 +60,22 @@ def login_with_code(request, code, encoded_state):
     # oauth_token.account_email = _get_account_email(oauth_token)
     player = Player.get_or_create(username)
 
-    # Ensure the player's profile is present so we can display ratings, etc.
-    _ensure_profile_present(player)
-
     # At this point all http requests are successful, so we can start persisting everything
     oauth_token.save()
     player.oauth_token = oauth_token
     player.save()
 
-    user = User.objects.filter(username__iexact=username).first()
-    if not user:
-        # Create the user with a password no one will ever use; it can always be manually reset if needed
-        with reversion.create_revision():
-            reversion.set_comment('Create user from lichess OAuth2 login')
-            user = User.objects.create_user(username=username, password=create_api_token())
+    # We are using get_or_create here instead of django's create_user
+    # to minimize the occurrence of race conditions
+    user, _ = User.objects.get_or_create(username__iexact=_normalize_username(username),
+                                         defaults={"password": _unusable_password(),
+                                                   "username": _normalize_username(username),
+                                                   })
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
+
+    # Ensure the player's profile is present so we can display ratings, etc.
+    _ensure_profile_present(player)
 
     # Slack linking?
     if state['token']:
@@ -90,6 +91,18 @@ def login_with_code(request, code, encoded_state):
         return redirect(redir_url)
     else:
         return redirect('by_league:user_dashboard', state['league'])
+
+
+def _normalize_username(username: str) -> str:
+    # normalize('NFKC', username) reproduces what the django method create_user() would do
+    return normalize('NFKC', username)
+
+
+def _unusable_password() -> str:
+    # a password starting with ! signifies an unusable password to django, at least for versions 4.2 - 5.2
+    # additionally, those unusable passwords are by default of length 40,
+    # however django only checks that they start with !, and will then return False for User.has_usable_password()
+    return f"!{create_api_token(length=40)}"
 
 
 def _ensure_profile_present(player):
