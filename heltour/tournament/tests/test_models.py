@@ -1,15 +1,18 @@
 from django.test import TestCase, SimpleTestCase
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from heltour.tournament.models import (add_system_comment, Alternate,
         AlternateAssignment, AlternateBucket, AlternatesManagerSetting,
         format_score, get_fide_dp, get_gameid_from_gamelink, League,
-        LonePlayerPairing, normalize_gamelink, OauthToken, Player, PlayerBye,
-        PlayerPairing, Registration, Round, ScheduledNotification, Season,
-        SeasonPlayer, Team, TeamPairing, TeamPlayerPairing, TeamScore)
+        LonePlayerPairing, ModRequest, normalize_gamelink, OauthToken, Player,
+        PlayerBye, PlayerLateRegistration, PlayerPairing, Registration, Round,
+        ScheduledEvent, ScheduledNotification, Season, SeasonPlayer, Team,
+        TeamPairing, TeamPlayerPairing, TeamScore)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
-        create_reg, get_league, get_player, get_season, set_rating, Shush)
+        create_reg, get_league, get_player, get_round, get_season, set_rating,
+        Shush)
 
 
 class HelpersTestCase(SimpleTestCase):
@@ -515,6 +518,34 @@ class RegistrationTestCase(TestCase):
         self.assertEqual([sp], list(reg.other_seasons()))
 
 
+class PlayerLateRegistrationTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.r1 = get_round('lone', 1)
+        cls.r2 = get_round('lone', 2)
+        cls.p, _ = Player.objects.get_or_create(lichess_username='lateplayer')
+        cls.lr = PlayerLateRegistration.objects.create(player=cls.p, round=cls.r2, retroactive_byes=3)
+
+    @patch('heltour.tournament.models.Player.rating_for',
+           return_value=100)
+    def test_lateregistration_perform(self, rating_for):
+        self.lr.perform_registration()
+        self.assertEqual(str(self.lr), 'Test Season - Round 2 - lateplayer')
+        sp = SeasonPlayer.objects.get(player__lichess_username='lateplayer')
+        self.assertTrue(sp.is_active)
+        self.assertTrue(rating_for.called)
+        self.assertEqual(sp.seed_rating, 100)
+        self.assertEqual(sp.get_loneplayerscore().late_join_points, 0)
+        pb = PlayerBye.objects.get(round=self.r1, player=self.p)
+        self.assertEqual(pb.type, 'half-point-bye')
+
+    def test_lateregistration_team(self):
+        lr = PlayerLateRegistration.objects.create(player=self.p, round=get_round('team', 1))
+        with self.assertRaises(ValidationError):
+            lr.clean()
+
+
 class AlternateTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -675,3 +706,116 @@ class PlayerByeTestCase(TestCase):
 
         bye2.refresh_rank()
         self.assertEqual(1, bye2.player_rank)
+
+
+class ModRequestTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.p1 = get_player('Player1')
+        cls.p2 = get_player('Player2')
+        cls.r = get_round('team', 1)
+        cls.s = get_season('team')
+        cls.tp = PlayerPairing.objects.create(white=cls.p1, black=cls.p2)
+
+    @patch('heltour.tournament.signals.mod_request_approved.send')
+    def test_withdraw(self, approved_send):
+        mr = ModRequest.objects.create(season=self.s, round=self.r, pairing=self.tp, requester=self.p1,
+                                      type='withdraw', status='pending')
+        mr.approve()
+        self.assertEqual(mr.status, 'approved')
+        self.assertEqual(mr.status_changed_by, 'System')
+        self.assertTrue(approved_send.called)
+        mr.reject()
+        self.assertEqual(mr.status, 'rejected')
+
+class ScheduledEventTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.s = get_season('team')
+        cls.l = cls.s.league
+        cls.r = get_round('team', 1)
+        p1 = get_player('Player1')
+        p2 = get_player('Player2')
+        cls.pp = PlayerPairing.objects.create(white=p1, black=p2)
+        cls.se = ScheduledEvent.objects.create(league=cls.l, season=cls.s, offset=timedelta(hours=1),
+                                               type='notify_mods_unscheduled')
+
+    def test_clean(self):
+        self.se.season = get_season('lone')
+        with self.assertRaises(ValidationError):
+            self.se.clean()
+        self.se.season = self.s
+        self.se.clean()
+
+    @patch('heltour.tournament.signals.notify_mods_unscheduled.send')
+    def test_mods_unscheduled(self, notify_unscheduled):
+        self.assertEqual(str(self.se), 'Notify mods of unscheduled games')
+        self.se.run(self.s)
+        self.assertFalse(notify_unscheduled.called)
+        self.se.run(self.r)
+        self.assertTrue(notify_unscheduled.called)
+
+    @patch('heltour.tournament.signals.notify_mods_no_result.send')
+    def test_mods_no_result(self, notify_no_result):
+        self.se.type='notify_mods_no_result'
+        self.assertEqual(str(self.se), 'Notify mods of games without results')
+        self.se.run(self.s)
+        self.assertFalse(notify_no_result.called)
+        self.se.run(self.r)
+        self.assertTrue(notify_no_result.called)
+
+    @patch('heltour.tournament.signals.notify_mods_pending_regs.send')
+    def test_mods_pending_regs(self, notify_pending):
+        self.se.type='notify_mods_pending_regs'
+        self.assertEqual(str(self.se), 'Notify mods of pending registrations')
+        self.se.run(self.s)
+        self.assertFalse(notify_pending.called)
+        self.se.run(self.r)
+        self.assertTrue(notify_pending.called)
+
+    @patch('heltour.tournament.signals.do_round_transition.send')
+    def test_round_transition(self, notify_transition):
+        self.se.type='start_round_transition'
+        self.assertEqual(str(self.se), 'Start round transition')
+        self.se.run(self.s)
+        self.assertFalse(notify_transition.called)
+        self.se.run(self.r)
+        self.assertTrue(notify_transition.called)
+
+    @patch('heltour.tournament.signals.notify_players_unscheduled.send')
+    def test_players_unscheduled(self, notify_players_unscheduled):
+        self.se.type='notify_players_unscheduled'
+        self.assertEqual(str(self.se), 'Notify players of unscheduled games')
+        self.se.run(self.s)
+        self.assertFalse(notify_players_unscheduled.called)
+        self.se.run(self.r)
+        self.assertTrue(notify_players_unscheduled.called)
+
+    @patch('heltour.tournament.signals.notify_players_game_time.send')
+    def test_players_game_time(self, notify_game_time):
+        self.se.type='notify_players_game_time'
+        self.assertEqual(str(self.se), 'Notify players of their game time')
+        self.se.run(self.s)
+        self.assertFalse(notify_game_time.called)
+        self.se.run(self.pp)
+        self.assertTrue(notify_game_time.called)
+
+    @patch('heltour.tournament.signals.automod_unresponsive.send')
+    def test_automod_unresponisve(self, automod_unresponsive):
+        self.se.type='automod_unresponsive'
+        self.assertEqual(str(self.se), 'Auto-mod unresponsive players')
+        self.se.run(self.s)
+        self.assertFalse(automod_unresponsive.called)
+        self.se.run(self.r)
+        self.assertTrue(automod_unresponsive.called)
+
+    @patch('heltour.tournament.signals.automod_noshow.send')
+    def test_automod_noshow(self, automod_noshow):
+        self.se.type='automod_noshow'
+        self.assertEqual(str(self.se), 'Auto-mod no-shows')
+        self.se.run(self.s)
+        self.assertFalse(automod_noshow.called)
+        self.se.run(self.pp)
+        self.assertTrue(automod_noshow.called)
