@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}{{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_season %}active{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-6 col-xs-12">
@@ -15,7 +12,8 @@
                     </div>
                     <div class="well-body">
                         <p>Games must be completed by {{ active_round.end_date | date_el:"m/d H:i" }} UTC.</p>
-                        <a href="{% leagueurl 'pairings' league.tag season.tag %}" class="btn btn-default">Pairings</a>
+                        <a href="{% leagueurl 'pairings' league.tag season.tag %}"
+                           class="btn btn-default">Pairings</a>
                     </div>
                 </div>
             {% endif %}
@@ -27,32 +25,35 @@
                     <div class="well-body">
                         <table class="table table-striped">
                             <thead>
-                            <tr>
-                                <th></th>
-                                <th>Name</th>
-                                {% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
-                                <th class="text-center">Total</th>
-                                <th class="text-center">TBrk[M]</th>
-                            </tr>
+                                <tr>
+                                    <th></th>
+                                    <th>Name</th>
+                                    {% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">TBrk[M]</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {% for number, player_score, round_scores in player_scores %}
-                                <tr>
-                                    <td class="text-center rank-value">{{ number }}</td>
-                                    <td>
-                                        <a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
-                                            {{ player_score.season_player.player.lichess_username }}
-                                        </a>
-                                    </td>
-                                    {% if not zen_mode %}<td class="text-center">{% player_rating player_score.season_player %}</td>{% endif %}
-                                    <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
-                                    <td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
-                                </tr>
-                            {% endfor %}
+                                {% for number, player_score, round_scores in player_scores %}
+                                    <tr>
+                                        <td class="text-center rank-value">{{ number }}</td>
+                                        <td>
+                                            <a href="{% leagueurl 'player_profile' league.tag season.tag player_score.season_player.player.lichess_username %}">
+                                                {{ player_score.season_player.player.lichess_username }}
+                                            </a>
+                                        </td>
+                                        {% if not zen_mode %}
+                                            <td class="text-center">{% player_rating player_score.season_player %}</td>
+                                        {% endif %}
+                                        <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+                                        <td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
-                        <a href="{% leagueurl 'standings' league.tag season.tag %}" class="btn btn-default">Full
-                            Standings</a>
+                        <a href="{% leagueurl 'standings' league.tag season.tag %}"
+                           class="btn btn-default">Full
+                        Standings</a>
                     </div>
                 </div>
             {% endif %}
@@ -61,9 +62,7 @@
                     <div class="well-head">
                         <h3>Change Season</h3>
                     </div>
-                    <div class="well-body">
-                        {% include "tournament/season_switcher.html" %}
-                    </div>
+                    <div class="well-body">{% include "tournament/season_switcher.html" %}</div>
                 </div>
             {% endif %}
         </div>
@@ -78,34 +77,40 @@
                             <thead>
                             </thead>
                             <tbody>
-                            {% for pairing in last_round_pairings %}
-                                <tr>
-                                    <td class="cell-score {% if pairing.white_score == 1 %}cell-win{% elif pairing.white_score == 0 %}cell-loss{% elif pairing.white_score == 0.5 %}cell-tie{% endif %}">
-                                        {% if pairing.game_link %}
-                                            <a href="{{ pairing.game_link }}">{{ pairing.white_score }}</a>
-                                        {% else %}
-                                            {{ pairing.white_score }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-                                          {{ pairing.white.lichess_username }}{% if not zen_mode %} ({% white_rating pairing %}){% endif %}
-                                        </a>
-                                    </td>
-                                    <td class="cell-score {% if pairing.black_score == 1 %}cell-win{% elif pairing.black_score == 0 %}cell-loss{% elif pairing.black_score == 0.5 %}cell-tie{% endif %}">
-                                        {% if pairing.game_link %}
-                                            <a href="{{ pairing.game_link }}">{{ pairing.black_score }}</a>
-                                        {% else %}
-                                            {{ pairing.black_score }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-                                          {{ pairing.black.lichess_username }}{% if not zen_mode %} ({% black_rating pairing %}){% endif %}
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                                {% for pairing in last_round_pairings %}
+                                    <tr>
+                                        <td class="cell-score {% if pairing.white_score == 1 %}cell-win{% elif pairing.white_score == 0 %}cell-loss{% elif pairing.white_score == 0.5 %}cell-tie{% endif %}">
+                                            {% if pairing.game_link %}
+                                                <a href="{{ pairing.game_link }}">{{ pairing.white_score }}</a>
+                                            {% else %}
+                                                {{ pairing.white_score }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
+                                                {{ pairing.white.lichess_username }}
+                                                {% if not zen_mode %}
+                                                    ({% white_rating pairing %})
+                                                {% endif %}
+                                            </a>
+                                        </td>
+                                        <td class="cell-score {% if pairing.black_score == 1 %}cell-win{% elif pairing.black_score == 0 %}cell-loss{% elif pairing.black_score == 0.5 %}cell-tie{% endif %}">
+                                            {% if pairing.game_link %}
+                                                <a href="{{ pairing.game_link }}">{{ pairing.black_score }}</a>
+                                            {% else %}
+                                                {{ pairing.black_score }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
+                                                {{ pairing.black.lichess_username }}
+                                                {% if not zen_mode %}
+                                                    ({% black_rating pairing %})
+                                                {% endif %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                         <a href="{% leagueurl 'pairings_by_round' league.tag season.tag last_round.number %}"

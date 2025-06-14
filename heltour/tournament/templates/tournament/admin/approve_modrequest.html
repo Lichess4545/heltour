@@ -1,41 +1,35 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
-
 {% block content %}
     <form action="" method="post">
         {% csrf_token %}
-        <input type="hidden" name="_changelist_filters" value="{{ changelist_filters }}"/>
-
+        <input type="hidden"
+               name="_changelist_filters"
+               value="{{ changelist_filters }}" />
         <div class="aligned-text">
-
-            <p>The following request will be <span class="text-approved">approved</span>:</p>
-
+            <p>
+                The following request will be <span class="text-approved">approved</span>:
+            </p>
             <div class="form-row">
                 <label>Season name:</label>
                 {{ original.season.name }}
             </div>
-
             <div class="form-row">
                 <label>Request date:</label>
                 {{ original.date_created }}
             </div>
-
             <div class="form-row">
                 <label>Requester:</label>
                 {{ original.requester.lichess_username }}
             </div>
-
             <div class="form-row">
                 <label>Type:</label>
                 {{ original.get_type_display }}
             </div>
-
             <div class="form-row">
                 <label>Response (optional):</label>
                 {{ form.response }}
             </div>
-
         </div>
-
         <div class="submit-row">
             <input class="default" value="CONFIRM" name="confirm" type="submit">
             <input value="Review" name="review" type="submit">

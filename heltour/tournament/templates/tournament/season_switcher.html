@@ -1,18 +1,24 @@
 {% load static tournament_extras %}
 <div class="dropdown">
-    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+    <button class="btn btn-default dropdown-toggle"
+            type="button"
+            data-toggle="dropdown">
         {{ season.name }}
         <span class="caret"></span>
     </button>
     <ul class="dropdown-menu">
         {% if current_seasons %}
             {% for s in current_seasons %}
-                <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
+                <li>
+                    <a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a>
+                </li>
             {% endfor %}
             <li role="separator" class="divider"></li>
         {% endif %}
         {% for s in completed_seasons %}
-            <li><a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a></li>
+            <li>
+                <a href="{% leagueurl 'season_landing' league.tag s.tag %}">{{ s.name }}</a>
+            </li>
         {% endfor %}
     </ul>
 </div>
