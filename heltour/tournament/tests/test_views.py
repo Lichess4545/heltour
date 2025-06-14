@@ -4,8 +4,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.http.response import Http404
 from unittest.mock import patch
-from heltour.tournament.models import (League, Player, Round, Season, Team,
-        TeamPairing, TeamPlayerPairing, LonePlayerPairing, SeasonPlayer)
+from heltour.tournament.models import (League, Player, Registration, Round,
+        Season, Team, TeamPairing, TeamPlayerPairing, LonePlayerPairing,
+        SeasonPlayer)
 from heltour.tournament.tests.testutils import (createCommonLeagueData,
         create_reg, get_league, get_season, league_tag, league_url, reverse,
         season_tag, season_url, Shush)
@@ -143,7 +144,7 @@ class RegisterTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        User.objects.create_user('Player1', password='test')
+        cls.user = User.objects.create_user('Player1', password='test')
 
     def test_require_login(self):
         response = self.client.get(season_url('team', 'register'))
@@ -165,7 +166,6 @@ class RegisterTestCase(TestCase):
         self.assertTemplateUsed(response, 'tournament/registration_success.html')
 
     def test_register_text(self):
-        user = User.objects.first()
         self.client.login(username='Player1', password='test')
 
         for league_type in ['team', 'lone']:
@@ -182,7 +182,7 @@ class RegisterTestCase(TestCase):
             self.assertNotContains(response, 'Change Registration')
 
             with Shush():
-                registration = create_reg(season, user.username)
+                registration = create_reg(season, self.user.username)
                 registration.classical_rating = 1600
                 registration.save()
 
@@ -190,8 +190,8 @@ class RegisterTestCase(TestCase):
             self.assertContains(response, 'Change Registration')
             self.assertNotContains(response, 'Register')
 
-            user.username = user.username.lower()
-            user.save()
+            self.user.username = self.user.username.lower()
+            self.user.save()
             response = self.client.get(league_url(league_type, 'league_home'))
             self.assertContains(response, 'Change Registration')
             self.assertNotContains(response, 'Register')
@@ -202,6 +202,30 @@ class RegisterTestCase(TestCase):
             response = self.client.get(league_url(league_type, 'league_home'))
             self.assertNotContains(response, 'Register')
             self.assertNotContains(response, 'Change Registration')
+
+    def test_register_post(self):
+        self.client.login(username='Player1', password='test')
+        Season.objects.filter(league__name="Team League", name="Test Season").update(registration_open = True,
+                start_date=timezone.now() + timedelta(hours = 1),
+                round_duration=timedelta(hours=1))
+        season = get_season('team')
+        Round.objects.filter(season=season).update(start_date=timezone.now() + timedelta(hours=1))
+        # invalid form
+        response = self.client.post(season_url('team', 'register'),
+                                    data={"email": "player1@example.com", "has_played_20_games": False,
+                                          "can_commit": True, "agreed_to_rules": True, "agreed_to_tos": True,
+                                          "weeks_unavailable": '', "friends": '', "avoid": ''})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Registration.objects.filter(lichess_username='Player1').count(), 0)
+        with Shush():
+            response = self.client.post(season_url('team', 'register'),
+                                        data={"email": "player1@example.com", "has_played_20_games": False,
+                                              "can_commit": True, "agreed_to_rules": True, "agreed_to_tos": True,
+                                              "weeks_unavailable": '', "friends": '', "avoid": '',
+                                              "alternate_preference": "full_time"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Registration.objects.filter(lichess_username='Player1').first().email, 'player1@example.com')
 
 
 @patch('heltour.tournament.lichessapi.watch_games',
