@@ -316,6 +316,8 @@ CACHEOPS = {
 
 CACHEOPS_ENABLED = True
 
+SLEEP_UNIT = 1 # time to sleep, mostly used to avoid slack rate limiting; hopefully removable in the future
+
 TEAMGEN_PROCESSES_NUMBER = 8
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'

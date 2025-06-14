@@ -55,3 +55,5 @@ MIDDLEWARE = [
 ALLOWED_HOSTS = [
     'testserver',
 ]
+
+SLEEP_UNIT = 0
