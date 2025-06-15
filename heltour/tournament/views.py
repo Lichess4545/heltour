@@ -726,6 +726,7 @@ class ICalPlayerView(BaseView, ICalMixin):
 class RegisterView(LoginRequiredMixin, LeagueView):
 
     def view(self, post=False):
+        doc_url: str = ''
         reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
@@ -770,8 +771,6 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 rules_doc = LeagueDocument.objects.filter(league=self.league, type='rules').first()
                 if rules_doc is not None:
                     doc_url = reverse('by_league:document', args=[self.league.tag, rules_doc.tag])
-                else:
-                    doc_url = ''
                 form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user, rules_url=doc_url)
                 form.fields['email'].initial = player.email
                 rating_provisional = player.provisional_for(reg_season.league)

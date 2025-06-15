@@ -82,7 +82,7 @@ def registration_saved(instance, created, **kwargs):
         instance.season.pk))
     pending_text = str(instance.season.registration_set.filter(status='pending',
                                                             season=instance.season).count()) + ' pending'
-    message = f'{chatbackend.userlink_silent(instance.lichess_username)} ({instance.rating}) has {chatbackend.link(text="registered", url=reg_url)} for {league.name}. {chatbackend.link(text=pending_text, url=list_url)}'
+    message = f'{userlink_silent(instance.lichess_username)} ({instance.rating}) has {link(text="registered", url=reg_url)} for {league.name}. {link(text=pending_text, url=list_url)}'
 
     pre_season = instance.season.start_date and timezone.now() < instance.season.start_date
     setting = league.get_leaguesetting()

@@ -30,22 +30,22 @@ logger = get_task_logger(__name__)
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
-def to_usernames(users: UsernamesQuerySet):
+def to_usernames(users: UsernamesQuerySet) -> List[str]:
     return [p['lichess_username'] for p in users if p['lichess_username'].strip()]
 
 
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
         .order_by('lichess_username') \
-        .distinct('lichess_username') \
-        .values('lichess_username')
+        .values('lichess_username') \
+        .distinct()
 
 def active_player_usernames() -> List[str]:
     players_qs = Player.objects.all()
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
-def not_updated_recently_usernames(active_usernames) -> List[str]:
+def not_updated_recently_usernames(active_usernames: List[str]) -> List[str]:
     players_qs = Player.objects.all()
     total_players = players_qs.count()
     _24_hours = timezone.now() - timedelta(hours=24)
@@ -379,8 +379,9 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                                                                 clockstart_in=clockstart_in,
                                                                 gameid=gameids['id'])
                        if gamechannel is not None:
-#TODO do this with zuulip                           signals.notify_(channel=gamechannel.slack_channel,
-#                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+                            #TODO do this with zulip - signals.notify_(channel=gamechannel.slack_channel,
+                            #  text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+                            pass
         except slackapi.SlackError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError:
