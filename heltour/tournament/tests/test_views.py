@@ -7,6 +7,7 @@ from unittest.mock import patch
 from heltour.tournament.models import (
     League,
     Player,
+    Registration,
     Round,
     Season,
     Team,
