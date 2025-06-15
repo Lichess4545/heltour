@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}Dashboard - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-6 col-xs-12">
@@ -14,8 +12,14 @@
                     {% if can_view_dashboard %}
                         {% if current_season_list or completed_season_list %}
                             <div class="dropdown inline">
-                                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-                                    {% if season %}{{ season.name }}{% else %}Choose a Season{% endif %}
+                                <button class="btn btn-default dropdown-toggle"
+                                        type="button"
+                                        data-toggle="dropdown">
+                                    {% if season %}
+                                        {{ season.name }}
+                                    {% else %}
+                                        Choose a Season
+                                    {% endif %}
                                     <span class="caret"></span>
                                 </button>
                                 <ul class="dropdown-menu">
@@ -36,8 +40,9 @@
                             </div>
                         {% endif %}
                         <div class="inline">
-                            <a href="{% url 'admin:tournament_season_add' %}" class="btn btn-default">Create a
-                                Season</a>
+                            <a href="{% url 'admin:tournament_season_add' %}"
+                               class="btn btn-default">Create a
+                            Season</a>
                         </div>
                     {% else %}
                         No permissions for this league's dashboard.
@@ -51,15 +56,24 @@
                     </div>
                     <div class="well-body">
                         {% if season.is_completed %}
-                            <p>This season is completed.{% if current_season_list %}
-                                <a href="{% leagueurl 'league_dashboard' league.tag current_season_list.0.tag %}">Latest</a>{% endif %}
+                            <p>
+                                This season is completed.
+                                {% if current_season_list %}
+                                    <a href="{% leagueurl 'league_dashboard' league.tag current_season_list.0.tag %}">Latest</a>
+                                {% endif %}
                             </p>
                         {% endif %}
                         <div class="dashboard-season-action">
-                            <a href="{% url 'admin:tournament_season_change' season.pk %}" class="btn btn-default">Edit
-                                Season</a>
-                            <span class="dashboard-note">Registration: {% if season.registration_open %}Open{% else %}
-                                Closed{% endif %}</span>
+                            <a href="{% url 'admin:tournament_season_change' season.pk %}"
+                               class="btn btn-default">Edit
+                            Season</a>
+                            <span class="dashboard-note">Registration:
+                                {% if season.registration_open %}
+                                    Open
+                                {% else %}
+                                    Closed
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="dashboard-season-action">
                             <a href="{% url 'admin:tournament_registration_changelist' %}?season__id__exact={{ reg_season.pk }}&status__exact=pending"
@@ -72,46 +86,53 @@
                             <span class="dashboard-note">Pending: {{ pending_modreq_count }}</span>
                         </div>
                         <div class="dashboard-season-action">
-                            <a href="{% url 'admin:manage_players' season.pk %}" class="btn btn-default">Edit
-                                Rosters</a>
+                            <a href="{% url 'admin:manage_players' season.pk %}"
+                               class="btn btn-default">Edit
+                            Rosters</a>
                             <span class="dashboard-note">Unassigned players: {{ unassigned_player_count }}</span>
                         </div>
                         {% if alternate_search_count != None %}
                             <div class="dashboard-season-action">
-                                <a href="{% leagueurl 'alternates' league.tag season.tag %}" class="btn btn-default">Alternate
-                                    Searches</a>
+                                <a href="{% leagueurl 'alternates' league.tag season.tag %}"
+                                   class="btn btn-default">Alternate
+                                Searches</a>
                                 <span class="dashboard-note">Open spots: {{ alternate_search_count }}</span>
                             </div>
                         {% endif %}
                         <div class="dashboard-season-action">
                             <a href="{% url 'admin:team_spam' season.pk %}" class="btn btn-default">Message All
-                                Teams</a>
+                            Teams</a>
                         </div>
                         {% if next_round %}
                             <div class="dashboard-season-action">
-                                <a href="{% url 'admin:pre_round_report' season.pk %}" class="btn btn-default">Pre-Round
-                                    Report</a>
+                                <a href="{% url 'admin:pre_round_report' season.pk %}"
+                                   class="btn btn-default">Pre-Round
+                                Report</a>
                             </div>
                             <div class="dashboard-season-action">
-                                <a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Start
-                                    Round {{ next_round.number }}</a>
+                                <a href="{% url 'admin:round_transition' season.pk %}"
+                                   class="btn btn-default">Start
+                                Round {{ next_round.number }}</a>
                                 <span class="dashboard-note">Scheduled time: {{ next_round.start_date | date_el:"m/d H:i" }}</span>
                             </div>
                         {% elif last_round %}
                             <div class="dashboard-season-action">
-                                <a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close
-                                    Round {{ last_round.number }}</a>
+                                <a href="{% url 'admin:round_transition' season.pk %}"
+                                   class="btn btn-default">Close
+                                Round {{ last_round.number }}</a>
                                 <span class="dashboard-note">Scheduled time (UTC): {{ last_round.end_date | date_el:"m/d H:i" }}</span>
                             </div>
                         {% elif not season.is_completed %}
                             <div class="dashboard-season-action">
-                                <a href="{% url 'admin:round_transition' season.pk %}" class="btn btn-default">Close
-                                    Season</a>
+                                <a href="{% url 'admin:round_transition' season.pk %}"
+                                   class="btn btn-default">Close
+                                Season</a>
                             </div>
                         {% else %}
                             <div class="dashboard-season-action">
-                                <a href="{% url 'admin:review_nominated_games' season.pk %}" class="btn btn-default">Review
-                                    Nominations</a>
+                                <a href="{% url 'admin:review_nominated_games' season.pk %}"
+                                   class="btn btn-default">Review
+                                Nominations</a>
                             </div>
                         {% endif %}
                     </div>
@@ -124,15 +145,18 @@
                     <h3>Django Admin</h3>
                 </div>
                 <div class="well-body">
-                    <div class="inline"><a href="{% url 'admin:app_list' 'tournament' %}" class="btn btn-default">Tournament
-                        Admin</a></div>
+                    <div class="inline">
+                        <a href="{% url 'admin:app_list' 'tournament' %}"
+                           class="btn btn-default">Tournament
+                        Admin</a>
+                    </div>
                     {% if can_admin_users %}
-                        <div class="inline"><a href="{% url 'admin:app_list' 'auth' %}" class="btn btn-default">User
-                            Admin</a></div>
+                        <div class="inline">
+                            <a href="{% url 'admin:app_list' 'auth' %}" class="btn btn-default">User
+                            Admin</a>
+                        </div>
                     {% endif %}
-                    {% if celery_down %}
-                        <div style="color: #c00; margin-top: 10px">Celery is down</div>
-                    {% endif %}
+                    {% if celery_down %}<div style="color: #c00; margin-top: 10px">Celery is down</div>{% endif %}
                 </div>
             </div>
         </div>

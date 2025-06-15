@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}{{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_season %}active{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-8 col-xs-12">
@@ -18,7 +15,7 @@
                             <div class="first-place">
                                 {% if first_team %}
                                     <div class="winners-trophy">
-                                        <img src="{% static 'tournament/img/trophy-1.png' %}"/>
+                                        <img src="{% static 'tournament/img/trophy-1.png' %}" />
                                     </div>
                                     <div class="winners-name">
                                         <a class="team-link"
@@ -39,7 +36,7 @@
                             <div class="second-place">
                                 {% if second_team %}
                                     <div class="winners-trophy">
-                                        <img src="{% static 'tournament/img/trophy-2.min.svg' %}"/>
+                                        <img src="{% static 'tournament/img/trophy-2.min.svg' %}" />
                                     </div>
                                     <div class="winners-name">
                                         <a class="team-link"
@@ -60,7 +57,7 @@
                             <div class="third-place">
                                 {% if third_team %}
                                     <div class="winners-trophy">
-                                        <img src="{% static 'tournament/img/trophy-3.min.svg' %}"/>
+                                        <img src="{% static 'tournament/img/trophy-3.min.svg' %}" />
                                     </div>
                                     <div class="winners-name">
                                         <a class="team-link"
@@ -89,9 +86,7 @@
                     <div class="well-head">
                         <h3>Change Season</h3>
                     </div>
-                    <div class="well-body">
-                        {% include "tournament/season_switcher.html" %}
-                    </div>
+                    <div class="well-body">{% include "tournament/season_switcher.html" %}</div>
                 </div>
             {% endif %}
             {% if links_doc %}
@@ -121,29 +116,28 @@
                                             <span class="visible-sm visible-xs">Game Pts</span>
                                             <span class="hidden-sm hidden-xs">Game Points</span>
                                         </th>
-                                        {% for round_number in round_numbers %}
-                                            <th class="text-center sort">Round {{ round_number }}</th>
-                                        {% endfor %}
+                                        {% for round_number in round_numbers %}<th class="text-center sort">Round {{ round_number }}</th>{% endfor %}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                {% for number, team_score in team_scores %}
-                                    <tr>
-                                        <td class="text-center cell-teamnumber">{{ number }}</td>
-                                        <td>
-                                            <a class="team-link"
-                                               href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
-                                        </td>
-                                        <td class="text-center">{{ team_score.match_points_display }}</td>
-                                        <td class="text-center">{{ team_score.game_points_display }}</td>
-                                        {% for score, opp_score, round_num in team_score.round_scores %}
-                                            <td class="text-center cell-score {% resultclass score opp_score %}">
-                                                {% if score != None %}
-                                                    <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>{% endif %}
+                                    {% for number, team_score in team_scores %}
+                                        <tr>
+                                            <td class="text-center cell-teamnumber">{{ number }}</td>
+                                            <td>
+                                                <a class="team-link"
+                                                   href="{% leagueurl 'team_profile' league.tag season.tag team_score.team.number %}">{{ team_score.team.name }}</a>
                                             </td>
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
+                                            <td class="text-center">{{ team_score.match_points_display }}</td>
+                                            <td class="text-center">{{ team_score.game_points_display }}</td>
+                                            {% for score, opp_score, round_num in team_score.round_scores %}
+                                                <td class="text-center cell-score {% resultclass score opp_score %}">
+                                                    {% if score != None %}
+                                                        <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
+                                                    {% endif %}
+                                                </td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>

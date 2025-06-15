@@ -1,16 +1,14 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras static %}
-
 {% block title %}Registration - {{ registration_season.section_group_name }} - {{ league.name }}{% endblock %}
-
 {% block css %}
-    <link rel="stylesheet" href="{% static 'lib/css/bootstrap-toggle.min.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'lib/css/bootstrap-toggle.min.css' %}">
 {% endblock %}
-
 {% block js %}
-    <script type="text/javascript" src="{% static 'lib/js/bootstrap-toggle.min.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'lib/js/bootstrap-toggle.min.js' %}"></script>
 {% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -20,36 +18,59 @@
                 </div>
                 <div class="well-body">
                     {% if registration_season.start_date %}
-                        <p>The season {% if registration_season.is_started %}started{% else %}starts{% endif %}
-                            {{ registration_season.start_date|date_or_q }}{% if registration_season.end_date %} and ends
-                                {{ registration_season.end_date|date_or_q }}{% endif %}.</p>
+                        <p>
+                            The season
+                            {% if registration_season.is_started %}
+                                started
+                            {% else %}
+                                starts
+                            {% endif %}
+                            {{ registration_season.start_date|date_or_q }}
+                            {% if registration_season.end_date %}
+                                and ends
+                                {{ registration_season.end_date|date_or_q }}
+                            {% endif %}
+                            .
+                        </p>
                     {% endif %}
-                    <p>You are registering as <strong>{{ user }}</strong>. 
-                    <br>If you want to change the account you register with, you can logout <a href="/team4545/player/">here</a>.
-                    <br>As per our 
-                    <a href="/team4545/document/terms-of-service/">Terms of Service</a> once you 
-                    participate in our league with this account you will always need to use it.
-                    
+                    <p>
+                        You are registering as <strong>{{ user }}</strong>.
+                        <br>
+                        If you want to change the account you register with, you can logout <a href="/team4545/player/">here</a>.
+                        <br>
+                        As per our
+                        <a href="/team4545/document/terms-of-service/">Terms of Service</a> once you
+                        participate in our league with this account you will always need to use it.
                     </p>
                     {% if registration_season.is_started and league.name == "Lichess4545 League" and not user|is_registered:registration_season %}
-                      <p>The season has already started and you will initially play as an alternate.<p>
-                    {% endif %}
-                    <form action="" method="post">
-                        {% csrf_token %}
-                        {% bootstrap_form form %}
-                        {% if rating_provisional %}
-                           <p><strong>Your rating is provisional.</strong> You may apply with a provisional rating, but your application will only be reviewed once your rating is established.</p>
-                           {% if league.name != "Lichess4545 League" %}
-													 <p>Some league-specific rules may override this{% if rules_url %}, see <a href={{ rules_url }}>rules pages</a> for more information{% endif %}.</p>
-                           {% endif %}
-                              <p>We will regularly check whether you played enough games for an established rating. There is no need to change anything about your registration once you did.</p>
-                        {% endif %}
-                        {% buttons %}
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        {% endbuttons %}
-                    </form>
+                        <p>
+                            The season has already started and you will initially play as an alternate.
+                            <p>
+                            {% endif %}
+                            <form action="" method="post">
+                                {% csrf_token %}
+                                {% bootstrap_form form %}
+                                {% if rating_provisional %}
+                                    <p>
+                                        <strong>Your rating is provisional.</strong> You may apply with a provisional rating, but your application will only be reviewed once your rating is established.
+                                    </p>
+                                    {% if league.name != "Lichess4545 League" %}
+                                        <p>
+                                            Some league-specific rules may override this
+                                            {% if rules_url %}, see <a href={{ rules_url }}>rules pages</a> for more information{% endif %}
+                                            .
+                                        </p>
+                                    {% endif %}
+                                    <p>
+                                        We will regularly check whether you played enough games for an established rating. There is no need to change anything about your registration once you did.
+                                    </p>
+                                {% endif %}
+                                {% buttons %}
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            {% endbuttons %}
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-{% endblock %}
+    {% endblock %}

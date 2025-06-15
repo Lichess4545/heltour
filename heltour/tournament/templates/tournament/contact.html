@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras %}
-
 {% block title %}Contact - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -13,7 +11,9 @@
                 <div class="well-body">
                     <p>Have any questions about the league or need help getting on Slack? Use this form.</p>
                     {% if slack_linked %}
-                        <p><span style="color: #c00">You are already on Slack. If at all possible, please ask your question there.</span></p>
+                        <p>
+                            <span style="color: #c00">You are already on Slack. If at all possible, please ask your question there.</span>
+                        </p>
                     {% else %}
                         <p>If you are already on Slack, please ask your question there instead.</p>
                     {% endif %}
@@ -21,11 +21,11 @@
                         {% csrf_token %}
                         {% bootstrap_form form %}
                         {% buttons %}
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        {% endbuttons %}
-                    </form>
-                </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    {% endbuttons %}
+                </form>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}

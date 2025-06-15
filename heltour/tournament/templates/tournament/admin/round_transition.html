@@ -1,5 +1,4 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
-
 {% block content %}
     <form action="" method="post">
         {% csrf_token %}
@@ -12,9 +11,7 @@
                 <div class="form-row">
                     <div class="checkbox-row">
                         {{ form.complete_round }}
-                        <label for="{{ form.complete_round.id_for_label }}" class="vCheckboxLabel">
-                            {{ form.complete_round.label }}
-                        </label>
+                        <label for="{{ form.complete_round.id_for_label }}" class="vCheckboxLabel">{{ form.complete_round.label }}</label>
                     </div>
                 </div>
             {% endif %}
@@ -22,9 +19,7 @@
                 <div class="form-row">
                     <div class="checkbox-row">
                         {{ form.complete_season }}
-                        <label for="{{ form.complete_season.id_for_label }}" class="vCheckboxLabel">
-                            {{ form.complete_season.label }}
-                        </label>
+                        <label for="{{ form.complete_season.id_for_label }}" class="vCheckboxLabel">{{ form.complete_season.label }}</label>
                     </div>
                 </div>
             {% endif %}
@@ -34,18 +29,16 @@
                     <div class="form-row">
                         <div class="checkbox-row">
                             {{ form.update_board_order }}
-                            <label for="{{ form.update_board_order.id_for_label }}" class="vCheckboxLabel">
-                                {{ form.update_board_order.label }}
-                            </label>
+                            <label for="{{ form.update_board_order.id_for_label }}"
+                                   class="vCheckboxLabel">{{ form.update_board_order.label }}</label>
                         </div>
                     </div>
                 {% endif %}
                 <div class="form-row">
                     <div class="checkbox-row">
                         {{ form.generate_pairings }}
-                        <label for="{{ form.generate_pairings.id_for_label }}" class="vCheckboxLabel">
-                            {{ form.generate_pairings.label }}
-                        </label>
+                        <label for="{{ form.generate_pairings.id_for_label }}"
+                               class="vCheckboxLabel">{{ form.generate_pairings.label }}</label>
                     </div>
                 </div>
             {% endif %}

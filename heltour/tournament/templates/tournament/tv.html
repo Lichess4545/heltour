@@ -1,20 +1,17 @@
 {% extends "base.html" %}
 {% load static tournament_extras bootstrap3 %}
-
 {% block title %}TV - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_tv %}active{% endblock %}
-
 {% block css %}
     <link rel="stylesheet" href="{% static 'lib/css/cg_base.css' %}">
     <link rel="stylesheet" href="{% static 'lib/css/cg_theme.css' %}">
     <link rel="stylesheet" href="{% static 'lib/css/BootstrapXL.css' %}">
 {% endblock %}
-
 {% block head_js %}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript" src="{% static 'lib/js/chessground.js' %}"></script>
-    <script type="text/javascript" src="{% static 'lib/js/jquery-3.1.0.min.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'lib/js/jquery-3.1.0.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'lib/js/chess.min.js' %}"></script>
     <script>
         var currentLeague = '{{ league.tag }}';
@@ -22,7 +19,6 @@
     </script>
     <script type="text/javascript" src="{% static 'tournament/js/tv.js' %}"></script>
 {% endblock %}
-
 {% block js %}
     <script>
         setInterval(poll, 1000 * 30); // 30 seconds
@@ -41,7 +37,6 @@
         window.onhashchange = poll;
     </script>
 {% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs tv-row">
         <div class="col-md-6 col-lg-8">
@@ -54,45 +49,44 @@
                         <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12 col-xs-12 text-center game-col">
                             <section>
                                 <div class="tv-game-menu dropdown">
-                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span
-                                            class="caret"></span></a>
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></a>
                                     <ul class="dropdown-menu dropdown-menu-right">
-                                        <li><a href="#" class="btn-flip-board">Flip Board</a></li>
+                                        <li>
+                                            <a href="#" class="btn-flip-board">Flip Board</a>
+                                        </li>
                                     </ul>
                                 </div>
                                 <div class="gameLabel top-label">
                                     <div class="team-div" style="display:none">
                                         <a class="team-link">
-                                            Board <span class="board-number"></span> - <span class="team-name"></span> (<span
-                                                class="team-score"></span>)
+                                            Board <span class="board-number"></span> - <span class="team-name"></span> (<span class="team-score"></span>)
                                         </a>
                                     </div>
                                     <div class="player-div" style="display:none">
                                         <a class="player-link">
-                                            <span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
+                                            <span class="player-name"></span>
+                                            {% if not zen_mode %}(<span class="player-rating"></span>){% endif %}
                                         </a>
                                     </div>
                                 </div>
-                                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett">
-                                </div>
+                                <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett"></div>
                                 <div class="gameLabel bottom-label">
                                     <div class="team-div" style="display:none">
                                         <a class="team-link">
-                                            Board <span class="board-number"></span> - <span class="team-name"></span> (<span
-                                                class="team-score"></span>)
+                                            Board <span class="board-number"></span> - <span class="team-name"></span> (<span class="team-score"></span>)
                                         </a>
                                     </div>
                                     <div class="player-div" style="display:none">
                                         <a class="player-link">
-                                            <span class="player-name"></span>{% if not zen_mode %} (<span class="player-rating"></span>){% endif %}
+                                            <span class="player-name"></span>
+                                            {% if not zen_mode %}(<span class="player-rating"></span>){% endif %}
                                         </a>
                                     </div>
                                 </div>
                             </section>
                         </div>
                     </div>
-                    <div class="row" id="games-row">
-                    </div>
+                    <div class="row" id="games-row"></div>
                     <div id="no-games" style="display:none">
                         <p>No games are currently being played.</p>
                     </div>
@@ -107,8 +101,7 @@
                     <h3>Recently Finished</h3>
                 </div>
                 <div class="well-body">
-                    <div class="row" id="finished-games-row">
-                    </div>
+                    <div class="row" id="finished-games-row"></div>
                     <div></div>
                 </div>
             </div>
@@ -119,9 +112,7 @@
                     <h3>Filters</h3>
                 </div>
                 <div class="well-body">
-                    <div id='filters'>
-                        {% bootstrap_form filter_form %}
-                    </div>
+                    <div id='filters'>{% bootstrap_form filter_form %}</div>
                 </div>
             </div>
             <div class="well">

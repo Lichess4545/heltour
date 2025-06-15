@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load bootstrap3 tournament_extras static %}
-
 {% block title %}Login - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-4">
@@ -11,10 +9,7 @@
                     <h3>Logout</h3>
                 </div>
                 <div class="well-body">
-                    <p>
-                        Are you sure you want to log out?
-                    </p>
-
+                    <p>Are you sure you want to log out?</p>
                     <form action="" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary">Logout</button>
