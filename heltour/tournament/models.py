@@ -918,7 +918,7 @@ class Player(_BaseModel):
 
     @property
     def timezone_str(self):
-        if self.timezone_offset == None:
+        if self.timezone_offset is None:
             return '?'
         seconds = self.timezone_offset.total_seconds()
         sign = '-' if seconds < 0 else '+'
@@ -1119,7 +1119,7 @@ class PlayerBye(_BaseModel):
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.player_rank = rank_dict.get(self.player_id, None)
 
@@ -1810,7 +1810,7 @@ class LonePlayerPairing(PlayerPairing):
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
     def refresh_ranks(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
