@@ -1,21 +1,23 @@
-from django.db import models, transaction
-from django.utils.crypto import get_random_string
-from ckeditor_uploader.fields import RichTextUploadingField
-from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from datetime import timedelta, date
-from django.utils import timezone
-from django import forms as django_forms
-from collections import namedtuple, defaultdict
-import re
-from django.core.exceptions import ValidationError
-from heltour.tournament import signals
 import logging
+import re
+from collections import defaultdict, namedtuple
+from datetime import date, timedelta
+
+import reversion
+from ckeditor_uploader.fields import RichTextUploadingField
+from django import forms as django_forms
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db import models, transaction
+from django.db.models import JSONField, Q
+from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django_comments.models import Comment
-from django.db.models import Q, JSONField
+
 from heltour import settings
-import reversion
+from heltour.tournament import signals
 
 logger = logging.getLogger(__name__)
 
