@@ -1,15 +1,34 @@
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import re
-import json
-import reversion
-from .models import *
-from django.utils.html import strip_tags
-from django.utils.dateparse import parse_datetime
-from django.views.decorators.http import require_GET, require_POST
-from django.urls import reverse
-from heltour.tournament import uptime
+from datetime import timedelta
 
+import reversion
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from django.utils.html import strip_tags
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
+from heltour.tournament import signals, uptime
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    ApiKey,
+    League,
+    LeagueDocument,
+    LeagueModerator,
+    LoginToken,
+    LonePlayerPairing,
+    Player,
+    PlayerAvailability,
+    Round,
+    Season,
+    SeasonPlayer,
+    TeamMember,
+    TeamPlayerPairing,
+    get_gameid_from_gamelink,
+)
 
 # API methods expect an HTTP header in the form:
 # Authorization: Token abc123
@@ -17,7 +36,7 @@ from heltour.tournament import uptime
 
 def require_api_token(view_func):
     def _wrapped_view_func(request, *args, **kwargs):
-        if not 'HTTP_AUTHORIZATION' in request.META:
+        if 'HTTP_AUTHORIZATION' not in request.META:
             return HttpResponse('Unauthorized', status=401)
         match = re.match(r'\s*Token\s*(\w+)\s*', request.META['HTTP_AUTHORIZATION'])
         if match is None or len(ApiKey.objects.filter(secret_token=match.group(1))) == 0:
@@ -212,9 +231,9 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
     if black is not None:
         pairings = pairings.filter(black__lichess_username__iexact=black) | pairings.filter(
             black__slack_user_id__iexact=black)
-    if scheduled == True:
+    if scheduled is True:
         pairings = pairings.exclude(result='', scheduled_time=None)
-    if scheduled == False:
+    if scheduled is False:
         pairings = pairings.filter(result='', scheduled_time=None)
     return list(pairings)
 
