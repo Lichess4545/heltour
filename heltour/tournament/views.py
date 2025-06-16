@@ -17,8 +17,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.generic import View
 from django.utils.text import slugify
-from django.contrib.auth import login, logout
-from django.contrib.auth.models import User
+from django.contrib.auth import logout
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousOperation
 from smtplib import SMTPException
@@ -26,15 +25,57 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.urls import NoReverseMatch
+from django.urls import reverse, NoReverseMatch
 from django.conf import settings
-from ipware import get_client_ip
 
-from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi, oauth
+from heltour.tournament import alternates_manager, uptime, lichessapi, oauth
 from heltour.tournament.templatetags.tournament_extras import leagueurl
-from heltour.tournament.forms import *
-from heltour.tournament.models import *
-from django.utils.html import format_html
+from heltour.tournament.forms import (
+    ContactForm,
+    DeleteNominationForm,
+    ModRequestForm,
+    NominateForm,
+    NotificationsForm,
+    RegistrationForm,
+    TvFilterForm,
+    TvTimezoneForm,
+)
+from heltour.tournament.models import (
+    logger,
+    Alternate,
+    AlternateAssignment,
+    AlternateBucket,
+    Document,
+    GameNomination,
+    League,
+    LeagueDocument,
+    LonePlayerPairing,
+    LonePlayerScore,
+    ModRequest,
+    NavItem,
+    PerfRatingCalc,
+    Player,
+    PlayerAvailability,
+    PlayerBye,
+    PlayerNotificationSetting,
+    PlayerPairing,
+    PlayerPresence,
+    PlayerSetting,
+    Registration,
+    Round,
+    Season,
+    SeasonDocument,
+    SeasonPlayer,
+    SeasonPrize,
+    SeasonPrizeWinner,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    TeamScore,
+    MOD_REQUEST_SENDER,
+    PLAYER_NOTIFICATION_TYPES,
+)
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
