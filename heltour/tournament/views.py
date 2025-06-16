@@ -620,7 +620,7 @@ class PairingsView(SeasonView):
         def pairing_error(pairing):
             if not self.request.user.is_staff:
                 return None
-            if pairing.white == None or pairing.black == None:
+            if pairing.white is None or pairing.black is None:
                 return 'Missing player'
             if pairing.white in duplicate_players:
                 return 'Duplicate player: %s' % pairing.white.lichess_username
@@ -2428,7 +2428,7 @@ def _get_season_lists(league, active_only=True):
 def _get_nav_tree(league_tag, season_tag):
     league = _get_league(league_tag)
     all_items = league.navitem_set.order_by('order')
-    root_items = [item for item in all_items if item.parent_id == None]
+    root_items = [item for item in all_items if item.parent_id is None]
 
     def transform(item):
         text = item.text
