@@ -1627,12 +1627,12 @@ class PlayerProfileView(LeagueView):
         leagues = list((League.objects.filter(is_active=True) | League.objects.filter(
             pk=self.league.pk)).order_by('display_order'))
         has_other_seasons = player.seasonplayer_set.exclude(season=self.season).exists()
-        other_season_leagues = [(l, [(sp.season, game_count(sp.season), team(sp.season)) for sp in
+        other_season_leagues = [(league, [(sp.season, game_count(sp.season), team(sp.season)) for sp in
                                      player.seasonplayer_set \
-                                 .filter(season__league=l, season__is_active=True) \
+                                 .filter(season__league=league, season__is_active=True) \
                                  .order_by('-season__start_date')]) \
-                                for l in leagues]
-        other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
+                                for league in leagues]
+        other_season_leagues = [league for league in other_season_leagues if len(league[1]) > 0]
 
         season_player = SeasonPlayer.objects.filter(season=self.season, player=player).first()
 
