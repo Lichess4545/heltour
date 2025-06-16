@@ -1886,7 +1886,7 @@ class SeasonPlayer(_BaseModel):
     def has_scheduled_game_in_round(self, round):
         pairingModel = TeamPlayerPairing.objects.filter(team_pairing__round=round)
         if not self.season.league.is_team_league():
-            pairingModel = LonePlayerPlairing.objects.filter(round=round)
+            pairingModel = LonePlayerPairing.objects.filter(round=round)
             
         return pairingModel.filter(
             (Q(white=self.player) | Q(black=self.player)) & Q(scheduled_time__isnull=False)#
