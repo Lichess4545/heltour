@@ -1,35 +1,33 @@
-from collections import defaultdict
-from datetime import timedelta
-from icalendar import Calendar, Event
-
 import itertools
 import json
 import math
 import re
-import reversion
+from collections import defaultdict
+from datetime import timedelta
+from smtplib import SMTPException
 
+import reversion
 from cacheops.query import cached_as
-from django.core.mail.message import EmailMessage
-from django.db.models import Count
-from django.db.models.query import Prefetch
-from django.http.response import Http404, JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404, render, redirect
-from django.utils import timezone
-from django.views.generic import View
-from django.utils.text import slugify
+from django.conf import settings
 from django.contrib.auth import logout
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousOperation
-from smtplib import SMTPException
-from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.core.mail.message import EmailMessage
 from django.core.paginator import Paginator
+from django.db.models import Count
+from django.db.models.query import Prefetch
+from django.http.response import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.urls import reverse, NoReverseMatch
-from django.conf import settings
+from django.utils.text import slugify
+from django.views.generic import View
+from icalendar import Calendar, Event
 
-from heltour.tournament import alternates_manager, uptime, lichessapi, oauth
-from heltour.tournament.templatetags.tournament_extras import leagueurl
+from heltour.tournament import alternates_manager, lichessapi, oauth, uptime
 from heltour.tournament.forms import (
     ContactForm,
     DeleteNominationForm,
@@ -41,7 +39,8 @@ from heltour.tournament.forms import (
     TvTimezoneForm,
 )
 from heltour.tournament.models import (
-    logger,
+    MOD_REQUEST_SENDER,
+    PLAYER_NOTIFICATION_TYPES,
     Alternate,
     AlternateAssignment,
     AlternateBucket,
@@ -73,9 +72,9 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
     TeamScore,
-    MOD_REQUEST_SENDER,
-    PLAYER_NOTIFICATION_TYPES,
+    logger,
 )
+from heltour.tournament.templatetags.tournament_extras import leagueurl
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
