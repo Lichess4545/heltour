@@ -1045,11 +1045,11 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     # calculations, we populate a few common data structures and use those as parameters.
 
     if sort_by_seed:
-        sort_key = lambda s: s.season_player.seed_rating_display() or 0
+        def sort_key(s): return s.season_player.seed_rating_display() or 0
     elif season.is_completed or final:
-        sort_key = lambda s: s.final_standings_sort_key()
+        def sort_key(s): return s.final_standings_sort_key()
     else:
-        sort_key = lambda s: s.intermediate_standings_sort_key()
+        def sort_key(s): return s.intermediate_standings_sort_key()
     raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
         .select_related('season_player__player', 'season_player__season__league').nocache()
     player_scores = list(enumerate(sorted(raw_player_scores, key=sort_key, reverse=True), 1))
