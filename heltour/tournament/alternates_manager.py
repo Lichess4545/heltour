@@ -206,7 +206,6 @@ def do_alternate_search(season, round_, board_number, setting):
                         break
 
                 # Contact the alternate, providing them with a pair of private links to respond
-                alt_username = alt_to_contact.season_player.player.lichess_username
                 league_tag = season.league.tag
                 season_tag = season.tag
                 accept_url = reverse('by_league:by_season:alternate_accept',
