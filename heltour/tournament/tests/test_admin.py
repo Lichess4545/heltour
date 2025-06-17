@@ -1,9 +1,11 @@
 from unittest.mock import patch
+
+from django.contrib import admin, messages
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib import admin, messages
-from django.contrib.auth.models import User
+
 from heltour.tournament.models import (
     Alternate,
     LonePlayerPairing,
@@ -12,13 +14,14 @@ from heltour.tournament.models import (
     Season,
     SeasonPlayer,
     Team,
+    TeamMember,
     TeamPairing,
     TeamPlayerPairing,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
-    get_season,
     get_round,
+    get_season,
 )
 
 
@@ -48,12 +51,12 @@ class SeasonAdminTestCase(TestCase):
         cls.superuser = User.objects.create(
             username="superuser", password="password", is_superuser=True, is_staff=True
         )
-        t1 = Team.objects.get(number=1)
-        t2 = Team.objects.get(number=2)
+        cls.t1 = Team.objects.get(number=1)
+        cls.t2 = Team.objects.get(number=2)
         cls.r1 = get_round("team", 1)
         Round.objects.filter(pk=cls.r1.pk).update(publish_pairings=True)
         cls.tp1 = TeamPairing.objects.create(
-            white_team=t1, black_team=t2, round=cls.r1, pairing_order=1
+            white_team=cls.t1, black_team=cls.t2, round=cls.r1, pairing_order=1
         )
         cls.p1 = Player.objects.get(lichess_username="Player1")
         cls.p2 = Player.objects.get(lichess_username="Player2")
@@ -61,14 +64,15 @@ class SeasonAdminTestCase(TestCase):
         cls.p4 = Player.objects.get(lichess_username="Player4")
         cls.s = get_season("team")
         cls.sp1 = SeasonPlayer.objects.create(player=cls.p1, season=cls.s)
+        cls.path_s_changelist = reverse("admin:tournament_season_changelist")
+        cls.path_m_p = reverse("admin:manage_players", args=[cls.s.pk])
 
     @patch("heltour.tournament.simulation.simulate_season")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_simulate(self, message, simulate):
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:tournament_season_changelist")
         self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "simulate_tournament",
                 "_selected_action": get_season("lone").pk,
@@ -85,9 +89,8 @@ class SeasonAdminTestCase(TestCase):
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_recalculate(self, message, tpsave, tprefresh, scalculate):
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:tournament_season_changelist")
         self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "recalculate_scores",
                 "_selected_action": get_season("lone").pk,
@@ -102,7 +105,7 @@ class SeasonAdminTestCase(TestCase):
         message.reset_mock()
         scalculate.reset_mock()
         self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "recalculate_scores",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True),
@@ -123,9 +126,8 @@ class SeasonAdminTestCase(TestCase):
     )
     def test_verify(self, gamelink, message):
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:tournament_season_changelist")
         self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "verify_data",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True),
@@ -151,7 +153,7 @@ class SeasonAdminTestCase(TestCase):
             pairing_order=1,
         )
         self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "verify_data",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True),
@@ -171,7 +173,6 @@ class SeasonAdminTestCase(TestCase):
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_review_nominated(self, message):
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:tournament_season_changelist")
         TeamPlayerPairing.objects.create(
             white=self.p1,
             black=self.p2,
@@ -187,7 +188,7 @@ class SeasonAdminTestCase(TestCase):
             game_link="https://lichess.org/rgame02",
         )
         response = self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "review_nominated_games",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True),
@@ -201,7 +202,7 @@ class SeasonAdminTestCase(TestCase):
         )
         message.reset_mock()
         response = self.client.post(
-            path,
+            self.path_s_changelist,
             data={"action": "review_nominated_games", "_selected_action": self.s.pk},
             follow=True,
         )
@@ -211,7 +212,7 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         Season.objects.filter(pk=self.s.pk).update(nominations_open=True)
         response = self.client.post(
-            path,
+            self.path_s_changelist,
             data={"action": "review_nominated_games", "_selected_action": self.s.pk},
             follow=True,
         )
@@ -224,9 +225,8 @@ class SeasonAdminTestCase(TestCase):
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_round_transition(self, message):
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:tournament_season_changelist")
         response = self.client.post(
-            path,
+            self.path_s_changelist,
             data={
                 "action": "round_transition",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True),
@@ -240,7 +240,7 @@ class SeasonAdminTestCase(TestCase):
         )
         message.reset_mock()
         response = self.client.post(
-            path,
+            self.path_s_changelist,
             data={"action": "round_transition", "_selected_action": self.s.pk},
             follow=True,
         )
@@ -348,9 +348,8 @@ class SeasonAdminTestCase(TestCase):
     def test_manage_players_add_alternate(self):
         Season.objects.filter(pk=self.s.pk).update(start_date=timezone.now())
         self.client.force_login(user=self.superuser)
-        path = reverse("admin:manage_players", args=[self.s.pk])
         self.client.post(
-            path,
+            self.path_m_p,
             data={
                 "changes": '[{"action": "create-alternate", "board_number": 1, "player_name": "Player1"}]'
             },
@@ -361,3 +360,43 @@ class SeasonAdminTestCase(TestCase):
             Alternate.objects.all().first().season_player.player.lichess_username,
             "Player1",
         )
+
+    @patch("django.contrib.admin.ModelAdmin.message_user")
+    def test_manage_players_change_team_players(self, message):
+        # assert the correct team player order
+        self.assertEqual(
+            TeamMember.objects.get(team=self.t1, board_number=1).player, self.p1
+        )
+        self.assertEqual(
+            TeamMember.objects.get(team=self.t2, board_number=1).player, self.p3
+        )
+        self.client.force_login(user=self.superuser)
+        # switch team players between teams
+        datastring = (
+            '[{"action": "change-member", "team_number": 1, "board_number": 1,'
+            ' "player": {"name": "Player3", "is_captain": false, "is_vice_captain": false}}, '
+            '{"action": "change-member", "team_number": 2, "board_number": 1,'
+            ' "player": {"name": "Player1", "is_captain": false, "is_vice_captain": false}}]'
+        )
+        self.client.post(
+            self.path_m_p,
+            data={"changes": datastring},
+        )
+        self.assertFalse(message.called)
+        # assert new order
+        self.assertEqual(
+            TeamMember.objects.get(team=self.t1, board_number=1).player, self.p3
+        )
+        self.assertEqual(
+            TeamMember.objects.get(team=self.t2, board_number=1).player, self.p1
+        )
+        # try malformed data
+        self.client.post(
+            self.path_m_p,
+            data={
+                "changes": '[{"action": "change-member", "team_number": 1, "board_nuber": 1}]'
+            },
+        )
+        # message should be called allerting us to the problem
+        self.assertTrue(message.called)
+        self.assertEqual(message.call_args[0][1], "Some changes could not be saved.")
