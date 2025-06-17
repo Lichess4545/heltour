@@ -21,6 +21,7 @@ from heltour.tournament.models import (
     logger,
 )
 
+
 def _send_notification(notification_type, league, text):
     if league.enable_notifications:
         for ln in league.leaguechannel_set.filter(type=notification_type, send_messages=True):
@@ -341,7 +342,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
     if aa.player == aa.replaced_player:
         message = '%sI have reassigned <@%s> to play on board %d of "%s" for round %d.%s' \
                   % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number,
-                     aa.team.name, opponent_notified)
+                     aa.team.name, aa.round.number, opponent_notified)
     else:
         message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s> for round %d.%s' \
                   % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number,
