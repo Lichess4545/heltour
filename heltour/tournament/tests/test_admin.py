@@ -345,7 +345,7 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(slack_message.call_args.args[1], "message sent to teams")
         self.assertTemplateUsed(response, "admin/change_list.html")
 
-    def test_manage_players_add_alternate(self):
+    def test_manage_players_add_delete_alternate(self):
         Season.objects.filter(pk=self.s.pk).update(start_date=timezone.now())
         self.client.force_login(user=self.superuser)
         self.client.post(
@@ -360,9 +360,16 @@ class SeasonAdminTestCase(TestCase):
             Alternate.objects.all().first().season_player.player.lichess_username,
             "Player1",
         )
+        self.client.post(
+            self.path_m_p,
+            data={
+                "changes": '[{"action": "delete-alternate", "board_number": 1, "player_name": "Player1"}]'
+            },
+        )
+        self.assertEqual(Alternate.objects.all().count(), 0)
 
     @patch("django.contrib.admin.ModelAdmin.message_user")
-    def test_manage_players_change_team_players(self, message):
+    def test_manage_players_switch_team_players(self, message):
         # assert the correct team player order
         self.assertEqual(
             TeamMember.objects.get(team=self.t1, board_number=1).player, self.p1
@@ -394,9 +401,81 @@ class SeasonAdminTestCase(TestCase):
         self.client.post(
             self.path_m_p,
             data={
-                "changes": '[{"action": "change-member", "team_number": 1, "board_nuber": 1}]'
+                "changes": (
+                    '[{"action": "change-member",'
+                    '"team_number": 1, "board_nuber": 1}]'
+                )
             },
         )
         # message should be called allerting us to the problem
         self.assertTrue(message.called)
         self.assertEqual(message.call_args[0][1], "Some changes could not be saved.")
+
+    @patch("django.contrib.admin.ModelAdmin.message_user")
+    def test_manage_players_empty_team_player(self, message):
+        # assert the correct team player order
+        self.assertEqual(
+            TeamMember.objects.get(team=self.t1, board_number=1).player, self.p1
+        )
+        self.client.force_login(user=self.superuser)
+        # switch team players between teams
+        datastring = (
+            '[{"action": "change-member", "team_number": 1, "board_number": 1,'
+            ' "player": null}]'
+        )
+        self.client.post(
+            self.path_m_p,
+            data={"changes": datastring},
+        )
+        self.assertFalse(message.called)
+        self.assertEqual(
+            TeamMember.objects.filter(team=self.t1, board_number=1).count(), 0
+        )
+
+
+class SeasonAdminNoPublishedPairingsTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.superuser = User.objects.create(
+            username="superuser", password="password", is_superuser=True, is_staff=True
+        )
+        cls.t1 = Team.objects.get(number=1)
+        cls.p1 = Player.objects.get(lichess_username="Player1")
+        cls.s = get_season("team")
+        cls.sp1 = SeasonPlayer.objects.create(player=cls.p1, season=cls.s)
+        cls.path_m_p = reverse("admin:manage_players", args=[cls.s.pk])
+
+    @patch("django.contrib.admin.ModelAdmin.message_user")
+    def test_change_team(self, message):
+        # assert the correct team player order
+        self.assertEqual(self.t1.name, "Team 1")
+        self.client.force_login(user=self.superuser)
+        # rename team
+        datastring = (
+            '[{"action": "change-team", "team_number": 1, "team_name": "TestTeam"}]'
+        )
+        self.client.post(
+            self.path_m_p,
+            data={"changes": datastring},
+        )
+        self.assertFalse(message.called)
+        self.assertEqual(Team.objects.get(pk=self.t1.pk).name, "TestTeam")
+
+    @patch("django.contrib.admin.ModelAdmin.message_user")
+    def test_create_team(self, message):
+        self.assertEqual(Team.objects.all().count(), 4)
+        self.client.force_login(user=self.superuser)
+        datastring = (
+            '[{"action": "create-team", "team_number": 5, '
+            '"model": {"number": 5, "name": "AddTeam", "boards": ['
+            '{"name": "Player1", "is_captain": false},'
+            '{"name": "Player2", "is_captain": true}]}}]'
+        )
+        self.client.post(
+            self.path_m_p,
+            data={"changes": datastring},
+        )
+        self.assertEqual(Team.objects.all().count(), 5)
+        self.assertEqual(Team.objects.get(number=5).name, "AddTeam")
+        self.assertFalse(message.called)
