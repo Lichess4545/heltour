@@ -297,7 +297,7 @@ class UpdateBoardOrderWorkflow():
                 for alt in alternates:
                     r = alt.season_player.player.rating_for(self.season.league) or 0
                     for i in range(self.season.boards):
-                        if boundaries[i + 1] == None or r > boundaries[i + 1]:
+                        if boundaries[i + 1] is None or r > boundaries[i + 1]:
                             bucket_counts[i] += 1
                             break
 
