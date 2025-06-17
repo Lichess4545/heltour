@@ -1,12 +1,21 @@
-from heltour.tournament.models import *
-from django.urls import reverse
-from heltour.settings import SLEEP_UNIT
-import reversion
 import time
-import logging
-from heltour.tournament.workflows import UpdateBoardOrderWorkflow
+from datetime import timedelta
 
-logger = logging.getLogger(__name__)
+import reversion
+from django.urls import reverse
+from django.utils import timezone
+
+from heltour.settings import SLEEP_UNIT
+from heltour.tournament import signals, workflows
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    AlternateSearch,
+    PlayerAvailability,
+    TeamMember,
+    TeamPlayerPairing,
+    logger,
+)
 
 _min_bucket_update_interval = timedelta(hours=1)
 
@@ -91,7 +100,7 @@ def reset_alternate_search(season, round_, setting):
     # Update the alternate board order, but only if it hasn't been updated within the past hour
     some_bucket = season.alternatebucket_set.first()
     if some_bucket is None or some_bucket.date_modified < timezone.now() - _min_bucket_update_interval:
-        UpdateBoardOrderWorkflow(season).run(alternates_only=True)
+        workflows.UpdateBoardOrderWorkflow(season).run(alternates_only=True)
 
 
 def do_alternate_search(season, round_, board_number, setting):
