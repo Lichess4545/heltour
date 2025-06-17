@@ -1,19 +1,25 @@
-import requests
-from heltour import settings
-from collections import namedtuple
-from . import slackapi
+import sys
+import time
+
 from django.core.cache import cache
-from django.urls import reverse
-from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-import logging
-from heltour.tournament import lichessapi
-import time
-import sys
+from django.urls import reverse
+from django.utils import timezone
 
-logger = logging.getLogger(__name__)
-
+from heltour import settings
+from heltour.tournament import lichessapi, signals, slackapi
+from heltour.tournament.models import (
+    LeagueChannel,
+    PlayerAvailability,
+    PlayerLateRegistration,
+    PlayerNotificationSetting,
+    PlayerWithdrawal,
+    Registration,
+    Round,
+    abs_url,
+    logger,
+)
 
 def _send_notification(notification_type, league, text):
     if league.enable_notifications:
