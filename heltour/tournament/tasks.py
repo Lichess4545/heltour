@@ -277,7 +277,7 @@ def update_tv_state():
                         meta['clock']['initial'] == league.time_control_initial() and
                         meta['clock']['increment'] == league.time_control_increment() and
                         meta['perf'] == league.rating_type and
-                        meta['rated'] == True and
+                        meta['rated'] is True and
                         meta['status'] != 'aborted'):
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
@@ -342,7 +342,7 @@ def update_slack_users():
     slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
-        if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
+        if u is not None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
             p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
             p.save()
 
