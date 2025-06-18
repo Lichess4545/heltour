@@ -53,6 +53,8 @@ class SeasonAdminTestCase(TestCase):
         )
         cls.t1 = Team.objects.get(number=1)
         cls.t2 = Team.objects.get(number=2)
+        cls.t3 = Team.objects.get(number=3)
+        cls.t4 = Team.objects.get(number=4)
         cls.r1 = get_round("team", 1)
         Round.objects.filter(pk=cls.r1.pk).update(publish_pairings=True)
         cls.tp1 = TeamPairing.objects.create(
@@ -402,8 +404,7 @@ class SeasonAdminTestCase(TestCase):
             self.path_m_p,
             data={
                 "changes": (
-                    '[{"action": "change-member",'
-                    '"team_number": 1, "board_nuber": 1}]'
+                    '[{"action": "change-member","team_number": 1, "board_nuber": 1}]'
                 )
             },
         )
@@ -430,6 +431,25 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         self.assertEqual(
             TeamMember.objects.filter(team=self.t1, board_number=1).count(), 0
+        )
+
+    def test_manage_players_get(self):
+        # assert the correct team player order
+        self.client.force_login(user=self.superuser)
+        response = self.client.get(self.path_m_p)
+        self.assertIn("red_players", response.context)
+        self.assertIn("blue_players", response.context)
+        self.assertIn("green_players", response.context)
+        self.assertIn("purple_players", response.context)
+        self.assertIn("unassigned_by_board", response.context)
+        self.assertIn("teams", response.context)
+        self.assertEqual(response.context["red_players"], {self.p1})
+        self.assertEqual(response.context["blue_players"], set())
+        self.assertEqual(response.context["green_players"], set())
+        self.assertEqual(response.context["purple_players"], set())
+        self.assertEqual(response.context["unassigned_by_board"], [(1, []), (2, [])])
+        self.assertEqual(
+            response.context["teams"], [self.t1, self.t2, self.t3, self.t4]
         )
 
 
