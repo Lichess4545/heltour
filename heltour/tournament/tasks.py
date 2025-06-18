@@ -431,9 +431,9 @@ def start_games():
             white_token = game.get_white_access_token()
             black_token = game.get_black_access_token()
             if game.tokens_valid():
-                if not gameleague.name in token_dict:
+                if gameleague.name not in token_dict:
                     token_dict[gameleague.name] = []
-                if not gameleague.name in leagues:
+                if gameleague.name not in leagues:
                     leagues[gameleague.name] = gameleague
                 token_dict[gameleague.name].append(f'{white_token}:{black_token}')
     for leaguename, league in leagues.items():
