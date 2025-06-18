@@ -1,3 +1,31 @@
+import json
+import re
+import sys
+import textwrap
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Dict, List
+
+import reversion
+from django.core.cache import cache
+from django.db.models import Q, QuerySet
+from django.db.models.signals import post_save
+from django.dispatch.dispatcher import receiver
+from django.urls import reverse
+from django.utils import timezone
+from django_stubs_ext import ValuesQuerySet
+
+from heltour import settings
+from heltour.celery import app
+from heltour.tournament import (
+    alternates_manager,
+    lichessapi,
+    pairinggen,
+    signals,
+    slackapi,
+    uptime,
+)
 from heltour.tournament.models import (
     Alternate,
     LeagueChannel,
@@ -21,37 +49,7 @@ from heltour.tournament.models import (
     logger,
     lone_player_pairing_rank_dict,
 )
-from heltour.tournament import (
-    lichessapi,
-    slackapi,
-    pairinggen,
-    alternates_manager,
-    signals,
-    uptime,
-)
-from heltour import settings
-from heltour.celery import app
 from heltour.tournament.workflows import RoundTransitionWorkflow
-
-from django_stubs_ext import ValuesQuerySet
-
-from django.core.cache import cache
-from django.db.models import QuerySet, Q
-from django.db.models.signals import post_save
-from django.dispatch.dispatcher import receiver
-from django.urls import reverse
-from django.utils import timezone
-
-from typing import Dict, List
-from datetime import datetime, timedelta
-import json
-import re
-import reversion
-import textwrap
-import time
-import sys
-import traceback
-
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
