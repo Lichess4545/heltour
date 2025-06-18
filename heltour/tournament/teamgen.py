@@ -363,7 +363,7 @@ def update_swaps(swaps, swap_performed, teams):
     for player in affected_players:
         board = player.board
         players_on_board = [team.boards[board] for team in teams
-                            if not team.boards[board] in affected_players]
+                            if team.boards[board] not in affected_players]
         swaps.extend([(player, p) for p in players_on_board
                       if is_neutral_swap((player, p))])
 
