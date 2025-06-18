@@ -1,14 +1,13 @@
+import math
 import random
 import re
-import math
-from heltour.tournament.team_rating_utils import variance, \
-    team_rating_variance, team_rating_range
-
-from itertools import combinations
 from functools import partial
+from itertools import combinations
 from multiprocessing import Pool
 
 from django.conf import settings
+
+from heltour.tournament.team_rating_utils import team_rating_range, variance
 
 AVOID_WEIGHT = 1000
 FRIEND_WEIGHT = 1
