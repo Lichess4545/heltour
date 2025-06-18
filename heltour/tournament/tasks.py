@@ -1,6 +1,34 @@
-from heltour.tournament.models import *
-from heltour.tournament import lichessapi, slackapi, pairinggen, \
-    alternates_manager, signals, uptime
+from heltour.tournament.models import (
+    Alternate,
+    LeagueChannel,
+    LonePlayerPairing,
+    Player,
+    PlayerBye,
+    PlayerPairing,
+    Registration,
+    Round,
+    ScheduledEvent,
+    ScheduledNotification,
+    Season,
+    SeasonPlayer,
+    Team,
+    TeamMember,
+    TeamPlayerPairing,
+    abs_url,
+    add_system_comment,
+    get_gameid_from_gamelink,
+    get_gamelink_from_gameid,
+    logger,
+    lone_player_pairing_rank_dict,
+)
+from heltour.tournament import (
+    lichessapi,
+    slackapi,
+    pairinggen,
+    alternates_manager,
+    signals,
+    uptime,
+)
 from heltour import settings
 from heltour.celery import app
 from heltour.tournament.workflows import RoundTransitionWorkflow
@@ -15,16 +43,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from typing import Dict, List
-from celery.utils.log import get_task_logger
 from datetime import datetime, timedelta
 import json
 import re
 import reversion
 import textwrap
 import time
-import sys, traceback
+import sys
+import traceback
 
-logger = get_task_logger(__name__)
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
