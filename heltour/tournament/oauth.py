@@ -1,17 +1,27 @@
 import base64
 import hashlib
-import json
-import requests
+from datetime import timedelta
 from unicodedata import normalize
+
+import requests
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.core import signing
 from django.http.response import HttpResponse
-from django.shortcuts import redirect, reverse
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
-from heltour.tournament.models import *
-from heltour.tournament import lichessapi
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import lichessapi
+from heltour.tournament.models import (
+    LoginToken,
+    OauthToken,
+    Player,
+    create_api_token,
+    logger,
+)
 
 _SCOPES = [
     'email:read',
