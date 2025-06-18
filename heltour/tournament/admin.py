@@ -1079,7 +1079,7 @@ class SeasonAdmin(_BaseAdmin):
                                     teammember = TeamMember.objects.filter(team=team,
                                                                            board_number=board_num).first()
                                     original_teammember = str(teammember)
-                                    if teammember == None:
+                                    if teammember is None:
                                         teammember = TeamMember(team=team, board_number=board_num)
                                     if player_info is None:
                                         teammember.delete()
@@ -1501,7 +1501,7 @@ class RoundAdmin(_BaseAdmin):
             def pairing_error(pairing):
                 if not request.user.is_staff:
                     return None
-                if pairing.white == None or pairing.black == None:
+                if pairing.white is None or pairing.black is None:
                     return 'Missing player'
                 if pairing.white in duplicate_players:
                     return 'Duplicate player: %s' % pairing.white.lichess_username
@@ -2013,11 +2013,11 @@ class RegistrationAdmin(_BaseAdmin):
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
-        if obj.validation_warning == True:
+        if obj.validation_warning is True:
             return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
-        elif obj.validation_ok == True:
+        elif obj.validation_ok is True:
             return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
-        elif obj.validation_ok == False:
+        elif obj.validation_ok is not False:
             return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
         return ''
 
