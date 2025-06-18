@@ -1,41 +1,111 @@
-from django.contrib import admin, messages
-from django.utils import timezone
-from heltour.tournament import lichessapi, slackapi, views, forms, signals, simulation
-from heltour.tournament.models import *
-from reversion.admin import VersionAdmin
-from django.shortcuts import render, redirect, get_object_or_404
-import reversion
-
 import json
-from . import pairinggen
-from . import spreadsheet
+import re
+import time
+from collections import defaultdict
+from datetime import timedelta
+from smtplib import SMTPException
+from urllib.parse import quote as urlquote
+
+import reversion
+from django.contrib import admin, messages
+from django.contrib.admin.filters import (
+    FieldListFilter,
+    RelatedFieldListFilter,
+    SimpleListFilter,
+)
+from django.contrib.contenttypes.models import ContentType
+from django.core import mail
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import send_mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import Q
 from django.db.models.query import Prefetch
-from django.db import transaction
-from heltour import settings
-from datetime import timedelta
-from django_comments.models import Comment
-from django.contrib.sites.models import Site
-from django.urls import reverse, path
-from django.http.response import HttpResponse
-from django.core.mail.message import EmailMultiAlternatives
-from django.core import mail
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-from heltour.tournament.workflows import *
-from django.forms.models import ModelForm
-from django.core.exceptions import PermissionDenied
-from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
-    SimpleListFilter
-from django.templatetags.static import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-from django.contrib.contenttypes.models import ContentType
-from urllib.parse import quote as urlquote
-from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament import teamgen
-import time
+from django.forms.models import ModelForm
+from django.http.response import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.templatetags.static import static
+from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django_comments.models import Comment
+from reversion.admin import VersionAdmin
 
+from heltour import settings
+from heltour.tournament import (
+    forms,
+    lichessapi,
+    pairinggen,
+    signals,
+    simulation,
+    slackapi,
+    spreadsheet,
+    teamgen,
+)
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    AlternateBucket,
+    AlternateSearch,
+    AlternatesManagerSetting,
+    ApiKey,
+    AvailableTime,
+    Document,
+    GameNomination,
+    GameSelection,
+    League,
+    LeagueChannel,
+    LeagueDocument,
+    LeagueModerator,
+    LeagueSetting,
+    LoginToken,
+    LonePlayerPairing,
+    LonePlayerScore,
+    ModRequest,
+    NavItem,
+    Player,
+    PlayerAvailability,
+    PlayerBye,
+    PlayerLateRegistration,
+    PlayerNotificationSetting,
+    PlayerPairing,
+    PlayerPresence,
+    PlayerWarning,
+    PlayerWithdrawal,
+    PrivateUrlAuth,
+    Registration,
+    Round,
+    ScheduledEvent,
+    ScheduledNotification,
+    Season,
+    SeasonDocument,
+    SeasonPlayer,
+    SeasonPrize,
+    SeasonPrizeWinner,
+    Section,
+    SectionGroup,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    TeamScore,
+    find,
+    get_gameid_from_gamelink,
+    getnestedattr,
+    logger,
+    normalize_gamelink,
+)
+from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
+from heltour.tournament.workflows import (
+    ApproveRegistrationWorkflow,
+    MoveLateRegWorkflow,
+    RefreshLateRegWorkflow,
+    RoundTransitionWorkflow,
+    UpdateBoardOrderWorkflow,
+)
 
 # Customize which sections are visible
 # admin.site.register(Comment)
