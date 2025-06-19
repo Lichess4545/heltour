@@ -7,6 +7,7 @@ from django.test.client import RequestFactory
 from heltour.tournament.models import (
     AlternatesManagerSetting,
     Player,
+    PlayerAvailability,
     SeasonPlayer,
     TeamMember,
 )
@@ -41,6 +42,7 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         # disable that temporarily for nicer test output
         with Shush():
             cls.reg = create_reg(cls.season, "newplayer")
+            cls.reg.weeks_unavailable = "6,7"
         cls.arw = ApproveRegistrationWorkflow(cls.reg, 4)
         cls.rf = RequestFactory()
 
@@ -50,7 +52,9 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         self.assertEqual(self.arw.default_ljp, 0)
 
     @patch("django.contrib.admin.ModelAdmin.message_user", new_callable=PropertyMock)
-    def test_approve_reg(self, model_admin):
+    @patch("heltour.tournament.workflows.send_mail")
+    @patch("heltour.tournament.slackapi.invite_user")
+    def test_approve_reg(self, slack_invite, send_mail, model_admin):
         approve_request = self.rf.post("admin:approve_registration")
         approve_request.user = self.superuser
         self.assertEqual(self.reg.status, "pending")
@@ -60,8 +64,8 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         self.arw.approve_reg(
             approve_request,
             modeladmin=model_admin,
-            send_confirm_email=False,
-            invite_to_slack=False,
+            send_confirm_email=True,
+            invite_to_slack=True,
             season=self.season,
             retroactive_byes=0,
             late_join_points=0,
@@ -70,6 +74,13 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         self.assertEqual(
             SeasonPlayer.objects.filter(player__lichess_username="newplayer").count(), 1
         )
+        self.assertEqual(PlayerAvailability.objects.all().count(), 2)
+        self.assertTrue(send_mail.called)
+        self.assertEqual(
+            send_mail.call_args.args[0], "Registration Confirmation - Lone League"
+        )
+        self.assertTrue(slack_invite.called)
+        self.assertEqual(slack_invite.call_args.args[0], "a@test.com")
 
 
 class UpdateBoardOrderWorkflowTestCase(TestCase):
