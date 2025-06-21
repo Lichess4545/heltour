@@ -1,14 +1,13 @@
+import math
 import random
 import re
-import math
-from heltour.tournament.team_rating_utils import variance, \
-    team_rating_variance, team_rating_range
-
-from itertools import combinations
 from functools import partial
+from itertools import combinations
 from multiprocessing import Pool
 
 from django.conf import settings
+
+from heltour.tournament.team_rating_utils import team_rating_range, variance
 
 AVOID_WEIGHT = 1000
 FRIEND_WEIGHT = 1
@@ -364,7 +363,7 @@ def update_swaps(swaps, swap_performed, teams):
     for player in affected_players:
         board = player.board
         players_on_board = [team.boards[board] for team in teams
-                            if not team.boards[board] in affected_players]
+                            if team.boards[board] not in affected_players]
         swaps.extend([(player, p) for p in players_on_board
                       if is_neutral_swap((player, p))])
 
@@ -422,10 +421,10 @@ def get_best_league(player_data, boards, balance, count):
     pool = Pool(getattr(settings, 'TEAMGEN_PROCESSES_NUMBER', 1))
     args = [(player_data, boards, balance) for _ in range(count)]
     leagues = pool.map(make_league_map, args)
-    max_happiness = max([total_happiness(l['teams']) for l in leagues])
-    happy_leagues = [l for l in leagues if total_happiness(l['teams']) == max_happiness]
+    max_happiness = max([total_happiness(league['teams']) for league in leagues])
+    happy_leagues = [league for league in leagues if total_happiness(league['teams']) == max_happiness]
 
     happy_leagues = pool.map(reduce_variance_map, happy_leagues)
 
-    min_range_league = min(happy_leagues, key=lambda l: team_rating_range(l['teams']))
+    min_range_league = min(happy_leagues, key=lambda league: team_rating_range(league['teams']))
     return min_range_league

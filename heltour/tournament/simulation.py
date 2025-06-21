@@ -1,7 +1,14 @@
-import random
 import math
-from heltour.tournament.models import *
+import random
+
 from heltour.tournament import pairinggen
+from heltour.tournament.models import (
+    LonePlayerPairing,
+    LonePlayerScore,
+    PlayerLateRegistration,
+    TeamPlayerPairing,
+    TeamScore,
+)
 
 sysrand = random.SystemRandom()
 

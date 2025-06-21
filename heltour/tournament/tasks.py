@@ -1,30 +1,55 @@
-from heltour.tournament.models import *
-from heltour.tournament import lichessapi, slackapi, pairinggen, \
-    alternates_manager, signals, uptime
-from heltour import settings
-from heltour.celery import app
-from heltour.tournament.workflows import RoundTransitionWorkflow
+import json
+import re
+import sys
+import textwrap
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Dict, List
 
-from django_stubs_ext import ValuesQuerySet
-
+import reversion
 from django.core.cache import cache
-from django.db.models import QuerySet, Q
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
+from django_stubs_ext import ValuesQuerySet
 
-from typing import Dict, List
-from celery.utils.log import get_task_logger
-from datetime import datetime, timedelta
-import json
-import re
-import reversion
-import textwrap
-import time
-import sys, traceback
-
-logger = get_task_logger(__name__)
+from heltour import settings
+from heltour.celery import app
+from heltour.tournament import (
+    alternates_manager,
+    lichessapi,
+    pairinggen,
+    signals,
+    slackapi,
+    uptime,
+)
+from heltour.tournament.models import (
+    Alternate,
+    LeagueChannel,
+    LonePlayerPairing,
+    Player,
+    PlayerBye,
+    PlayerPairing,
+    Registration,
+    Round,
+    ScheduledEvent,
+    ScheduledNotification,
+    Season,
+    SeasonPlayer,
+    Team,
+    TeamMember,
+    TeamPlayerPairing,
+    abs_url,
+    add_system_comment,
+    get_gameid_from_gamelink,
+    get_gamelink_from_gameid,
+    logger,
+    lone_player_pairing_rank_dict,
+)
+from heltour.tournament.workflows import RoundTransitionWorkflow
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
@@ -250,7 +275,7 @@ def update_tv_state():
                         meta['clock']['initial'] == league.time_control_initial() and
                         meta['clock']['increment'] == league.time_control_increment() and
                         meta['perf'] == league.rating_type and
-                        meta['rated'] == True and
+                        meta['rated'] is True and
                         meta['status'] != 'aborted'):
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
@@ -315,7 +340,7 @@ def update_slack_users():
     slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
-        if u != None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
+        if u is not None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
             p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
             p.save()
 
@@ -404,9 +429,9 @@ def start_games():
             white_token = game.get_white_access_token()
             black_token = game.get_black_access_token()
             if game.tokens_valid():
-                if not gameleague.name in token_dict:
+                if gameleague.name not in token_dict:
                     token_dict[gameleague.name] = []
-                if not gameleague.name in leagues:
+                if gameleague.name not in leagues:
                     leagues[gameleague.name] = gameleague
                 token_dict[gameleague.name].append(f'{white_token}:{black_token}')
     for leaguename, league in leagues.items():

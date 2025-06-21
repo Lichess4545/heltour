@@ -1,11 +1,25 @@
-from .models import *
-from heltour import settings
-from django.db import transaction
-import tempfile
-import subprocess
-import os
-import reversion
 import math
+import os
+import subprocess
+import tempfile
+
+import reversion
+from django.db import transaction
+
+from heltour import settings
+from heltour.tournament.models import (
+    AlternateAssignment,
+    LonePlayerPairing,
+    PlayerAvailability,
+    PlayerBye,
+    SeasonPlayer,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    find,
+    lone_player_pairing_rank_dict,
+)
 
 
 def generate_pairings(round_, overwrite=False):

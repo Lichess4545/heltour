@@ -12,7 +12,7 @@ class UptimeIndicator(object):
 
     @property
     def is_up(self):
-        return cache.get(self.name) == True
+        return cache.get(self.name) is True
 
     @is_up.setter
     def is_up(self, value):

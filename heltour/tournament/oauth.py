@@ -1,17 +1,27 @@
 import base64
 import hashlib
-import json
-import requests
+from datetime import timedelta
 from unicodedata import normalize
+
+import requests
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.core import signing
 from django.http.response import HttpResponse
-from django.shortcuts import redirect, reverse
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
-from heltour.tournament.models import *
-from heltour.tournament import lichessapi
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import lichessapi
+from heltour.tournament.models import (
+    LoginToken,
+    OauthToken,
+    Player,
+    create_api_token,
+    logger,
+)
 
 _SCOPES = [
     'email:read',
@@ -30,11 +40,11 @@ def redirect_for_authorization(request, league_tag, secret_token):
     }
     request.session['oauth_code_verifier'] = get_random_string(64)
     auth = f'{settings.LICHESS_OAUTH_AUTHORIZE_URL}' + \
-           f'?response_type=code' + \
+           '?response_type=code' + \
            f'&client_id={settings.LICHESS_OAUTH_CLIENTID}' + \
            f'&redirect_uri={_get_redirect_uri(request)}' + \
            f'&scope={" ".join(_SCOPES)}' + \
-           f'&code_challenge_method=S256' + \
+           '&code_challenge_method=S256' + \
            f'&code_challenge={_code_challenge(request.session["oauth_code_verifier"])}' + \
            f'&state={_encode_state(state)}'
     return redirect(auth)
