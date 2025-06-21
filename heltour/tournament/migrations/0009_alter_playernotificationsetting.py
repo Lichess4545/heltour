@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("tournament", "0007_merge_20250519_1709"),
+        ("tournament", "0008_lichess_username_unique"),
     ]
 
     operations = [
