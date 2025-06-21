@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict, namedtuple
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
 import reversion
 from ckeditor_uploader.fields import RichTextUploadingField
@@ -869,6 +869,14 @@ class Player(_BaseModel):
         if not is_closed:
             self.profile = user_meta
         self.save()
+
+    def profile_update_after(self) -> datetime:
+        # lichess gives us "seenAt" in miliseconds as the last time the user was online
+        # thus, the profile was last updated *after* this seenAt.
+        seenAt = (self.profile or {}) .get('seenAt')
+        if seenAt is not None:
+            return datetime.utcfromtimestamp(seenAt / 1000)
+        return None
 
     @classmethod
     def get_or_create(cls, lichess_username):

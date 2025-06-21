@@ -805,7 +805,6 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                                               season_tag=self.season.tag))
             else:
                 player = Player.get_or_create(self.request.user.username)
-
                 rules_doc = LeagueDocument.objects.filter(league=self.league, type='rules').first()
                 if rules_doc is not None:
                     doc_url = reverse('by_league:document', args=[self.league.tag, rules_doc.tag])
