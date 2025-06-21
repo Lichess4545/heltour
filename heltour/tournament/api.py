@@ -233,7 +233,7 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
             black__slack_user_id__iexact=black)
     if scheduled:
         pairings = pairings.exclude(result='', scheduled_time=None)
-    if scheduled is False:
+   else:
         pairings = pairings.filter(result='', scheduled_time=None)
     return list(pairings)
 
