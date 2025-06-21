@@ -1,40 +1,80 @@
-from collections import defaultdict
-from datetime import timedelta
-from icalendar import Calendar, Event
-
 import itertools
 import json
 import math
 import re
-import reversion
+from collections import defaultdict, namedtuple
+from datetime import timedelta
+from smtplib import SMTPException
 
+import reversion
 from cacheops.query import cached_as
-from django.core.mail.message import EmailMessage
-from django.db.models import Count
-from django.db.models.query import Prefetch
-from django.http.response import Http404, JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404, render, redirect
-from django.utils import timezone
-from django.views.generic import View
-from django.utils.text import slugify
-from django.contrib.auth import login, logout
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.contrib.auth import logout
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousOperation
-from smtplib import SMTPException
-from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.core.mail.message import EmailMessage
 from django.core.paginator import Paginator
+from django.db.models import Count
+from django.db.models.query import Prefetch
+from django.http.response import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.urls import NoReverseMatch
-from django.conf import settings
-from ipware import get_client_ip
+from django.utils.text import slugify
+from django.views.generic import View
+from icalendar import Calendar, Event
 
-from heltour.tournament import slackapi, alternates_manager, uptime, lichessapi, oauth
+from heltour.tournament import alternates_manager, lichessapi, oauth, uptime
+from heltour.tournament.forms import (
+    ContactForm,
+    DeleteNominationForm,
+    ModRequestForm,
+    NominateForm,
+    NotificationsForm,
+    RegistrationForm,
+    TvFilterForm,
+    TvTimezoneForm,
+)
+from heltour.tournament.models import (
+    MOD_REQUEST_SENDER,
+    PLAYER_NOTIFICATION_TYPES,
+    Alternate,
+    AlternateAssignment,
+    AlternateBucket,
+    Document,
+    GameNomination,
+    League,
+    LeagueDocument,
+    LonePlayerPairing,
+    LonePlayerScore,
+    ModRequest,
+    NavItem,
+    PerfRatingCalc,
+    Player,
+    PlayerAvailability,
+    PlayerBye,
+    PlayerNotificationSetting,
+    PlayerPairing,
+    PlayerPresence,
+    PlayerSetting,
+    Registration,
+    Round,
+    Season,
+    SeasonDocument,
+    SeasonPlayer,
+    SeasonPrize,
+    SeasonPrizeWinner,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    TeamScore,
+    logger,
+)
 from heltour.tournament.templatetags.tournament_extras import leagueurl
-from heltour.tournament.forms import *
-from heltour.tournament.models import *
-from django.utils.html import format_html
 
 # Helpers for view caching definitions
 common_team_models = [League, Season, Round, Team]
@@ -620,7 +660,7 @@ class PairingsView(SeasonView):
         def pairing_error(pairing):
             if not self.request.user.is_staff:
                 return None
-            if pairing.white == None or pairing.black == None:
+            if pairing.white is None or pairing.black is None:
                 return 'Missing player'
             if pairing.white in duplicate_players:
                 return 'Duplicate player: %s' % pairing.white.lichess_username
@@ -1005,11 +1045,11 @@ def _lone_player_scores(season, final=False, sort_by_seed=False, include_current
     # calculations, we populate a few common data structures and use those as parameters.
 
     if sort_by_seed:
-        sort_key = lambda s: s.season_player.seed_rating_display() or 0
+        def sort_key(s): return s.season_player.seed_rating_display() or 0
     elif season.is_completed or final:
-        sort_key = lambda s: s.final_standings_sort_key()
+        def sort_key(s): return s.final_standings_sort_key()
     else:
-        sort_key = lambda s: s.intermediate_standings_sort_key()
+        def sort_key(s): return s.intermediate_standings_sort_key()
     raw_player_scores = LonePlayerScore.objects.filter(season_player__season=season) \
         .select_related('season_player__player', 'season_player__season__league').nocache()
     player_scores = list(enumerate(sorted(raw_player_scores, key=sort_key, reverse=True), 1))
@@ -1586,12 +1626,12 @@ class PlayerProfileView(LeagueView):
         leagues = list((League.objects.filter(is_active=True) | League.objects.filter(
             pk=self.league.pk)).order_by('display_order'))
         has_other_seasons = player.seasonplayer_set.exclude(season=self.season).exists()
-        other_season_leagues = [(l, [(sp.season, game_count(sp.season), team(sp.season)) for sp in
+        other_season_leagues = [(league, [(sp.season, game_count(sp.season), team(sp.season)) for sp in
                                      player.seasonplayer_set \
-                                 .filter(season__league=l, season__is_active=True) \
+                                 .filter(season__league=league, season__is_active=True) \
                                  .order_by('-season__start_date')]) \
-                                for l in leagues]
-        other_season_leagues = [l for l in other_season_leagues if len(l[1]) > 0]
+                                for league in leagues]
+        other_season_leagues = [league for league in other_season_leagues if len(league[1]) > 0]
 
         season_player = SeasonPlayer.objects.filter(season=self.season, player=player).first()
 
@@ -2428,7 +2468,7 @@ def _get_season_lists(league, active_only=True):
 def _get_nav_tree(league_tag, season_tag):
     league = _get_league(league_tag)
     all_items = league.navitem_set.order_by('order')
-    root_items = [item for item in all_items if item.parent_id == None]
+    root_items = [item for item in all_items if item.parent_id is None]
 
     def transform(item):
         text = item.text

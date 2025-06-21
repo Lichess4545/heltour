@@ -1,21 +1,23 @@
-from django.db import models, transaction, connection
-from django.utils.crypto import get_random_string
-from ckeditor_uploader.fields import RichTextUploadingField
-from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from datetime import timedelta, date
-from django.utils import timezone
-from django import forms as django_forms
-from collections import namedtuple, defaultdict
-import re
-from django.core.exceptions import ValidationError
-from heltour.tournament import signals
 import logging
+import re
+from collections import defaultdict, namedtuple
+from datetime import date, timedelta
+
+import reversion
+from ckeditor_uploader.fields import RichTextUploadingField
+from django import forms as django_forms
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db import connection, models, transaction
+from django.db.models import JSONField, Q
+from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django_comments.models import Comment
-from django.db.models import Q, JSONField
+
 from heltour import settings
-import reversion
+from heltour.tournament import signals
 
 logger = logging.getLogger(__name__)
 
@@ -918,7 +920,7 @@ class Player(_BaseModel):
 
     @property
     def timezone_str(self):
-        if self.timezone_offset == None:
+        if self.timezone_offset is None:
             return '?'
         seconds = self.timezone_offset.total_seconds()
         sign = '-' if seconds < 0 else '+'
@@ -1119,7 +1121,7 @@ class PlayerBye(_BaseModel):
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.player_rank = rank_dict.get(self.player_id, None)
 
@@ -1810,7 +1812,7 @@ class LonePlayerPairing(PlayerPairing):
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
     def refresh_ranks(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
@@ -1926,7 +1928,7 @@ class SeasonPlayer(_BaseModel):
     def has_scheduled_game_in_round(self, round):
         pairingModel = TeamPlayerPairing.objects.filter(team_pairing__round=round)
         if not self.season.league.is_team_league():
-            pairingModel = LonePlayerPlairing.objects.filter(round=round)
+            pairingModel = LonePlayerPairing.objects.filter(round=round)
             
         return pairingModel.filter(
             (Q(white=self.player) | Q(black=self.player)) & Q(scheduled_time__isnull=False)#

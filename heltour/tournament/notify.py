@@ -1,18 +1,25 @@
-import requests
-from heltour import settings
-from collections import namedtuple
-from . import slackapi
+import sys
+import time
+
 from django.core.cache import cache
-from django.urls import reverse
-from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-import logging
-from heltour.tournament import lichessapi
-import time
-import sys
+from django.urls import reverse
+from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import lichessapi, signals, slackapi
+from heltour.tournament.models import (
+    LeagueChannel,
+    PlayerAvailability,
+    PlayerLateRegistration,
+    PlayerNotificationSetting,
+    PlayerWithdrawal,
+    Registration,
+    Round,
+    abs_url,
+    logger,
+)
 
 
 def _send_notification(notification_type, league, text):
@@ -335,7 +342,7 @@ def alternate_assigned(season, alt_assignment, **kwargs):
     if aa.player == aa.replaced_player:
         message = '%sI have reassigned <@%s> to play on board %d of "%s" for round %d.%s' \
                   % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number,
-                     aa.team.name, opponent_notified)
+                     aa.team.name, aa.round.number, opponent_notified)
     else:
         message = '%sI have assigned <@%s> to play on board %d of "%s" in place of <@%s> for round %d.%s' \
                   % (_captains_ping(aa.team, aa.round), _slack_user(aa.player), aa.board_number,

@@ -1,13 +1,26 @@
-from django import forms
-from django.utils.translation import gettext_lazy as _
-from ckeditor_uploader.widgets import CKEditorUploadingWidget
+from datetime import timedelta
 
-from .models import *
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
+from django import forms
 from django.core.exceptions import ValidationError
-from heltour import settings
-from django.urls import reverse
-from heltour.tournament.workflows import ApproveRegistrationWorkflow
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
 from heltour import gdpr
+from heltour.tournament.models import (
+    ALTERNATE_PREFERENCE_OPTIONS,
+    PLAYER_NOTIFICATION_TYPES,
+    GameNomination,
+    ModRequest,
+    PlayerNotificationSetting,
+    Registration,
+    Season,
+    SeasonPlayer,
+    Section,
+    normalize_gamelink,
+    username_validator,
+)
+from heltour.tournament.workflows import ApproveRegistrationWorkflow
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -367,7 +380,7 @@ class ContactForm(forms.Form):
         leagues = kwargs.pop('leagues')
         super(ContactForm, self).__init__(*args, **kwargs)
 
-        self.fields['league'] = forms.ChoiceField(choices=[(l.tag, l.name) for l in leagues])
+        self.fields['league'] = forms.ChoiceField(choices=[(league.tag, league.name) for league in leagues])
 
 
 class BulkEmailForm(forms.Form):
@@ -403,7 +416,7 @@ class TvFilterForm(forms.Form):
         super(TvFilterForm, self).__init__(*args, **kwargs)
 
         self.fields['league'] = forms.ChoiceField(
-            choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues],
+            choices=[('all', 'All Leagues')] + [(league.tag, league.name) for league in leagues],
             initial=current_league.tag)
         if boards is not None and len(boards) > 0:
             self.fields['board'] = forms.ChoiceField(
