@@ -2013,11 +2013,11 @@ class RegistrationAdmin(_BaseAdmin):
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
-        if obj.validation_warning is True:
+        if obj.validation_warning:
             return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
-        elif obj.validation_ok is True:
+        elif obj.validation_ok:
             return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
-        elif obj.validation_ok is not False:
+        else:
             return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
         return ''
 
