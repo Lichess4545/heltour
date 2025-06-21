@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% load tournament_extras %}
-
 {% block title %}Stats - {{ season.name }} - {{ league.name }}{% endblock %}
-
 {% block nav_stats %}active{% endblock %}
-
 {% block js %}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     {% if has_win_rate_stats %}
@@ -46,7 +43,6 @@
         </script>
     {% endif %}
 {% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
