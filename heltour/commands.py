@@ -1,5 +1,5 @@
-from subprocess import call
 from os import environ
+from subprocess import call
 from sys import argv
 
 
@@ -8,7 +8,10 @@ def runserver():
 
 
 def runapiworker():
-    call(["python", "manage.py", "runserver", "0.0.0.0:8880"], env=dict(environ, HELTOUR_APP="API_WORKER"))
+    call(
+        ["python", "manage.py", "runserver", "0.0.0.0:8880"],
+        env=dict(environ, HELTOUR_APP="API_WORKER"),
+    )
 
 
 def test():
@@ -38,4 +41,6 @@ def migrate():
 
 
 def celeryworker():
-    call(["celery", "-A", "heltour", "worker", "-B", "-c 4", "--loglevel=INFO", "-Ofair"])
+    call(
+        ["celery", "-A", "heltour", "worker", "-B", "-c 4", "--loglevel=INFO", "-Ofair"]
+    )
