@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
-{% block title %}{{ player.lichess_username }} {% if season %}- {{ season.name }}{% endif %} -
-    {{ league.name }}{% endblock %}
-
+{% block title %}
+    {{ player.lichess_username }}
+    {% if season %}- {{ season.name }}{% endif %}
+    -
+    {{ league.name }}
+{% endblock %}
 {% block content %}
     <div class="row row-condensed-xs player-profile-row">
         <div class="col-md-5 col-xs-12">
@@ -12,25 +14,41 @@
                     <h3>{{ player.lichess_username }}</h3>
                 </div>
                 <div class="well-body">
-									{% if not zen_mode %}<div class="profile-links">{{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{league.rating_type}}">{% rating player %}</a></div>{% endif %}
-                    <div class="profile-links"><a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a></div>
-                    <div class="profile-links"><a href="https://lichess.org/api/games/user/{{ player.lichess_username }}?perfType={{league.rating_type}}">Download games</a></div>
-                    <div class="profile-links"><a href="https://lichess.org/analysis#explorer/{{ player.lichess_username }}">Opening book</a></div>
-                    <div class="profile-links"><a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">Calendar</a>
+                    {% if not zen_mode %}
+                        <div class="profile-links">
+                            {{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{ league.rating_type }}">{% rating player %}</a>
+                        </div>
+                    {% endif %}
+                    <div class="profile-links">
+                        <a href="https://lichess.org/@/{{ player.lichess_username }}">Lichess profile</a>
+                    </div>
+                    <div class="profile-links">
+                        <a href="https://lichess.org/api/games/user/{{ player.lichess_username }}?perfType={{ league.rating_type }}">Download games</a>
+                    </div>
+                    <div class="profile-links">
+                        <a href="https://lichess.org/analysis#explorer/{{ player.lichess_username }}">Opening book</a>
+                    </div>
+                    <div class="profile-links">
+                        <a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">Calendar</a>
                     </div>
                     {% if can_edit %}
                         <div>
                             <a href="{% url 'admin:tournament_player_change' player.pk %}?_popup=1"
-                               id="change-player-{{ player.pk }}" class="popup-link" title="Change player">
-                                <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change"> Player
+                               id="change-player-{{ player.pk }}"
+                               class="popup-link"
+                               title="Change player">
+                                <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                                Player
                             </a>
                         </div>
                         {% if season_player %}
                             <div>
                                 <a href="{% url 'admin:tournament_seasonplayer_change' season_player.pk %}?_popup=1"
-                                   id="change-seasonplayer-{{ season_player.pk }}" class="popup-link"
+                                   id="change-seasonplayer-{{ season_player.pk }}"
+                                   class="popup-link"
                                    title="Change season player">
-                                    <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change"> Season Player
+                                    <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                                    Season Player
                                 </a>
                             </div>
                         {% endif %}
@@ -42,16 +60,17 @@
                     <h3>Contact</h3>
                 </div>
                 <div class="well-body">
-{% comment %} feature temporarily disabled because of slack leaking usernames which cannot be changed on an unpaid instance
+                    {% comment %} feature temporarily disabled because of slack leaking usernames which cannot be changed on an unpaid instance
                     {% if player.slack_user_id %}
                         <div>
                           <a href="https://slack.com/app_redirect?team={{ slack_id }}&channel={{ player.slack_user_id }}">Message {{ player.lichess_username }}
                                 on Slack</a></div>
                     {% endif %}
-{% endcomment %}              
+                    {% endcomment %}
                     <div>
                         <a href="https://lichess.org/inbox/new?user={{ player.lichess_username }}">Message {{ player.lichess_username }}
-                            on Lichess</a></div>
+                        on Lichess</a>
+                    </div>
                 </div>
             </div>
             {% if has_other_seasons %}
@@ -71,9 +90,13 @@
                                             <a href="{% leagueurl 'player_profile' other_season_league.tag other_season.tag player.lichess_username %}">{{ other_season.name }}</a>
                                             :
                                         {% endif %}
-                                        {{ game_count }} game{% if game_count != 1 %}s{% endif %} {% if team %} for
-                                        <a class="team-link"
-                                           href="{% leagueurl 'team_profile' other_season_league.tag other_season.tag team.number %}">{{ team.name }}</a>{% endif %}
+                                        {{ game_count }} game
+                                        {% if game_count != 1 %}s{% endif %}
+                                        {% if team %}
+                                            for
+                                            <a class="team-link"
+                                               href="{% leagueurl 'team_profile' other_season_league.tag other_season.tag team.number %}">{{ team.name }}</a>
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                             </div>
@@ -93,7 +116,7 @@
                             {% if team_member %}
                                 <div class="player-profile-section">
                                     <strong><a class="team-link"
-                                               href="{% leagueurl 'team_profile' league.tag season.tag team_member.team.number %}">{{ team_member.team.name }}</a></strong>
+   href="{% leagueurl 'team_profile' league.tag season.tag team_member.team.number %}">{{ team_member.team.name }}</a></strong>
                                     <div>Board {{ team_member.board_number }}</div>
                                 </div>
                             {% elif alternate %}
@@ -108,166 +131,185 @@
                                     <table>
                                         {% for round_, pairing, status, team in history %}
                                             <tr>
-                                                <td><span class="hidden-xs">Round {{ round_.number }}:</span><span
-                                                        class="visible-xs">Rd {{ round_.number }}</span></td>
-                                                {% if pairing %}
-                                                    <td>
-                                                        {% if pairing.white == player %}
-                                                            {{ pairing.white.lichess_username }}
-																														{% if not zen_mode %}<span class="hidden-xs">({% white_rating pairing %})</span>{% endif %}
-                                                            </span>
-                                                            - {% if pairing.black %}
-                                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
-																															{% if not zen_mode %}({% black_rating pairing %}){% endif %}</a>{% else %} ?{% endif %}
-                                                        {% else %}
-                                                            {% if pairing.white %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
-																																	{% if not zen_mode %}({% white_rating pairing %}){% endif %}</a>{% else %} ?
-                                                            {% endif %}
-                                                            - {{ pairing.black.lichess_username }}
-																														<span class="hidden-xs">{% if not zen_mode %}({% black_rating pairing %}){% endif %}</span>
-                                                            </span>
-                                                        {% endif %}
-                                                    </td>
-                                                {% else %}
-                                                    <td>
-                                                        {{ status }}
-                                                    </td>
-                                                {% endif %}
-                                                <td class="text-center">
-                                                    {% if pairing.game_link %}
-                                                        <a href="{{ pairing.game_link }}">{{ pairing.result_display }}</a>
-                                                    {% else %}{{ pairing.result_display }}{% endif %}
+                                                <td>
+                                                    <span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span>
                                                 </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </table>
-                                </div>
-                            {% endif %}
-                            {% if season_score_total %}
-                                <div class="player-profile-section">
-                                    <table>
-                                        <tr>
-                                            <td>
-                                                <strong>Score:</strong> {{ season_score|floatformat }}/{{ season_score_total }}
-                                            </td>
-                                            {% if season_perf_rating and not zen_mode %}
-                                                <td><strong>Perf rating:</strong> <span
-                                                        title="{{ season_perf.debug }}">{{ season_perf_rating }}</span>
-                                                </td>{% endif %}
-                                        </tr>
-                                    </table>
-                                </div>
-                            {% endif %}
-                            {% if schedule %}
-                                <div class="player-profile-section">
-                                    <strong>Schedule</strong>
-                                    <table>
-                                        {% for round_, pairing, status, team in schedule %}
-                                            <tr>
-                                                <td><span class="hidden-xs">Round {{ round_.number }}:</span><span
-                                                        class="visible-xs">Rd {{ round_.number }}</span></td>
                                                 {% if pairing %}
                                                     <td>
                                                         {% if pairing.white == player %}
                                                             {{ pairing.white.lichess_username }}
-                                                            <span class="hidden-xs">({% white_rating pairing %})</span>
-                                                            </span>
-                                                            - {% if pairing.black %}
-                                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
-                                                                ({% black_rating pairing %})</a>{% else %} ?{% endif %}
-                                                        {% else %}
-                                                            {% if pairing.white %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
-                                                                    ({% white_rating pairing %})</a>{% else %} ?
+                                                            {% if not zen_mode %}
+                                                                <span class="hidden-xs">({% white_rating pairing %})</span>
                                                             {% endif %}
-                                                            - {{ pairing.black.lichess_username }}
-                                                            <span class="hidden-xs">({% black_rating pairing %})</span>
-                                                            </span>
+                                                        </span>
+                                                        -
+                                                        {% if pairing.black %}
+                                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
+                                                                {% if not zen_mode %}
+                                                                    ({% black_rating pairing %})
+                                                                {% endif %}
+                                                            </a>
+                                                        {% else %}
+                                                            ?
                                                         {% endif %}
-                                                    </td>
-                                                {% else %}
-                                                    <td>
-                                                        {{ status }}
-                                                    </td>
+                                                    {% else %}
+                                                        {% if pairing.white %}
+                                                            <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
+                                                                {% if not zen_mode %}
+                                                                    ({% white_rating pairing %})
+                                                                {% endif %}
+                                                            </a>
+                                                        {% else %}
+                                                            ?
+                                                        {% endif %}
+                                                        - {{ pairing.black.lichess_username }}
+                                                        <span class="hidden-xs">
+                                                            {% if not zen_mode %}
+                                                                ({% black_rating pairing %})
+                                                            {% endif %}
+                                                        </span>
+                                                    </span>
                                                 {% endif %}
-                                                {% if pairing and pairing.scheduled_time %}
-                                                    <td>
-                                                        {{ pairing.scheduled_time | date_el:"m/d H:i" }}
-                                                    </td>
-                                                {% else %}
-                                                    <td class="text-muted">
-                                                        {{ round_.start_date | date:"m/d" }}
-                                                        - {{ round_.end_date | date:"m/d" }}
-                                                    </td>
-                                                {% endif %}
-                                            </tr>
-                                            {% if team %}
-                                                <tr>
-                                                    <td></td>
-                                                    <td colspan="2">
-                                                        for <a class="team-link"
-                                                               href="{% leagueurl 'team_profile' league.tag season.tag team.number %}">{{ team.name }}</a>
-                                                    </td>
-                                                </tr>
+                                            </td>
+                                        {% else %}
+                                            <td>{{ status }}</td>
+                                        {% endif %}
+                                        <td class="text-center">
+                                            {% if pairing.game_link %}
+                                                <a href="{{ pairing.game_link }}">{{ pairing.result_display }}</a>
+                                            {% else %}
+                                                {{ pairing.result_display }}
                                             {% endif %}
-                                        {% endfor %}
-                                    </table>
-                                </div>
-                            {% endif %}
-                        {% else %}
-                            {{ player.lichess_username }} is not a participant in {{ season.name }}.
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
-            {% if career_score_total %}
-                <div class="well">
-                    <div class="well-head">
-                        <h3>Career Statistics</h3>
-                    </div>
-                    <div class="well-body">
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    {% endif %}
+                    {% if season_score_total %}
                         <div class="player-profile-section">
                             <table>
                                 <tr>
-                                    <td><strong>Career
-                                        Score:</strong> {{ career_score|floatformat }}/{{ career_score_total }}</td>
-                                    {% if career_perf and not zen_mode %}
-                                        <td><strong>Perf rating:</strong> <span
-                                                title="{{ career_perf.debug }}">{{ career_perf }}</span></td>{% endif %}
+                                    <td>
+                                        <strong>Score:</strong> {{ season_score|floatformat }}/{{ season_score_total }}
+                                    </td>
+                                    {% if season_perf_rating and not zen_mode %}
+                                        <td>
+                                            <strong>Perf rating:</strong> <span title="{{ season_perf.debug }}">{{ season_perf_rating }}</span>
+                                        </td>
+                                    {% endif %}
                                 </tr>
                             </table>
                         </div>
-                    </div>
-                </div>
-            {% endif %}
-            {% if trophies %}
-                <div class="well">
-                    <div class="well-head">
-                        <h3>{{ league.name|title }} Trophy Case</h3>
-                    </div>
-                    <div class="well-body">
+                    {% endif %}
+                    {% if schedule %}
                         <div class="player-profile-section">
-                            {% for prize in trophies %}
-                                <span class="trophy">
-                        <a href="{% leagueurl 'season_landing' league.tag prize.season.tag %}">
-                            <div class="trophy-image
-                                        {% if prize.max_rating %}
-                                            blue-ribbon
-                                        {% else %}
-                                            rank-{{ prize.rank }}
-                                        {% endif %}">
-                            </div>
-                            <div>
-                                {{ prize }}
-                            </div>
-                        </a>
-                    </span>
-                            {% endfor %}
-                        </div>
-                    </div>
+                            <strong>Schedule</strong>
+                            <table>
+                                {% for round_, pairing, status, team in schedule %}
+                                    <tr>
+                                        <td>
+                                            <span class="hidden-xs">Round {{ round_.number }}:</span><span class="visible-xs">Rd {{ round_.number }}</span>
+                                        </td>
+                                        {% if pairing %}
+                                            <td>
+                                                {% if pairing.white == player %}
+                                                    {{ pairing.white.lichess_username }}
+                                                    <span class="hidden-xs">({% white_rating pairing %})</span>
+                                                </span>
+                                                -
+                                                {% if pairing.black %}
+                                                    <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
+                                                    ({% black_rating pairing %})</a>
+                                                {% else %}
+                                                    ?
+                                                {% endif %}
+                                            {% else %}
+                                                {% if pairing.white %}
+                                                    <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
+                                                    ({% white_rating pairing %})</a>
+                                                {% else %}
+                                                    ?
+                                                {% endif %}
+                                                - {{ pairing.black.lichess_username }}
+                                                <span class="hidden-xs">({% black_rating pairing %})</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td>{{ status }}</td>
+                                {% endif %}
+                                {% if pairing and pairing.scheduled_time %}
+                                    <td>{{ pairing.scheduled_time | date_el:"m/d H:i" }}</td>
+                                {% else %}
+                                    <td class="text-muted">
+                                        {{ round_.start_date | date:"m/d" }}
+                                        - {{ round_.end_date | date:"m/d" }}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                            {% if team %}
+                                <tr>
+                                    <td></td>
+                                    <td colspan="2">
+                                        for <a class="team-link"
+    href="{% leagueurl 'team_profile' league.tag season.tag team.number %}">{{ team.name }}</a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </table>
                 </div>
             {% endif %}
-        </div>
+        {% else %}
+            {{ player.lichess_username }} is not a participant in {{ season.name }}.
+        {% endif %}
     </div>
+</div>
+{% endif %}
+{% if career_score_total %}
+    <div class="well">
+        <div class="well-head">
+            <h3>Career Statistics</h3>
+        </div>
+        <div class="well-body">
+            <div class="player-profile-section">
+                <table>
+                    <tr>
+                        <td>
+                            <strong>Career
+                                Score:</strong> {{ career_score|floatformat }}/{{ career_score_total }}
+                            </td>
+                            {% if career_perf and not zen_mode %}
+                                <td>
+                                    <strong>Perf rating:</strong> <span title="{{ career_perf.debug }}">{{ career_perf }}</span>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    {% if trophies %}
+        <div class="well">
+            <div class="well-head">
+                <h3>{{ league.name|title }} Trophy Case</h3>
+            </div>
+            <div class="well-body">
+                <div class="player-profile-section">
+                    {% for prize in trophies %}
+                        <span class="trophy">
+                            <a href="{% leagueurl 'season_landing' league.tag prize.season.tag %}">
+                                <div class="trophy-image {% if prize.max_rating %} blue-ribbon {% else %} rank-{{ prize.rank }} {% endif %}"></div>
+                                <div>{{ prize }}</div>
+                            </a>
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+</div>
 {% endblock %}

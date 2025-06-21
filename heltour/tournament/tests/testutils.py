@@ -49,6 +49,9 @@ def get_player(player_name):
 def get_round(league_type, round_number):
     return Round.objects.get(season=get_season(league_type), number=round_number)
 
+def get_team(team_name: str) -> Team:
+    return Team.objects.get(name=team_name)
+
 
 def createCommonLeagueData(round_count=3):
     team_count = 4

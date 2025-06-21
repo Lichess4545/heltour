@@ -1,14 +1,14 @@
 {% extends "tournament/admin/custom_edit_workflow.html" %}
 {% load static %}
-
-{% block extrahead %}{{ block.super }}
+{% block extrahead %}
+    {{ block.super }}
     <script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
-    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     <script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
     <script type="text/javascript" src="/static/ckeditor/ckeditor/ckeditor.js"></script>
     <script type="text/javascript" src="/static/ckeditor/ckeditor-init.js"></script>
 {% endblock %}
-
 {% block content %}
     <form action="" method="post">
         {% csrf_token %}
@@ -29,9 +29,7 @@
             <div class="form-row">
                 <div class="checkbox-row">
                     {{ form.confirm_send }}
-                    <label for="{{ form.confirm_send.id_for_label }}" class="vCheckboxLabel">
-                        {{ form.confirm_send.label }}
-                    </label>
+                    <label for="{{ form.confirm_send.id_for_label }}" class="vCheckboxLabel">{{ form.confirm_send.label }}</label>
                 </div>
             </div>
         </div>
