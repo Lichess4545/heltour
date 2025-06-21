@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models, transaction, connection
 from django.utils.crypto import get_random_string
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
@@ -166,6 +166,46 @@ class League(_BaseModel):
         
     def is_team_league(self):
         return self.competitor_type == 'team'
+
+    def get_active_players(self):
+        def loneteam_query() -> str:
+            if self.is_team_league():
+                return """
+                       INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
+                       INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                       """
+            else:
+                return """
+                       INNER JOIN tournament_loneplayerpairing tp ON tp.playerpairing_ptr_id = pp.id
+                       """
+
+        def games_query(*, colour: str) -> str:
+            return f"""
+                    SELECT pp.{colour}_id as player_id, scheduled_time as played_time
+                    FROM tournament_playerpairing pp
+                    {loneteam_query()}
+                    INNER JOIN tournament_round r ON tp.round_id = r.id
+                    INNER JOIN tournament_season s ON r.season_id = s.id
+                    INNER JOIN tournament_league l ON s.league_id = l.id
+                    WHERE pp.game_link != '' AND l.id = %s
+                    """
+
+        query = f"""
+                 SELECT player_id, COUNT(player_id) as game_count, MAX(played_time) as last_played
+                 FROM (
+                 {games_query(colour='white')}
+                 UNION ALL
+                 {games_query(colour='black')}
+                 ) as all_games
+                 GROUP BY player_id
+                 ORDER BY game_count DESC
+                 """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.pk, self.pk])
+            desc = cursor.description
+            nt_result = namedtuple("Player", [col[0] for col in desc])
+            return [nt_result(*row) for row in cursor.fetchall()]
+
 
     def __str__(self):
         return self.name
@@ -768,7 +808,7 @@ ACCOUNT_STATUS_OPTIONS = (
 
 # -------------------------------------------------------------------------------
 class Player(_BaseModel):
-    lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
