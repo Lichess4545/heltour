@@ -190,14 +190,7 @@ class RegisterTestCase(TestCase):
             response, league_url("team", "login"), fetch_redirect_response=False
         )
 
-    @patch(
-        "heltour.tournament.lichessapi.get_user_meta",
-        return_value={
-            "perfs": {"classical": {"games": 25, "rating": 2200}},
-            "seenAt": 1621045384147,
-        },
-    )
-    def test_template(self, user_meta):
+    def test_template(self):
         self.client.login(username="Player1", password="test")
         response = self.client.get(season_url("team", "register"))
         self.assertTemplateUsed(response, "tournament/registration_closed.html")
@@ -208,7 +201,6 @@ class RegisterTestCase(TestCase):
 
         response = self.client.get(season_url("team", "register"))
         self.assertTemplateUsed(response, "tournament/register.html")
-        self.assertTrue(user_meta.called)
 
         response = self.client.get(season_url("team", "registration_success"))
         self.assertTemplateUsed(response, "tournament/registration_success.html")

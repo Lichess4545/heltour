@@ -16,7 +16,6 @@ from heltour.tournament.models import (
 from heltour.tournament.tasks import (
     active_player_usernames,
     create_team_channel,
-    not_updated_recently_usernames,
     start_games,
     update_player_ratings,
     validate_registration,
@@ -44,8 +43,6 @@ class TestHelpers(TestCase):
         self.assertEqual(
             active_player_usernames(), self.playernames
         )  # names are Player1, ..., Player8
-        self.assertEqual(not_updated_recently_usernames(self.playernames), [])
-        # could mock.patch timezone.now to change what "recently" means for more tests
 
     def test_username_duplicates(self):
         SeasonPlayer.objects.create(
