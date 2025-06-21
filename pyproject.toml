@@ -36,6 +36,7 @@ requests = {extras = ["security"], version = "^2.32.4"}
 django-stubs = "4.2.6"
 django-stubs-ext = "4.2.5"
 patchwork = "1.0.1"
+more-itertools = "^10.7.0"
 
 [tool.poetry.dev-dependencies]
 
