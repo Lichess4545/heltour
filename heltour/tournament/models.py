@@ -286,7 +286,7 @@ class Season(_BaseModel):
         self.initial_is_completed = self.is_completed
 
     def last_season_alternates(self) -> set[Player]:
-        start_date = self.start_date if self.start_date is not None else timezone.now()
+        start_date = self.start_date or timezone.now()
         last_season = Season.objects.filter(league=self.league, start_date__lt=start_date) \
             .order_by('-start_date').first()
         last_season_alts = Alternate.objects.filter(season_player__season=last_season) \
