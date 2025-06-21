@@ -2,7 +2,7 @@ import itertools
 import json
 import math
 import re
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 from smtplib import SMTPException
 
