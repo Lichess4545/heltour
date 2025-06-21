@@ -622,6 +622,36 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
     time.sleep(settings.SLEEP_UNIT)
 
 
+@receiver(
+    signals.notify_players_game_scheduled, dispatch_uid="heltour.tournament.notify"
+)
+def notify_players_game_scheduled(round_, pairing, **kwargs):
+    league = round_.get_league()
+    league_setting = league.get_leaguesetting()
+
+    if not league_setting.start_games:
+        return
+
+    time_part = (
+        f"Your game has been scheduled for {pairing.scheduled_time:%A, %H:%M UTC}."
+        "\nYou can confirm that time "
+    )
+    confirm_url = abs_url(reverse("by_league:confirm_scheduled_time", args=[league.tag]))
+    im_msg = f"{time_part} <here|{confirm_url}>."
+
+    li_subject = f"Round {round_} - {league}"
+    li_msg = f"{time_part}here: {confirm_url}"
+
+    send_pairing_notification(
+        type_="game_scheduled",
+        pairing=pairing,
+        im_msg=im_msg,
+        mp_msg=im_msg,
+        li_subject=li_subject,
+        li_msg=li_msg,
+    )
+
+
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \
