@@ -168,7 +168,7 @@ class SeasonAdminTestCase(TestCase):
         self.assertEqual(
             message.call_args_list[0][0][1], "1 bad gamelinks for Test Season."
         )
-        self.assertEqual(message.call_args_list[1][0][1], "Data verified.")
+        self.assertEqual(message.call_args[0][1], "Data verified.")
         self.assertEqual(lpp1.game_link, "incorrectlink1")
         self.assertEqual(lpp2.game_link, "mockedlink2")
 
@@ -410,7 +410,7 @@ class SeasonAdminTestCase(TestCase):
         )
         # message should be called allerting us to the problem
         self.assertTrue(message.called)
-        self.assertEqual(message.call_args[0][1], "Some changes could not be saved.")
+        self.assertEqual(message.call_args.args[1], "Some changes could not be saved.")
 
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_manage_players_empty_team_player(self, message):
