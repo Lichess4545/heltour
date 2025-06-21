@@ -95,14 +95,14 @@ def automod_unresponsive(round_, **kwargs):
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.black,
                                                           opponent=p.white, pairing=p)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
         if not black_present:
             player_unresponsive(round_, p, p.black, groups)
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.white,
                                                           opponent=p.black, pairing=p)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
     signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_,
                                           warnings=groups['warning'], yellows=groups['yellow'],
                                           reds=groups['red'])
