@@ -587,7 +587,7 @@ def notify_players_round_start(round_, **kwargs):
                 # Don't send a notification, since the alternates manager will handle it
                 continue
             send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
@@ -619,7 +619,7 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
         return
 
     send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
-    time.sleep(1)
+    time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
@@ -706,7 +706,7 @@ def notify_players_unscheduled(round_, **kwargs):
             # Don't send a notification, since the alternates manager is searching for an alternate
             continue
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
-        time.sleep(1)
+        time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')

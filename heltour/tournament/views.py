@@ -2,7 +2,7 @@ import itertools
 import json
 import math
 import re
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 from smtplib import SMTPException
 
@@ -15,7 +15,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.core.mail import send_mail
 from django.core.mail.message import EmailMessage
 from django.core.paginator import Paginator
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count
 from django.db.models.query import Prefetch
 from django.http.response import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -1273,56 +1273,42 @@ class StatsView(SeasonView):
 
 
 class ActivePlayerTableView(LeagueView):
-    @cached_as(League, Season, Round)
+    @cached_as(PlayerPairing)
     def view(self, page: int = 1):
-        tablesums = Player.objects.only("lichess_username").annotate(
-            blackcount=Count("pairings_as_black", filter=self.black_games_Q(), distinct=True),
-            whitecount=Count("pairings_as_white", filter=self.white_games_Q(), distinct=True),
-            game_count=F("blackcount") + F("whitecount"),
-            season_count=Count("seasonplayer", filter=self.seasons_Q(), distinct=True),
-            latest_season=Subquery(self.latest_season_subquery()),
-        ).order_by("-game_count", "season_count")
+        tablesums = self.league.get_active_players()
 
         paginator = Paginator(tablesums, DEFAULT_PAGE_SIZE)
         page_obj = paginator.get_page(page)
 
+        pks = [player.player_id for player in page_obj.object_list]
+        seasondatafull = SeasonPlayer.objects.filter(player__pk__in = pks, season__league=self.league).values("player__pk").annotate(
+                season_count = Count("player__pk"),
+                ).values("player__lichess_username", "player__pk", "season_count")
+
+        seasondata = {pl["player__pk"]: [pl["player__lichess_username"], pl["season_count"]] for pl in seasondatafull}
+
+        oneplayer = namedtuple('oneplayer', ['game_count', 'lichess_username', 'season_count', 'last_played'])
+        subtable = []
+
+        for player in page_obj.object_list:
+            subtable.append(oneplayer._make([player.game_count, *seasondata[player.player_id], player.last_played]))
+
         context = {
             "page_obj": page_obj,
+            "subtable": subtable,
         }
+
+        if page == 1:
+            total_players = len(tablesums)
+            total_games = 0
+            for player in tablesums:
+                total_games += player.game_count
+            total_games = int(total_games/2) # there's always 2 players that play the game.
+            context.update({"total_games": total_games, "total_players": total_players})
 
         return self.render("tournament/active_players.html", context)
 
-    def black_games_Q(self):
-        if self.league.is_team_league():
-            return Q(
-                pairings_as_black__teamplayerpairing__team_pairing__round__season__league=self.league
-            ) & ~Q(pairings_as_black__teamplayerpairing__game_link="")
-        else:
-            return Q(
-                pairings_as_black__loneplayerpairing__round__season__league=self.league
-            ) & ~Q(pairings_as_black__loneplayerpairing__game_link="")
 
-    def white_games_Q(self):
-        if self.league.is_team_league():
-            return Q(
-                pairings_as_white__teamplayerpairing__team_pairing__round__season__league=self.league
-            ) & ~Q(pairings_as_white__teamplayerpairing__game_link="")
-        else:
-            return Q(
-                pairings_as_white__loneplayerpairing__round__season__league=self.league
-            ) & ~Q(pairings_as_white__loneplayerpairing__game_link="")
-
-    def seasons_Q(self):
-        return Q(seasonplayer__season__league=self.league)
-
-    def latest_season_subquery(self):
-        return (
-            SeasonPlayer.objects.filter(
-                season__league=self.league, player=OuterRef("pk")
-            )
-            .order_by("-season__start_date")
-            .values("season__tag")[:1]
-        )
 class BoardScoresView(SeasonView):
     def view(self, board_number):
         if self.league.is_team_league():
