@@ -6,6 +6,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from typing import Dict, List
+from more_itertools import divide, first
 
 import reversion
 from django.core.cache import cache
@@ -54,8 +55,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
 def to_usernames(users: UsernamesQuerySet) -> List[str]:
-    return [p['lichess_username'] for p in users if p['lichess_username'].strip()]
-
+    return list(users.values_list("lichess_username", flat=True))
 
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
@@ -68,7 +68,7 @@ def active_player_usernames() -> List[str]:
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
-def active_registrations_usernames(without_usernames: List[str]) -> List[str]:
+def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
     active_regs = just_username(
         Registration.objects.filter(
             status__exact="pending", season__registration_open=True
@@ -78,17 +78,16 @@ def active_registrations_usernames(without_usernames: List[str]) -> List[str]:
     reg_players = Player.objects.filter(
         lichess_username__in=active_regs, date_modified__lte=_24_hours
     ) # TODO: simplify this once Player is a foreign key of Registration
-    total_players = reg_players.count()
-    one_24th = total_players / 24  # update them approximately every 24 hours
-    return to_usernames(just_username(reg_players)[:one_24th])
+    return to_usernames(just_username(reg_players))
 
 @app.task()
 def update_player_ratings():
     active_players = active_player_usernames()
-    registered_players = active_registrations_usernames(
+    registered_players = registrations_needing_updates(
         without_usernames=active_players
     )
-    usernames = active_players + registered_players
+    first24th = list(first(divide(24, registered_players)))
+    usernames = active_players + first24th
     logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
