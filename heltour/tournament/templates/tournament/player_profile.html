@@ -90,8 +90,12 @@
                                             <a href="{% leagueurl 'player_profile' other_season_league.tag other_season.tag player.lichess_username %}">{{ other_season.name }}</a>
                                             :
                                         {% endif %}
-                                        {{ game_count }} game
-                                        {% if game_count != 1 %}s{% endif %}
+                                        {{ game_count }}
+                                        {% if game_count != 1 %}
+                                            games
+                                        {% else %}
+                                            game
+                                        {% endif %}
                                         {% if team %}
                                             for
                                             <a class="team-link"
