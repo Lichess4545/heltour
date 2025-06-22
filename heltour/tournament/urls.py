@@ -126,15 +126,6 @@ season_urlpatterns = [
         name="alternate_decline",
     ),
     path("notifications/", views.NotificationsView.as_view(), name="notifications"),
-    path("active_players/",
-         views.ActivePlayerTableView.as_view(),
-         name="active_players"
-    ),
-    path(
-        "active_players/<int:page>/",
-        views.ActivePlayerTableView.as_view(),
-        name="active_players"
-    ),
 ]
 
 league_urlpatterns = [
@@ -157,6 +148,15 @@ league_urlpatterns = [
         "login/<slug:secret_token>/", views.LoginView.as_view(), name="login_with_token"
     ),
     path("logout/", views.LogoutView.as_view(), name="logout"),
+    path("active_players/",
+         views.ActivePlayerTableView.as_view(),
+         name="active_players"
+    ),
+    path(
+        "active_players/<int:page>/",
+        views.ActivePlayerTableView.as_view(),
+        name="active_players"
+    ),
 ]
 
 api_urlpatterns = [

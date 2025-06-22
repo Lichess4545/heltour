@@ -1880,7 +1880,7 @@ class Registration(_BaseModel):
             player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
 
     def player(self):
-        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+        return Player.get_or_create(lichess_username=self.lichess_username)
 
     @property
     def rating(self):
