@@ -42,13 +42,13 @@
                 <div class="pagination">
                     <span class="step-links">
                         {% if page_obj.has_previous %}
-                            <a href="{% leagueurl 'active_players' league.tag season.tag %}">&laquo; first</a> |
-                            <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.previous_page_number }}">previous</a> |
+                            <a href="{% leagueurl 'active_players' league.tag %}">&laquo; first</a> |
+                            <a href="{% leagueurl 'active_players' league.tag %}{{ page_obj.previous_page_number }}">previous</a> |
                         {% endif %}
                         <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
                         {% if page_obj.has_next %}
-                            | <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.next_page_number }}">next</a> |
-                            <a href="{% leagueurl 'active_players' league.tag season.tag %}{{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                            | <a href="{% leagueurl 'active_players' league.tag %}{{ page_obj.next_page_number }}">next</a> |
+                            <a href="{% leagueurl 'active_players' league.tag %}{{ page_obj.paginator.num_pages }}">last &raquo;</a>
                         {% endif %}
                     </span>
                 </div>
