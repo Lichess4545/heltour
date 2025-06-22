@@ -145,7 +145,6 @@
                                                             {% if not zen_mode %}
                                                                 <span class="hidden-xs">({% white_rating pairing %})</span>
                                                             {% endif %}
-                                                        </span>
                                                         -
                                                         {% if pairing.black %}
                                                             <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
@@ -172,7 +171,6 @@
                                                                 ({% black_rating pairing %})
                                                             {% endif %}
                                                         </span>
-                                                    </span>
                                                 {% endif %}
                                             </td>
                                         {% else %}
@@ -220,7 +218,6 @@
                                                 {% if pairing.white == player %}
                                                     {{ pairing.white.lichess_username }}
                                                     <span class="hidden-xs">({% white_rating pairing %})</span>
-                                                </span>
                                                 -
                                                 {% if pairing.black %}
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
@@ -237,7 +234,6 @@
                                                 {% endif %}
                                                 - {{ pairing.black.lichess_username }}
                                                 <span class="hidden-xs">({% black_rating pairing %})</span>
-                                            </span>
                                         {% endif %}
                                     </td>
                                 {% else %}
