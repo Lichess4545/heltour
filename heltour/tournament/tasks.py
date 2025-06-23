@@ -81,13 +81,14 @@ def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
     return to_usernames(just_username(reg_players))
 
 @app.task()
-def update_player_ratings():
-    active_players = active_player_usernames()
-    registered_players = registrations_needing_updates(
-        without_usernames=active_players
-    )
-    first24th = list(first(divide(24, registered_players)))
-    usernames = active_players + first24th
+def update_player_ratings(usernames: list[str] = []) -> None:
+    if len(usernames) == 0:
+        active_players = active_player_usernames()
+        registered_players = registrations_needing_updates(
+            without_usernames=active_players
+        )
+        first24th = list(first(divide(24, registered_players)))
+        usernames = active_players + first24th
     logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
@@ -99,8 +100,6 @@ def update_player_ratings():
     except Exception as e:
         logger.warning(f'[ERROR] Error getting ratings: {e}')
         logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
-
-
 
 def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
     return PlayerPairing.objects.exclude(
@@ -579,69 +578,11 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
     generate_pairings.apply_async(args=[round_id, overwrite], countdown=1)
 
 
-@app.task()
-def validate_registration(reg_id):
-    regquery = Registration.objects.filter(pk=reg_id)
-    regquery.update(last_validation_try = timezone.now())
-    reg = regquery.get()
-
-    fail_reason = None
-    warnings = []
-
-    try:
-        user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username,
-                                                 defaults={
-                                                     'lichess_username': reg.lichess_username})
-        player.update_profile(user_meta)
-        reg.has_played_20_games = not player.provisional_for(reg.season.league)
-        if player.account_status != 'normal':
-            fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.account_status}" mark.'
-    except lichessapi.ApiClientError:
-        fail_reason = f'Client error retrieving user "{reg.lichess_username}" from lichess.'
-    except lichessapi.ApiWorkerError:
-        fail_reason = f'The lichess user "{reg.lichess_username}" could not be found.'
-
-    if not reg.has_played_20_games:
-        warnings.append('Has a provisional rating.')
-    if not reg.can_commit and (
-        reg.season.league.competitor_type != 'team' or reg.alternate_preference != 'alternate'):
-        warnings.append('Can\'t commit to a game per week.')
-    if not reg.agreed_to_rules:
-        warnings.append('Didn\'t agree to rules.')
-
-    if fail_reason:
-        regquery.update(validation_ok=False, validation_warning=False)
-        comment_text = f'Validation error: {fail_reason}'
-    elif warnings:
-        regquery.update(validation_ok=True, validation_warning=True)
-        comment_text = f'Validation warning: {" ".join(warnings)}'
-    else:
-        regquery.update(validation_ok=True, validation_warning=False)
-        comment_text = 'Validated.'
-    add_system_comment(reg, comment_text)
-
-
-@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
-def registration_saved(instance, created, **kwargs):
-    if not created:
-        return
-    validate_registration.apply_async(args=[instance.pk], countdown=1)
-
-
-@receiver(signals.do_validate_registration, dispatch_uid='heltour.tournament.tasks')
-def do_validate_registration(reg_id, **kwargs):
-    validate_registration.apply_async(args=[reg_id], countdown=1)
-
-
-@app.task()
-def validate_pending_registrations():
-    # we want to re-validate pending registrations if they are not marked valid already; or have recently been validated
-    reg_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending') \
-            .exclude(Q(validation_warning=False) & Q(validation_ok=True) | Q(last_validation_try__gt=timezone.now() - timedelta(hours=24))) \
-            .order_by('last_validation_try').first()
-    if reg_to_validate is not None:
-        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg_to_validate.pk)
+@receiver(signals.do_validate_registration, dispatch_uid="heltour.tournament.tasks")
+def do_validate_registration(regs: QuerySet[Registration], **kwargs) -> None:
+    update_player_ratings(
+        usernames=list(regs.values_list("lichess_username", flat=True))
+    )
 
 
 @app.task()

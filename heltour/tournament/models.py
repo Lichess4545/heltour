@@ -1864,9 +1864,6 @@ class Registration(_BaseModel):
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    validation_ok = models.BooleanField(blank=True, null=True, default=None)
-    validation_warning = models.BooleanField(default=False)
-    last_validation_try = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return "%s" % (self.lichess_username)
@@ -1885,6 +1882,19 @@ class Registration(_BaseModel):
     @property
     def rating(self):
         return self.player().rating_for(league=self.season.league)
+
+    @property
+    def validation_ok(self):
+        # a rating of 0 means there were problems retrieving the rating
+        return self.rating != 0
+
+    @property
+    def validation_warning(self):
+        return (
+            self.player().provisional_for(league=self.season.league)
+            or not self.agreed_to_rules
+            or not self.agreed_to_tos
+        )
 
     @classmethod
     def can_register(cls, user, season):

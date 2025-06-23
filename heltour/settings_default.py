@@ -223,11 +223,6 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=1),
         'args': ()
     },
-    'validate_pending_registrations': {
-        'task': 'heltour.tournament.tasks.validate_pending_registrations',
-        'schedule': timedelta(minutes=5),
-        'args': ()
-    },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),

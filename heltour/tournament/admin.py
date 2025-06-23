@@ -2013,13 +2013,12 @@ class RegistrationAdmin(_BaseAdmin):
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
-        if obj.validation_warning:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
-        elif obj.validation_ok:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
-        else:
+        if not obj.validation_ok:
             return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
-        return ''
+        elif obj.validation_warning:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
+        else:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
@@ -2037,8 +2036,7 @@ class RegistrationAdmin(_BaseAdmin):
         return my_urls + urls
 
     def validate(self, request, queryset):
-        for reg in queryset:
-            signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
+        signals.do_validate_registration.send(sender=RegistrationAdmin, regs=queryset)
         self.message_user(request, 'Validation started.', messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
