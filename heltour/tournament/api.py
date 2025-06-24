@@ -67,18 +67,30 @@ def find_pairing(request):
     except ValueError:
         return HttpResponse("Bad request", status=400)
 
-    rounds = _get_active_rounds(league_tag, season_tag)
+    rounds = _get_active_rounds(league_tag=league_tag, season_tag=season_tag)
     if len(rounds) == 0:
         return JsonResponse({"pairings": None, "error": "no_matching_rounds"})
 
     pairings = []
     for r in rounds:
-        pairings += list(_get_pairings(r, player, white, black, scheduled))
+        pairings += list(
+            _get_pairings(
+                round_=r, player=player, white=white, black=black, scheduled=scheduled
+            )
+        )
 
     if len(pairings) == 0:
         # Try alternate colors
         for r in rounds:
-            pairings += list(_get_pairings(r, player, black, white, scheduled))
+            pairings += list(
+                _get_pairings(
+                    round_=r,
+                    player=player,
+                    white=black,
+                    black=white,
+                    scheduled=scheduled,
+                )
+            )
 
     league = League.objects.filter(tag=league_tag).first()
     return JsonResponse({"pairings": [_export_pairing(p, league) for p in pairings]})
