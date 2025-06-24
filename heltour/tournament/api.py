@@ -174,7 +174,6 @@ def update_pairing(request):
     with reversion.create_revision():
         reversion.set_comment("API: update_pairing")
         pairing.save()
-
     return JsonResponse(
         {
             "updated": 1,
@@ -258,7 +257,7 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
         ) | pairings.filter(black__slack_user_id__iexact=black)
     if scheduled:
         pairings = pairings.exclude(result="", scheduled_time=None)
-    else:
+    elif scheduled is not None:
         pairings = pairings.filter(result="", scheduled_time=None)
     return list(pairings)
 
