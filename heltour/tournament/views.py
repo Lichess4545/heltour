@@ -781,24 +781,6 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
                         form.save()
 
-                    # send registration received email
-                    subject = render_to_string(
-                        'tournament/emails/registration_received_subject.txt',
-                        {'reg': form.instance})
-                    msg_plain = render_to_string('tournament/emails/registration_received.txt',
-                                                 {'reg': form.instance})
-                    msg_html = render_to_string('tournament/emails/registration_received.html',
-                                                {'reg': form.instance})
-                    try:
-                        send_mail(
-                            subject,
-                            msg_plain,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [form.cleaned_data['email']],
-                            html_message=msg_html,
-                        )
-                    except SMTPException:
-                        logger.exception('A confirmation email could not be sent.')
                     self.request.session['reg_email'] = form.cleaned_data['email']
 
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag,
