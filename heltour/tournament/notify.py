@@ -634,10 +634,10 @@ def notify_players_game_scheduled(round_, pairing, **kwargs):
 
     time_part = (
         f"Your game has been scheduled for {pairing.scheduled_time:%A, %H:%M UTC}."
-        "\nYou can confirm that time "
+        "\nYou can confirm that time"
     )
     confirm_url = abs_url(reverse("by_league:confirm_scheduled_time", args=[league.tag]))
-    im_msg = f"{time_part} <here|{confirm_url}>."
+    im_msg = f"{time_part} <{confirm_url}|here>."
 
     li_subject = f"Round {round_} - {league}"
     li_msg = f"{time_part}here: {confirm_url}"
