@@ -148,20 +148,20 @@ def update_pairing(request):
     except ValueError:
         return HttpResponse("Bad request", status=400)
 
-    rounds = _get_active_rounds(league_tag, season_tag)
+    rounds = _get_active_rounds(league_tag=league_tag, season_tag=season_tag)
     if len(rounds) == 0:
         return JsonResponse({"updated": 0, "error": "no_matching_rounds"})
 
     pairings = []
     for r in rounds:
-        pairings += _get_pairings(r, None, white, black)
+        pairings += _get_pairings(round_=r, player=None, white=white, black=black)
 
     reversed = False
     if len(pairings) == 0:
         # Try alternate colors
         reversed = True
         for r in rounds:
-            pairings += list(_get_pairings(r, None, black, white))
+            pairings += list(_get_pairings(round_=r, player=None, white=black, black=white))
 
     if len(pairings) == 0:
         return JsonResponse({"updated": 0, "error": "not_found"})
