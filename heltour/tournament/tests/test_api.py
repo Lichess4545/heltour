@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
 from heltour.tournament.api import (
@@ -17,6 +17,7 @@ from heltour.tournament.models import (
     Player,
     Round,
     Season,
+    logger,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
@@ -25,14 +26,42 @@ from heltour.tournament.tests.testutils import (
 )
 
 
+class ApiTokenTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.rf = RequestFactory()
+        cls.api_key = ApiKey.objects.create(name="test_key")
+
+    def test_noauthorization(self):
+        req = self.rf.get(
+            path="/api/find_pairing/",
+            query_params={
+                "league": "loneleague",
+            },
+        )
+        response = find_pairing(req)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.content, b"Unauthorized")
+
+    def test_wrongkey(self):
+        req = self.rf.get(
+            path="/api/find_pairing/",
+            query_params={
+                "league": "loneleague",
+            },
+            headers={"AUTHORIZATION": "Token someincorrectkey"},
+        )
+        response = find_pairing(req)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.content, b"Unauthorized")
+
+
 class ApiPairingsTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
         s = get_season("lone")
-        Season.objects.filter(pk=s.pk).update(
-            is_active=True
-        )
+        Season.objects.filter(pk=s.pk).update(is_active=True)
         cls.r1 = get_round(league_type="lone", round_number=1)
         Round.objects.filter(pk=cls.r1.pk).update(publish_pairings=True)
         p1 = Player.objects.get(lichess_username="Player1")
@@ -115,12 +144,12 @@ class ApiPairingsTestCase(TestCase):
         rounds.return_value = Round.objects.filter(pk=self.r1.pk)
         pairings.return_value = list(self.lp)
         req = self.rf.get(
-                path="/api/find_pairing/",
-                query_params={
-                    "league": "loneleague",
-                },
-                headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"}
-            )
+            path="/api/find_pairing/",
+            query_params={
+                "league": "loneleague",
+            },
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
         pairings_json = find_pairing(req)
         self.assertTrue(pairings.called)
         self.assertEqual(pairings.call_args.kwargs["round_"], self.r1)
@@ -132,14 +161,13 @@ class ApiPairingsTestCase(TestCase):
             pairing1black = pairings["pairings"][0]["black"]
             pairing2white = pairings["pairings"][1]["white"]
             pairing2black = pairings["pairings"][1]["black"]
-        except json.JSONDecodeError:
-            pairing1white = "JSON error not decoded"
-        except KeyError:
-            pairing1white = "Key 'pairings', 'white' or 'black' not in JSON"
-        except IndexError:
-            pairing1white = "Not enough pairings found"
-        self.assertEqual(pairing1white, "Player1")
-        self.assertEqual(pairing1black, "Player2")
-        self.assertEqual(pairing2white, "Player3")
-        self.assertEqual(pairing2black, "Player4")
-
+            self.assertEqual(pairing1white, "Player1")
+            self.assertEqual(pairing1black, "Player2")
+            self.assertEqual(pairing2white, "Player3")
+            self.assertEqual(pairing2black, "Player4")
+        except json.JSONDecodeError as e:
+            logger.error("JSON not decoded:", e)
+        except KeyError as e:
+            logger.error("Key 'pairings', 'white' or 'black' not in JSON: ", e)
+        except IndexError as e:
+            logger.error("Not enough pairings found: ", e)
