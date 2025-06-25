@@ -166,8 +166,8 @@ class ApiPairingsTestCase(TestCase):
             self.assertEqual(pairing2white, "Player3")
             self.assertEqual(pairing2black, "Player4")
         except json.JSONDecodeError as e:
-            logger.error("JSON not decoded:", e)
+            logger.error(f"JSON not decoded:\n{e}")
         except KeyError as e:
-            logger.error("Key 'pairings', 'white' or 'black' not in JSON: ", e)
+            logger.error(f"Expected key not in JSON:\n{e}")
         except IndexError as e:
-            logger.error("Not enough pairings found: ", e)
+            logger.error(f"Not enough pairings found:\n{e}")
