@@ -17,7 +17,6 @@ from heltour.tournament.models import (
     Player,
     Round,
     Season,
-    logger,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
@@ -166,8 +165,71 @@ class ApiPairingsTestCase(TestCase):
             self.assertEqual(pairing2white, "Player3")
             self.assertEqual(pairing2black, "Player4")
         except json.JSONDecodeError as e:
-            logger.error(f"JSON not decoded:\n{e}")
+            raise AssertionError(f"JSON not decoded - {e}")
         except KeyError as e:
-            logger.error(f"Expected key not in JSON:\n{e}")
+            raise AssertionError(f"Expected key not in JSON - {e}")
         except IndexError as e:
-            logger.error(f"Not enough pairings found:\n{e}")
+            raise AssertionError(f"Not enough pairings found - {e}")
+
+    @patch("heltour.tournament.api._get_active_rounds")
+    @patch("heltour.tournament.api._get_pairings")
+    def test_find_pairing_scheduled(self, pairings, rounds):
+        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        pairings.return_value = self.lp2_list
+        req = self.rf.get(
+            path="/api/find_pairing/",
+            query_params={
+                "league": "loneleague",
+                "scheduled": "true",
+            },
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        pairings_json = find_pairing(req)
+        self.assertTrue(pairings.called)
+        self.assertEqual(pairings.call_args.kwargs["round_"], self.r1)
+        self.assertEqual(pairings.call_args.kwargs["scheduled"], None)
+        self.assertEqual(pairings_json.status_code, 200)
+        try:
+            pairings = json.loads(pairings_json.content)
+            pairing1white = pairings["pairings"][0]["white"]
+            pairing1black = pairings["pairings"][0]["black"]
+            self.assertEqual(pairing1white, "Player3")
+            self.assertEqual(pairing1black, "Player4")
+        except json.JSONDecodeError as e:
+            raise AssertionError(f"JSON not decoded - {e}")
+        except KeyError as e:
+            raise AssertionError(f"Expected key not in JSON - {e}")
+        except IndexError as e:
+            raise AssertionError(f"Not enough pairings found - {e}")
+
+
+    @patch("heltour.tournament.api._get_active_rounds")
+    @patch("heltour.tournament.api._get_pairings")
+    def test_find_pairing_unscheduled(self, pairings, rounds):
+        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        pairings.return_value = self.lp1_list
+        req = self.rf.get(
+            path="/api/find_pairing/",
+            query_params={
+                "league": "loneleague",
+                "scheduled": "false",
+            },
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        pairings_json = find_pairing(req)
+        self.assertTrue(pairings.called)
+        self.assertEqual(pairings.call_args.kwargs["round_"], self.r1)
+        self.assertEqual(pairings.call_args.kwargs["scheduled"], None)
+        self.assertEqual(pairings_json.status_code, 200)
+        try:
+            pairings = json.loads(pairings_json.content)
+            pairing1white = pairings["pairings"][0]["white"]
+            pairing1black = pairings["pairings"][0]["black"]
+            self.assertEqual(pairing1white, "Player1")
+            self.assertEqual(pairing1black, "Player2")
+        except json.JSONDecodeError as e:
+            raise AssertionError(f"JSON not decoded - {e}")
+        except KeyError as e:
+            raise AssertionError(f"Expected key not in JSON - {e}")
+        except IndexError as e:
+            raise AssertionError(f"Not enough pairings found - {e}")
