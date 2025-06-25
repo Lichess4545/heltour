@@ -10,6 +10,7 @@ from heltour.tournament.api import (
     _get_next_round,
     _get_pairings,
     find_pairing,
+    update_pairing,
 )
 from heltour.tournament.models import (
     ApiKey,
@@ -62,7 +63,8 @@ class ApiPairingsTestCase(TestCase):
         s = get_season("lone")
         Season.objects.filter(pk=s.pk).update(is_active=True)
         cls.r1 = get_round(league_type="lone", round_number=1)
-        Round.objects.filter(pk=cls.r1.pk).update(publish_pairings=True)
+        cls.r1_query = Round.objects.filter(pk=cls.r1.pk)
+        cls.r1_query.update(publish_pairings=True)
         p1 = Player.objects.get(lichess_username="Player1")
         p2 = Player.objects.get(lichess_username="Player2")
         p3 = Player.objects.get(lichess_username="Player3")
@@ -140,7 +142,7 @@ class ApiPairingsTestCase(TestCase):
     @patch("heltour.tournament.api._get_active_rounds")
     @patch("heltour.tournament.api._get_pairings")
     def test_find_pairing(self, get_pairings, rounds):
-        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        rounds.return_value = self.r1_query
         get_pairings.return_value = list(self.lp)
         req = self.rf.get(
             path="/api/find_pairing/",
@@ -174,7 +176,7 @@ class ApiPairingsTestCase(TestCase):
     @patch("heltour.tournament.api._get_active_rounds")
     @patch("heltour.tournament.api._get_pairings")
     def test_find_pairing_scheduled(self, get_pairings, rounds):
-        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        rounds.return_value = self.r1_query
         get_pairings.return_value = self.lp2_list
         req = self.rf.get(
             path="/api/find_pairing/",
@@ -205,7 +207,7 @@ class ApiPairingsTestCase(TestCase):
     @patch("heltour.tournament.api._get_active_rounds")
     @patch("heltour.tournament.api._get_pairings")
     def test_find_pairing_unscheduled(self, get_pairings, rounds):
-        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        rounds.return_value = self.r1_query
         get_pairings.return_value = self.lp1_list
         req = self.rf.get(
             path="/api/find_pairing/",
@@ -259,7 +261,7 @@ class ApiPairingsTestCase(TestCase):
     @patch("heltour.tournament.api._get_active_rounds")
     @patch("heltour.tournament.api._get_pairings")
     def test_find_pairing_reverse(self, get_pairings, rounds):
-        rounds.return_value = Round.objects.filter(pk=self.r1.pk)
+        rounds.return_value = self.r1_query
         get_pairings.side_effect = [[], self.lp2_list]
         req = self.rf.get(
             path="/api/find_pairing/",
@@ -291,3 +293,51 @@ class ApiPairingsTestCase(TestCase):
             raise AssertionError(f"Expected key not in JSON - {e}")
         except IndexError as e:
             raise AssertionError(f"Not enough pairings found - {e}")
+
+    @patch("heltour.tournament.api._get_active_rounds")
+    def test_update_pairing_no_round(self, rounds):
+        rounds.return_value = []
+        req = self.rf.post(
+            path="/api/update_pairing/",
+            data={
+                "league": "loneleague",
+            },
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        update_json = update_pairing(req)
+        self.assertTrue(rounds.called)
+        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
+        self.assertEqual(update_json.status_code, 200)
+        try:
+            update_pair = json.loads(update_json.content)
+            self.assertEqual(update_pair["updated"], 0)
+            self.assertEqual(update_pair["error"], "no_matching_rounds")
+        except json.JSONDecodeError as e:
+            raise AssertionError(f"JSON not decoded - {e}")
+        except KeyError as e:
+            raise AssertionError(f"Expected key not in JSON - {e}")
+
+    @patch("heltour.tournament.api._get_active_rounds")
+    @patch("heltour.tournament.api._get_pairings")
+    def test_update_pairing_no_pairing(self, get_pairings, rounds):
+        rounds.return_value = self.r1_query
+        get_pairings.return_value = []
+        req = self.rf.post(
+            path="/api/update_pairing/",
+            data={
+                "league": "loneleague",
+            },
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        update_json = update_pairing(req)
+        self.assertTrue(rounds.called)
+        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
+        self.assertEqual(update_json.status_code, 200)
+        try:
+            update_pair = json.loads(update_json.content)
+            self.assertEqual(update_pair["updated"], 0)
+            self.assertEqual(update_pair["error"], "not_found")
+        except json.JSONDecodeError as e:
+            raise AssertionError(f"JSON not decoded - {e}")
+        except KeyError as e:
+            raise AssertionError(f"Expected key not in JSON - {e}")
