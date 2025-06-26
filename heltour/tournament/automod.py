@@ -105,14 +105,24 @@ def automod_unresponsive(round_, **kwargs):
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
         if not white_present:
-            groups = player_unresponsive(round_, p, p.white, groups)
+            groups = player_unresponsive(
+                round_=round_,
+                pairing=p,
+                player=p.white,
+                groups=groups
+            )
             if black_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.black,
                                                           opponent=p.white, pairing=p)
             time.sleep(settings.SLEEP_UNIT)
         if not black_present:
-            groups = player_unresponsive(round_, p, p.black, groups)
+            groups = player_unresponsive(
+                round_=round_,
+                pairing=p,
+                player=p.black,
+                groups=groups
+            )
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.white,
