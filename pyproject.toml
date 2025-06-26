@@ -32,7 +32,6 @@ dependencies = [
     "django-stubs==4.2.6",
     "django-stubs-ext==4.2.5",
     "patchwork==1.0.1",
-    "postgres>=4.0",
 		"more-itertools>=10.7.0"
 ]
 
