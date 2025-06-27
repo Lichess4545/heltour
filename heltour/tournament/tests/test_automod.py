@@ -6,9 +6,9 @@ from django.utils import timezone
 from heltour.tournament.automod import automod_noshow, automod_unresponsive
 from heltour.tournament.models import (
     LonePlayerPairing,
-    PlayerPresence,
-    PlayerPairing,
     PlayerAvailability,
+    PlayerPairing,
+    PlayerPresence,
     TeamPairing,
     TeamPlayerPairing,
 )
