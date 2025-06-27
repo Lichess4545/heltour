@@ -152,10 +152,12 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         pairings_json = find_pairing(req)
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(
-            get_pairings.call_args.kwargs["round_"],
-            self.r1,
+        get_pairings.assert_called_once_with(
+            round_=self.r1,
+            player=None,
+            white=None,
+            black=None,
+            scheduled=None,
         )
         self.assertEqual(pairings_json.status_code, 200)
         self.assertEqual(
@@ -204,10 +206,8 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         pairings_json = find_pairing(req)
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(
-            get_pairings.call_args,
-            call(round_=self.r1, scheduled=True, white=None, black=None, player=None),
+        get_pairings.assert_called_once_with(
+            round_=self.r1, scheduled=True, white=None, black=None, player=None
         )
         self.assertEqual(pairings_json.status_code, 200)
         pairings = json.loads(pairings_json.content)
@@ -246,10 +246,8 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         pairings_json = find_pairing(req)
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(
-            get_pairings.call_args,
-            call(round_=self.r1, scheduled=False, white=None, black=None, player=None),
+        get_pairings.assert_called_once_with(
+            round_=self.r1, scheduled=False, white=None, black=None, player=None
         )
         self.assertEqual(pairings_json.status_code, 200)
         self.assertEqual(
@@ -283,8 +281,7 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         pairings_json = find_pairing(req)
-        self.assertTrue(rounds.called)
-        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
+        rounds.assert_called_once_with(league_tag="loneleague", season_tag=None)
         self.assertEqual(pairings_json.status_code, 200)
         self.assertEqual(
             json.loads(pairings_json.content),
@@ -306,9 +303,7 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         pairings_json = find_pairing(req)
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(
-            get_pairings.call_args_list,
+        get_pairings.assert_has_calls(
             [
                 # first call should look for players as requested
                 call(
@@ -327,6 +322,7 @@ class ApiPairingsTestCase(TestCase):
                     scheduled=None,
                 ),
             ],
+            any_order=False,
         )
         self.assertEqual(pairings_json.status_code, 200)
         self.assertEqual(
@@ -360,8 +356,7 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         update_json = update_pairing(req)
-        self.assertTrue(rounds.called)
-        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
+        rounds.assert_called_once_with(league_tag="loneleague", season_tag=None)
         self.assertEqual(update_json.status_code, 200)
         self.assertEqual(
             json.loads(update_json.content),
@@ -381,8 +376,7 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         update_json = update_pairing(req)
-        self.assertTrue(rounds.called)
-        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
+        rounds.assert_called_once_with(league_tag="loneleague", season_tag=None)
         self.assertEqual(update_json.status_code, 200)
         self.assertEqual(
             json.loads(update_json.content),
@@ -402,10 +396,10 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         update_json = update_pairing(req)
-        self.assertTrue(rounds.called)
-        self.assertEqual(rounds.call_args.kwargs["league_tag"], "loneleague")
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(get_pairings.call_args.kwargs["round_"], self.r1)
+        rounds.assert_called_once_with(league_tag="loneleague", season_tag=None)
+        get_pairings.assert_called_once_with(
+            round_=self.r1, player=None, white=None, black=None
+        )
         self.assertEqual(update_json.status_code, 200)
         self.assertEqual(
             json.loads(update_json.content),
@@ -434,16 +428,11 @@ class ApiPairingsTestCase(TestCase):
             headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
         )
         update_json = update_pairing(req)
-        self.assertTrue(rounds.called)
-        self.assertEqual(
-            rounds.call_args, call(league_tag="loneleague", season_tag="loneseason")
+        rounds.assert_called_once_with(league_tag="loneleague", season_tag="loneseason")
+        get_pairings.assert_called_once_with(
+            round_=self.r1, player=None, white="Player1", black="Player2"
         )
-        self.assertTrue(get_pairings.called)
-        self.assertEqual(
-            get_pairings.call_args,
-            call(round_=self.r1, player=None, white="Player1", black="Player2"),
-        )
-        self.assertTrue(psave.called)
+        psave.assert_called()
         self.assertEqual(update_json.status_code, 200)
         self.assertEqual(
             json.loads(update_json.content),
