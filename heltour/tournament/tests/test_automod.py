@@ -172,9 +172,9 @@ class AutomodUnresponsiveTestCase(TestCase):
         cls.pp1 = PlayerPairing.objects.get(pk=cls.tpp1.pk)
         cls.pp2 = PlayerPairing.objects.get(pk=cls.tpp2.pk)
 
-    @patch("heltour.tournament.signals.notify_mods_unresponsive.send")
-    @patch("heltour.tournament.signals.notify_opponent_unresponsive.send")
-    @patch("heltour.tournament.automod.player_unresponsive")
+    @patch("heltour.tournament.signals.notify_mods_unresponsive.send", autospec=True)
+    @patch("heltour.tournament.signals.notify_opponent_unresponsive.send", autospec=True)
+    @patch("heltour.tournament.automod.player_unresponsive", autospec=True)
     def test_automod_unresponsive_white(
         self, p_unresponsive, notify_opponent, notify_mods
     ):
@@ -188,35 +188,64 @@ class AutomodUnresponsiveTestCase(TestCase):
             round=self.r1, player=self.p2, is_available=False
         )
         automod_unresponsive(round_=self.r1)
-        self.assertTrue(p_unresponsive.called_once)
-        self.assertEqual(
-            p_unresponsive.call_args,
-            call(
-                round_=self.r1,
-                pairing=self.pp1,
-                player=self.p1,
-                groups={"warning": [], "yellow": [], "red": []},
-            ),
+        p_unresponsive.assert_called_once_with(
+            round_=self.r1,
+            pairing=self.pp1,
+            player=self.p1,
+            # note: groups is changed as a side effect,
+            # which we did not mock.
+            groups={"warning": [], "yellow": [], "red": []},
         )
-        self.assertTrue(notify_opponent.called_once)
-        self.assertEqual(
-            notify_opponent.call_args,
-            call(
-                sender=automod_unresponsive,
-                round_=self.r1,
-                player=self.p3,
-                opponent=self.p1,
-                pairing=self.pp1,
-            ),
+        notify_opponent.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            player=self.p3,
+            opponent=self.p1,
+            pairing=self.pp1,
         )
-        self.assertTrue(notify_mods.called_once)
-        self.assertEqual(
-            notify_mods.call_args,
-            call(
-                sender=automod_unresponsive,
-                round_=self.r1,
-                warnings=[],
-                yellows=[],
-                reds=[],
-            ),
+        notify_mods.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            warnings=[],
+            yellows=[],
+            reds=[],
+        )
+
+    @patch("heltour.tournament.signals.notify_mods_unresponsive.send", autospec=True)
+    @patch("heltour.tournament.signals.notify_opponent_unresponsive.send", autospec=True)
+    @patch("heltour.tournament.automod.player_unresponsive", autospec=True)
+    def test_automod_unresponsive_black(
+        self, p_unresponsive, notify_opponent, notify_mods
+    ):
+        PlayerPresence.objects.create(
+            player=self.p2,
+            pairing=self.tpp2,
+            round=self.r1,
+            first_msg_time=timezone.now(),
+        )
+        PlayerAvailability.objects.create(
+            round=self.r1, player=self.p1, is_available=False
+        )
+        automod_unresponsive(round_=self.r1)
+        p_unresponsive.assert_called_once_with(
+            round_=self.r1,
+            pairing=self.pp2,
+            player=self.p4,
+            # note: groups is changed as a side effect,
+            # which we did not mock.
+            groups={"warning": [], "yellow": [], "red": []},
+        )
+        notify_opponent.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            player=self.p2,
+            opponent=self.p4,
+            pairing=self.pp2,
+        )
+        notify_mods.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            warnings=[],
+            yellows=[],
+            reds=[],
         )
