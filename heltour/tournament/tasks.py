@@ -1055,7 +1055,7 @@ def do_store_account_email(oauth_token_id: int, **kwargs) -> None:
 
 
 @app.task()
-def create_team_channel(team_ids):
+def create_team_channel(team_ids: List[int]) -> None:
     intro_message = textwrap.dedent("""
             Welcome! This is your private team channel. Feel free to chat, study, discuss strategy, or whatever you like!
             You need to pick a team captain and a team name by {season_start}.
@@ -1066,7 +1066,7 @@ def create_team_channel(team_ids):
             - {pairings_url}
             - {calendar_url}""")
 
-    for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
+    for team in Team.objects.filter(id__in=team_ids).order_by("pk").select_related('season__league').nocache():
         pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team',
                                        args=[team.season.league.tag, team.season.tag, team.number]))
         calendar_url = abs_url(reverse('by_league:by_season:pairings_by_team_icalendar',
