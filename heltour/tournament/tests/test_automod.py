@@ -200,6 +200,7 @@ class AutomodUnresponsiveTestCase(TestCase):
     def test_automod_unresponsive_white(
         self, p_unresponsive, notify_opponent, notify_mods
     ):
+        p_unresponsive.return_value = {"warning": [self.p1], "yellow": [], "red": []}
         PlayerPresence.objects.create(
             player=self.p3,
             pairing=self.tpp1,
@@ -228,7 +229,7 @@ class AutomodUnresponsiveTestCase(TestCase):
         notify_mods.assert_called_once_with(
             sender=automod_unresponsive,
             round_=self.r1,
-            warnings=[],
+            warnings=[self.p1],
             yellows=[],
             reds=[],
         )
@@ -241,6 +242,7 @@ class AutomodUnresponsiveTestCase(TestCase):
     def test_automod_unresponsive_black(
         self, p_unresponsive, notify_opponent, notify_mods
     ):
+        p_unresponsive.return_value = {"warning": [self.p4], "yellow": [], "red": []}
         PlayerPresence.objects.create(
             player=self.p2,
             pairing=self.tpp2,
@@ -269,7 +271,7 @@ class AutomodUnresponsiveTestCase(TestCase):
         notify_mods.assert_called_once_with(
             sender=automod_unresponsive,
             round_=self.r1,
-            warnings=[],
+            warnings=[self.p4],
             yellows=[],
             reds=[],
         )
