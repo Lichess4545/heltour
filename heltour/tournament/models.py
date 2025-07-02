@@ -1851,6 +1851,7 @@ class Registration(_BaseModel):
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
     lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    player = models.ForeignKey(to=Player, on_delete=models.CASCADE, null=True)
     email = models.EmailField(max_length=255)
     has_played_20_games = models.BooleanField()
     can_commit = models.BooleanField()
@@ -1876,8 +1877,8 @@ class Registration(_BaseModel):
         return SeasonPlayer.objects.filter(
             player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
 
-    def player(self):
-        return Player.get_or_create(lichess_username=self.lichess_username)
+#    def player(self):
+#        return Player.get_or_create(lichess_username=self.lichess_username)
 
     @property
     def rating(self):
