@@ -3,12 +3,17 @@ from unittest.mock import ANY, patch
 from django.test import TestCase
 from django.utils import timezone
 
-from heltour.tournament.automod import automod_noshow, automod_unresponsive
+from heltour.tournament.automod import (
+    automod_noshow,
+    automod_unresponsive,
+    player_unresponsive,
+)
 from heltour.tournament.models import (
     LonePlayerPairing,
     PlayerAvailability,
     PlayerPairing,
     PlayerPresence,
+    PlayerWarning,
     TeamPairing,
     TeamPlayerPairing,
 )
@@ -270,4 +275,84 @@ class AutomodUnresponsiveTestCase(TestCase):
             warnings=[self.p4],
             yellows=[],
             reds=[],
+        )
+
+    @patch("heltour.tournament.automod.give_card", autospec=True)
+    @patch("heltour.tournament.signals.notify_unresponsive.send", autospec=True)
+    def test_player_unresponsive_warn(self, notify_unresponsive, give_card):
+        groups = player_unresponsive(
+            round_=self.r1,
+            pairing=self.pp1,
+            player=self.p1,
+            groups={"warning": [], "yellow": [], "red": []},
+        )
+        give_card.assert_not_called()
+        notify_unresponsive.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            player=self.p1,
+            punishment = "You may receive a yellow card.",
+            allow_continue = False,
+            pairing=self.pp1,
+        )
+        self.assertTrue(PlayerWarning.objects.get(player=self.p1))
+        self.assertFalse(PlayerAvailability.objects.get(player=self.p1).is_available)
+        self.assertEqual(groups, {"warning": [self.p1], "yellow": [], "red": []})
+
+    @patch("heltour.tournament.automod.give_card", autospec=True, return_value="yellow")
+    @patch("heltour.tournament.signals.notify_unresponsive.send", autospec=True)
+    def test_player_unresponsive_yellow(self, notify_unresponsive, give_card):
+        PlayerWarning.objects.create(player=self.p1, round=self.r1, type="unresponsive")
+        groups = player_unresponsive(
+            round_=self.r1,
+            pairing=self.pp1,
+            player=self.p1,
+            groups={"warning": [], "yellow": [self.p2], "red": []},
+        )
+        give_card.assert_called_once_with(
+            round_=self.r1,
+            player=self.p1,
+            type_="card_unresponsive"
+        )
+        notify_unresponsive.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            player=self.p1,
+            punishment = "You have been given a yellow card.",
+            allow_continue = False,
+            pairing=self.pp1,
+        )
+        self.assertTrue(PlayerWarning.objects.get(player=self.p1))
+        self.assertFalse(PlayerAvailability.objects.get(player=self.p1).is_available)
+        self.assertEqual(
+            groups, {"warning": [], "yellow": [self.p2, self.p1], "red": []}
+        )
+
+    @patch("heltour.tournament.automod.give_card", autospec=True, return_value="red")
+    @patch("heltour.tournament.signals.notify_unresponsive.send", autospec=True)
+    def test_player_unresponsive_red(self, notify_unresponsive, give_card):
+        PlayerWarning.objects.create(player=self.p1, round=self.r1, type="unresponsive")
+        groups = player_unresponsive(
+            round_=self.r1,
+            pairing=self.pp1,
+            player=self.p1,
+            groups={"warning": [], "yellow": [self.p2], "red": [self.p3]},
+        )
+        give_card.assert_called_once_with(
+            round_=self.r1,
+            player=self.p1,
+            type_="card_unresponsive"
+        )
+        notify_unresponsive.assert_called_once_with(
+            sender=automod_unresponsive,
+            round_=self.r1,
+            player=self.p1,
+            punishment = "You have been given a red card.",
+            allow_continue = False,
+            pairing=self.pp1,
+        )
+        self.assertTrue(PlayerWarning.objects.get(player=self.p1))
+        self.assertFalse(PlayerAvailability.objects.get(player=self.p1).is_available)
+        self.assertEqual(
+            groups, {"warning": [], "yellow": [self.p2], "red": [self.p3, self.p1]}
         )
