@@ -215,8 +215,6 @@ class AutomodUnresponsiveTestCase(TestCase):
             round_=self.r1,
             pairing=self.pp1,
             player=self.p1,
-            # note: groups is changed as a side effect,
-            # which we did not mock.
             groups={"warning": [], "yellow": [], "red": []},
         )
         notify_opponent.assert_called_once_with(
@@ -257,8 +255,6 @@ class AutomodUnresponsiveTestCase(TestCase):
             round_=self.r1,
             pairing=self.pp2,
             player=self.p4,
-            # note: groups is changed as a side effect,
-            # which we did not mock.
             groups={"warning": [], "yellow": [], "red": []},
         )
         notify_opponent.assert_called_once_with(
