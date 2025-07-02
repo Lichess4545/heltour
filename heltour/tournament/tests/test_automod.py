@@ -6,6 +6,7 @@ from django.utils import timezone
 from heltour.tournament.automod import (
     automod_noshow,
     automod_unresponsive,
+    give_card,
     player_unresponsive,
 )
 from heltour.tournament.models import (
@@ -14,6 +15,7 @@ from heltour.tournament.models import (
     PlayerPairing,
     PlayerPresence,
     PlayerWarning,
+    SeasonPlayer,
     TeamPairing,
     TeamPlayerPairing,
 )
@@ -355,4 +357,15 @@ class AutomodUnresponsiveTestCase(TestCase):
         self.assertFalse(PlayerAvailability.objects.get(player=self.p1).is_available)
         self.assertEqual(
             groups, {"warning": [], "yellow": [self.p2], "red": [self.p3, self.p1]}
+        )
+
+    def test_give_card_yellow(self):
+        SeasonPlayer.objects.create(season=self.r1.season, player=self.p1)
+        card = give_card(round_=self.r1, player=self.p1, type_="card_unresponsive")
+        self.assertEqual(card, "yellow")
+        self.assertEqual(
+            SeasonPlayer.objects.get(
+                player=self.p1, season=self.r1.season
+            ).games_missed,
+            1,
         )
