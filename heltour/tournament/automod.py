@@ -151,7 +151,7 @@ def player_unresponsive(
         allow_continue = league.competitor_type != 'team'
         groups['warning'].append(player)
     else:
-        card_color = give_card(round_, player, 'card_unresponsive')
+        card_color = give_card(round_=round_, player=player, type_="card_unresponsive")
         if not card_color:
             return groups
         punishment = 'You have been given a %s card.' % card_color
@@ -161,9 +161,14 @@ def player_unresponsive(
         avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
         avail.is_available = False
         avail.save()
-    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player,
-                                     punishment=punishment, allow_continue=allow_continue,
-                                     pairing=pairing)
+    signals.notify_unresponsive.send(
+        sender=automod_unresponsive,
+        round_=round_,
+        player=player,
+        punishment=punishment,
+        allow_continue=allow_continue,
+        pairing=pairing,
+    )
     return groups
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'],
