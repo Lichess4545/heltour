@@ -4,22 +4,21 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tournament', '0009_alter_playernotificationsetting'),
+        ("tournament", "0009_alter_playernotificationsetting"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='registration',
-            name='last_validation_try',
+            model_name="registration",
+            name="last_validation_try",
         ),
         migrations.RemoveField(
-            model_name='registration',
-            name='validation_ok',
+            model_name="registration",
+            name="validation_ok",
         ),
         migrations.RemoveField(
-            model_name='registration',
-            name='validation_warning',
+            model_name="registration",
+            name="validation_warning",
         ),
     ]
