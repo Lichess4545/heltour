@@ -359,7 +359,7 @@ class AutomodUnresponsiveTestCase(TestCase):
             groups, {"warning": [], "yellow": [self.p2], "red": [self.p3, self.p1]}
         )
 
-    def test_give_card_yellow(self):
+    def test_give_cards(self):
         SeasonPlayer.objects.create(season=self.r1.season, player=self.p1)
         card = give_card(round_=self.r1, player=self.p1, type_="card_unresponsive")
         self.assertEqual(card, "yellow")
@@ -368,4 +368,13 @@ class AutomodUnresponsiveTestCase(TestCase):
                 player=self.p1, season=self.r1.season
             ).games_missed,
             1,
+        )
+        r2 = get_round(league_type="team", round_number=2)
+        card2 = give_card(round_=r2, player=self.p1, type_="card_unresponsive")
+        self.assertEqual(card2, "red")
+        self.assertEqual(
+            SeasonPlayer.objects.get(
+                player=self.p1, season=self.r1.season
+            ).games_missed,
+            2,
         )
