@@ -261,13 +261,23 @@ def update_or_create_broadcast_round(
         raise ValueError(
             "Need exactly one of either broadcast_id or boradcast_round_id"
         )
+    if status not in ["new", "started", "finished"]:
+        raise ValueError("status can only be new, started or finished")
     name = f"Round {round_number}"
     syncIds = " ".join(game_links)
     postdict = {
-        "broadCastTournamentId": broadcast_id,
         "name": name,
         "syncIds": syncIds,
+        "status": status,
     }
+    if startsAt:
+        postdict["startsAt"] = startsAt
+    if startsAfterPrevious: # lichess default is false
+        postdict["startsAfterPrevious"] = "true"
+    if delay:
+        postdict["delay"] = delay
+    if not rated: # lichess default is true
+        postdict["rated"] = "false"
     post_data = "&".join("{}={}".format(*i) for i in postdict.items())
     pre_url = f"{settings.API_WORKER_HOST}/lichessapi/broadcast/"
     post_url = (
