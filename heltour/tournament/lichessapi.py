@@ -1,3 +1,5 @@
+from __future__ import annotations
+# ^ needed for annotating str|None and int|None prior to python 3.10
 import requests
 import time
 import json
@@ -176,6 +178,108 @@ def bulk_start_games(*, tokens, clock, increment, do_clockstart, clockstart, clo
     else:
         post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}&rules=noClaimWin'
     result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
+    return json.loads(result)
+
+
+def update_or_create_broadcast(
+    *,
+    broadcast_id: str | None = None,
+    name: str,
+    nrounds: int = 8,
+    format_: str = "Team Swiss",
+    location: str = "lichess.org",
+    tc: str = "45+45",
+    infoplayers: str = "",
+    website: str = "lichess4545.com",
+    standings: str = "",
+    markdown: str = "",
+    showScores: bool = True,
+    showRatingDiffs: bool = True,
+    teamTable: bool = True,
+    players: str = "",
+    teams: str = "",
+    priority: int = 0,
+    max_retries: int = 2,
+    timeout: int = 30,
+) -> dict:
+    infoformat = f"{nrounds}-round {format_}"
+    postdict = {
+        "name": name,
+        "info.format": infoformat,
+        "info.location": location,
+        "info.tc": tc,
+    }
+    if infoplayers:
+        postdict["info.players"] = infoplayers
+    if standings:
+        postdict["info.standings"] = standings
+    if markdown:
+        postdict["markdown"] = markdown
+    if not showScores:  # lichess default is true
+        postdict["showScores"] = "false"
+    if not showRatingDiffs:  # lichess default is true
+        postdict["showRatingDiffs"] = "false"
+    if teamTable:  # lichess default is false
+        postdict["teamTable"] = "true"
+    if players:
+        postdict["players"] = players
+    if teams:
+        postdict["teams"] = teams
+    post_data = "&".join("{}={}".format(*i) for i in postdict.items())
+    pre_url = f"{settings.API_WORKER_HOST}/lichessapi/broadcast/"
+    post_url = (
+        f"?priority={priority}&max_retries={max_retries}&"
+        "content_type=application/x-www-form-urlencoded&format=application/json"
+    )
+    url = (
+        f"{pre_url}{broadcast_id}/edit{post_url}"
+        if broadcast_id
+        else f"{pre_url}new{post_url}"
+    )
+    result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post_data)
+    return json.loads(result)
+
+
+def update_or_create_broadcast_round(
+    *,
+    broadcast_id: str = "",
+    broadcast_round_id: str = "",
+    round_number: int = 0,
+    game_links: list[str] = [""],
+    startsAt: int | None = None,
+    startsAfterPrevious: bool = False,
+    delay: int | None = None,
+    status: str = "started",
+    rated: int = True,
+    priority: int = 0,
+    max_retries: int = 2,
+    timeout: int = 30,
+) -> dict:
+    if (not broadcast_id and not broadcast_round_id) or (
+        broadcast_id and broadcast_round_id
+    ):
+        raise ValueError(
+            "Need exactly one of either broadcast_id or boradcast_round_id"
+        )
+    name = f"Round {round_number}"
+    syncIds = " ".join(game_links)
+    postdict = {
+        "broadCastTournamentId": broadcast_id,
+        "name": name,
+        "syncIds": syncIds,
+    }
+    post_data = "&".join("{}={}".format(*i) for i in postdict.items())
+    pre_url = f"{settings.API_WORKER_HOST}/lichessapi/broadcast/"
+    post_url = (
+        f"?priority={priority}&max_retries={max_retries}&"
+        "content_type=application/x-www-form-urlencoded&format=application/json"
+    )
+    url = (
+        f"{pre_url}{broadcast_id}/new{post_url}"
+        if broadcast_id
+        else f"{pre_url}round/{broadcast_round_id}/edit{post_url}"
+    )
+    result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post_data)
     return json.loads(result)
 
 
