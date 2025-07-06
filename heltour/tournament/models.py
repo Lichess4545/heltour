@@ -270,6 +270,9 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
 
+    create_broadcast = models.BooleanField(default=False)
+    broadcasts = models.JSONField(blank=True, null=True)
+
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
@@ -702,6 +705,7 @@ class Round(_BaseModel):
 
     publish_pairings = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
+    broadcast_rounds = models.JSONField(blank=True, null=True)
 
     class Meta:
         permissions = (
