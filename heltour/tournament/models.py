@@ -626,6 +626,10 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
+    def get_broadcast_id(self) -> str | None:
+        if self.broadcasts:
+            return self.broadcasts.get("tour").get("id")
+
     @classmethod
     def get_registration_season(cls, league, season=None):
         if season is not None and season.registration_open:
@@ -741,6 +745,23 @@ class Round(_BaseModel):
 
     def is_team_league(self):
         return self.season.league.is_team_league()
+
+    def get_broadcast_id(self) -> str:
+        if self.season.broadcasts is None:
+            return ""
+        return self.season.broadcasts.get("tour").get("id")
+
+    def get_broadcast_round_id(self) -> str:
+        if self.season.broadcasts is None:
+            return ""
+        rounds = self.season.broadcasts.get("round")
+        if rounds is None:
+            return ""
+        for round_ in rounds:
+            if round_.get("name") == f"Round {self.number}":
+                return round_.get("id")
+        return ""
+
 
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -1459,7 +1480,7 @@ class TeamPairing(_BaseModel):
 # 5. (Optional) Extended id for games in progress (4 chars)
 # 6. (Optional) Any junk at the end, e.g. "/black", etc.
 game_link_regex = re.compile(
-    fr'^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.{settings.LICHESS_TOPLEVEL}/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$')
+    fr'^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.({settings.LICHESS_TOPLEVEL}|org|dev)/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$')
 game_link_validator = RegexValidator(game_link_regex)
 
 
@@ -1469,7 +1490,7 @@ def get_gameid_from_gamelink(gamelink):
     match = game_link_regex.match(gamelink)
     if match is None:
         return None
-    return match.group(3)
+    return match.group(4)
 
 
 def get_gamelink_from_gameid(gameid):
