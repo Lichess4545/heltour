@@ -507,7 +507,7 @@ _max_lateness = timedelta(hours=1)
 
 
 @app.task()
-def create_or_update_broadcast(season: Season, grouping: str="") -> dict|None:
+def create_or_update_broadcast(season: Season, broadcast_id: str="", grouping: str="") -> dict|None:
     if season.league.is_team_league():
         format_ = "Team Swiss"
         teamTable = True
@@ -520,17 +520,17 @@ def create_or_update_broadcast(season: Season, grouping: str="") -> dict|None:
     name = f"{season.league.name} S{season.tag}"
     tc = season.league.time_control.replace("+", "%2b")
     players = ""
-    markdown = f"This is the broadcast for season {season.tag} of the {season.league.name} league. This is a {season.league.rating_type} tournament with a {season.league.time_control} time control, played exclusively on lichess. For more information or to sign up, go to https://lichess4545.com"
+    markdown = f"This is the broadcast for season {season.tag} of the {season.league.name} league. This is a {season.league.rating_type} tournament with a {tc} time control, played exclusively on lichess. For more information or to sign up, go to https://lichess4545.com"
     infoplayers = " ".join(SeasonPlayer.objects.filter(season=season).order_by("-player__rating").values_list("player__lichess_username", flat=True)[:4])
     try:
-        result = lichessapi.update_or_create_broadcast(name=name, nrounds=season.rounds, format_=format_, tc=tc, teamTable = teamTable, grouping = grouping, teams = teams, players = players, infoplayers = infoplayers, markdown=markdown)
+        result = lichessapi.update_or_create_broadcast(broadcast_id=broadcast_id, name=name, nrounds=season.rounds, format_=format_, tc=tc, teamTable = teamTable, grouping = grouping, teams = teams, players = players, infoplayers = infoplayers, markdown=markdown)
         return(result)
     except lichessapi.ApiWorkerError:
         logger.error(f"[ERROR] Failed to create or update broadcast for {season}.")
 
 
 @app.task()
-def create_or_update_round(round_: Round) -> dict|None:
+def create_or_update_broadcast_round(round_: Round) -> dict|None:
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
     if round_.season.league.is_team_league():
         game_links_query = TeamPlayerPairing.objects.exclude(game_link="").filter(team_pairing__round=round_)
