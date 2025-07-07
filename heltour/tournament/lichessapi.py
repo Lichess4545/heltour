@@ -198,6 +198,7 @@ def update_or_create_broadcast(
     teamTable: bool = True,
     players: str = "",
     teams: str = "",
+    grouping: str = "",
     priority: int = 0,
     max_retries: int = 2,
     timeout: int = 30,
@@ -225,6 +226,9 @@ def update_or_create_broadcast(
         postdict["players"] = players
     if teams:
         postdict["teams"] = teams
+    # needs token with web:mod permission, and presumably broadcast permssions on lichess
+    if grouping: 
+        postdict["grouping"] = grouping
     post_data = "&".join("{}={}".format(*i) for i in postdict.items())
     pre_url = f"{settings.API_WORKER_HOST}/lichessapi/broadcast/"
     post_url = (
