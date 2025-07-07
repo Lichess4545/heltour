@@ -271,11 +271,11 @@ def update_or_create_broadcast_round(
         "status": status,
     }
     if startsAt:
-        postdict["startsAt"] = startsAt
+        postdict["startsAt"] = str(startsAt)
     if startsAfterPrevious: # lichess default is false
         postdict["startsAfterPrevious"] = "true"
     if delay:
-        postdict["delay"] = delay
+        postdict["delay"] = str(delay)
     if not rated: # lichess default is true
         postdict["rated"] = "false"
     post_data = "&".join("{}={}".format(*i) for i in postdict.items())
