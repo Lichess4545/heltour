@@ -1,3 +1,5 @@
+from __future__ import annotations
+# ^ for annotating unions with | syntax, can be removed once we upgrade to python 3.10+
 import json
 import re
 import sys
@@ -502,6 +504,56 @@ def start_games():
 
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
+
+
+@app.task()
+def create_or_update_broadcast(season: Season, grouping: str="") -> dict|None:
+    if season.league.is_team_league():
+        format_ = "Team Swiss"
+        teamTable = True
+        # TODO implement teams
+        teams = ""
+    else:
+        format_ = "Swiss"
+        teamTable = False
+        teams = ""
+    name = f"{season.league.name} S{season.tag}"
+    tc = season.league.time_control.replace("+", "%2b")
+    players = ""
+    markdown = f"This is the broadcast for season {season.tag} of the {season.league.name} league. This is a {season.league.rating_type} tournament with a {season.league.time_control} time control, played exclusively on lichess. For more information or to sign up, go to https://lichess4545.com"
+    infoplayers = " ".join(SeasonPlayer.objects.filter(season=season).order_by("-player__rating").values_list("player__lichess_username", flat=True)[:4])
+    try:
+        result = lichessapi.update_or_create_broadcast(name=name, nrounds=season.rounds, format_=format_, tc=tc, teamTable = teamTable, grouping = grouping, teams = teams, players = players, infoplayers = infoplayers, markdown=markdown)
+        return(result)
+    except lichessapi.ApiWorkerError:
+        logger.error(f"[ERROR] Failed to create or update broadcast for {season}.")
+
+
+@app.task()
+def create_or_update_round(round_: Round) -> dict|None:
+    startsAt = round(datetime.timestamp(round_.start_date)) * 1000
+    if round_.season.league.is_team_league():
+        game_links_query = TeamPlayerPairing.objects.exclude(game_link="").filter(team_pairing__round=round_)
+    else:
+        game_links_query = LonePlayerPairing.objects.exclude(game_link="").filter(round=round_)
+    game_links = []
+    for game in game_links_query:
+        game_links.append(game.game_id())
+    broadcast_round_id = round_.get_broadcast_round_id()
+    # logic could probably be simplified here
+    if not broadcast_round_id:
+        if round_.season.broadcasts is None:
+            round_.season.broadcasts = create_or_update_broadcast(season = round_.season)
+            round_.season.save()
+        broadcast_id = round_.get_broadcast_id()
+        try:
+            result = lichessapi.update_or_create_broadcast_round(broadcast_id = broadcast_id, round_number = round_.number, game_links=game_links, startsAt=startsAt)
+            return(result)
+        except lichessapi.ApiWorkerError:
+            logger.error(f"[ERROR] Failed to create or update broadcast for {round_}")
+    else:
+        result = lichessapi.update_or_create_broadcast_round(broadcast_round_id = broadcast_round_id, game_links=game_links, startsAt=startsAt)
+        return(result)
 
 
 @app.task()
