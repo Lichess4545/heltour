@@ -18,11 +18,11 @@ def create_player(apps, schema_editor):
             reg.save()
 
 
-# def reverse_lichess_username(apps, schema_editor):
-#    Registration = apps.get_model("tournament", "Registration")
-#    for reg in Registration.objects.all():
-#        reg.lichess_username = reg.player.lichess_username
-#        reg.save()
+def reverse_lichess_username(apps, schema_editor):
+    Registration = apps.get_model("tournament", "Registration")
+    for reg in Registration.objects.all():
+        reg.lichess_username = reg.player.lichess_username
+        reg.save()
 
 
 class Migration(migrations.Migration):
@@ -44,22 +44,18 @@ class Migration(migrations.Migration):
             code=create_player, reverse_code=migrations.RunPython.noop
         ),
         # add default to make reversible
-        # migrations.AlterField(
-        #    model_name="registration",
-        #    name="lichess_username",
-        #    field=models.CharField(
-        #        max_length=255,
-        #        default="",
-        #    ),
-        # ),
-        # migrations.RunPython(
-        # no forward operation
-        #    code=migrations.RunPython.noop,
-        # backward operation to fetch the username from the player
-        #    reverse_code=reverse_lichess_username,
-        # ),
-        #        migrations.RemoveField(
-        #            model_name="registration",
-        #            name="lichess_username",
-        #        ),
+        migrations.AlterField(
+            model_name="registration",
+            name="lichess_username",
+            field=models.CharField(
+                max_length=255,
+                default="",
+            ),
+        ),
+        migrations.RunPython(
+            # no forward operation
+            code=migrations.RunPython.noop,
+            # backward operation to fetch the username from the player
+            reverse_code=reverse_lichess_username,
+        ),
     ]
