@@ -227,7 +227,7 @@ def update_or_create_broadcast(
     if teams:
         postdict["teams"] = teams
     # needs token with web:mod permission, and presumably broadcast permssions on lichess
-    if grouping: 
+    if grouping:
         postdict["grouping"] = grouping
     post_data = "&".join("{}={}".format(*i) for i in postdict.items())
     pre_url = f"{settings.API_WORKER_HOST}/lichessapi/broadcast/"
