@@ -1480,7 +1480,7 @@ class TeamPairing(_BaseModel):
 # 5. (Optional) Extended id for games in progress (4 chars)
 # 6. (Optional) Any junk at the end, e.g. "/black", etc.
 game_link_regex = re.compile(
-    fr'^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.({settings.LICHESS_TOPLEVEL}|org|dev)/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$')
+    fr'^(https?://)?([a-z]+\.)?{settings.LICHESS_NAME}\.{settings.LICHESS_TOPLEVEL}/([A-Za-z0-9]{{8}})([A-Za-z0-9]{{4}})?([/#\?].*)?$')
 game_link_validator = RegexValidator(game_link_regex)
 
 
@@ -1490,7 +1490,7 @@ def get_gameid_from_gamelink(gamelink):
     match = game_link_regex.match(gamelink)
     if match is None:
         return None
-    return match.group(4)
+    return match.group(3)
 
 
 def get_gamelink_from_gameid(gameid):
