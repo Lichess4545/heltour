@@ -1997,7 +1997,7 @@ class RegistrationAdmin(_BaseAdmin):
     def get_search_fields(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ('lichess_username', 'email', 'season__name')
+            ('player__lichess_username', 'email', 'season__name')
         )
 
     def changelist_view(self, request, extra_context=None):
