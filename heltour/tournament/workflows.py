@@ -339,8 +339,7 @@ class ApproveRegistrationWorkflow():
 
     def __init__(self, reg, round_number=None):
         self.reg = reg
-        self.player = Player.objects.filter(
-            lichess_username__iexact=self.reg.lichess_username).first()
+        self.player = reg.player
         self.league = reg.season.league
         self.round_number = round_number
 

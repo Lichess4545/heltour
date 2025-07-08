@@ -12,6 +12,7 @@ from heltour.tournament.models import (
     PLAYER_NOTIFICATION_TYPES,
     GameNomination,
     ModRequest,
+    Player,
     PlayerNotificationSetting,
     Registration,
     Season,
@@ -46,9 +47,11 @@ class RegistrationForm(forms.ModelForm):
         self.season = kwargs.pop('season')
         
         self.username = kwargs.pop('user')
-        
+
+        self.player, created = Player.objects.get_or_create(lichess_username=self.username)
+
         already_accepted = SeasonPlayer.objects.filter(
-            season__in=self.season.section_list(), player__lichess_username=self.username).exists()
+            season__in=self.season.section_list(), player=self.player).exists()
         
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
@@ -57,7 +60,6 @@ class RegistrationForm(forms.ModelForm):
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
-        time_control = league.time_control
         # We do not want to ask about this anymore, it was decided that it is a useless question. Hide it for now.
         self.fields['can_commit'] = forms.TypedChoiceField(initial=True, widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Friends and avoid
@@ -173,7 +175,7 @@ class RegistrationForm(forms.ModelForm):
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
-        registration.lichess_username = str(self.username)
+        registration.player = self.player
 
         is_new = registration.pk is None
         fields_changed = set(self.changed_data) & {
@@ -187,7 +189,7 @@ class RegistrationForm(forms.ModelForm):
 
         if commit:
             registration.save()
-        registration.player().agreed_to_tos()
+        registration.player.agreed_to_tos()
         return registration
 
     def clean(self):

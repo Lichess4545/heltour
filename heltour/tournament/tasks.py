@@ -69,16 +69,15 @@ def active_player_usernames() -> List[str]:
     return to_usernames(just_username(active_qs))
 
 def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
-    active_regs = just_username(
-        Registration.objects.filter(
-            status__exact="pending", season__registration_open=True
-        ).exclude(lichess_username__in=without_usernames)
-    )
     _24_hours = timezone.now() - timedelta(hours=24)
-    reg_players = Player.objects.filter(
-        lichess_username__in=active_regs, date_modified__lte=_24_hours
-    ) # TODO: simplify this once Player is a foreign key of Registration
-    return to_usernames(just_username(reg_players))
+    reg_players = just_username(
+        Registration.objects.filter(
+            status__exact="pending",
+            season__registration_open=True,
+            player__date_modified__lte=_24_hours,
+        )
+    )
+    return to_usernames(reg_players)
 
 @app.task()
 def update_player_ratings(usernames: list[str] = []) -> None:

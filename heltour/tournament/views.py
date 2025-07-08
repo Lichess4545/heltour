@@ -1473,8 +1473,9 @@ class UserDashboardView(LeagueView):
         active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
                                              season__is_active=True)
 
-        approved = Registration.objects.filter(lichess_username=self.request.user.username, status='approved').exists()
-
+        approved = Registration.objects.filter(
+            player__lichess_username=self.request.user.username, status="approved"
+        ).exists()
 
         my_pairings = []
         for r in active_rounds:
