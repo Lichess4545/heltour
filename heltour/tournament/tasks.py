@@ -580,7 +580,7 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
 @receiver(signals.do_validate_registration, dispatch_uid="heltour.tournament.tasks")
 def do_validate_registration(regs: QuerySet[Registration], **kwargs) -> None:
     update_player_ratings(
-        usernames=list(regs.values_list("lichess_username", flat=True))
+        usernames=list(regs.values_list("player__lichess_username", flat=True))
     )
 
 
