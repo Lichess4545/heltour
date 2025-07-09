@@ -435,9 +435,21 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__str__', 'league',)
     list_display_links = ('__str__',)
     list_filter = ('league',)
-    actions = ["update_board_order_by_rating", "force_alternate_board_update", "recalculate_scores",
-               "verify_data", "review_nominated_games", "bulk_email", "team_spam", "mod_report",
-               "manage_players", "round_transition", "simulate_tournament", "create_broadcast"]
+    actions = [
+        "update_board_order_by_rating",
+        "force_alternate_board_update",
+        "recalculate_scores",
+        "verify_data",
+        "review_nominated_games",
+        "bulk_email",
+        "team_spam",
+        "mod_report",
+        "manage_players",
+        "round_transition",
+        "simulate_tournament",
+        "create_broadcast",
+        "update_broadcast",
+    ]
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -487,15 +499,41 @@ class SeasonAdmin(_BaseAdmin):
 
     def create_broadcast(self, request, queryset):
         if queryset.count() > 1:
-            self.message_user(request, "Can only create one broadcast at a time.", messages.ERROR)
+            self.message_user(
+                request, "Can only create one broadcast at a time.", messages.ERROR
+            )
+            return
         season = queryset[0]
         if not season.create_broadcast:
-            self.message_user(request, "create_broadcast is set to False for this season.", messages.ERROR)
-        if season.get_broadcast_id() is None:
+            self.message_user(
+                request,
+                "create_broadcast is set to False for this season.",
+                messages.ERROR,
+            )
+        elif season.get_broadcast_id() is None:
             signals.do_create_broadcast.send(sender=self.__class__, season=season)
             self.message_user(request, "Trying to create broadcast.", messages.INFO)
         else:
-            self.message_user(request, "A broadcast for this season already exists.", messages.ERROR)
+            self.message_user(
+                request, "A broadcast for this season already exists.", messages.ERROR
+            )
+
+    def update_broadcast(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(
+                request, "Can only update one broadcast at a time.", messages.ERROR
+            )
+            return
+        season = queryset[0]
+        if season.get_broadcast_id():
+            signals.do_update_broadcast.send(sender=self.__class__, season=season)
+            self.message_user(request, "Updating broadcast.", messages.INFO)
+        else:
+            self.message_user(
+                request,
+                "Could not find broadcast to update, create one first.",
+                messages.ERROR,
+            )
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
@@ -1353,7 +1391,12 @@ class SeasonAdmin(_BaseAdmin):
 @admin.register(Round)
 class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
-    actions = ['generate_pairings', 'simulate_results']
+    actions = [
+        "generate_pairings",
+        "simulate_results",
+        "create_broadcast_round",
+        "update_broadcast_round",
+    ]
     league_id_field = 'season__league_id'
     search_fields = ['season__tag']
 
@@ -1368,6 +1411,58 @@ class RoundAdmin(_BaseAdmin):
                 name='review_pairings'),
         ]
         return my_urls + urls
+
+    def create_broadcast_round(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(
+                request,
+                "Can only create one broadcast round at a time.",
+                messages.ERROR,
+            )
+            return
+        round_ = queryset[0]
+        if not round_.get_broadcast_id():
+            self.message_user(
+                request,
+                "Could not find broadcast for season, create it first.",
+                messages.ERROR,
+            )
+        elif round_.get_broadcast_round_id():
+            self.message_user(
+                request,
+                "A broadcast round for this round alrady exists.",
+                messages.ERROR,
+            )
+        else:
+            signals.do_create_broadcast_round.send(sender=self.__class__, round_=round_)
+            self.message_user(
+                request, "Trying to create broadcast round.", messages.INFO
+            )
+
+    def update_broadcast_round(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(
+                request,
+                "Can only update one broadcast round at a time.",
+                messages.ERROR,
+            )
+        round_ = queryset[0]
+        if not round_.get_broadcast_id():
+            self.message_user(
+                request,
+                "Could not find broadcast for season, create one first.",
+                messages.ERROR,
+            )
+            return
+        bcrid = round_.get_broadcast_round_id()
+        if not bcrid:
+            self.message_user(
+                request,
+                "Could not find broadcast round to update, create one first.",
+                messages.ERROR,
+            )
+        else:
+            signals.do_update_broadcast_round.send(sender=self.__class__, round_=round_)
 
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
