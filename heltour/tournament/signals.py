@@ -9,6 +9,7 @@ do_validate_registration = Signal()
 do_create_team_channel = Signal()
 do_update_broadcast_round = Signal()
 do_create_broadcast_round = Signal()
+do_update_broadcast = Signal()
 do_create_broadcast = Signal()
 
 # Signals that send notifications

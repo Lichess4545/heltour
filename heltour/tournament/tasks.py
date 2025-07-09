@@ -605,6 +605,14 @@ def do_create_broadcast(season: Season) -> None:
     bc.save()
 
 
+@app.task()
+def do_update_broadcast(season: Season) -> None:
+    bcid = season.get_broadcast_id()
+    if not season.create_broadcast or not bcid:
+        return
+    _create_or_update_broadcast(season=season, broadcast_id=bcid)
+
+
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
 
