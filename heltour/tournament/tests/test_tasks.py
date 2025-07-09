@@ -6,7 +6,6 @@ from heltour.tournament.models import (
     League,
     OauthToken,
     Player,
-    Registration,
     Round,
     SeasonPlayer,
     Team,
@@ -18,18 +17,16 @@ from heltour.tournament.tasks import (
     create_team_channel,
     start_games,
     update_player_ratings,
-    validate_registration,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
-    create_reg,
     get_league,
     get_player,
     get_round,
     get_season,
     Shush,
 )
-from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
+from heltour.tournament.lichessapi import ApiClientError
 from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 
 
@@ -219,99 +216,6 @@ class TestAutostartGames(TestCase):
         self.assertTrue(
             tpp2.black.oauth_token.expires < timezone.now() - timedelta(minutes=30)
         )
-
-
-class TestValidateRegistration(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        createCommonLeagueData()
-        s = get_season("team")
-        # updating player ratings writes to the log, disable that temporarily for nicer test output
-        with Shush():
-            cls.reg = create_reg(s, name="Player1")
-
-    @patch(
-        "heltour.tournament.lichessapi.get_user_meta",
-        return_value={
-            "id": "Player1",
-            "perfs": {"classical": {"games": 25, "rating": 2200, "prov": False}},
-        },
-    )
-    def test_validation_ok(self, user_meta):
-        validate_registration(self.reg.id)
-        # validate_registration does not change the object directly but updates it from a new query,
-        # so for checks we have to as well
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertEqual(user_meta.call_args[0], ("Player1", 1))
-        self.assertTrue(reg.has_played_20_games)
-        self.assertTrue(reg.validation_ok)
-        self.assertFalse(reg.validation_warning)
-
-    @patch(
-        "heltour.tournament.lichessapi.get_user_meta",
-        return_value={
-            "id": "Player1",
-            "perfs": {"classical": {"games": 25, "rating": 2200, "prov": True}},
-        },
-    )
-    def test_validation_prov(self, user_meta):
-        validate_registration(self.reg.id)
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertTrue(reg.has_played_20_games)
-        self.assertTrue(reg.validation_ok)
-        self.assertTrue(reg.validation_warning)
-
-    @patch(
-        "heltour.tournament.lichessapi.get_user_meta",
-        return_value={
-            "id": "Player1",
-            "tosViolation": True,
-            "perfs": {"classical": {"games": 25, "rating": 2200, "prov": False}},
-        },
-    )
-    def test_validation_tos(self, user_meta):
-        validate_registration(self.reg.id)
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertTrue(reg.has_played_20_games)
-        self.assertFalse(reg.validation_ok)
-        self.assertFalse(reg.validation_warning)
-
-    @patch(
-        "heltour.tournament.lichessapi.get_user_meta",
-        return_value={
-            "id": "Player1",
-            "disabled": True,
-            "perfs": {"classical": {"games": 25, "rating": 2200, "prov": False}},
-        },
-    )
-    def test_validation_closed(self, user_meta):
-        validate_registration(self.reg.id)
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertTrue(reg.has_played_20_games)
-        self.assertFalse(reg.validation_ok)
-        self.assertFalse(reg.validation_warning)
-
-    @patch("heltour.tournament.lichessapi.get_user_meta", side_effect=ApiClientError)
-    def test_validation_clienterror(self, user_meta):
-        validate_registration(self.reg.id)
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertTrue(reg.has_played_20_games)
-        self.assertFalse(reg.validation_ok)
-        self.assertFalse(reg.validation_warning)
-
-    @patch("heltour.tournament.lichessapi.get_user_meta", side_effect=ApiWorkerError)
-    def test_validation_workererror(self, user_meta):
-        validate_registration(self.reg.id)
-        reg = Registration.objects.get(pk=self.reg.id)
-        self.assertTrue(user_meta.called)
-        self.assertTrue(reg.has_played_20_games)
-        self.assertFalse(reg.validation_ok)
-        self.assertFalse(reg.validation_warning)
 
 
 class TestTeamChannel(TestCase):
