@@ -711,7 +711,6 @@ class Round(_BaseModel):
 
     publish_pairings = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
-    broadcast_rounds = models.JSONField(blank=True, null=True)
 
     class Meta:
         permissions = (
@@ -2944,14 +2943,15 @@ class Broadcast(_BaseModel):
     main_broadcast = models.BooleanField(default=True)
 
 class SubBroadcast(Broadcast):
-    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE, related_name="subbroadcasts")
 
     def save(self, *args, **kwargs):
-        self.broadcast.main_broadcast = False
-        self.broadcast.save()
+        self.main_broadcast = False
+        self.save()
         super(SubBroadcast, self).save(*args, **kwargs)
 
 class BroadcastRound(_BaseModel):
-    round_ = models.ForeignKey(Round, on_delete=models.CASCADE)
+    round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
     position = models.PositiveSmallIntegerField(default=0)
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
