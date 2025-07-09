@@ -6,7 +6,6 @@ from heltour.tournament.models import (
     League,
     OauthToken,
     Player,
-    Registration,
     Round,
     SeasonPlayer,
     Team,
@@ -21,14 +20,13 @@ from heltour.tournament.tasks import (
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
-    create_reg,
     get_league,
     get_player,
     get_round,
     get_season,
     Shush,
 )
-from heltour.tournament.lichessapi import ApiClientError, ApiWorkerError
+from heltour.tournament.lichessapi import ApiClientError
 from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 
 
