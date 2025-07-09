@@ -271,7 +271,6 @@ class Season(_BaseModel):
     nominations_open = models.BooleanField(default=False)
 
     create_broadcast = models.BooleanField(default=False)
-    broadcasts = models.JSONField(blank=True, null=True)
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
@@ -626,9 +625,12 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
-    def get_broadcast_id(self) -> str | None:
-        if self.broadcasts:
-            return self.broadcasts.get("tour").get("id")
+    def get_broadcast_id(self) -> str:
+        if self.create_broadcast:
+            bc = Broadcast.objects.filter(season=self, main_broadcast=True)
+            if bc.exists():
+                return bc[0].lichess_id
+        return ""
 
     @classmethod
     def get_registration_season(cls, league, season=None):
@@ -747,21 +749,16 @@ class Round(_BaseModel):
         return self.season.league.is_team_league()
 
     def get_broadcast_id(self) -> str:
-        if self.season.broadcasts is None:
-            return ""
-        return self.season.broadcasts.get("tour").get("id")
+        return self.season.get_broadcast_id()
 
     def get_broadcast_round_id(self) -> str:
-        if self.season.broadcasts is None:
+        if not self.season.get_broadcast_id():
             return ""
-        rounds = self.season.broadcasts.get("round")
-        if rounds is None:
+        bcr = BroadcastRound.objects.filter(round_=self)
+        if bcr.exists():
+            return bcr[0].lichess_id
+        else:
             return ""
-        for round_ in rounds:
-            if round_.get("name") == f"Round {self.number}":
-                return round_.get("id")
-        return ""
-
 
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -1540,6 +1537,8 @@ class PlayerPairing(_BaseModel):
     #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
     white_confirmed = models.BooleanField(default=False)
     black_confirmed = models.BooleanField(default=False)
+    # whether we added the game to a croadcast
+    broadcasted = models.BooleanField(default=False)
 
     colors_reversed = models.BooleanField(default=False)
 
@@ -2934,3 +2933,25 @@ class ModRequest(_BaseModel):
 
     def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
+
+
+class Broadcast(_BaseModel):
+    season = models.ForeignKey(
+        Season,
+        on_delete = models.CASCADE,
+    )
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    main_broadcast = models.BooleanField(default=True)
+
+class SubBroadcast(Broadcast):
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        self.broadcast.main_broadcast = False
+        self.broadcast.save()
+        super(SubBroadcast, self).save(*args, **kwargs)
+
+class BroadcastRound(_BaseModel):
+    round_ = models.ForeignKey(Round, on_delete=models.CASCADE)
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    position = models.PositiveSmallIntegerField(default=0)
