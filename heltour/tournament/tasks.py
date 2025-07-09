@@ -592,6 +592,7 @@ def do_create_broadcast_round(round_: Round) -> None:
     _create_or_update_broadcast(season=round_.season, broadcast_id=round_.get_broadcast_id())
     br = BroadcastRound.objects.create()
     br.lichess_id = _create_or_update_broadcast_round(round_=round_)
+    br.round_id = round_
     br.save()
 
 
