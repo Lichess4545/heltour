@@ -435,9 +435,9 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__str__', 'league',)
     list_display_links = ('__str__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores',
-               'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report',
-               'manage_players', 'round_transition', 'simulate_tournament']
+    actions = ["update_board_order_by_rating", "force_alternate_board_update", "recalculate_scores",
+               "verify_data", "review_nominated_games", "bulk_email", "team_spam", "mod_report",
+               "manage_players", "round_transition", "simulate_tournament", "create_broadcast"]
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -484,6 +484,18 @@ class SeasonAdmin(_BaseAdmin):
                 name='export_players'),
         ]
         return my_urls + urls
+
+    def create_broadcast(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, "Can only create one broadcast at a time.", messages.ERROR)
+        season = queryset[0]
+        if not season.create_broadcast:
+            self.message_user(request, "create_broadcast is set to False for this season.", messages.ERROR)
+        if season.get_broadcast_id() is None:
+            signals.do_create_broadcast.send(sender=self.__class__, season=season)
+            self.message_user(request, "Trying to create broadcast.", messages.INFO)
+        else:
+            self.message_user(request, "A broadcast for this season already exists.", messages.ERROR)
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
