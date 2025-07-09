@@ -31,6 +31,8 @@ from heltour.tournament import (
 )
 from heltour.tournament.models import (
     Alternate,
+    Broadcast,
+    BroadcastRound,
     LeagueChannel,
     LonePlayerPairing,
     Player,
@@ -499,20 +501,31 @@ def start_games():
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
+        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
+        signals.do_update_broadcast_round.send(sender="start_games", round_=round_)
     logger.info('[FINISHED] Done trying to start games.')
 
 
-# How late an event is allowed to run before it's discarded instead
-_max_lateness = timedelta(hours=1)
+def _create_team_string(season: Season) -> str:
+    if not season.league.is_team_league():
+        return ""
+    teams = Team.objects.filter(season=season)
+    lines = []
+    for team in teams:
+        for teamplayer in TeamMember.objects.filter(team=team):
+            # %3B = ';'
+            # %20 = ' '
+            lines.append(f"{team.name}%3B%20{teamplayer.player.lichess_username}")
+        # %0A = '\n'
+    return "%0A".join(lines)
 
 
-@app.task()
-def create_or_update_broadcast(season: Season, broadcast_id: str="", grouping: str="") -> dict|None:
+def _create_or_update_broadcast(*, season: Season, broadcast_id: str="", grouping: str="") -> str:
+    result = ""
     if season.league.is_team_league():
         format_ = "Team Swiss"
         teamTable = True
-        # TODO implement teams
-        teams = ""
+        teams = _create_team_string(season=season)
     else:
         format_ = "Swiss"
         teamTable = False
@@ -520,17 +533,20 @@ def create_or_update_broadcast(season: Season, broadcast_id: str="", grouping: s
     name = f"{season.league.name} S{season.tag}"
     tc = season.league.time_control.replace("+", "%2b")
     players = ""
-    markdown = f"This is the broadcast for season {season.tag} of the {season.league.name} league. This is a {season.league.rating_type} tournament with a {tc} time control, played exclusively on lichess. For more information or to sign up, go to https://lichess4545.com"
+    markdown = f"This is the broadcast for season {season.tag} of the {season.league.name} league, a {season.league.rating_type} tournament with a {tc} time control played exclusively on lichess. For more information or to sign up, visit [our website](https://lichess4545.com)."
     infoplayers = " ".join(SeasonPlayer.objects.filter(season=season).order_by("-player__rating").values_list("player__lichess_username", flat=True)[:4])
     try:
-        result = lichessapi.update_or_create_broadcast(broadcast_id=broadcast_id, name=name, nrounds=season.rounds, format_=format_, tc=tc, teamTable = teamTable, grouping = grouping, teams = teams, players = players, infoplayers = infoplayers, markdown=markdown)
-        return(result)
+        response = lichessapi.update_or_create_broadcast(broadcast_id=broadcast_id, name=name, nrounds=season.rounds, format_=format_, tc=tc, teamTable = teamTable, grouping = grouping, teams = teams, players = players, infoplayers = infoplayers, markdown=markdown)
+        dictresult = response.get("tour")
+        if dictresult is not None:
+            result = dictresult.get("id")
     except lichessapi.ApiWorkerError:
         logger.error(f"[ERROR] Failed to create or update broadcast for {season}.")
+    return result
 
 
-@app.task()
-def create_or_update_broadcast_round(round_: Round) -> dict|None:
+def _create_or_update_broadcast_round(round_: Round) -> str:
+    result = ""
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
     if round_.season.league.is_team_league():
         game_links_query = TeamPlayerPairing.objects.exclude(game_link="").filter(team_pairing__round=round_)
@@ -540,20 +556,56 @@ def create_or_update_broadcast_round(round_: Round) -> dict|None:
     for game in game_links_query:
         game_links.append(game.game_id())
     broadcast_round_id = round_.get_broadcast_round_id()
-    # logic could probably be simplified here
-    if not broadcast_round_id:
-        if round_.season.broadcasts is None:
-            round_.season.broadcasts = create_or_update_broadcast(season = round_.season)
-            round_.season.save()
-        broadcast_id = round_.get_broadcast_id()
-        try:
-            result = lichessapi.update_or_create_broadcast_round(broadcast_id = broadcast_id, round_number = round_.number, game_links=game_links, startsAt=startsAt)
-            return(result)
-        except lichessapi.ApiWorkerError:
-            logger.error(f"[ERROR] Failed to create or update broadcast for {round_}")
+    if broadcast_round_id:
+        broadcast_id = ""
     else:
-        result = lichessapi.update_or_create_broadcast_round(broadcast_round_id = broadcast_round_id, game_links=game_links, startsAt=startsAt)
-        return(result)
+        if round_.season.broadcasts is None:
+            bc = Broadcast.objects.create(season=round_.season)
+            bc.lichess_id = _create_or_update_broadcast(season = round_.season)
+            bc.save()
+        broadcast_id = round_.get_broadcast_id()
+    try:
+        response = lichessapi.update_or_create_broadcast_round(broadcast_id = broadcast_id, broadcast_round_id = broadcast_round_id, round_number = round_.number, game_links=game_links, startsAt=startsAt)
+        dictresult = response.get("round")
+        if dictresult is not None:
+            result = dictresult.get("id")
+    except lichessapi.ApiWorkerError:
+        logger.error(f"[ERROR] Failed to create or update broadcast for {round_}")
+    return result
+
+
+@app.task()
+def do_update_broadcast_round(round_: Round) -> None:
+    if not round_.season.create_broadcast:
+        return
+    if round_.season.league.is_team_league():
+        new_games = TeamPlayerPairing.objects.exclude(game_link="").filter(team_pairing__round=round_).exclude(broadcasted=True)
+    else:
+        new_games = LonePlayerPairing.objects.exclude(game_link="").filter(round=round_).exclude(broadcasted=True)
+    if new_games.exists():
+        _create_or_update_broadcast_round(round_=round_)
+
+@app.task()
+def do_create_broadcast_round(round_: Round) -> None:
+    if not round_.season.create_broadcast:
+        return
+    _create_or_update_broadcast(season=round_.season, broadcast_id=round_.get_broadcast_id())
+    br = BroadcastRound.objects.create()
+    br.lichess_id = _create_or_update_broadcast_round(round_=round_)
+    br.save()
+
+
+@app.task()
+def do_create_broadcast(season: Season) -> None:
+    if not season.create_broadcast:
+        return
+    bc = Broadcast.objects.create(season=season)
+    bc.lichess_id = _create_or_update_broadcast(season=season)
+    bc.save()
+
+
+# How late an event is allowed to run before it's discarded instead
+_max_lateness = timedelta(hours=1)
 
 
 @app.task()
@@ -700,6 +752,8 @@ def pairings_published(round_id, overwrite=False):
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
     signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
+    if season.create_broadcast:
+        signals.do_create_broadcast_round.send(sender=pairings_published, round_=round_)
 
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
