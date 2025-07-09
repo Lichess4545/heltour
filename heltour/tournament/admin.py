@@ -510,13 +510,13 @@ class SeasonAdmin(_BaseAdmin):
                 "create_broadcast is set to False for this season.",
                 messages.ERROR,
             )
-        elif season.get_broadcast_id() is None:
-            signals.do_create_broadcast.send(sender=self.__class__, season=season)
-            self.message_user(request, "Trying to create broadcast.", messages.INFO)
-        else:
+        elif season.get_broadcast_id():
             self.message_user(
                 request, "A broadcast for this season already exists.", messages.ERROR
             )
+        else:
+            signals.do_create_broadcast.send(sender=self.__class__, season=season)
+            self.message_user(request, "Trying to create broadcast.", messages.INFO)
 
     def update_broadcast(self, request, queryset):
         if queryset.count() > 1:
