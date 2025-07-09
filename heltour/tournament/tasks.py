@@ -44,7 +44,6 @@ from heltour.tournament.models import (
     TeamMember,
     TeamPlayerPairing,
     abs_url,
-    add_system_comment,
     get_gameid_from_gamelink,
     get_gamelink_from_gameid,
     logger,
@@ -70,14 +69,17 @@ def active_player_usernames() -> List[str]:
 
 def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
     _24_hours = timezone.now() - timedelta(hours=24)
-    reg_players = just_username(
+    active_regs = (
         Registration.objects.filter(
             status__exact="pending",
             season__registration_open=True,
             player__date_modified__lte=_24_hours,
         )
+        .exclude(player__lichess_username__in=without_usernames)
+        .values_list("player")
     )
-    return to_usernames(reg_players)
+    reg_players = Player.objects.filter(pk__in=active_regs)
+    return to_usernames(just_username(reg_players))
 
 @app.task()
 def update_player_ratings(usernames: list[str] = []) -> None:
