@@ -44,6 +44,7 @@ from heltour.tournament.models import (
     ScheduledNotification,
     Season,
     SeasonPlayer,
+    SubBroadcast,
     Team,
     TeamMember,
     TeamPlayerPairing,
@@ -587,9 +588,24 @@ def do_update_broadcast_round(round_: Round) -> None:
 
 @app.task()
 def do_create_broadcast_round(round_: Round) -> None:
+    MAX_GAMES_LICHESSAPI: int = 64 # set by lichess
     if not round_.season.create_broadcast:
         return
-    _create_or_update_broadcast(season=round_.season, broadcast_id=round_.get_broadcast_id())
+    grouping = ""
+    broadcast = Broadcast.objects.get(season=round_.season, main_broadcast=True)
+    broadcast_id = broadcast.lichess_id
+    subbroadcasts = SubBroadcast.objects.filter(season=round_.season)
+    teamsize = 1
+    if round_.get_league().is_team_leaue():
+        pairingcount = TeamPlayerPairing.objects.filter(teampairing__round=round_).count()
+        teamsize = round_.get_league().boards
+    else:
+        pairingcount = LonePlayerPairing.objects.filter(round=round_).count()
+    if pairingcount > len(subbroadcasts)*MAX_GAMES_LICHESSAPI:
+        _create_or_update_broadcast(season=round_.season)
+
+
+    _create_or_update_broadcast(season=round_.season, broadcast_id=broadcast_id)
     br = BroadcastRound.objects.create()
     br.lichess_id = _create_or_update_broadcast_round(round_=round_)
     br.round_id = round_
