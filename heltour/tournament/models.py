@@ -625,11 +625,11 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
-    def get_broadcast_id(self) -> str:
+    def get_broadcast_id(self, lowest_board: int=1) -> str:
         if self.create_broadcast:
-            bc = Broadcast.objects.filter(season=self, main_broadcast=True)
+            bc = Broadcast.objects.get(season=self, lowest_board=lowest_board)
             if bc.exists():
-                return bc[0].lichess_id
+                return bc.lichess_id
         return ""
 
     @classmethod
@@ -747,15 +747,16 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
-    def get_broadcast_id(self) -> str:
-        return self.season.get_broadcast_id()
+    def get_broadcast_id(self, lowest_board: int=1) -> str:
+        return self.season.get_broadcast_id(lowest_board=lowest_board)
 
-    def get_broadcast_round_id(self) -> str:
+    def get_broadcast_round_id(self, lowest_board: int=1) -> str:
         if not self.season.get_broadcast_id():
             return ""
-        bcr = BroadcastRound.objects.filter(round_=self)
+        bc = Broadcast.objects.get(season=self.season, lowest_board=lowest_board)
+        bcr = BroadcastRound.objects.get(broadcast=bc, round=self)
         if bcr.exists():
-            return bcr[0].lichess_id
+            return bcr.lichess_id
         else:
             return ""
 
@@ -2935,23 +2936,24 @@ class ModRequest(_BaseModel):
 
 
 class Broadcast(_BaseModel):
-    season = models.ForeignKey(
-        Season,
-        on_delete = models.CASCADE,
-    )
+    season = models.ForeignKey(Season, on_delete = models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
-    main_broadcast = models.BooleanField(default=True)
+    lowest_board = models.PositiveSmallIntegerField(default=1)
 
-class SubBroadcast(Broadcast):
-    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE, related_name="subbroadcasts")
+    class Meta:
+        unique_together = ["season", "lowest_board"]
+        ordering = ["season", "lowest_board"]
 
-    def save(self, *args, **kwargs):
-        self.main_broadcast = False
-        self.save()
-        super(SubBroadcast, self).save(*args, **kwargs)
 
 class BroadcastRound(_BaseModel):
     round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
-    position = models.PositiveSmallIntegerField(default=0)
     broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = ["broadcast", "round_id"]
+        ordering = ["broadcast", "round_id"]
+
+    @property
+    def lowest_board(self):
+        return self.broadcast.lowest_board
