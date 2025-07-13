@@ -1,0 +1,8 @@
+FROM base
+
+# Set environment
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=heltour.settings
+
+# Start Celery worker
+CMD ["celery", "-A", "heltour", "worker", "-l", "info", "-E"]

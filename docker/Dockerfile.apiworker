@@ -1,0 +1,10 @@
+FROM base
+
+# Expose port
+EXPOSE 8880
+
+# Set environment
+ENV PYTHONUNBUFFERED=1
+
+# Start API worker
+CMD ["python", "api_worker.py"]

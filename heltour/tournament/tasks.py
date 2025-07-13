@@ -17,7 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django_stubs_ext import ValuesQuerySet
 
-from heltour import settings
+from django.conf import settings
 from heltour.celery import app
 from heltour.tournament import (
     alternates_manager,

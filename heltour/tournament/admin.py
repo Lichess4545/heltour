@@ -34,7 +34,7 @@ from django.utils.safestring import mark_safe
 from django_comments.models import Comment
 from reversion.admin import VersionAdmin
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import (
     forms,
     lichessapi,

@@ -1,0 +1,53 @@
+FROM base AS redis-server
+
+# Switch to root temporarily to install Redis and create directories
+USER root
+
+# Install Redis server for tests
+RUN apt-get update && apt-get install -y redis-server && rm -rf /var/lib/apt/lists/*
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R litour:litour /app/logs
+
+# Create a simple Redis config for tests
+RUN echo "port 6379\nbind 127.0.0.1\ndaemonize yes\nlogfile /tmp/redis.log" > /tmp/redis.conf && \
+    chown litour:litour /tmp/redis.conf
+
+# Switch back to non-root user
+USER litour
+
+FROM redis-server AS verify
+# Set environment for testing
+ENV DJANGO_SETTINGS_MODULE=heltour.test_settings \
+    PYTHONUNBUFFERED=1 \
+    DEBUG=False \
+    ALLOWED_HOSTS=* \
+    DATABASE_URL=sqlite:///db.sqlite3 \
+    REDIS_URL=redis://localhost:6379/0 \
+    REDIS_HOST=localhost \
+    REDIS_PORT=6379 \
+    REDIS_DB=0 \
+    CACHEOPS_REDIS_DB=1 \
+    LOG_FILE=/app/logs/test.log \
+    CSRF_TRUSTED_ORIGINS=http://localhost:8000 \
+    LINK_PROTOCOL=http \
+    EMAIL_PORT=1025 \
+    EMAIL_USE_TLS=False \
+    HELTOUR_ENV=test \
+    CELERY_DEFAULT_QUEUE=litour-{} \
+    LICHESS_OAUTH_CLIENTID=lots-lichess-ca-dev \
+    LICHESS_DOMAIN=https://lichess.org/ \
+    LICHESS_NAME=lichess \
+    LICHESS_TOPLEVEL=org \
+    LICHESS_OAUTH_REDIRECT_SCHEME=http \
+    SLACK_ANNOUNCE_CHANNEL=test \
+    SLACK_TEAM_ID=test \
+    CHESSTER_USER_ID=test
+
+# Run tests as part of the build
+RUN redis-server /tmp/redis.conf && \
+    sleep 1 && \
+    python manage.py test --settings=heltour.test_settings --failfast || (echo "Tests failed" && exit 1)
+
+# This image is only for verification, not for running
+CMD ["echo", "Verification complete"]

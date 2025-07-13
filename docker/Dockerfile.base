@@ -1,0 +1,38 @@
+FROM python:3.11-slim-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up non-root user
+RUN useradd -m -u 1000 litour
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Install Poetry
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry
+
+# Install Python dependencies
+RUN poetry install --no-root --only main
+
+# Copy application code
+COPY --chown=litour:litour . .
+
+# Install the application
+RUN poetry install --only main
+
+# Switch to non-root user
+USER litour

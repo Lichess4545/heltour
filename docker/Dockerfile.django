@@ -1,0 +1,24 @@
+FROM base
+
+# Expose port
+EXPOSE 8000
+
+# Set environment for Django
+ENV DJANGO_SETTINGS_MODULE=heltour.settings \
+    PYTHONUNBUFFERED=1
+
+# Run collectstatic
+USER root
+RUN python manage.py collectstatic --noinput || true
+USER litour
+
+# Start Gunicorn
+CMD ["gunicorn", "heltour.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--threads", "2", \
+     "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--log-file", "-", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]
