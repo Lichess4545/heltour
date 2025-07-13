@@ -104,6 +104,11 @@ THEME_OPTIONS = (
     ('green', 'Green'),
     ('red', 'Red'),
     ('yellow', 'Yellow'),
+    ('purple', 'Purple'),
+    ('orange', 'Orange'),
+    ('teal', 'Teal'),
+    ('pink', 'Pink'),
+    ('brown', 'Brown'),
 )
 RATING_TYPE_OPTIONS = (
     ('classical', 'Classical'),

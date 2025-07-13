@@ -30,12 +30,10 @@ class RoundSeeder(BaseSeeder):
 
             # Set round states based on season state
             if season.is_completed or round_obj.end_date < timezone.now():
-                print("Round is completed!!!")
                 round_obj.is_completed = True
                 round_obj.publish_pairings = True
             elif round_obj.start_date < timezone.now():
                 round_obj.publish_pairings = True
-                print("Round is not completed but started!!!")
             round_obj.save()
 
         return rounds

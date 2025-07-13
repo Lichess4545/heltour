@@ -24,8 +24,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--leagues",
             type=int,
-            default=2,
-            help="Number of leagues to create (default: 2)",
+            default=5,
+            help="Number of leagues to create (default: 5)",
         )
         parser.add_argument(
             "--players",
@@ -58,7 +58,7 @@ class Command(BaseCommand):
                 80  # Enough for many teams (8 rounds * 2 * 4 boards = 64 minimum)
             )
         elif options["full"]:
-            num_leagues = 4
+            num_leagues = 5  # All 5 color schemes
             num_players = 100
         else:
             num_leagues = options["leagues"]
