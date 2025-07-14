@@ -627,9 +627,9 @@ class Season(_BaseModel):
 
     def get_broadcast_id(self, lowest_board: int=1) -> str:
         if self.create_broadcast:
-            bc = Broadcast.objects.get(season=self, lowest_board=lowest_board)
+            bc = Broadcast.objects.filter(season=self, lowest_board=lowest_board)
             if bc.exists():
-                return bc.lichess_id
+                return bc[0].lichess_id
         return ""
 
     @classmethod
@@ -754,9 +754,9 @@ class Round(_BaseModel):
         if not self.season.get_broadcast_id():
             return ""
         bc = Broadcast.objects.get(season=self.season, lowest_board=lowest_board)
-        bcr = BroadcastRound.objects.get(broadcast=bc, round=self)
+        bcr = BroadcastRound.objects.filter(broadcast=bc, round=self)
         if bcr.exists():
-            return bcr.lichess_id
+            return bcr[0].lichess_id
         else:
             return ""
 
