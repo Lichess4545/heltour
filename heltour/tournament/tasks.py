@@ -56,7 +56,7 @@ from heltour.tournament.models import (
 from heltour.tournament.workflows import RoundTransitionWorkflow
 
 # see https://lichess.org/api#tag/Broadcasts/operation/broadcastRoundUpdate for game ids
-MAX_GAMES_LICHESS_BROADCAST: int = 64 
+MAX_GAMES_LICHESS_BROADCAST: int = 12
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
@@ -576,7 +576,9 @@ def _create_or_update_broadcast(
             infoplayers = infoplayers,
             markdown=markdown
         )
+        print("response: ", response)
         dictresult = response.get("tour")
+        print("dictresult: ", dictresult)
         if dictresult is not None:
             result = dictresult.get("id")
     except lichessapi.ApiWorkerError:
@@ -584,29 +586,31 @@ def _create_or_update_broadcast(
     return result
 
 
-def _create_or_update_broadcast_round(round_: Round) -> str:
+def _create_or_update_broadcast_round(round_: Round, lowest_board: int=1) -> str:
     result = ""
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
     if round_.is_team_league():
-        game_links_query = TeamPlayerPairing.objects.exclude(game_link="").filter(
+        games_query = TeamPlayerPairing.objects.filter(
             team_pairing__round=round_
-        ).order_by("team_pairing__pairing_order", "board_number")
+            ).order_by("team_pairing__pairing_order", "board_number")[(lowest_board - 1):(lowest_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
     else:
-        game_links_query = LonePlayerPairing.objects.exclude(game_link="").filter(
+        games_query = LonePlayerPairing.objects.filter(
             round=round_
-        ).order_by("pairing_order")
+        ).order_by("pairing_order")[(lowest_board - 1):(lowest_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
+
     game_links = []
-    for game in game_links_query:
-        game_links.append(game.game_id())
-    broadcast_round_id = round_.get_broadcast_round_id()
+    for game in games_query:
+        if game.game_link:
+            game_links.append(game.game_id())
+    broadcast_round_id = round_.get_broadcast_round_id(lowest_board=lowest_board)
     if broadcast_round_id:
         broadcast_id = ""
     else:
-        if round_.season.broadcasts is None:
-            bc = Broadcast.objects.create(season=round_.season)
-            bc.lichess_id = _create_or_update_broadcast(season = round_.season)
-            bc.save()
-        broadcast_id = round_.get_broadcast_id()
+        broadcast_id = round_.get_broadcast_id(lowest_board=lowest_board)
+        if not broadcast_id:
+            logger.error(
+                f"[ERROR] trying to create {round_} for non-existent season broadcast."
+            )
     try:
         response = lichessapi.update_or_create_broadcast_round(
             broadcast_id=broadcast_id,
@@ -615,7 +619,9 @@ def _create_or_update_broadcast_round(round_: Round) -> str:
             game_links=game_links,
             startsAt=startsAt,
         )
+        print("round response:", response)
         dictresult = response.get("round")
+        print("round dictresult:", dictresult)
         if dictresult is not None:
             result = dictresult.get("id")
     except lichessapi.ApiWorkerError:
@@ -656,7 +662,7 @@ def do_create_broadcast_round(round_: Round) -> None:
     else:
         pairingcount = LonePlayerPairing.objects.filter(round=round_).count()
     while pairingcount > broadcasts_count*max_games:
-        broadcast = _create_or_update_broadcast(season=round_.season)
+        broadcast = _create_or_update_broadcast(season=round_.season, lowest_board=broadcasts_count*max_games+1)
         Broadcast.objects.create(
             season=round_.season,
             lichess_id=broadcast,
@@ -672,10 +678,11 @@ def do_create_broadcast_round(round_: Round) -> None:
             broadcast_id=bc.lichess_id,
             grouping=grouping
         )
-    br = BroadcastRound.objects.create()
-    br.lichess_id = _create_or_update_broadcast_round(round_=round_)
-    br.round_id = round_
-    br.save()
+        broadcastround = _create_or_update_broadcast_round(round_=round_)
+        br = BroadcastRound.objects.create()
+        br.lichess_id = broadcastround
+        br.round_id = round_
+        br.save()
 
 
 @app.task()
