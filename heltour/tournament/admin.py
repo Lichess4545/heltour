@@ -56,6 +56,7 @@ from heltour.tournament.models import (
     Document,
     GameNomination,
     GameSelection,
+    InviteCode,
     League,
     LeagueChannel,
     LeagueDocument,
@@ -437,7 +438,7 @@ class SeasonAdmin(_BaseAdmin):
     list_filter = ('league',)
     actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores',
                'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report',
-               'manage_players', 'round_transition', 'simulate_tournament']
+               'manage_players', 'round_transition', 'simulate_tournament', 'generate_invite_codes']
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -482,6 +483,9 @@ class SeasonAdmin(_BaseAdmin):
             path('<int:object_id>/export_players/',
                 self.admin_site.admin_view(self.export_players_view),
                 name='export_players'),
+            path('<int:object_id>/generate_invite_codes/',
+                self.admin_site.admin_view(self.generate_invite_codes_view),
+                name='generate_invite_codes'),
         ]
         return my_urls + urls
 
@@ -1336,6 +1340,68 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/manage_lone_players.html', context)
+
+    def generate_invite_codes(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, 'Invite codes can only be generated for one season at a time.',
+                              messages.ERROR)
+            return
+        season = queryset[0]
+        if season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            self.message_user(request, 'This league is not configured as invite-only.',
+                              messages.ERROR)
+            return
+        return redirect('admin:generate_invite_codes', object_id=season.pk)
+
+    def generate_invite_codes_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm('tournament.manage_players', season.league):
+            raise PermissionDenied
+        
+        if season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            messages.error(request, 'This league is not configured as invite-only.')
+            return redirect('admin:tournament_season_changelist')
+        
+        # Get existing invite codes statistics
+        existing_codes = InviteCode.objects.filter(league=season.league, season=season)
+        total_codes = existing_codes.count()
+        used_codes = existing_codes.filter(used_by__isnull=False).count()
+        available_codes = total_codes - used_codes
+        
+        if request.method == 'POST':
+            try:
+                count = int(request.POST.get('count', 0))
+                if count <= 0:
+                    messages.error(request, 'Please enter a positive number of codes to generate.')
+                elif count > 10000:
+                    messages.error(request, 'Cannot generate more than 10,000 codes at once.')
+                else:
+                    # Generate the codes
+                    codes = InviteCode.create_batch(
+                        league=season.league,
+                        season=season,
+                        count=count,
+                        created_by=request.user
+                    )
+                    messages.success(request, f'Successfully generated {len(codes)} invite codes.')
+                    return redirect('admin:tournament_invitecode_changelist')
+            except ValueError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f'Error generating codes: {str(e)}')
+        
+        context = {
+            'has_permission': True,
+            'opts': self.model._meta,
+            'site_url': '/',
+            'original': season,
+            'title': f'Generate Invite Codes for {season}',
+            'total_codes': total_codes,
+            'used_codes': used_codes,
+            'available_codes': available_codes,
+        }
+        
+        return render(request, 'tournament/admin/generate_invite_codes.html', context)
 
 
 @admin.register(Round)
@@ -2246,6 +2312,42 @@ class InSlackFilter(SimpleListFilter):
         if self.value() == '1':
             return queryset.exclude(player__slack_user_id='')
         return queryset
+
+
+# -------------------------------------------------------------------------------
+@admin.register(InviteCode)
+class InviteCodeAdmin(_BaseAdmin):
+    list_display = ('code', 'league', 'season', 'status', 'used_by', 'used_at', 'created_by', 'created_at')
+    list_filter = ('league', 'season', 'used_at')
+    search_fields = ('code', 'used_by__lichess_username', 'notes')
+    readonly_fields = ('used_by', 'used_at', 'created_at', 'modified_at')
+    raw_id_fields = ('used_by', 'created_by')
+    autocomplete_fields = ('used_by',)
+    league_id_field = 'league_id'
+    
+    def status(self, obj):
+        if obj.used_by:
+            return format_html('<span style="color: red;">Used</span>')
+        else:
+            return format_html('<span style="color: green;">Available</span>')
+    status.short_description = 'Status'
+    
+    def get_fields(self, request, obj=None):
+        if obj is None:  # Creating new invite code
+            return ('league', 'season', 'code', 'notes')
+        else:  # Editing existing invite code
+            return ('league', 'season', 'code', 'used_by', 'used_at', 'created_by', 'created_at', 'modified_at', 'notes')
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # If creating new invite code
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    def has_delete_permission(self, request, obj=None):
+        # Don't allow deletion of used invite codes
+        if obj and obj.used_by:
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 # -------------------------------------------------------------------------------

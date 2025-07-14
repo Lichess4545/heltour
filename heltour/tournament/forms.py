@@ -11,9 +11,11 @@ from heltour.tournament.models import (
     ALTERNATE_PREFERENCE_OPTIONS,
     PLAYER_NOTIFICATION_TYPES,
     GameNomination,
+    InviteCode,
     ModRequest,
     PlayerNotificationSetting,
     Registration,
+    RegistrationMode,
     Season,
     SeasonPlayer,
     Section,
@@ -52,6 +54,18 @@ class RegistrationForm(forms.ModelForm):
         
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
+
+        # Add invite code field if league is invite-only
+        if league.registration_mode == RegistrationMode.INVITE_ONLY:
+            self.fields['invite_code'] = forms.CharField(
+                required=True,
+                label=_('Invite Code'),
+                help_text=_('Please enter the invite code you received'),
+                max_length=50
+            )
+            # Move invite_code to the beginning of the field order
+            field_order = ['invite_code'] + [f for f in self.fields if f != 'invite_code']
+            self.fields = {k: self.fields[k] for k in field_order}
 
         # Rating fields
         # 20 games
@@ -185,8 +199,17 @@ class RegistrationForm(forms.ModelForm):
         if is_new or fields_changed:
             registration.status = "pending"
 
+        # Handle invite code for invite-only leagues
+        if hasattr(self, 'invite_code_obj') and self.invite_code_obj:
+            registration.invite_code_used = self.invite_code_obj
+
         if commit:
             registration.save()
+            # Mark the invite code as used after saving the registration
+            if hasattr(self, 'invite_code_obj') and self.invite_code_obj:
+                player = registration.player()
+                self.invite_code_obj.mark_used(player)
+                
         registration.player().agreed_to_tos()
         return registration
 
@@ -222,6 +245,26 @@ class RegistrationForm(forms.ModelForm):
         if self.cleaned_data['section_preference'] == '':
             return None
         return Section.objects.get(pk=int(self.cleaned_data['section_preference']))
+    
+    def clean_invite_code(self):
+        """Validate the invite code for invite-only leagues."""
+        if self.season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            return None
+            
+        code = self.cleaned_data.get('invite_code', '').strip()
+        if not code:
+            raise ValidationError(_('Invite code is required for this league.'))
+        
+        # Look up the invite code (case-insensitive)
+        invite_code = InviteCode.get_by_code(code, self.season.league, self.season)
+        
+        # Generic error message to avoid leaking information
+        if not invite_code or (invite_code.used_by and invite_code.used_by.lichess_username != self.username):
+            raise ValidationError(_('Invalid or already used invite code.'))
+        
+        # Store the invite code object for use in save()
+        self.invite_code_obj = invite_code
+        return code
 
 
 class ReviewRegistrationForm(forms.Form):

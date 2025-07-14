@@ -1,0 +1,44 @@
+{% extends "tournament/admin/custom_edit_workflow.html" %}
+{% block content %}
+    <div class="module">
+        <h2>Current Invite Code Statistics</h2>
+        <table>
+            <tr>
+                <td><strong>Total codes generated:</strong></td>
+                <td>{{ total_codes }}</td>
+            </tr>
+            <tr>
+                <td><strong>Codes used:</strong></td>
+                <td>{{ used_codes }}</td>
+            </tr>
+            <tr>
+                <td><strong>Codes available:</strong></td>
+                <td>{{ available_codes }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="aligned">
+            <div class="form-row">
+                <label for="id_count">Number of codes to generate:</label>
+                <input type="number" name="count" id="id_count" min="1" max="10000" value="10" required>
+                <p class="help">Enter the number of invite codes to generate (1-10,000)</p>
+            </div>
+        </div>
+        <div class="submit-row">
+            <input class="default" value="Generate Codes" name="submit" type="submit">
+        </div>
+    </form>
+    
+    <div class="module">
+        <h3>Notes:</h3>
+        <ul>
+            <li>Each code will be in the format: word1-word2-XXXXXXXX (e.g., eagle-storm-A7B9C2D4)</li>
+            <li>Codes are case-insensitive when entered by users</li>
+            <li>Each code can only be used once</li>
+            <li>After generation, you can view and manage all codes in the <a href="{% url 'admin:tournament_invitecode_changelist' %}">Invite Codes admin</a></li>
+        </ul>
+    </div>
+{% endblock %}

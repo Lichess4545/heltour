@@ -12,7 +12,7 @@ from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import connection, models, transaction
-from django.db.models import JSONField, Q
+from django.db.models import JSONField, Q, TextChoices
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django_comments.models import Comment
@@ -122,6 +122,12 @@ PAIRING_TYPE_OPTIONS = (
 
 
 # -------------------------------------------------------------------------------
+class RegistrationMode(models.TextChoices):
+    OPEN = 'open', 'Open/Established Rating'
+    INVITE_ONLY = 'invite_only', 'Invite By Code'
+
+
+# -------------------------------------------------------------------------------
 class League(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     tag = models.SlugField(unique=True, help_text='The league will be accessible at /{league_tag}/')
@@ -135,6 +141,12 @@ class League(_BaseModel):
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
     enable_notifications = models.BooleanField(default=False)
+    registration_mode = models.CharField(
+        max_length=20,
+        choices=RegistrationMode.choices,
+        default=RegistrationMode.OPEN,
+        help_text='Controls how players can register for this league'
+    )
 
     class Meta:
         permissions = (
@@ -169,6 +181,9 @@ class League(_BaseModel):
         
     def is_team_league(self):
         return self.competitor_type == 'team'
+    
+    def is_invite_only(self):
+        return self.registration_mode == RegistrationMode.INVITE_ONLY
 
     def get_active_players(self):
         def loneteam_query() -> str:
@@ -1831,6 +1846,118 @@ class LonePlayerPairing(PlayerPairing):
         self.black_rank = rank_dict.get(self.black_id, None)
 
 
+# -------------------------------------------------------------------------------
+class InviteCode(_BaseModel):
+    league = models.ForeignKey('League', on_delete=models.CASCADE, related_name='invite_codes')
+    season = models.ForeignKey('Season', on_delete=models.CASCADE, related_name='invite_codes')
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    used_by = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='used_invite_codes')
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='created_invite_codes')
+    notes = models.TextField(blank=True, help_text='Internal notes about this invite code')
+    
+    class Meta:
+        unique_together = [['league', 'season', 'code']]
+        indexes = [
+            models.Index(fields=['league', 'season', 'used_by']),
+        ]
+        verbose_name = 'Invite Code'
+        verbose_name_plural = 'Invite Codes'
+    
+    def __str__(self):
+        status = "used" if self.used_by else "available"
+        return f"{self.code} ({status})"
+    
+    def is_available(self):
+        return self.used_by is None
+    
+    def mark_used(self, player):
+        """Mark this code as used by the specified player."""
+        if not self.is_available() and self.used_by != player:
+            raise ValueError(f"Invite code {self.code} has already been used by another player.")
+        self.used_by = player
+        self.used_at = timezone.now()
+        self.save()
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure codes are stored in uppercase for case-insensitive comparison."""
+        if self.code:
+            self.code = self.code.upper()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_by_code(cls, code, league, season):
+        """Get an invite code by its code value (case-insensitive)."""
+        if not code:
+            return None
+        return cls.objects.filter(
+            code__iexact=code,
+            league=league,
+            season=season
+        ).first()
+    
+    @classmethod
+    def generate_code(cls):
+        """Generate a cryptographically secure invite code with dictionary words and random characters."""
+        import secrets
+        
+        # Simple word list for easy typing
+        words = [
+            'alpha', 'brave', 'chess', 'delta', 'eagle', 'flame', 'giant', 'happy',
+            'ivory', 'joker', 'knight', 'laser', 'magic', 'noble', 'ocean', 'panda',
+            'queen', 'rapid', 'storm', 'tiger', 'ultra', 'vivid', 'whale', 'xenon',
+            'youth', 'zebra', 'amber', 'blade', 'comet', 'drift', 'ember', 'frost'
+        ]
+        
+        # Generate code: word1-word2-XXXXXXXX where X is alphanumeric
+        word1 = secrets.choice(words)
+        word2 = secrets.choice(words)
+        # Use Django's get_random_string for the suffix
+        suffix = get_random_string(8, allowed_chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+        
+        return f"{word1}-{word2}-{suffix}"
+    
+    @classmethod
+    def create_batch(cls, league, season, count, created_by):
+        """Create a batch of invite codes for a league/season."""
+        with transaction.atomic():
+            # Lock the league to prevent concurrent batch creation
+            League.objects.select_for_update().get(pk=league.pk)
+            
+            # Get all existing codes in one query to avoid collisions (case-insensitive)
+            existing_codes = set(code.upper() for code in cls.objects.values_list('code', flat=True))
+            
+            # Generate unique codes using a set for O(1) lookups
+            new_codes = set()
+            attempts = 0
+            max_attempts = count * 100  # Reasonable upper bound
+            
+            while len(new_codes) < count and attempts < max_attempts:
+                attempts += 1
+                code = cls.generate_code()
+                # Check case-insensitively
+                if code.upper() not in existing_codes and code.upper() not in new_codes:
+                    new_codes.add(code.upper())
+            
+            if len(new_codes) < count:
+                raise ValueError(f"Could not generate {count} unique codes after {attempts} attempts.")
+            
+            # Bulk create the invite code objects
+            invite_codes = [
+                cls(
+                    league=league,
+                    season=season,
+                    code=code,
+                    created_by=created_by
+                )
+                for code in new_codes
+            ]
+            
+            return cls.objects.bulk_create(invite_codes)
+
+
 REGISTRATION_STATUS_OPTIONS = (
     ('pending', 'Pending'),
     ('approved', 'Approved'),
@@ -1863,6 +1990,8 @@ class Registration(_BaseModel):
     section_preference = models.ForeignKey(Section, on_delete=models.SET_NULL, blank=True,
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
+    invite_code_used = models.ForeignKey(InviteCode, on_delete=models.SET_NULL, blank=True,
+                                         null=True, related_name='registrations')
 
     validation_ok = models.BooleanField(blank=True, null=True, default=None)
     validation_warning = models.BooleanField(default=False)
