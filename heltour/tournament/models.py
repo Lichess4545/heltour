@@ -754,7 +754,7 @@ class Round(_BaseModel):
         if not self.season.get_broadcast_id():
             return ""
         bc = Broadcast.objects.get(season=self.season, lowest_board=lowest_board)
-        bcr = BroadcastRound.objects.filter(broadcast=bc, round=self)
+        bcr = BroadcastRound.objects.filter(broadcast=bc, round_id=self)
         if bcr.exists():
             return bcr[0].lichess_id
         else:
