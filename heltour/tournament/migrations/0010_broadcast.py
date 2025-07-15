@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ("date_created", models.DateTimeField(auto_now_add=True)),
                 ("date_modified", models.DateTimeField(auto_now=True)),
                 ("lichess_id", models.SlugField(blank=True, max_length=10)),
-                ("lowest_board", models.PositiveSmallIntegerField(default=1)),
+                ("first_board", models.PositiveSmallIntegerField(default=1)),
                 (
                     "season",
                     models.ForeignKey(
@@ -45,8 +45,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "ordering": ["season", "lowest_board"],
-                "unique_together": {("season", "lowest_board")},
+                "ordering": ["season", "first_board"],
+                "unique_together": {("season", "first_board")},
             },
         ),
         migrations.CreateModel(
