@@ -533,9 +533,9 @@ def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> s
 def _create_or_update_broadcast(
     *,
     season: Season,
-    broadcast_id: str="",
-    grouping: str="",
-    first_board: int=1,
+    broadcast_id: str = "",
+    grouping: str = "",
+    first_board: int = 1,
 ) -> str:
     result = ""
     if season.league.is_team_league():
@@ -563,9 +563,11 @@ def _create_or_update_broadcast(
         "played exclusively on lichess. For more information or to sign up, visit "
         "[our website](https://lichess4545.com)."
     )
-    infoplayers = " ".join(SeasonPlayer.objects.filter(season=season).order_by(
-        "-player__rating"
-    ).values_list("player__lichess_username", flat=True)[:4])
+    infoplayers = " ".join(
+        SeasonPlayer.objects.filter(season=season)
+        .order_by("-player__rating")
+        .values_list("player__lichess_username", flat=True)[:4]
+    )
     try:
         response = lichessapi.update_or_create_broadcast(
             broadcast_id=broadcast_id,
@@ -573,12 +575,12 @@ def _create_or_update_broadcast(
             nrounds=season.rounds,
             format_=format_,
             tc=tc,
-            teamTable = teamTable,
-            grouping = grouping,
-            teams = teams,
-            players = players,
-            infoplayers = infoplayers,
-            markdown=markdown
+            teamTable=teamTable,
+            grouping=grouping,
+            teams=teams,
+            players=players,
+            infoplayers=infoplayers,
+            markdown=markdown,
         )
         # TODO remove prints
         print("response: ", response)
@@ -590,18 +592,19 @@ def _create_or_update_broadcast(
     return result
 
 
-def _create_or_update_broadcast_round(round_: Round, first_board: int=1) -> str:
+def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> str:
     result = ""
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
     if round_.is_team_league():
         games_query = TeamPlayerPairing.objects.filter(
             team_pairing__round=round_
-            ).order_by("team_pairing__pairing_order", "board_number")[(first_board - 1):(first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
+        ).order_by("team_pairing__pairing_order", "board_number")[
+            (first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)
+        ]
     else:
-        games_query = LonePlayerPairing.objects.filter(
-            round=round_
-        ).order_by("pairing_order")[(first_board - 1):(first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
-
+        games_query = LonePlayerPairing.objects.filter(round=round_).order_by(
+            "pairing_order"
+        )[(first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
     game_links = []
     for game in games_query:
         if game.game_link:
@@ -639,17 +642,24 @@ def do_update_broadcast_round(round_: Round) -> None:
     if not round_.season.create_broadcast:
         return
     if round_.is_team_league():
-        new_games = TeamPlayerPairing.objects.exclude(game_link="").filter(
-            team_pairing__round=round_
-        ).exclude(broadcasted=True)
+        new_games = (
+            TeamPlayerPairing.objects.exclude(game_link="")
+            .filter(team_pairing__round=round_)
+            .exclude(broadcasted=True)
+        )
     else:
-        new_games = LonePlayerPairing.objects.exclude(game_link="").filter(
-            round=round_
-        ).exclude(broadcasted=True)
+        new_games = (
+            LonePlayerPairing.objects.exclude(game_link="")
+            .filter(round=round_)
+            .exclude(broadcasted=True)
+        )
     if new_games.exists():
         broadcastrounds = BroadcastRound.objects.filter(round_id=round_)
         for broadcastround in broadcastrounds:
-            _create_or_update_broadcast_round(round_=round_, first_board=broadcastround.first_board)
+            _create_or_update_broadcast_round(
+                round_=round_, first_board=broadcastround.first_board
+            )
+
 
 @app.task()
 def do_create_broadcast_round(round_: Round) -> None:
@@ -666,15 +676,17 @@ def do_create_broadcast_round(round_: Round) -> None:
         ).count()
         teamsize = round_.season.boards
         # calculate how many team pairings we can get into the max games lichess allows:
-        max_games = (MAX_GAMES_LICHESS_BROADCAST//teamsize)*teamsize
+        max_games = (MAX_GAMES_LICHESS_BROADCAST // teamsize) * teamsize
     else:
         pairingcount = LonePlayerPairing.objects.filter(round=round_).count()
-    while pairingcount > broadcasts_count*max_games:
-        broadcast = _create_or_update_broadcast(season=round_.season, first_board=broadcasts_count*max_games+1)
+    while pairingcount > broadcasts_count * max_games:
+        broadcast = _create_or_update_broadcast(
+            season=round_.season, first_board=broadcasts_count * max_games + 1
+        )
         Broadcast.objects.create(
             season=round_.season,
             lichess_id=broadcast,
-            first_board=broadcasts_count*max_games+1,
+            first_board=broadcasts_count * max_games + 1,
         )
         broadcasts = Broadcast.objects.filter(season=round_.season)
         broadcasts_count = broadcasts.count()
@@ -685,7 +697,8 @@ def do_create_broadcast_round(round_: Round) -> None:
     grouping = _create_broadcast_grouping(broadcasts=broadcasts, title=title)
     for bc in broadcasts:
         if broadcasts_count_initial != broadcasts_count:
-            # only now after creating all broadcasts we have all the ids of the grouped broadcasts, so update them
+            # only now after creating all broadcasts we have all the ids of the grouped
+            # broadcasts, so update them
             _create_or_update_broadcast(
                 season=round_.season,
                 broadcast_id=bc.lichess_id,
@@ -693,23 +706,25 @@ def do_create_broadcast_round(round_: Round) -> None:
                 first_board=bc.first_board,
             )
         if not BroadcastRound.objects.filter(round_id=round_, broadcast=bc).exists():
-            broadcastround = _create_or_update_broadcast_round(round_=round_, first_board=bc.first_board)
-            BroadcastRound.objects.create(lichess_id = broadcastround, round_id = round_, broadcast=bc)
+            broadcastround = _create_or_update_broadcast_round(
+                round_=round_, first_board=bc.first_board
+            )
+            BroadcastRound.objects.create(
+                lichess_id=broadcastround, round_id=round_, broadcast=bc
+            )
 
 
 @app.task()
-def do_create_broadcast(season: Season, first_board: int=1) -> None:
+def do_create_broadcast(season: Season, first_board: int = 1) -> None:
     if not season.create_broadcast:
         return
     bc = Broadcast.objects.create(season=season, first_board=first_board)
-    bc.lichess_id = _create_or_update_broadcast(
-        season=season, first_board=first_board
-    )
+    bc.lichess_id = _create_or_update_broadcast(season=season, first_board=first_board)
     bc.save()
 
 
 @app.task()
-def do_update_broadcast(season: Season, first_board: int=1) -> None:
+def do_update_broadcast(season: Season, first_board: int = 1) -> None:
     bcid = season.get_broadcast_id(first_board=first_board)
     if not season.create_broadcast or not bcid:
         return

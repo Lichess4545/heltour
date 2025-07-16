@@ -272,7 +272,7 @@ class Season(_BaseModel):
 
     create_broadcast = models.BooleanField(default=False)
     # max length for broadcast_title_override from lichess
-    broadcast_title_override = models.CharField(max_length=80, blank=True, null=True) 
+    broadcast_title_override = models.CharField(max_length=80, blank=True, null=True)
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
@@ -627,7 +627,7 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
-    def get_broadcast_id(self, first_board: int=1) -> str:
+    def get_broadcast_id(self, first_board: int = 1) -> str:
         if self.create_broadcast:
             bc = Broadcast.objects.filter(season=self, first_board=first_board)
             if bc.exists():
@@ -749,10 +749,10 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
-    def get_broadcast_id(self, first_board: int=1) -> str:
+    def get_broadcast_id(self, first_board: int = 1) -> str:
         return self.season.get_broadcast_id(first_board=first_board)
 
-    def get_broadcast_round_id(self, first_board: int=1) -> str:
+    def get_broadcast_round_id(self, first_board: int = 1) -> str:
         if not self.season.get_broadcast_id():
             return ""
         bc = Broadcast.objects.get(season=self.season, first_board=first_board)
@@ -2938,7 +2938,7 @@ class ModRequest(_BaseModel):
 
 
 class Broadcast(_BaseModel):
-    season = models.ForeignKey(Season, on_delete = models.CASCADE)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
     first_board = models.PositiveSmallIntegerField(default=1)
 
@@ -2963,10 +2963,18 @@ class BroadcastRound(_BaseModel):
     # last_board is a round property, because it may change with additional players signing up
     @property
     def last_board(self) -> int:
-        nextbc = Broadcast.objects.filter(season=self.broadcast.season, first_board__gt=self.first_board).order_by("first_board").first()
+        nextbc = (
+            Broadcast.objects.filter(
+                season=self.broadcast.season, first_board__gt=self.first_board
+            )
+            .order_by("first_board")
+            .first()
+        )
         if nextbc is not None:
             return nextbc.first_board - 1
         if self.round_id.is_team_league():
-            return TeamPlayerPairing.objects.filter(team_pairing__round=self.round_id).count()
+            return TeamPlayerPairing.objects.filter(
+                team_pairing__round=self.round_id
+            ).count()
         else:
             return LonePlayerPairing.objects.filter(round=self.round_id).count()
