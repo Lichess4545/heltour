@@ -546,9 +546,13 @@ def _create_or_update_broadcast(
         format_ = "Swiss"
         teamTable = False
         teams = ""
+    if season.broadcast_title_override:
+        title = season.broadcast_title_override
+    else:
+        title = f"{season.league.name} S{season.tag}"
     # TODO maybe mention the actual highest boad instead of the highest board in theory
     name = (
-        f"{season.league.name} S{season.tag} Boards {first_board} to "
+        f"{title} Boards {first_board} to "
         f"{first_board + MAX_GAMES_LICHESS_BROADCAST - 1}"
     )
     tc = season.league.time_control.replace("+", "%2b")
@@ -674,7 +678,10 @@ def do_create_broadcast_round(round_: Round) -> None:
         )
         broadcasts = Broadcast.objects.filter(season=round_.season)
         broadcasts_count = broadcasts.count()
-    title = f"{round_.season.league.name} S{round_.season.tag}"
+    if round_.season.broadcast_title_override:
+        title = round_.season.broadcast_title_override
+    else:
+        title = f"{round_.season.league.name} S{round_.season.tag}"
     grouping = _create_broadcast_grouping(broadcasts=broadcasts, title=title)
     for bc in broadcasts:
         if broadcasts_count_initial != broadcasts_count:
