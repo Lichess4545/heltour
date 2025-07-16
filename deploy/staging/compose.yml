@@ -1,0 +1,58 @@
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.base
+    env_file: '../../.env.dev'
+    environment:
+      DJANGO_SETTINGS_MODULE: heltour.settings
+      PYTHONUNBUFFERED: 1
+    ports:
+      - 8000:8000
+    command: gunicorn heltour.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --log-file - --access-logfile - --error-logfile -
+
+  celery:
+    image: ghcr.io/lichess4545/litour-celery:latest
+    env_file: '../../.env.dev'
+    command: celery --app heltour worker --loglevel=info
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: heltour
+      POSTGRES_USER: heltour
+      POSTGRES_PASSWORD: heltour_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heltour"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    restart: unless-stopped
+    ports:
+      - 8025:8025
+
+volumes:
+  postgres_data:
+    name: litour_postgres_data
+  redis_data:
+    name: litour_redis_data
+
+networks:
+  default:
+    name: litour-network
