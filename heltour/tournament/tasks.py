@@ -515,7 +515,9 @@ def _create_team_string(season: Season) -> str:
     teams = Team.objects.filter(season=season)
     lines = []
     for team in teams:
-        for teamplayer in TeamMember.objects.filter(team=team):
+        for teamplayer in TeamMember.objects.filter(team=team).order_by(
+            "team__number", "board_number"
+        ):
             # %3B = ';'
             # %20 = ' '
             lines.append(f"{team.name}%3B%20{teamplayer.player.lichess_username}")
