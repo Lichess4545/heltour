@@ -2949,7 +2949,7 @@ class BroadcastRound(_BaseModel):
     round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
     broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
-    
+
     class Meta:
         unique_together = ["broadcast", "round_id"]
         ordering = ["broadcast", "round_id"]

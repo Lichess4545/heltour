@@ -602,6 +602,9 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int=1) -> str:
     for game in games_query:
         if game.game_link:
             game_links.append(game.game_id())
+        if not game.broadcasted:
+            game.broadcasted = True
+            game.save()
     broadcast_round_id = round_.get_broadcast_round_id(first_board=first_board)
     if broadcast_round_id:
         broadcast_id = ""
@@ -650,6 +653,7 @@ def do_create_broadcast_round(round_: Round) -> None:
         return
     broadcasts = Broadcast.objects.filter(season=round_.season)
     broadcasts_count = broadcasts.count()
+    broadcasts_count_initial = broadcasts_count
     teamsize = 1
     max_games = MAX_GAMES_LICHESS_BROADCAST
     if round_.is_team_league():
@@ -673,13 +677,14 @@ def do_create_broadcast_round(round_: Round) -> None:
     title = f"{round_.season.league.name} S{round_.season.tag}"
     grouping = _create_broadcast_grouping(broadcasts=broadcasts, title=title)
     for bc in broadcasts:
-        # only now after creating all broadcasts we have all the ids of the grouped broadcasts, so update them
-        _create_or_update_broadcast(
-            season=round_.season,
-            broadcast_id=bc.lichess_id,
-            grouping=grouping,
-            first_board=bc.first_board,
-        )
+        if broadcasts_count_initial != broadcasts_count:
+            # only now after creating all broadcasts we have all the ids of the grouped broadcasts, so update them
+            _create_or_update_broadcast(
+                season=round_.season,
+                broadcast_id=bc.lichess_id,
+                grouping=grouping,
+                first_board=bc.first_board,
+            )
         if not BroadcastRound.objects.filter(round_id=round_, broadcast=bc).exists():
             broadcastround = _create_or_update_broadcast_round(round_=round_, first_board=bc.first_board)
             BroadcastRound.objects.create(lichess_id = broadcastround, round_id = round_, broadcast=bc)
