@@ -1,7 +1,10 @@
 from datetime import timedelta
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.utils import timezone
-from unittest.mock import patch
+
+from heltour.tournament.lichessapi import ApiClientError
 from heltour.tournament.models import (
     League,
     OauthToken,
@@ -12,22 +15,22 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
 )
+from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 from heltour.tournament.tasks import (
+    _create_team_string,
     active_player_usernames,
     create_team_channel,
     start_games,
     update_player_ratings,
 )
 from heltour.tournament.tests.testutils import (
+    Shush,
     createCommonLeagueData,
     get_league,
     get_player,
     get_round,
     get_season,
-    Shush,
 )
-from heltour.tournament.lichessapi import ApiClientError
-from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 
 
 class TestHelpers(TestCase):
@@ -276,3 +279,24 @@ class TestTeamChannel(TestCase):
         with Shush():
             create_team_channel(self.team_ids)
         self.assertEqual(Team.objects.get(pk=self.team_ids[0]["pk"]).slack_channel, "")
+
+
+class TestBroadcasts(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+
+    def test_create_team_string(self):
+        s = get_season("team")
+        teamstring = _create_team_string(s)
+        self.assertEqual(
+            teamstring,
+            "Team 1%3B%20Player1%0A"
+            "Team 1%3B%20Player2%0A"
+            "Team 2%3B%20Player3%0A"
+            "Team 2%3B%20Player4%0A"
+            "Team 3%3B%20Player5%0A"
+            "Team 3%3B%20Player6%0A"
+            "Team 4%3B%20Player7%0A"
+            "Team 4%3B%20Player8",
+        )
