@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from heltour.tournament.lichessapi import ApiClientError
 from heltour.tournament.models import (
+    Broadcast,
     League,
     OauthToken,
     Player,
@@ -17,6 +18,8 @@ from heltour.tournament.models import (
 )
 from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 from heltour.tournament.tasks import (
+    _create_broadcast_grouping,
+    _create_or_update_broadcast,
     _create_team_string,
     active_player_usernames,
     create_team_channel,
@@ -285,10 +288,14 @@ class TestBroadcasts(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
+        League.objects.filter(name="Team League").update(time_control="10+10")
+        cls.s = get_season(league_type="team")
+        cls.s.create_broadcast = True
+        cls.s.broadcast_title_override = "Amazing Broadcast Title"
+        cls.s.save()
 
     def test_create_team_string(self):
-        s = get_season("team")
-        teamstring = _create_team_string(s)
+        teamstring = _create_team_string(self.s)
         self.assertEqual(
             teamstring,
             "Team 1%3B%20Player1%0A"
@@ -300,3 +307,51 @@ class TestBroadcasts(TestCase):
             "Team 4%3B%20Player7%0A"
             "Team 4%3B%20Player8",
         )
+
+    def test_create_broadcast_grouping(self):
+        Broadcast.objects.create(lichess_id="testslug1", season=self.s, first_board=1)
+        Broadcast.objects.create(lichess_id="testslug2", season=self.s, first_board=11)
+        Broadcast.objects.create(lichess_id="testslug3", season=self.s, first_board=21)
+        bcs = Broadcast.objects.all()
+        groupings = _create_broadcast_grouping(
+            broadcasts=bcs, title="Testing the Title"
+        )
+        self.assertEqual(
+            groupings,
+            "Testing the Title\n"
+            "testslug1 | Boards 1 - 10\n"
+            "testslug2 | Boards 11 - 20\n"
+            "testslug3 | Boards 21 - ",
+        )
+
+    @patch(
+        "heltour.tournament.tasks._create_team_string",
+        return_value="invalid_team_string",
+        autospec=True,
+    )
+    @patch(
+        "heltour.tournament.lichessapi.update_or_create_broadcast",
+        return_value={"tour": {"id": "testid"}},
+        autospec=True,
+    )
+    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 10)
+    def test_create_or_update_broadcast(self, lichessapi, teamstring):
+        broadcastid = _create_or_update_broadcast(season=self.s)
+        teamstring.assert_called_once_with(season=self.s)
+        lichessapi.assert_called_once_with(
+            broadcast_id="",
+            name="Amazing Broadcast Title Boards 1 to 10",
+            nrounds=3,
+            format_="Team Swiss",
+            tc="10%2b10",
+            teamTable=True,
+            grouping="",
+            teams="invalid_team_string",
+            players="",
+            infoplayers="",
+            markdown="This is the broadcast for season teamseason of the Team League "
+            "league, a classical tournament with a 10%2b10 time control played "
+            "exclusively on lichess. For more information or to sign up, "
+            "visit [our website](https://lichess4545.com).",
+        )
+        self.assertEqual(broadcastid, "testid")
