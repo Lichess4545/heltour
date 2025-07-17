@@ -608,12 +608,17 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
             "pairing_order"
         )[(first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
     game_links = []
+    broadcast_updates = []
     for game in games_query:
         if game.game_link:
             game_links.append(game.game_id())
         if not game.broadcasted:
             game.broadcasted = True
-            game.save()
+            broadcast_updates.append(game)
+    if round_.is_team_league():
+        updated_games = TeamPlayerPairing.objects.bulk_update(broadcast_updates, ["broadcasted"])
+    else:
+        updated_games = LonePlayerPairing.objects.bulk_update(broadcast_updates, ["broadcasted"])
     broadcast_round_id = round_.get_broadcast_round_id(first_board=first_board)
     if broadcast_round_id:
         broadcast_id = ""
@@ -624,16 +629,17 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
                 f"[ERROR] trying to create {round_} for non-existent season broadcast."
             )
     try:
-        response = lichessapi.update_or_create_broadcast_round(
-            broadcast_id=broadcast_id,
-            broadcast_round_id=broadcast_round_id,
-            round_number=round_.number,
-            game_links=game_links,
-            startsAt=startsAt,
-        )
-        dictresult = response.get("round")
-        if dictresult is not None:
-            result = dictresult.get("id")
+        if not broadcast_round_id or updated_games > 0:
+            response = lichessapi.update_or_create_broadcast_round(
+                broadcast_id=broadcast_id,
+                broadcast_round_id=broadcast_round_id,
+                round_number=round_.number,
+                game_links=game_links,
+                startsAt=startsAt,
+            )
+            dictresult = response.get("round")
+            if dictresult is not None:
+                result = dictresult.get("id")
     except lichessapi.ApiWorkerError:
         logger.error(f"[ERROR] Failed to create or update broadcast for {round_}")
     return result
