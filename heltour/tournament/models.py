@@ -270,9 +270,17 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
 
-    create_broadcast = models.BooleanField(default=False)
-    # max length for broadcast_title_override from lichess
-    broadcast_title_override = models.CharField(max_length=80, blank=True, null=True)
+    create_broadcast = models.BooleanField(
+        default=False,
+        help_text='Automatically update broadcasts. Run "create broadcast" for initial creation.',
+    )
+    broadcast_title_override = models.CharField(
+        # max length from lichess api
+        max_length=80,
+        blank=True,
+        null=True,
+        help_text="Change the broadcast name. Leave empty for default.",
+    )
 
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
