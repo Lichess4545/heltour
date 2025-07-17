@@ -584,8 +584,6 @@ def _create_or_update_broadcast(
             infoplayers=infoplayers,
             markdown=markdown,
         )
-        # TODO remove prints
-        print("response: ", response)
         dictresult = response.get("tour")
         if dictresult is not None:
             result = dictresult.get("id")
