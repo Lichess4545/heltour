@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
 from django.test import TestCase
 from django.utils import timezone
@@ -21,6 +21,7 @@ from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
 from heltour.tournament.tasks import (
     _create_broadcast_grouping,
     _create_or_update_broadcast,
+    _create_or_update_broadcast_round,
     _create_team_string,
     active_player_usernames,
     create_team_channel,
@@ -389,6 +390,13 @@ class TestBroadcasts(TestCase):
         cls.s.create_broadcast = True
         cls.s.broadcast_title_override = "Amazing Broadcast Title"
         cls.s.save()
+        Broadcast.objects.create(lichess_id="testslug1", season=cls.s, first_board=1)
+        Broadcast.objects.create(lichess_id="testslug2", season=cls.s, first_board=11)
+        Broadcast.objects.create(lichess_id="testslug3", season=cls.s, first_board=21)
+        cls.r1 = get_round(league_type="team", round_number=1)
+        cls.r1.start_date = timezone.now()
+        cls.r1.save()
+
 
     def test_create_team_string(self):
         teamstring = _create_team_string(self.s)
@@ -405,9 +413,6 @@ class TestBroadcasts(TestCase):
         )
 
     def test_create_broadcast_grouping(self):
-        Broadcast.objects.create(lichess_id="testslug1", season=self.s, first_board=1)
-        Broadcast.objects.create(lichess_id="testslug2", season=self.s, first_board=11)
-        Broadcast.objects.create(lichess_id="testslug3", season=self.s, first_board=21)
         bcs = Broadcast.objects.all()
         groupings = _create_broadcast_grouping(
             broadcasts=bcs, title="Testing the Title"
@@ -451,3 +456,19 @@ class TestBroadcasts(TestCase):
             "visit [our website](https://lichess4545.com).",
         )
         self.assertEqual(broadcastid, "testid")
+
+    @patch(
+        "heltour.tournament.lichessapi.update_or_create_broadcast_round",
+        autospec=True,
+        return_value={"round": {"id": "someroundid"}}
+    )
+    def test_create_or_update_broadcast_round(self, lichessapi):
+        broadcast_round_id = _create_or_update_broadcast_round(self.r1, first_board=1)
+        lichessapi.assert_called_once_with(
+            broadcast_id='testslug1',
+            broadcast_round_id='',
+            round_number=1,
+            game_links=[],
+            startsAt=ANY,
+        )
+        self.assertEqual(broadcast_round_id, "someroundid")
