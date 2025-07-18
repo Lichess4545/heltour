@@ -623,7 +623,7 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
     else:
         broadcast_id = round_.get_broadcast_id(first_board=first_board)
         if not broadcast_id:
-            logger.error(
+            raise ValueError(
                 f"[ERROR] trying to create {round_} for non-existent season broadcast."
             )
     try:
