@@ -626,6 +626,9 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
             raise ValueError(
                 f"[ERROR] trying to create {round_} for non-existent season broadcast."
             )
+    if updated_games > 0:
+        # setting the startdate to +- now makes lichess check for updates in the games
+        startsAt = round(datetime.timestamp(timezone.now())) * 1000
     try:
         if not broadcast_round_id or updated_games > 0:
             response = lichessapi.update_or_create_broadcast_round(
