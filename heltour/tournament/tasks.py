@@ -610,9 +610,9 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
     for game in games_query:
         if game.game_link:
             game_links.append(game.game_id())
-        if not game.broadcasted:
-            game.broadcasted = True
-            broadcast_updates.append(game)
+            if not game.broadcasted:
+                game.broadcasted = True
+                broadcast_updates.append(game)
     if round_.is_team_league():
         updated_games = TeamPlayerPairing.objects.bulk_update(broadcast_updates, ["broadcasted"])
     else:
