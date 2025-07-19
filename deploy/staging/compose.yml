@@ -49,6 +49,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
+      - caddy
       - litour
 
   redis:
@@ -77,5 +78,7 @@ volumes:
     name: litour_redis_data
 
 networks:
+  caddy:
+    external: true
   litour:
     driver: bridge
