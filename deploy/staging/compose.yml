@@ -7,9 +7,10 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: heltour.settings
       PYTHONUNBUFFERED: 1
-    ports:
-      - 8000:8000
     command: gunicorn heltour.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --log-file - --access-logfile - --error-logfile -
+    networks:
+      - caddy
+      - litour
 
   apiworker:
     build:
@@ -21,11 +22,15 @@ services:
     depends_on:
       - postgres
     command: python manage.py runserver 0.0.0.0:8880
+    networks:
+      - litour
 
   celery:
     image: ghcr.io/lichess4545/litour-celery:latest
     env_file: '../../.env.dev'
     command: celery --app heltour worker --loglevel=info
+    networks:
+      - litour
 
   postgres:
     image: postgres:15-alpine
@@ -40,6 +45,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - litour
 
   redis:
     image: redis:7-alpine
@@ -51,12 +58,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - litour
 
   mailpit:
     image: axllent/mailpit:v1.24.1
     restart: unless-stopped
-    ports:
-      - 8025:8025
+    networks:
+      - litour
 
 volumes:
   postgres_data:
@@ -65,5 +74,7 @@ volumes:
     name: litour_redis_data
 
 networks:
-  default:
-    name: litour-network
+  caddy:
+    external: true
+  litour:
+    driver: bridge
