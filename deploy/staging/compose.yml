@@ -9,9 +9,10 @@ services:
       PYTHONUNBUFFERED: 1
     command: gunicorn heltour.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --log-file - --access-logfile - --error-logfile -
     networks:
+      - caddy
       - litour
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
 
   apiworker:
     build:
@@ -49,7 +50,6 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - caddy
       - litour
 
   redis:
