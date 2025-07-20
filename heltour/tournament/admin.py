@@ -53,6 +53,8 @@ from heltour.tournament.models import (
     AlternatesManagerSetting,
     ApiKey,
     AvailableTime,
+    Broadcast,
+    BroadcastRound,
     Document,
     GameNomination,
     GameSelection,
@@ -2804,3 +2806,39 @@ class ModRequestAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/reject_modrequest.html', context)
+
+
+@admin.register(Broadcast)
+class BroadcastAdmin(_BaseAdmin):
+    list_display = (
+        "season",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "season__league",
+        "season",
+    )
+    search_fields = (
+        "season__tag",
+        "season__league__name",
+    )
+
+
+@admin.register(BroadcastRound)
+class BroadcastRoundAdmin(_BaseAdmin):
+    list_display = (
+        "round_id",
+        "broadcast",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "round_id__season__league",
+        "round_id__season",
+    )
+    search_fields = (
+        "round_id__season__tag",
+        "round_id__season__league__name",
+        "round_id__number",
+    )
