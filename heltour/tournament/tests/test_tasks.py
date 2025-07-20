@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, call, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -25,6 +25,10 @@ from heltour.tournament.tasks import (
     _create_team_string,
     active_player_usernames,
     create_team_channel,
+    do_create_broadcast,
+    do_create_broadcast_round,
+    do_update_broadcast,
+    do_update_broadcast_round,
     start_games,
     update_player_ratings,
 )
@@ -248,7 +252,8 @@ class TestTeamChannel(TestCase):
     def test_create_team_channel(
         self, send_message, leave_group, set_group_topic, invite_to_group, create_group
     ):
-        create_team_channel(self.team_ids)
+        with Shush():
+            create_team_channel(self.team_ids)
         self.assertTrue(create_group.called)
         self.assertEqual(create_group.call_count, 4)
         self.assertTrue(invite_to_group.called)
@@ -286,6 +291,7 @@ class TestTeamChannel(TestCase):
         self.assertEqual(Team.objects.get(pk=self.team_ids[0]["pk"]).slack_channel, "")
 
 
+@patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
 class TestBroadcasts(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -305,6 +311,8 @@ class TestBroadcasts(TestCase):
         cls.r1 = get_round(league_type="team", round_number=1)
         cls.r1.start_date = timezone.now()
         cls.r1.save()
+        cls.t1 = Team.objects.get(number=1)
+        cls.t2 = Team.objects.get(number=2)
 
     def test_create_team_string(self):
         teamstring = _create_team_string(self.s)
@@ -347,7 +355,6 @@ class TestBroadcasts(TestCase):
         return_value={"tour": {"id": "testid"}},
         autospec=True,
     )
-    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
     def test_create_or_update_broadcast(self, lichessapi, teamstring):
         broadcastid = _create_or_update_broadcast(season=self.s)
         teamstring.assert_called_once_with(season=self.s)
@@ -395,7 +402,6 @@ class TestBroadcasts(TestCase):
         autospec=True,
         return_value="patchlink",
     )
-    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
     def test_update_broadcast_round(self, gamelink, lichessapi):
         BroadcastRound.objects.create(
             broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
@@ -403,14 +409,13 @@ class TestBroadcasts(TestCase):
         BroadcastRound.objects.create(
             broadcast=self.bc2, round_id=self.r1, lichess_id="roundidbc2"
         )
-        team1 = Team.objects.get(number=1)
-        team2 = Team.objects.get(number=2)
+
         team3 = Team.objects.get(number=3)
         team4 = Team.objects.get(number=4)
         team5 = Team.objects.get(number=5)
         team6 = Team.objects.get(number=6)
         tp1 = TeamPairing.objects.create(
-            white_team=team1, black_team=team2, round=self.r1, pairing_order=1
+            white_team=self.t1, black_team=self.t2, round=self.r1, pairing_order=1
         )
         tp2 = TeamPairing.objects.create(
             white_team=team3, black_team=team4, round=self.r1, pairing_order=2
@@ -421,14 +426,14 @@ class TestBroadcasts(TestCase):
         TeamPlayerPairing.objects.create(
             team_pairing=tp1,
             board_number=1,
-            white=team1.teammember_set.get(board_number=1).player,
-            black=team2.teammember_set.get(board_number=1).player,
+            white=self.t1.teammember_set.get(board_number=1).player,
+            black=self.t2.teammember_set.get(board_number=1).player,
         )
         TeamPlayerPairing.objects.create(
             team_pairing=tp1,
             board_number=2,
-            white=team2.teammember_set.get(board_number=2).player,
-            black=team1.teammember_set.get(board_number=2).player,
+            white=self.t2.teammember_set.get(board_number=2).player,
+            black=self.t1.teammember_set.get(board_number=2).player,
         )
         TeamPlayerPairing.objects.create(
             team_pairing=tp2,
@@ -472,3 +477,112 @@ class TestBroadcasts(TestCase):
         self.assertTrue(
             TeamPlayerPairing.objects.get(team_pairing=tp3, board_number=2).broadcasted
         )
+
+    @patch("heltour.tournament.tasks._create_or_update_broadcast_round")
+    def test_do_update_broadcast_round_no_update(self, coubr):
+        BroadcastRound.objects.create(
+            broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
+        )
+        tp1 = TeamPairing.objects.create(
+            white_team=self.t1, black_team=self.t2, round=self.r1, pairing_order=1
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=1,
+            white=self.t1.teammember_set.get(board_number=1).player,
+            black=self.t2.teammember_set.get(board_number=1).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=2,
+            white=self.t2.teammember_set.get(board_number=2).player,
+            black=self.t1.teammember_set.get(board_number=2).player,
+            game_link="fakelink",
+            broadcasted=True,
+        )
+        with Shush():
+            do_update_broadcast_round(round_=self.r1)
+        coubr.assert_not_called()
+
+    @patch("heltour.tournament.tasks._create_or_update_broadcast_round")
+    def test_do_update_broadcast_round_update(self, coubr):
+        BroadcastRound.objects.create(
+            broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
+        )
+        tp1 = TeamPairing.objects.create(
+            white_team=self.t1, black_team=self.t2, round=self.r1, pairing_order=1
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=1,
+            white=self.t1.teammember_set.get(board_number=1).player,
+            black=self.t2.teammember_set.get(board_number=1).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=2,
+            white=self.t2.teammember_set.get(board_number=2).player,
+            black=self.t1.teammember_set.get(board_number=2).player,
+            game_link="fakelink",
+        )
+        with Shush():
+            do_update_broadcast_round(round_=self.r1)
+        # called only once since we only created one broadcast round for board 5+
+        coubr.assert_called_once_with(round_=self.r1, first_board=5)
+
+    @patch(
+        "heltour.tournament.tasks._create_broadcast_grouping",
+        return_value="patchgroup",
+    )
+    @patch(
+        "heltour.tournament.tasks._create_or_update_broadcast_round",
+        return_value="fakerdid",
+    )
+    def test_do_create_broadcast_round(self, coubr, cbg):
+        with Shush():
+            do_create_broadcast_round(round_=self.r1)
+        coubr.assert_has_calls(
+            calls=[
+                call(round_=self.r1, first_board=1),
+                call(round_=self.r1, first_board=3),
+                call(round_=self.r1, first_board=5),
+            ],
+            any_order=True,
+        )
+        cbg.assert_called_once()
+
+    @patch("heltour.tournament.tasks._create_or_update_broadcast")
+    def test_do_update_broadcast(self, coub):
+        with Shush():
+            do_update_broadcast(season=self.s)
+        with Shush():
+            do_update_broadcast(season=self.s, first_board=5)
+        coub.assert_has_calls(
+            calls=[
+                call(season=self.s, broadcast_id="testslug1", first_board=1),
+                call(season=self.s, broadcast_id="testslug3", first_board=5),
+            ]
+        )
+
+    @patch(
+        "heltour.tournament.tasks._create_or_update_broadcast", return_value="bcslug"
+    )
+    def test_do_create_broadcast(self, coub):
+        sl = get_season("lone")
+        sl.create_broadcast = True
+        sl.save()
+        with Shush():
+            do_create_broadcast(season=self.s, first_board=1)
+        coub.assert_not_called()
+        with Shush():
+            do_create_broadcast(season=sl, first_board=1)
+        coub.assert_called_with(season=sl, first_board=1)
+        self.assertTrue(Broadcast.objects.filter(season=sl, first_board=1).exists())
+        with Shush():
+            do_create_broadcast(season=sl, first_board=3)
+        coub.assert_called_with(season=sl, first_board=3)
+        self.assertTrue(Broadcast.objects.filter(season=sl, first_board=3).exists())
+        self.assertEqual(
+            Broadcast.objects.get(season=sl, first_board=3).lichess_id, "bcslug"
+        )
+
