@@ -614,9 +614,13 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
                 game.broadcasted = True
                 broadcast_updates.append(game)
     if round_.is_team_league():
-        updated_games = TeamPlayerPairing.objects.bulk_update(broadcast_updates, ["broadcasted"])
+        updated_games = TeamPlayerPairing.objects.bulk_update(
+            broadcast_updates, ["broadcasted"]
+        )
     else:
-        updated_games = LonePlayerPairing.objects.bulk_update(broadcast_updates, ["broadcasted"])
+        updated_games = LonePlayerPairing.objects.bulk_update(
+            broadcast_updates, ["broadcasted"]
+        )
     broadcast_round_id = round_.get_broadcast_round_id(first_board=first_board)
     if broadcast_round_id:
         broadcast_id = ""
@@ -727,9 +731,12 @@ def do_create_broadcast_round(round_: Round) -> None:
 def do_create_broadcast(season: Season, first_board: int = 1) -> None:
     if not season.create_broadcast:
         return
-    bc = Broadcast.objects.create(season=season, first_board=first_board)
-    bc.lichess_id = _create_or_update_broadcast(season=season, first_board=first_board)
-    bc.save()
+    bc, _ = Broadcast.objects.get_or_create(season=season, first_board=first_board)
+    if not bc.lichess_id:
+        bc.lichess_id = _create_or_update_broadcast(
+            season=season, first_board=first_board
+        )
+        bc.save()
 
 
 @app.task()
