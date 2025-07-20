@@ -71,8 +71,7 @@ def get_team(team_name: str) -> Team:
     return Team.objects.get(name=team_name)
 
 
-def createCommonLeagueData(round_count=3):
-    team_count = 4
+def createCommonLeagueData(round_count: int = 3, team_count: int = 4) -> None:
     board_count = 2
 
     league = League.objects.create(name='Team League', tag=league_tag('team'),
