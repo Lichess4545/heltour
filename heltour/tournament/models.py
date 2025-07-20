@@ -2966,7 +2966,7 @@ class BroadcastRound(_BaseModel):
 
     @property
     def first_board(self) -> int:
-        return self.broadcast.lowest_board
+        return self.broadcast.first_board
 
     # last_board is a round property, because it may change with additional players signing up
     @property
