@@ -2937,6 +2937,9 @@ class Broadcast(_BaseModel):
         unique_together = ["season", "first_board"]
         ordering = ["season", "first_board"]
 
+    def __str__(self) -> str:
+        return f"BC {self.season} B{self.first_board}"
+
 
 class BroadcastRound(_BaseModel):
     round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
@@ -2969,3 +2972,6 @@ class BroadcastRound(_BaseModel):
             ).count()
         else:
             return LonePlayerPairing.objects.filter(round=self.round_id).count()
+
+    def __str__(self) -> str:
+        return f"BCR {self.round_id} B{self.first_board}"
