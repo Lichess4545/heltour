@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch, ANY
+from unittest.mock import ANY, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -7,6 +7,7 @@ from django.utils import timezone
 from heltour.tournament.lichessapi import ApiClientError
 from heltour.tournament.models import (
     Broadcast,
+    BroadcastRound,
     League,
     OauthToken,
     Player,
@@ -288,19 +289,22 @@ class TestTeamChannel(TestCase):
 class TestBroadcasts(TestCase):
     @classmethod
     def setUpTestData(cls):
-        createCommonLeagueData()
+        createCommonLeagueData(team_count=6)
         League.objects.filter(name="Team League").update(time_control="10+10")
         cls.s = get_season(league_type="team")
         cls.s.create_broadcast = True
         cls.s.broadcast_title_override = "Amazing Broadcast Title"
         cls.s.save()
         Broadcast.objects.create(lichess_id="testslug1", season=cls.s, first_board=1)
-        Broadcast.objects.create(lichess_id="testslug2", season=cls.s, first_board=11)
-        Broadcast.objects.create(lichess_id="testslug3", season=cls.s, first_board=21)
+        cls.bc2 = Broadcast.objects.create(
+            lichess_id="testslug2", season=cls.s, first_board=3
+        )
+        cls.bc3 = Broadcast.objects.create(
+            lichess_id="testslug3", season=cls.s, first_board=5
+        )
         cls.r1 = get_round(league_type="team", round_number=1)
         cls.r1.start_date = timezone.now()
         cls.r1.save()
-
 
     def test_create_team_string(self):
         teamstring = _create_team_string(self.s)
@@ -313,7 +317,11 @@ class TestBroadcasts(TestCase):
             "Team 3%3B%20Player5%0A"
             "Team 3%3B%20Player6%0A"
             "Team 4%3B%20Player7%0A"
-            "Team 4%3B%20Player8",
+            "Team 4%3B%20Player8%0A"
+            "Team 5%3B%20Player9%0A"
+            "Team 5%3B%20Player10%0A"
+            "Team 6%3B%20Player11%0A"
+            "Team 6%3B%20Player12",
         )
 
     def test_create_broadcast_grouping(self):
@@ -324,9 +332,9 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             groupings,
             "Testing the Title\n"
-            "testslug1 | Boards 1 - 10\n"
-            "testslug2 | Boards 11 - 20\n"
-            "testslug3 | Boards 21 - ",
+            "testslug1 | Boards 1 - 2\n"
+            "testslug2 | Boards 3 - 4\n"
+            "testslug3 | Boards 5 - ",
         )
 
     @patch(
@@ -339,13 +347,13 @@ class TestBroadcasts(TestCase):
         return_value={"tour": {"id": "testid"}},
         autospec=True,
     )
-    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 10)
+    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
     def test_create_or_update_broadcast(self, lichessapi, teamstring):
         broadcastid = _create_or_update_broadcast(season=self.s)
         teamstring.assert_called_once_with(season=self.s)
         lichessapi.assert_called_once_with(
             broadcast_id="",
-            name="Amazing Broadcast Title Boards 1 to 10",
+            name="Amazing Broadcast Title Boards 1 to 2",
             nrounds=3,
             format_="Team Swiss",
             tc="10%2b10",
@@ -364,15 +372,103 @@ class TestBroadcasts(TestCase):
     @patch(
         "heltour.tournament.lichessapi.update_or_create_broadcast_round",
         autospec=True,
-        return_value={"round": {"id": "someroundid"}}
+        return_value={"round": {"id": "someroundid"}},
     )
-    def test_create_or_update_broadcast_round(self, lichessapi):
+    def test_create_broadcast_round(self, lichessapi):
         broadcast_round_id = _create_or_update_broadcast_round(self.r1, first_board=1)
         lichessapi.assert_called_once_with(
-            broadcast_id='testslug1',
-            broadcast_round_id='',
+            broadcast_id="testslug1",
+            broadcast_round_id="",
             round_number=1,
             game_links=[],
             startsAt=ANY,
         )
         self.assertEqual(broadcast_round_id, "someroundid")
+
+    @patch(
+        "heltour.tournament.lichessapi.update_or_create_broadcast_round",
+        autospec=True,
+        return_value={"round": {"id": "roundidbc3"}},
+    )
+    @patch(
+        "heltour.tournament.models.get_gameid_from_gamelink",
+        autospec=True,
+        return_value="patchlink",
+    )
+    @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
+    def test_update_broadcast_round(self, gamelink, lichessapi):
+        BroadcastRound.objects.create(
+            broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
+        )
+        BroadcastRound.objects.create(
+            broadcast=self.bc2, round_id=self.r1, lichess_id="roundidbc2"
+        )
+        team1 = Team.objects.get(number=1)
+        team2 = Team.objects.get(number=2)
+        team3 = Team.objects.get(number=3)
+        team4 = Team.objects.get(number=4)
+        team5 = Team.objects.get(number=5)
+        team6 = Team.objects.get(number=6)
+        tp1 = TeamPairing.objects.create(
+            white_team=team1, black_team=team2, round=self.r1, pairing_order=1
+        )
+        tp2 = TeamPairing.objects.create(
+            white_team=team3, black_team=team4, round=self.r1, pairing_order=2
+        )
+        tp3 = TeamPairing.objects.create(
+            white_team=team5, black_team=team6, round=self.r1, pairing_order=3
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=1,
+            white=team1.teammember_set.get(board_number=1).player,
+            black=team2.teammember_set.get(board_number=1).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp1,
+            board_number=2,
+            white=team2.teammember_set.get(board_number=2).player,
+            black=team1.teammember_set.get(board_number=2).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp2,
+            board_number=1,
+            white=team3.teammember_set.get(board_number=1).player,
+            black=team4.teammember_set.get(board_number=1).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp2,
+            board_number=2,
+            white=team4.teammember_set.get(board_number=2).player,
+            black=team3.teammember_set.get(board_number=2).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp3,
+            board_number=1,
+            white=team5.teammember_set.get(board_number=1).player,
+            black=team6.teammember_set.get(board_number=1).player,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp3,
+            board_number=2,
+            white=team6.teammember_set.get(board_number=2).player,
+            black=team5.teammember_set.get(board_number=2).player,
+            game_link="https://lichess.org/fakelink",
+        )
+        broadcast_round_id2 = _create_or_update_broadcast_round(self.r1, first_board=3)
+        self.assertEqual(broadcast_round_id2, "")
+        self.assertFalse(
+            TeamPlayerPairing.objects.get(team_pairing=tp3, board_number=2).broadcasted
+        )
+        broadcast_round_id3 = _create_or_update_broadcast_round(self.r1, first_board=5)
+        lichessapi.assert_called_once_with(
+            broadcast_id="",
+            broadcast_round_id="roundidbc3",
+            round_number=1,
+            game_links=["patchlink"],
+            startsAt=ANY,
+        )
+        self.assertEqual(broadcast_round_id3, "roundidbc3")
+        self.assertTrue(
+            TeamPlayerPairing.objects.get(team_pairing=tp3, board_number=2).broadcasted
+        )
