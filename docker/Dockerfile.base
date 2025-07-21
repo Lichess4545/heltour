@@ -7,7 +7,12 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
     git \
+    build-essential \
+    ruby \
+    ruby-dev \
     && rm -rf /var/lib/apt/lists/*
+
+RUN gem install sass
 
 # Set up non-root user
 RUN useradd -m -u 1000 litour
@@ -33,6 +38,11 @@ COPY --chown=litour:litour . .
 
 # Install the application
 RUN poetry install --only main
+
+# Run collectstatic
+ENV DEBUG=True
+ENV DATABASE_URL=
+RUN mkdir -p /app/static && python manage.py collectstatic --noinput
 
 # Switch to non-root user
 USER litour

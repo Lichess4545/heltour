@@ -792,6 +792,7 @@ def alternates_manager_tick():
 
 @app.task()
 def celery_is_up():
+    logger.info("Setting uptime.celery.is_up")
     uptime.celery.is_up = True
 
 

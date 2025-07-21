@@ -33,7 +33,7 @@ env = environ.Env(
     CELERY_DEFAULT_QUEUE=(str, "heltour-{}"),
     REDIS_HOST=(str, "localhost"),
     REDIS_PORT=(int, 6379),
-    REDIS_DB=(int, 0),
+    REDIS_DB=(int, 1),
     CACHEOPS_REDIS_DB=(int, 3),
     SLEEP_UNIT=(float, 1.0),
     SECRET_KEY=(str, "this-is-only-for-testing"),
@@ -217,32 +217,63 @@ CACHES = {
 }
 
 # Celery configuration
-CELERY_DEFAULT_QUEUE = env("CELERY_DEFAULT_QUEUE").format(env("HELTOUR_ENV").lower())
-BROKER_URL = env(
-    "BROKER_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB + 1}"
+CELERY_BROKER_URL = env(
+    "BROKER_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 )
-CELERYBEAT_SCHEDULE = {
-    "alternates-manager-tick": {
+CELERY_DEFAULT_QUEUE = env("CELERY_DEFAULT_QUEUE").format(env("HELTOUR_ENV").lower())
+CELERY_BEAT_SCHEDULE = {
+    "update-ratings": {
+        "task": "heltour.tournament.tasks.update_player_ratings",
+        "schedule": timedelta(minutes=60),
+        "args": (),
+    },
+    "update-tv-state": {
+        "task": "heltour.tournament.tasks.update_tv_state",
+        "schedule": timedelta(minutes=5),
+        "args": (),
+    },
+    "update-slack-users": {
+        "task": "heltour.tournament.tasks.update_slack_users",
+        "schedule": timedelta(minutes=30),
+        "args": (),
+    },
+    "populate-historical-ratings": {
+        "task": "heltour.tournament.tasks.populate_historical_ratings",
+        "schedule": timedelta(minutes=60),
+        "args": (),
+    },
+    "run_scheduled_events": {
+        "task": "heltour.tournament.tasks.run_scheduled_events",
+        "schedule": timedelta(minutes=10),
+        "args": (),
+    },
+    "alternates_manager_tick": {
         "task": "heltour.tournament.tasks.alternates_manager_tick",
-        "schedule": crontab(minute="*/5"),
+        "schedule": timedelta(minutes=2),
+        "args": (),
     },
-    "alternates-manager-monitor": {
-        "task": "heltour.tournament.tasks.alternates_manager_monitor",
-        "schedule": crontab(minute="*/5"),
+    "update_lichess_presence": {
+        "task": "heltour.tournament.tasks.update_lichess_presence",
+        "schedule": timedelta(minutes=1),
+        "args": (),
     },
-    "update-finger-ratings": {
-        "task": "heltour.tournament.tasks.update_finger_ratings",
-        "schedule": crontab(hour="2,10,18", minute="0"),
+    "validate_pending_registrations": {
+        "task": "heltour.tournament.tasks.validate_pending_registrations",
+        "schedule": timedelta(minutes=5),
+        "args": (),
     },
-    "find-recent-games": {
-        "task": "heltour.tournament.tasks.find_recent_games",
-        "schedule": timedelta(seconds=30),
+    "celery_is_up": {
+        "task": "heltour.tournament.tasks.celery_is_up",
+        "schedule": timedelta(minutes=5),
+        "args": (),
     },
-    "starting-alert": {
-        "task": "heltour.tournament.tasks.starting_alert",
-        "schedule": crontab(minute="0,30"),
+    "start_games": {
+        "task": "heltour.tournament.tasks.start_games",
+        "schedule": crontab(minute="*/5"),  # run every 5 minutes
+        "args": (),
     },
 }
+CELERY_TIMEZONE = "UTC"
 
 # Cacheops configuration
 CACHEOPS_REDIS = {

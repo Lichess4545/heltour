@@ -7,9 +7,6 @@ EXPOSE 8000
 ENV DJANGO_SETTINGS_MODULE=heltour.settings \
     PYTHONUNBUFFERED=1
 
-# Run collectstatic
-USER root
-RUN python manage.py collectstatic --noinput || true
 USER litour
 
 # Start Gunicorn
