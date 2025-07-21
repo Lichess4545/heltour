@@ -30,9 +30,11 @@ services:
       - litour
 
   celery:
-    image: ghcr.io/lichess4545/litour-celery:latest
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.base
     env_file: "../../.env.dev"
-    command: celery --app heltour worker --loglevel=info
+    command: celery --app heltour worker --loglevel=info -E
     networks:
       - litour
 
