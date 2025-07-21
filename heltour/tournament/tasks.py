@@ -398,16 +398,22 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
             for gameids in result['games']:
                 if (gameids['white'] == game.white.lichess_username.lower() and
                    gameids['black'] == game.black.lichess_username.lower()):
-                       game.game_link = get_gamelink_from_gameid(gameids['id'])
-                       game.save()
-                       signals.notify_players_game_started.send(sender=_start_league_games,
-                                                                pairing=game,
-                                                                do_clockstart=do_clockstart,
-                                                                clockstart_in=clockstart_in,
-                                                                gameid=gameids['id'])
-                       if gamechannel is not None:
-                           slackapi.send_message(channel=gamechannel.slack_channel,
-                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+                    #TODO: re-activate this once chesster is fixed
+                    #game.game_link = get_gamelink_from_gameid(gameids["id"])
+                    #game.save()
+                    signals.notify_players_game_started.send(
+                        sender=_start_league_games,
+                        pairing=game,
+                        do_clockstart=do_clockstart,
+                        clockstart_in=clockstart_in,
+                        gameid=gameids["id"],
+                    )
+                    #TODO: re-activate (or completely remove?) this and `gamechannel`s once chesster is fixed
+                    #if gamechannel is not None:
+                    #    slackapi.send_message(
+                    #        channel=gamechannel.slack_channel,
+                    #        text=f"@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}",
+                    #    )
         except slackapi.SlackError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError:
