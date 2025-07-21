@@ -49,5 +49,10 @@ RUN redis-server /tmp/redis.conf && \
     sleep 1 && \
     python manage.py test --settings=heltour.test_settings --failfast || (echo "Tests failed" && exit 1)
 
+# Verify javafo.jar can be executed and produces expected output
+RUN output=$(java -jar /app/thirdparty/javafo.jar 2>&1) && \
+    echo "$output" | grep -q "JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)" || \
+    (echo "JavaFo test failed. Expected 'JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)', got: $output" && exit 1)
+
 # This image is only for verification, not for running
 CMD ["echo", "Verification complete"]

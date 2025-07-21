@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     ruby \
     ruby-dev \
+    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install sass
