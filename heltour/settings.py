@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "heltour.tournament",
     "heltour.comments",
     "heltour.api_worker",
+    "django_celery_beat",
 ]
 
 # Middleware configuration
@@ -221,6 +222,7 @@ CELERY_BROKER_URL = env(
     "BROKER_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 )
 CELERY_DEFAULT_QUEUE = env("CELERY_DEFAULT_QUEUE").format(env("HELTOUR_ENV").lower())
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BEAT_SCHEDULE = {
     "update-ratings": {
         "task": "heltour.tournament.tasks.update_player_ratings",

@@ -34,7 +34,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.base
     env_file: "../../.env.dev"
-    command: celery --app heltour worker --loglevel=info -E
+    command: celery --app heltour worker --loglevel=info -E -B
     networks:
       - litour
 

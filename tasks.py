@@ -263,5 +263,18 @@ def reset_db_hard(c):
     print(f"Database '{db_name}' recreated and migrations applied.")
 
 
+@task
+def docker_stage_up(c, build=False):
+    if build:
+        c.run("docker compose -f deploy/staging/compose.yml up -d --build", pty=True)
+    else:
+        c.run("docker compose -f deploy/staging/compose.yml up -d", pty=True)
+
+
+@task
+def docker_stage_down(c):
+    c.run("docker compose -f deploy/staging/compose.yml down", pty=True)
+
+
 # Shortcuts
 up = update

@@ -5,4 +5,4 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=heltour.settings
 
 # Start Celery worker
-CMD ["celery", "-A", "heltour", "worker", "-l", "info", "-E"]
+CMD ["celery", "-A", "heltour", "worker", "-l", "info", "-E", "-B"]
