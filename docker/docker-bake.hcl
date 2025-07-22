@@ -12,7 +12,7 @@ function "tag" {
 }
 
 group "default" {
-  targets = ["verify", "litour-web", "litour-api-worker", "litour-celery"]
+  targets = ["base", "verify", "litour-web", "litour-api-worker", "litour-celery"]
 }
 
 group "production" {
