@@ -7,7 +7,7 @@ USER root
 RUN apt-get update && apt-get install -y redis-server && rm -rf /var/lib/apt/lists/*
 
 # Create logs directory with proper permissions
-RUN mkdir -p /app/logs && chown -R litour:litour /app/logs
+RUN chown -R litour:litour /app/logs
 
 # Create a simple Redis config for tests
 RUN echo "port 6379\nbind 127.0.0.1\ndaemonize yes\nlogfile /tmp/redis.log" > /tmp/redis.conf && \
