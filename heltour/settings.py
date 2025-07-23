@@ -382,6 +382,11 @@ if DEBUG:
         "SHOW_TOOLBAR_CALLBACK": lambda request: True,
     }
 
+# Ensure log directory exists
+log_dir = os.path.dirname(
+    env("LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log"))
+)
+
 # Logging configuration
 LOGGING = {
     "version": 1,
@@ -393,9 +398,7 @@ LOGGING = {
         "default": {
             "level": "DEBUG",
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": env(
-                "LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log")
-            ),
+            "filename": env("LOG_FILE", log_dir),
             "maxBytes": 1024 * 1024 * 15,  # 15MB
             "backupCount": 10,
             "formatter": "standard",
@@ -423,10 +426,3 @@ LOGGING = {
         },
     },
 }
-
-# Ensure log directory exists
-log_dir = os.path.dirname(
-    env("LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log"))
-)
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
