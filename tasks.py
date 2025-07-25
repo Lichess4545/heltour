@@ -58,7 +58,7 @@ def makemigrations(c):
 def shell(c):
     """Start Django shell."""
     manage_py = project_relative("manage.py")
-    c.run(f"python {manage_py} shell")
+    c.run(f"python {manage_py} shell", pty=True)
 
 
 @task(help={"test": "Specific test module, class, or method to run"})
