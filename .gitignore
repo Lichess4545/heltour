@@ -1,7 +1,7 @@
 *.pyc
 env
 .venv
-.env
+/.env
 .project
 .pydevproject
 /static
