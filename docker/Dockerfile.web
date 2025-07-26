@@ -1,0 +1,42 @@
+FROM base AS web
+
+# Switch to root temporarily to install OpenJDK
+USER root
+
+# Install OpenJDK for javafo.jar
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to non-root user
+USER litour
+
+# Expose port
+EXPOSE 8000
+
+# Set environment for Django
+ENV DJANGO_SETTINGS_MODULE=heltour.settings \
+    PYTHONUNBUFFERED=1
+
+USER litour
+
+# Start Gunicorn
+CMD ["gunicorn", "heltour.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--threads", "2", \
+     "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--log-file", "-", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]
+
+FROM web AS web-verify
+
+# Verify javafo.jar can be executed and produces expected output
+RUN output=$(java -jar /app/thirdparty/javafo.jar 2>&1) && \
+    echo "$output" | grep -q "JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)" || \
+    (echo "JavaFo test failed. Expected 'JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)', got: $output" && exit 1)
+
+# This stage is only for verification
+CMD ["echo", "Web verification complete"]

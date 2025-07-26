@@ -11,6 +11,10 @@ function "tag" {
   result = ["${lower(REGISTRY)}${REGISTRY != "" ? "/" : ""}${name}:${TAG}"]
 }
 
+group "verify" {
+  targets = ["web-verify", "javafo-verify"]
+}
+
 group "default" {
   targets = ["base", "verify", "litour-web", "litour-api-worker", "litour-celery"]
 }
@@ -25,10 +29,9 @@ target "base" {
   tags = tag("litour-base")
 }
 
-target "verify" {
+target "web-verify" {
   context = "."
-  dockerfile = "docker/Dockerfile.verify"
-  tags = tag("litour-verify")
+  dockerfile = "docker/Dockerfile.web-verify"
   contexts = {
     base = "target:base"
   }
@@ -37,11 +40,22 @@ target "verify" {
 
 target "litour-web" {
   context = "."
-  dockerfile = "docker/Dockerfile.django"
+  dockerfile = "docker/Dockerfile.web"
+  target = "web"
   tags = tag("litour-web")
   contexts = {
     base = "target:base"
   }
+}
+
+target "javafo-verify" {
+  context = "."
+  dockerfile = "docker/Dockerfile.web"
+  target = "web-verify"
+  contexts = {
+    base = "target:base"
+  }
+  cache-only = true
 }
 
 target "litour-api-worker" {
