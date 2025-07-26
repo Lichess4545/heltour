@@ -5,6 +5,15 @@ EXPOSE 8880
 
 # Set environment
 ENV PYTHONUNBUFFERED=1
+ENV HELTOUR_APP=api_worker
 
 # Start API worker
-CMD ["python", "api_worker.py"]
+CMD ["gunicorn", "heltour.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--threads", "2", \
+     "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--log-file", "-", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

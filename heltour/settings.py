@@ -383,9 +383,7 @@ if DEBUG:
     }
 
 # Ensure log directory exists
-log_dir = os.path.dirname(
-    env("LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log"))
-)
+log_file = env("LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log"))
 
 # Logging configuration
 LOGGING = {
@@ -398,7 +396,7 @@ LOGGING = {
         "default": {
             "level": "DEBUG",
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": log_dir,
+            "filename": log_file,
             "maxBytes": 1024 * 1024 * 15,  # 15MB
             "backupCount": 10,
             "formatter": "standard",

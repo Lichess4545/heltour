@@ -30,7 +30,7 @@ def runserver(c):
 def runapiworker(c):
     """Run the API worker server on port 8880."""
     manage_py = project_relative("manage.py")
-    with c.prefix("export HELTOUR_APP=API_WORKER"):
+    with c.prefix("export HELTOUR_APP=api_worker"):
         c.run(f"python {manage_py} runserver 0.0.0.0:8880")
 
 
