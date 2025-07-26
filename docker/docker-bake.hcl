@@ -32,6 +32,7 @@ target "base" {
 target "web-verify" {
   context = "."
   dockerfile = "docker/Dockerfile.web-verify"
+  tags = tag("litour-verify")
   contexts = {
     base = "target:base"
   }
@@ -52,6 +53,7 @@ target "javafo-verify" {
   context = "."
   dockerfile = "docker/Dockerfile.web"
   target = "web-verify"
+  tags = tag("litour-javafo-verify")
   contexts = {
     base = "target:base"
   }
