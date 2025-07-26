@@ -1,11 +1,18 @@
-# Git
-.git
+# Direct things in our repository
+.git/
+.github/
+docker/
+deploy/
+.travis.yml
 .gitignore
+.editorconfig
+docs/
+*.md
 
 # Environment files
 .env
 .env.*
-!.env.example
+.env.example
 
 # Python
 __pycache__
@@ -76,12 +83,6 @@ coverage.xml
 *.cover
 .hypothesis/
 
-# Documentation
-docs/
-*.md
-!README.md
-!README.sysadmin.md
-!CLAUDE.md
 
 # Backups
 backups/
@@ -132,7 +133,6 @@ certs/
 # Data directories
 data/
 logs/
-!*/logs/
 
 # Poetry
 !poetry.lock
