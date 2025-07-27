@@ -410,7 +410,7 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
     for game in league_games:
         try:
             if result is None: # starting games failed, or all tokens rejected
-                return
+                continue
             for gameids in result['games']:
                 if (
                     gameids["white"] == game.white.lichess_username.lower()
