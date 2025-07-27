@@ -405,12 +405,12 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                     )
         except KeyError:
             logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
+    if result is None: # starting games failed, or all tokens rejected
+        return
     gamechannel = LeagueChannel.objects.filter(league__name=leaguename, type='games').first()
     # use lichess reply to set game ids
     for game in league_games:
         try:
-            if result is None: # starting games failed, or all tokens rejected
-                return
             for gameids in result['games']:
                 if (
                     gameids["white"] == game.white.lichess_username.lower()
