@@ -40,9 +40,6 @@ class Migration(migrations.Migration):
                 to="tournament.player",
             ),
         ),
-        migrations.RunPython(
-            code=create_player, reverse_code=migrations.RunPython.noop
-        ),
         # add default to make reversible
         migrations.AlterField(
             model_name="registration",
@@ -54,7 +51,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             # no forward operation
-            code=migrations.RunPython.noop,
+            code=create_player,
             # backward operation to fetch the username from the player
             reverse_code=reverse_lichess_username,
         ),
