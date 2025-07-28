@@ -46,9 +46,7 @@ class RegistrationForm(forms.ModelForm):
     def __init__(self, *args, rules_url='', **kwargs):
         self.season = kwargs.pop('season')
         
-        self.username = kwargs.pop('user')
-
-        self.player, created = Player.objects.get_or_create(lichess_username=self.username)
+        self.player = kwargs.pop('player')
 
         already_accepted = SeasonPlayer.objects.filter(
             season__in=self.season.section_list(), player=self.player).exists()
