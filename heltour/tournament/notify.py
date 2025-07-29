@@ -135,7 +135,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
         return
 
     season_players = instance.seasonplayer_set.select_related('season__league').nocache()
-    pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username,
+    pending_regs = Registration.objects.filter(player__lichess_username__iexact=instance.lichess_username,
                                                status='pending') \
         .select_related('season__league').nocache()
     league_set = {sp.season.league for sp in season_players} | {reg.season.league for reg in
