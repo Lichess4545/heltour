@@ -76,7 +76,7 @@ def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
             player__date_modified__lte=_24_hours,
         )
         .exclude(player__lichess_username__in=without_usernames)
-        .values_list("player")
+        .values_list("player", flat=True)
     )
     reg_players = Player.objects.filter(pk__in=active_regs)
     return to_usernames(just_username(reg_players))
