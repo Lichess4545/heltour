@@ -182,9 +182,7 @@ STATIC_PRECOMPILER_COMPILERS = (
     (
         "static_precompiler.compilers.SCSS",
         {
-            "executable": os.path.join(
-                BASE_DIR, ".gems/bin/sass"
-            ),  # Use local sass gem
+            "executable": "sass",
             "sourcemap_enabled": True,
             "output_style": "compact",
         },
