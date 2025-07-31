@@ -55,6 +55,8 @@ if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
 else:
     HELTOUR_APP = 'tournament'
 
+HELTOUR_VERSION: str = "1.0.1"
+
 INSTALLED_APPS = [
     'cacheops',
     'django.contrib.admin',
