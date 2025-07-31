@@ -1,10 +1,11 @@
+import json
 import queue
 import threading
-import websocket
-import json
 import time
-from django.utils import timezone
 from datetime import timedelta
+
+import websocket
+from django.utils import timezone
 
 
 def _run_worker():
