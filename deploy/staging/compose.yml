@@ -13,13 +13,13 @@ services:
 
   web:
     image: ghcr.io/lichess4545/litour-web:latest
-    env_file: ".env"
+    env_file: "stack.env"
     networks:
       - litour
 
   apiworker:
     image: ghcr.io/lichess4545/litour-api-worker:latest
-    env_file: ".env"
+    env_file: "stack.env"
     environment:
       HELTOUR_ENV: STAGING
       HELTOUR_APP: api_worker
@@ -28,7 +28,7 @@ services:
 
   celery:
     image: ghcr.io/lichess4545/litour-celery:latest
-    env_file: ".env"
+    env_file: "stack.env"
     networks:
       - litour
 
