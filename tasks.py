@@ -266,14 +266,14 @@ def reset_db_hard(c):
 @task
 def docker_stage_up(c, build=False):
     if build:
-        c.run("docker compose -f deploy/staging/compose.yml up -d --build", pty=True)
+        c.run("docker compose -f deploy/litour-staging/compose.yml up -d --build", pty=True)
     else:
-        c.run("docker compose -f deploy/staging/compose.yml up -d", pty=True)
+        c.run("docker compose -f deploy/litour-staging/compose.yml up -d", pty=True)
 
 
 @task
 def docker_stage_down(c):
-    c.run("docker compose -f deploy/staging/compose.yml down", pty=True)
+    c.run("docker compose -f deploy/litour-staging/compose.yml down", pty=True)
 
 
 # Shortcuts
