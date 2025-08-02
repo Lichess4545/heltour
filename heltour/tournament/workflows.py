@@ -8,7 +8,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import alternates_manager, pairinggen, signals, slackapi
 from heltour.tournament.models import (
     Alternate,

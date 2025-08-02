@@ -1,0 +1,62 @@
+# Development services for Litour
+# 
+# Quick start:
+#   1. docker-compose up -d
+#   2. cp .env.dev .env
+#   3. nix develop
+#   4. invoke migrate
+#   5. invoke createsuperuser
+#   6. invoke runserver
+#
+# View emails at: http://localhost:8025
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: litour-postgres
+    environment:
+      POSTGRES_DB: heltour
+      POSTGRES_USER: heltour
+      POSTGRES_PASSWORD: heltour_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heltour"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: litour-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: litour-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    logging:
+      driver: 'none'  # Disable excessive logging
+
+volumes:
+  postgres_data:
+    name: litour_postgres_data
+  redis_data:
+    name: litour_redis_data
+
+networks:
+  default:
+    name: litour-network

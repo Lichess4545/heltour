@@ -3,7 +3,7 @@ import time
 import json
 from django.core.cache import cache
 import logging
-from heltour import settings
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 

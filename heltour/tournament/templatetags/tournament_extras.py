@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
-from heltour import settings
+from django.conf import settings
 from heltour.tournament.models import Player, Registration, format_score
 from static_precompiler.utils import compile_static
 

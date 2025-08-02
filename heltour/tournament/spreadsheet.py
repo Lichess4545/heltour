@@ -7,7 +7,7 @@ from django.utils import timezone
 from gspread.exceptions import WorksheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament.models import (
     Alternate,
     LonePlayerPairing,

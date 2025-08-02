@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "heltour"
 version = "1.0.1"
-description = "A [hel]per for [tour]naments.  Intended to run swiss based tournaments, but is actually the source for the lichess4545.com leagues."
+description = "A [hel]per for [tour]naments.  Intended to run swiss based tournaments, but is actually the source for the lots.lichess.ca leagues."
 authors = ["Lakin Wecker <lakin@structuredabstraction.com>"]
 license = "MIT"
 
@@ -9,7 +9,6 @@ license = "MIT"
 python = "^3.9"
 django = "==4.2.*"
 django-reversion = "==5.0.*"
-fabric3 = "==1.14.post1"
 psycopg2-binary = "==2.9.9"
 django-debug-toolbar = "==4.2.0"
 #requests[security] = "==2.22.0"
@@ -35,8 +34,13 @@ baste = { git = "https://bitbucket.org/strabs/baste.git", branch="release-2.2" }
 requests = {extras = ["security"], version = "^2.32.4"}
 django-stubs = "4.2.6"
 django-stubs-ext = "4.2.5"
-patchwork = "1.0.1"
 more-itertools = "^10.7.0"
+invoke = "^2.2.0"
+django-environ = "^0.12.0"
+python-dotenv = "^1.1.1"
+gunicorn = "^23.0.0"
+faker = "^37.4.0"
+django-celery-beat = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
 

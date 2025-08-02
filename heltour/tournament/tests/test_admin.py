@@ -72,18 +72,20 @@ class SeasonAdminTestCase(TestCase):
     @patch("heltour.tournament.simulation.simulate_season")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_simulate(self, message, simulate):
-        self.client.force_login(user=self.superuser)
-        self.client.post(
-            self.path_s_changelist,
-            data={
-                "action": "simulate_tournament",
-                "_selected_action": get_season("lone").pk,
-            },
-            follow=True,
-        )
-        self.assertTrue(simulate.called)
-        self.assertTrue(message.called)
-        self.assertEqual(message.call_args.args[1], "Simulation complete.")
+        with self.settings(DEBUG=True, STAGING=False):
+            from django.conf import settings
+            self.client.force_login(user=self.superuser)
+            self.client.post(
+                self.path_s_changelist,
+                data={
+                    "action": "simulate_tournament",
+                    "_selected_action": get_season("lone").pk,
+                },
+                follow=True,
+            )
+            self.assertTrue(message.called)
+            self.assertEqual(message.call_args.args[1], "Simulation complete.")
+            self.assertTrue(simulate.called)
 
     @patch("heltour.tournament.models.Season.calculate_scores")
     @patch("heltour.tournament.models.TeamPairing.refresh_points")

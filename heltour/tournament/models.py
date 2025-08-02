@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django_comments.models import Comment
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import signals
 
 logger = logging.getLogger(__name__)

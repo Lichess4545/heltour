@@ -1,0 +1,144 @@
+# Direct things in our repository
+.git/
+.github/
+docker/
+deploy/
+.travis.yml
+.gitignore
+.editorconfig
+docs/
+*.md
+
+# Environment files
+.env
+.env.*
+.env.example
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+.classpath
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+static/
+!*/static/
+*.pot
+*.pyc
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.sql.bz2
+*.dump
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Nix
+flake.nix
+flake.lock
+result
+result-*
+
+# Docker
+docker-compose*.yml
+.dockerignore
+
+# Development files
+.sass-cache/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# SSL certificates
+certs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Data directories
+data/
+logs/
+
+# Poetry
+!poetry.lock
+!pyproject.toml
+
+# Misc
+.cache/
+*.orig
+*.rej

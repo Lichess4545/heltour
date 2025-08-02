@@ -13,17 +13,10 @@ logger = logging.getLogger(__name__)
 # Optimize for typical rate limits: 1, 2, 5, 10 minutes
 retry_wait_times = {0: 60, 1: 60, 2: 180, 3: 300, 4: 600}
 
-def _get_lichess_api_token():
-    try:
-        with open(settings.LICHESS_API_TOKEN_FILE_PATH) as fin:
-            return fin.read().strip()
-    except IOError:
-        return None
-
 def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
                          content_type=None, retry_count=0):
     url = settings.LICHESS_DOMAIN  + path
-    token = _get_lichess_api_token()
+    token = settings.LICHESS_API_TOKEN
 
 
     logger.info('API call: %s' % url)

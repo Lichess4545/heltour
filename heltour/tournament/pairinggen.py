@@ -6,7 +6,7 @@ import tempfile
 import reversion
 from django.db import transaction
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament.models import (
     AlternateAssignment,
     LonePlayerPairing,
