@@ -1,0 +1,5 @@
+FROM base AS builder
+
+FROM caddy:2-alpine AS caddy
+
+COPY --from=builder /app/heltour/tournament/static /public/static

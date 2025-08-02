@@ -16,11 +16,11 @@ group "verify" {
 }
 
 group "default" {
-  targets = ["base", "verify", "litour-web", "litour-api-worker", "litour-celery"]
+  targets = ["base", "verify", "litour-caddy", "litour-web", "litour-api-worker", "litour-celery"]
 }
 
 group "production" {
-  targets = ["litour-web", "litour-api-worker", "litour-celery"]
+  targets = ["litour-caddy", "litour-web", "litour-api-worker", "litour-celery"]
 }
 
 target "base" {
@@ -37,6 +37,16 @@ target "web-verify" {
     base = "target:base"
   }
   cache-only = true
+}
+
+target "litour-caddy" {
+  context = "."
+  dockerfile = "docker/Dockerfile.caddy"
+  target = "caddy"
+  tags = tag("litour-caddy")
+  contexts = {
+    base = "target:base"
+  }
 }
 
 target "litour-web" {

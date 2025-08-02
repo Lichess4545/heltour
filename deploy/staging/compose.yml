@@ -1,12 +1,21 @@
 services:
+  caddy:
+    image: ghcr.io/lichess4545/litour-caddy:latest
+    # ports:
+    #   - 8000:80
+    volumes:
+      - ./conf:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - caddy
+      - litour
+
   web:
     image: ghcr.io/lichess4545/litour-web:latest
     env_file: ".env"
     networks:
-      - caddy
       - litour
-    # ports:
-    #   - "8000:8000"
 
   apiworker:
     image: ghcr.io/lichess4545/litour-api-worker:latest
@@ -14,8 +23,6 @@ services:
     environment:
       HELTOUR_ENV: STAGING
       HELTOUR_APP: api_worker
-    depends_on:
-      - postgres
     networks:
       - litour
 
@@ -65,9 +72,12 @@ volumes:
     name: litour_postgres_data
   redis_data:
     name: litour_redis_data
+  caddy_data:
+  caddy_config:
 
 networks:
   caddy:
     external: true
   litour:
-    driver: bridge
+    driver: overlay
+    # driver: bridge

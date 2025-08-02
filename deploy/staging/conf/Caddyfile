@@ -1,0 +1,13 @@
+:80 {
+    root * /public
+
+    @notStatic {
+        not file {
+            try_files {path}
+        }
+    }
+
+    reverse_proxy @notStatic web:8000
+
+    file_server
+}
