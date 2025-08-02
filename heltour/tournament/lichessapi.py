@@ -8,9 +8,15 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _apicall(url, timeout=1800, check_interval=0.1, post_data=None):
+def _apicall(
+    url: str,
+    timeout: int = 1800,
+    check_interval: float = 0.1,
+    post_data: str = "",
+    post: bool = False
+) -> str:
     # Make a request to the local API worker to put the result of a lichess API call into the redis cache
-    if post_data:
+    if post_data or post:
         r = requests.post(url, data=post_data)
     else:
         r = requests.get(url)
@@ -36,7 +42,7 @@ def _apicall(url, timeout=1800, check_interval=0.1, post_data=None):
         if time_spent >= timeout:
             raise ApiWorkerError('Timeout for %s' % url)
 
-def _apicall_with_error_parsing(*args, **kwargs):
+def _apicall_with_error_parsing(*args, **kwargs) -> str:
     result = _apicall(*args, **kwargs)
     if result == '':
         raise ApiWorkerError('API failure')
@@ -195,6 +201,22 @@ def bulk_start_games(*, tokens, clock, increment, do_clockstart, clockstart, clo
     else:
         post = f'players={tokens}&clock.limit={clock}&clock.increment={increment}&rated=true&variant={variant}&message=Hello! Your {leaguename} game with {{opponent}} is ready. Please join it at {{game}}&rules=noClaimWin'
     result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
+    return json.loads(result)
+
+
+def bulk_start_clocks(
+    *,
+    bulkid: str,
+    priority: int = 0,
+    max_retries: int = 2,
+    timeout: int = 30,
+) -> dict[str, str]:
+    url = (
+        f"{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing/{bulkid}/start-clocks?"
+        f"priority={priority}&max_retries={max_retries}&content_type="
+        "application/x-www-form-urlencoded"
+    )
+    result = _apicall_with_error_parsing(url=url, timeout=timeout, post=True)
     return json.loads(result)
 
 
