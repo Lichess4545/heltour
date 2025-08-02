@@ -1,7 +1,19 @@
 import logging
-from heltour.tournament.models import (League, LonePlayerScore, Player, Registration, Round,
-                                       Season, SeasonPlayer, Team, TeamMember, TeamScore)
+
 from django.urls import reverse
+
+from heltour.tournament.models import (
+    League,
+    LonePlayerScore,
+    Player,
+    Registration,
+    Round,
+    Season,
+    SeasonPlayer,
+    Team,
+    TeamMember,
+    TeamScore,
+)
 
 
 def set_rating(player, rating, rating_type='classical'):
@@ -9,12 +21,18 @@ def set_rating(player, rating, rating_type='classical'):
 
 
 def create_reg(season, name):
-    return Registration.objects.create(season=season, status='pending', lichess_username=name,
-                                       email='a@test.com',
-                                       has_played_20_games=True,
-                                       can_commit=True, agreed_to_rules=True,
-                                       agreed_to_tos=True,
-                                       alternate_preference='full_time')
+    pl, _ = Player.objects.get_or_create(lichess_username=name)
+    return Registration.objects.create(
+        season=season,
+        status="pending",
+        player=pl,
+        email="a@test.com",
+        has_played_20_games=True,
+        can_commit=True,
+        agreed_to_rules=True,
+        agreed_to_tos=True,
+        alternate_preference="full_time",
+    )
 
 
 def league_tag(league_type):
@@ -83,7 +101,7 @@ def createCommonLeagueData(round_count=3):
 class Shush:
     def __enter__(self):
         logging.disable(logging.CRITICAL)
-        return(self)
+        return self
 
     def __exit__(self, type, value, traceback):
         logging.disable(logging.NOTSET)

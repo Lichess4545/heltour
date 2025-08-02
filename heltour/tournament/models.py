@@ -1850,7 +1850,7 @@ class Registration(_BaseModel):
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
-    lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    player = models.ForeignKey(to=Player, on_delete=models.CASCADE, null=True)
     email = models.EmailField(max_length=255)
     has_played_20_games = models.BooleanField()
     can_commit = models.BooleanField()
@@ -1864,27 +1864,39 @@ class Registration(_BaseModel):
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    validation_ok = models.BooleanField(blank=True, null=True, default=None)
-    validation_warning = models.BooleanField(default=False)
-    last_validation_try = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username__iexact=self.lichess_username,
-                                           date_created__lt=self.date_created)
+        return Registration.objects.filter(
+            player=self.player, date_created__lt=self.date_created
+        )
 
     def other_seasons(self):
         return SeasonPlayer.objects.filter(
-            player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
+            player=self.player).exclude(season=self.season)
 
-    def player(self):
-        return Player.get_or_create(lichess_username=self.lichess_username)
+    @property
+    def lichess_username(self):
+        return self.player.lichess_username
 
     @property
     def rating(self):
-        return self.player().rating_for(league=self.season.league)
+        return self.player.rating_for(league=self.season.league)
+
+    @property
+    def validation_ok(self):
+        # a rating of 0 means there were problems retrieving the rating
+        return self.rating != 0 and self.player.account_status == "normal"
+
+    @property
+    def validation_warning(self):
+        return (
+            self.player.provisional_for(league=self.season.league)
+            or not self.agreed_to_rules
+            or not self.agreed_to_tos
+        )
 
     @classmethod
     def can_register(cls, user, season):
@@ -1899,14 +1911,19 @@ class Registration(_BaseModel):
 
     @classmethod
     def get_latest_registration(cls, user, season):
-        return (cls.objects
-                .filter(lichess_username__iexact=user.username, season=season)
-                .order_by('-date_created')
-                .first())
+        return (
+            cls.objects.filter(
+                player__lichess_username__iexact=user.username, season=season
+            )
+            .order_by("-date_created")
+            .first()
+        )
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
+        return cls.objects.filter(
+            player__lichess_username__iexact=user.username, season=season
+        ).exists()
 
 
 # -------------------------------------------------------------------------------
