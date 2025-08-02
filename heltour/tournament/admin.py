@@ -120,6 +120,20 @@ def redirect_with_params(*args, **kwargs):
     return response
 
 
+class PreconditionError(ValueError):
+    """Raised when a function/method precondition is violated.
+
+    This exception should be raised at the beginning of a function when
+    input validation fails or required conditions are not met.
+    """
+    pass
+
+
+def require(condition, error_msg):
+    if not condition:
+        raise PreconditionError(error_msg)
+
+
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
 def comment_saved(instance, created, **kwargs):
     if not created:
@@ -500,42 +514,43 @@ class SeasonAdmin(_BaseAdmin):
         return my_urls + urls
 
     def create_broadcast(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(
-                request, "Can only create one broadcast at a time.", messages.ERROR
+        try:
+            require(len(queryset) == 1, "Can only create one broadcast at a time.")
+            season = queryset[0]
+            require(
+                season.create_broadcast,
+                "create_broadcast is not set for this season.",
             )
+            require(
+                season.get_broadcast_id() != "",
+                "A broadcast for this season already exists.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
             return
-        season = queryset[0]
-        if not season.create_broadcast:
-            self.message_user(
-                request,
-                "create_broadcast is set to False for this season.",
-                messages.ERROR,
-            )
-        elif season.get_broadcast_id():
-            self.message_user(
-                request, "A broadcast for this season already exists.", messages.ERROR
-            )
-        else:
-            signals.do_create_broadcast.send(sender=self.__class__, season=season)
-            self.message_user(request, "Trying to create broadcast.", messages.INFO)
+
+        signals.do_create_broadcast.send(sender=self.__class__, season=season)
+        self.message_user(request, "Trying to create broadcast.", messages.INFO)
+
 
     def update_broadcast(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(
-                request, "Can only update one broadcast at a time.", messages.ERROR
+        try:
+            require(
+                len(queryset) == 1,
+                "Can only update one broadcast at a time.",
             )
-            return
-        season = queryset[0]
-        if season.get_broadcast_id():
-            signals.do_update_broadcast.send(sender=self.__class__, season=season)
-            self.message_user(request, "Updating broadcast.", messages.INFO)
-        else:
-            self.message_user(
-                request,
+            season = queryset[0]
+            require(
+                season.get_broadcast_id() != "",
                 "Could not find broadcast to update, create one first.",
-                messages.ERROR,
             )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_update_broadcast.send(sender=self.__class__, season=season)
+        self.message_user(request, "Updating broadcast.", messages.INFO)
+
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
@@ -1415,56 +1430,43 @@ class RoundAdmin(_BaseAdmin):
         return my_urls + urls
 
     def create_broadcast_round(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(
-                request,
+        try:
+            require(
+                len(queryset) == 1,
                 "Can only create one broadcast round at a time.",
-                messages.ERROR,
             )
-            return
-        round_ = queryset[0]
-        if not round_.get_broadcast_id():
-            self.message_user(
-                request,
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
                 "Could not find broadcast for season, create it first.",
-                messages.ERROR,
             )
-        elif round_.get_broadcast_round_id():
-            self.message_user(
-                request,
-                "A broadcast round for this round alrady exists.",
-                messages.ERROR,
-            )
-        else:
-            signals.do_create_broadcast_round.send(sender=self.__class__, round_=round_)
-            self.message_user(
-                request, "Trying to create broadcast round.", messages.INFO
-            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_create_broadcast_round.send(sender=self.__class__, round_=round_)
+        self.message_user(
+            request, "Trying to create broadcast round.", messages.INFO
+        )
 
     def update_broadcast_round(self, request, queryset):
-        if queryset.count() > 1:
-            self.message_user(
-                request,
-                "Can only update one broadcast round at a time.",
-                messages.ERROR,
-            )
-        round_ = queryset[0]
-        if not round_.get_broadcast_id():
-            self.message_user(
-                request,
+        try:
+            require(len(queryset) == 1, "Can only update one broadcast round at a time.")
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
                 "Could not find broadcast for season, create one first.",
-                messages.ERROR,
             )
+            bcrid = round_.get_broadcast_round_id()
+            require(bcrid != "", "Could not find broadcast round to update, create one first.")
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
             return
-        bcrid = round_.get_broadcast_round_id()
-        if not bcrid:
-            self.message_user(
-                request,
-                "Could not find broadcast round to update, create one first.",
-                messages.ERROR,
-            )
-        else:
-            signals.do_update_broadcast_round.send(sender=self.__class__, round_=round_)
+
+        signals.do_update_broadcast_round.send(sender=self.__class__, round_=round_)
+        self.message_user(
+            request, "Updating broadcast round.", messages.INFO
+        )
 
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
