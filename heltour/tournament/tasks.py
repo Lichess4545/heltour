@@ -429,11 +429,30 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                         slackapi.send_message(
                             channel=gamechannel.slack_channel,
                             text=(
-                                f"@{game.white.lichess_username} vs "
-                                f"@{game.black.lichess_username}: "
+                                f"<@{game.white.lichess_username}> vs "
+                                f"<@{game.black.lichess_username}>: "
                                 f"{game.game_link}"
                             ),
                         )
+                    if game.get_league().is_team_league():
+                        message = (
+                            f"Board {game.teamplayerpairing.board_number} game "
+                            f"<@{game.white.lichess_username}> vs "
+                            f"<@{game.black.lichess_username}> has started: "
+                            f"{game.game_link}"
+                        )
+                        if game.teamplayerpairing.white_team().slack_channel:
+                            slackapi.send_message(
+                                channel=game.teamplayerpairing.white_team().slack_channel,
+                                text=message,
+                            )
+                            time.sleep(settings.SLEEP_UNIT)
+                        if game.teamplayerpairing.black_team().slack_channel:
+                            slackapi.send_message(
+                                channel=game.teamplayerpairing.black_team().slack_channel,
+                                text=message,
+                            )
+                            time.sleep(settings.SLEEP_UNIT)
         except slackapi.SlackError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError as e:
