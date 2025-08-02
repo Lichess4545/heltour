@@ -169,6 +169,25 @@ def get_peak_rating(lichess_username, perf_type):
         return None
 
 
+def get_admin_token(
+    *,
+    lichess_usernames: list[str],
+    description: str = "Lichess Tournament Pairings",  # ideally tournament name
+    priority: int = 0,
+    max_retries: int = 0,
+    timeout: int = 30,
+) -> dict[str, str]:
+    usernames = ",".join(lichess_usernames)
+    url = (
+        f"{settings.API_WORKER_HOST}/lichessapi/api/token/admin-challenge"
+        f"?priority={priority}&max_retries={max_retries}&"
+        f"content_type=application/x-www-form-urlencoded"
+    )
+    post = f"users={usernames}&description={description}"
+    result = _apicall_with_error_parsing(url=url, timeout=timeout, post_data=post)
+    return json.loads(result)
+
+
 def bulk_start_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, priority=0, max_retries=0, timeout=30):
     url = f'{settings.API_WORKER_HOST}/lichessapi/api/bulk-pairing?priority={priority}&max_retries={max_retries}&content_type=application/x-www-form-urlencoded'
     if do_clockstart:
