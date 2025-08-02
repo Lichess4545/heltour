@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("tournament", "0009_alter_playernotificationsetting"),
+        ("tournament", "0012_remove_registration_lichess_username"),
     ]
 
     operations = [
