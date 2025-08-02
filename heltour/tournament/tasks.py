@@ -698,10 +698,10 @@ def do_create_broadcast_round(round_: Round) -> None:
         )
         broadcasts = Broadcast.objects.filter(season=round_.season)
         broadcasts_count = broadcasts.count()
-    if round_.season.broadcast_title_override:
-        title = round_.season.broadcast_title_override
-    else:
-        title = f"{round_.season.league.name} S{round_.season.tag}"
+    title = (
+        round_.season.broadcast_title_override
+        or f"{round_.season.league.name} S{round_.season.tag}"
+    )
     grouping = _create_broadcast_grouping(broadcasts=broadcasts, title=title)
     for bc in broadcasts:
         if broadcasts_count_initial != broadcasts_count:
