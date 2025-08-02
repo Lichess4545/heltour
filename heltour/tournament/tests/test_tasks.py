@@ -318,18 +318,18 @@ class TestBroadcasts(TestCase):
         teamstring = _create_team_string(self.s)
         self.assertEqual(
             teamstring,
-            "Team 1%3B%20Player1%0A"
-            "Team 1%3B%20Player2%0A"
-            "Team 2%3B%20Player3%0A"
-            "Team 2%3B%20Player4%0A"
-            "Team 3%3B%20Player5%0A"
-            "Team 3%3B%20Player6%0A"
-            "Team 4%3B%20Player7%0A"
-            "Team 4%3B%20Player8%0A"
-            "Team 5%3B%20Player9%0A"
-            "Team 5%3B%20Player10%0A"
-            "Team 6%3B%20Player11%0A"
-            "Team 6%3B%20Player12",
+            "Team%201%3B%20Player1%0A"
+            "Team%201%3B%20Player2%0A"
+            "Team%202%3B%20Player3%0A"
+            "Team%202%3B%20Player4%0A"
+            "Team%203%3B%20Player5%0A"
+            "Team%203%3B%20Player6%0A"
+            "Team%204%3B%20Player7%0A"
+            "Team%204%3B%20Player8%0A"
+            "Team%205%3B%20Player9%0A"
+            "Team%205%3B%20Player10%0A"
+            "Team%206%3B%20Player11%0A"
+            "Team%206%3B%20Player12",
         )
 
     def test_create_broadcast_grouping(self):

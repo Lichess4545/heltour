@@ -6,6 +6,7 @@ import sys
 import textwrap
 import time
 import traceback
+import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, List
 from more_itertools import divide, first
@@ -518,11 +519,8 @@ def _create_team_string(season: Season) -> str:
         for teamplayer in TeamMember.objects.filter(team=team).order_by(
             "team__number", "board_number"
         ):
-            # %3B = ';'
-            # %20 = ' '
-            lines.append(f"{team.name}%3B%20{teamplayer.player.lichess_username}")
-        # %0A = '\n'
-    return "%0A".join(lines)
+            lines.append(f"{team.name}; {teamplayer.player.lichess_username}")
+    return urllib.parse.quote("\n".join(lines))
 
 def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> str:
     for broadcast in broadcasts:
