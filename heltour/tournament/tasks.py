@@ -57,7 +57,7 @@ from heltour.tournament.models import (
 from heltour.tournament.workflows import RoundTransitionWorkflow
 
 # see https://lichess.org/api#tag/Broadcasts/operation/broadcastRoundUpdate for game ids
-MAX_GAMES_LICHESS_BROADCAST: int = 12
+MAX_GAMES_LICHESS_BROADCAST: int = 100
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
