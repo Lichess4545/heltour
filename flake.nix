@@ -67,7 +67,8 @@
             tree # Directory visualization
 
             flatpak # For lakin's sanity
-            openssh # Fo lakin's saniyt
+            openssh # Fo' lakin's sanity
+            jre21_minimal # Fo javafo
           ];
 
           shellHook = ''
