@@ -1,12 +1,17 @@
 import logging
-import requests
 import time
-from . import worker
+from platform import python_version
+
+import requests
+from django import __version__ as djangoversion
+from django.conf import settings
 from django.core.cache import cache
 from django.http.response import HttpResponse, JsonResponse
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
+
+from heltour.api_worker import worker
+from heltour.settings import HELTOUR_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +25,18 @@ def _get_lichess_api_token():
     except IOError:
         return None
 
-def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, max_retries, format,
-                         content_type=None, retry_count=0):
+def _do_lichess_api_call(
+    redis_key,
+    path,
+    method,
+    post_data,
+    params,
+    priority,
+    max_retries,
+    format,
+    content_type=None,
+    retry_count=0,
+) -> None:
     url = settings.LICHESS_DOMAIN  + path
     token = _get_lichess_api_token()
 
@@ -29,7 +44,9 @@ def _do_lichess_api_call(redis_key, path, method, post_data, params, priority, m
     logger.info('API call: %s' % url)
 
     try:
-        headers = {}
+        headers = {
+            "User-Agent": f"Lichess4545 (heltour/{HELTOUR_VERSION}; django/{djangoversion}; python/{python_version()})",
+        }
         if token:
             headers['Authorization'] = 'Bearer %s' % token
         if format:
