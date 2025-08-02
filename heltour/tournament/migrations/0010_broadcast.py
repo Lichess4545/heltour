@@ -18,7 +18,23 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="season",
             name="create_broadcast",
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(
+                default=False,
+                help_text=(
+                    "Automatically update broadcasts. "
+                    'Run "create broadcast" for initial creation.'
+                ),
+            ),
+        ),
+        migrations.AddField(
+            model_name="season",
+            name="broadcast_title_override",
+            field=models.CharField(
+                blank=True,
+                max_length=80,
+                null=True,
+                help_text="Change the broadcast name. Leave empty for default.",
+            ),
         ),
         migrations.CreateModel(
             name="Broadcast",
