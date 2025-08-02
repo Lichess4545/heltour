@@ -11,7 +11,7 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}
 
 jobs:
-  docker:
+  build:
     name: Build Docker Images
     runs-on: ubuntu-latest
     permissions:
@@ -61,3 +61,13 @@ jobs:
           TAG="${{ steps.tag.outputs.TAG }}" \
           REGISTRY="ghcr.io/${{ env.IMAGE_PREFIX }}" \
           docker buildx bake -f docker/docker-bake.hcl --push default
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: deploy
+        env:
+          LITOUR_STAGING_DEPLOY_WEBHOOK_URL: ${{ secrets.LITOUR_STAGING_DEPLOY_WEBHOOK_URL }}
+        run: curl -X POST $LITOUR_STAGING_DEPLOY_WEBHOOK_URL
