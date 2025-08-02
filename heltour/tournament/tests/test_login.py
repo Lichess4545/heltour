@@ -30,13 +30,18 @@ class LoginTestCase(TestCase):
 
     @patch("heltour.tournament.oauth._encode_state", return_value="encodedstate")
     def test_oauth_redirect(self, *args):
-        response = self.client.get(league_url("team", "login"), secure=True)
+        test_clientid = "testserver.dev"
+        lichess_oauth_url = "lichesstest.dev/oauth"
+        with self.settings(
+            LICHESS_OAUTH_CLIENTID=test_clientid,
+            LICHESS_OAUTH_AUTHORIZE_URL=lichess_oauth_url,
+        ):
+            response = self.client.get(league_url("team", "login"), secure=True)
         url = re.sub("&code_challenge=[0-9A-z-]{43}", "", response.url)
         expected_oauth_url = (
-            "https://lichess.org/oauth"
-            "?response_type=code"
-            "&client_id=lots-lichess-ca-dev"
-            "&redirect_uri=https://testserver/auth/lichess/"
+            f"{lichess_oauth_url}?response_type=code"
+            f"&client_id={test_clientid}"
+            f"&redirect_uri=https://testserver/auth/lichess/"
             "&scope=email:read%20challenge:read%20challenge:write"
             "&code_challenge_method=S256"
             "&state=encodedstate"
