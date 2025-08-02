@@ -270,6 +270,18 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
 
+    create_broadcast = models.BooleanField(
+        default=False,
+        help_text='Automatically update broadcasts. Run "create broadcast" for initial creation.',
+    )
+    broadcast_title_override = models.CharField(
+        # max length from lichess api
+        max_length=80,
+        blank=True,
+        null=True,
+        help_text="Change the broadcast name. Leave empty for default.",
+    )
+
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
@@ -623,6 +635,13 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
+    def get_broadcast_id(self, first_board: int = 1) -> str:
+        if self.create_broadcast:
+            bc = Broadcast.objects.filter(season=self, first_board=first_board)
+            if bc.exists():
+                return bc[0].lichess_id
+        return ""
+
     @classmethod
     def get_registration_season(cls, league, season=None):
         if season is not None and season.registration_open:
@@ -737,6 +756,19 @@ class Round(_BaseModel):
 
     def is_team_league(self):
         return self.season.league.is_team_league()
+
+    def get_broadcast_id(self, first_board: int = 1) -> str:
+        return self.season.get_broadcast_id(first_board=first_board)
+
+    def get_broadcast_round_id(self, first_board: int = 1) -> str:
+        if not self.season.get_broadcast_id():
+            return ""
+        bc = Broadcast.objects.get(season=self.season, first_board=first_board)
+        bcr = BroadcastRound.objects.filter(broadcast=bc, round_id=self)
+        if bcr.exists():
+            return bcr[0].lichess_id
+        else:
+            return ""
 
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
@@ -1515,6 +1547,8 @@ class PlayerPairing(_BaseModel):
     #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
     white_confirmed = models.BooleanField(default=False)
     black_confirmed = models.BooleanField(default=False)
+    # whether we added the game to a croadcast
+    broadcasted = models.BooleanField(default=False)
 
     colors_reversed = models.BooleanField(default=False)
 
@@ -2909,3 +2943,52 @@ class ModRequest(_BaseModel):
 
     def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
+
+
+class Broadcast(_BaseModel):
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    first_board = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        unique_together = ["season", "first_board"]
+        ordering = ["season", "first_board"]
+
+    def __str__(self) -> str:
+        return f"BC {self.season} B{self.first_board}"
+
+
+class BroadcastRound(_BaseModel):
+    round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ["broadcast", "round_id"]
+        ordering = ["broadcast", "round_id"]
+
+    @property
+    def first_board(self) -> int:
+        return self.broadcast.first_board
+
+    # last_board is a round property, because it may change with additional players signing up
+    @property
+    def last_board(self) -> int:
+        nextbc = (
+            Broadcast.objects.filter(
+                season=self.broadcast.season, first_board__gt=self.first_board
+            )
+            .order_by("first_board")
+            .first()
+        )
+        if nextbc is not None:
+            return nextbc.first_board - 1
+        if self.round_id.is_team_league():
+            return TeamPlayerPairing.objects.filter(
+                team_pairing__round=self.round_id
+            ).count()
+        else:
+            return LonePlayerPairing.objects.filter(round=self.round_id).count()
+
+    def __str__(self) -> str:
+        return f"BCR {self.round_id} B{self.first_board}"
