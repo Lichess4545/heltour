@@ -548,10 +548,7 @@ def _create_or_update_broadcast(
         format_ = "Swiss"
         teamTable = False
         teams = ""
-    if season.broadcast_title_override:
-        title = season.broadcast_title_override
-    else:
-        title = f"{season.league.name} S{season.tag}"
+    title = season.broadcast_title_override or f"{season.league.name} S{season.tag}"
     # TODO maybe mention the actual highest boad instead of the highest board in theory
     name = (
         f"{title} Boards {first_board} to "
