@@ -346,11 +346,12 @@ class SeasonTestCase(TestCase):
 
     def test_export_players_detailed(self):
         Season.objects.filter(name="Test Season").update(start_date=timezone.now())
+        p, _ = Player.objects.get_or_create(lichess_username="Player1")
         with Shush():
             reg = Registration.objects.create(
                 season=get_season("team"),
                 status="approved",
-                lichess_username="Player1",
+                player=p,
                 email="a@test.com",
                 has_played_20_games=True,
                 can_commit=True,
@@ -359,7 +360,7 @@ class SeasonTestCase(TestCase):
                 alternate_preference="full_time",
             )
         SeasonPlayer.objects.create(
-            season=get_season("team"), player=get_player("Player1"), registration=reg
+            season=get_season("team"), player=p, registration=reg
         )
         season_old = Season.objects.create(
             league=get_league("team"),

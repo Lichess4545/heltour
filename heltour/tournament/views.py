@@ -4,7 +4,6 @@ import math
 import re
 from collections import defaultdict, namedtuple
 from datetime import timedelta
-from smtplib import SMTPException
 
 import reversion
 from cacheops.query import cached_as
@@ -12,14 +11,12 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousOperation
-from django.core.mail import send_mail
 from django.core.mail.message import EmailMessage
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.db.models.query import Prefetch
 from django.http.response import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.loader import render_to_string
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -773,12 +770,17 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
+            player = Player.get_or_create(lichess_username=self.request.user.username)
             if post:
-                form = RegistrationForm(self.request.POST, instance=instance, season=reg_season, user=self.request.user)
+                form = RegistrationForm(
+                    self.request.POST,
+                    instance=instance,
+                    season=reg_season,
+                    player=player,
+                )
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
-
                         form.save()
 
                     self.request.session['reg_email'] = form.cleaned_data['email']
@@ -786,11 +788,15 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag,
                                               season_tag=self.season.tag))
             else:
-                player = Player.get_or_create(self.request.user.username)
                 rules_doc = LeagueDocument.objects.filter(league=self.league, type='rules').first()
                 if rules_doc is not None:
                     doc_url = reverse('by_league:document', args=[self.league.tag, rules_doc.tag])
-                form = RegistrationForm(instance=instance, season=reg_season, user=self.request.user, rules_url=doc_url)
+                form = RegistrationForm(
+                    instance=instance,
+                    season=reg_season,
+                    player=player,
+                    rules_url=doc_url,
+                )
                 form.fields['email'].initial = player.email
                 rating_provisional = player.provisional_for(reg_season.league)
                 form.fields['has_played_20_games'].initial = not rating_provisional
@@ -1473,8 +1479,9 @@ class UserDashboardView(LeagueView):
         active_rounds = Round.objects.filter(publish_pairings=True, is_completed=False,
                                              season__is_active=True)
 
-        approved = Registration.objects.filter(lichess_username=self.request.user.username, status='approved').exists()
-
+        approved = Registration.objects.filter(
+            player__lichess_username=self.request.user.username, status="approved"
+        ).exists()
 
         my_pairings = []
         for r in active_rounds:

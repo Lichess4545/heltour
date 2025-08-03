@@ -53,6 +53,8 @@ from heltour.tournament.models import (
     AlternatesManagerSetting,
     ApiKey,
     AvailableTime,
+    Broadcast,
+    BroadcastRound,
     Document,
     GameNomination,
     GameSelection,
@@ -116,6 +118,20 @@ def redirect_with_params(*args, **kwargs):
     response = redirect(*args, **kwargs)
     response['Location'] += params
     return response
+
+
+class PreconditionError(ValueError):
+    """Raised when a function/method precondition is violated.
+
+    This exception should be raised at the beginning of a function when
+    input validation fails or required conditions are not met.
+    """
+    pass
+
+
+def require(condition, error_msg):
+    if not condition:
+        raise PreconditionError(error_msg)
 
 
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
@@ -435,9 +451,21 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__str__', 'league',)
     list_display_links = ('__str__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores',
-               'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report',
-               'manage_players', 'round_transition', 'simulate_tournament']
+    actions = [
+        "update_board_order_by_rating",
+        "force_alternate_board_update",
+        "recalculate_scores",
+        "verify_data",
+        "review_nominated_games",
+        "bulk_email",
+        "team_spam",
+        "mod_report",
+        "manage_players",
+        "round_transition",
+        "simulate_tournament",
+        "create_broadcast",
+        "update_broadcast",
+    ]
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -484,6 +512,45 @@ class SeasonAdmin(_BaseAdmin):
                 name='export_players'),
         ]
         return my_urls + urls
+
+    def create_broadcast(self, request, queryset):
+        try:
+            require(len(queryset) == 1, "Can only create one broadcast at a time.")
+            season = queryset[0]
+            require(
+                season.create_broadcast,
+                "create_broadcast is not set for this season.",
+            )
+            require(
+                season.get_broadcast_id() == "",
+                "A broadcast for this season already exists.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_create_broadcast.send(sender=self.__class__, season=season)
+        self.message_user(request, "Trying to create broadcast.", messages.INFO)
+
+
+    def update_broadcast(self, request, queryset):
+        try:
+            require(
+                len(queryset) == 1,
+                "Can only update one broadcast at a time.",
+            )
+            season = queryset[0]
+            require(
+                season.get_broadcast_id() != "",
+                "Could not find broadcast to update, create one first.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_update_broadcast.send(sender=self.__class__, season=season)
+        self.message_user(request, "Updating broadcast.", messages.INFO)
+
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
@@ -1341,7 +1408,12 @@ class SeasonAdmin(_BaseAdmin):
 @admin.register(Round)
 class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
-    actions = ['generate_pairings', 'simulate_results']
+    actions = [
+        "generate_pairings",
+        "simulate_results",
+        "create_broadcast_round",
+        "update_broadcast_round",
+    ]
     league_id_field = 'season__league_id'
     search_fields = ['season__tag']
 
@@ -1356,6 +1428,45 @@ class RoundAdmin(_BaseAdmin):
                 name='review_pairings'),
         ]
         return my_urls + urls
+
+    def create_broadcast_round(self, request, queryset):
+        try:
+            require(
+                len(queryset) == 1,
+                "Can only create one broadcast round at a time.",
+            )
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
+                "Could not find broadcast for season, create it first.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_create_broadcast_round.send(sender=self.__class__, round_=round_)
+        self.message_user(
+            request, "Trying to create broadcast round.", messages.INFO
+        )
+
+    def update_broadcast_round(self, request, queryset):
+        try:
+            require(len(queryset) == 1, "Can only update one broadcast round at a time.")
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
+                "Could not find broadcast for season, create one first.",
+            )
+            bcrid = round_.get_broadcast_round_id()
+            require(bcrid != "", "Could not find broadcast round to update, create one first.")
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_update_broadcast_round.send(sender=self.__class__, round_=round_)
+        self.message_user(
+            request, "Updating broadcast round.", messages.INFO
+        )
 
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
@@ -1997,7 +2108,7 @@ class RegistrationAdmin(_BaseAdmin):
     def get_search_fields(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ('lichess_username', 'email', 'season__name')
+            ('player__lichess_username', 'email', 'season__name')
         )
 
     def changelist_view(self, request, extra_context=None):
@@ -2013,13 +2124,12 @@ class RegistrationAdmin(_BaseAdmin):
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
-        if obj.validation_warning:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
-        elif obj.validation_ok:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
-        else:
+        if not obj.validation_ok:
             return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
-        return ''
+        elif obj.validation_warning:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
+        else:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
@@ -2037,8 +2147,7 @@ class RegistrationAdmin(_BaseAdmin):
         return my_urls + urls
 
     def validate(self, request, queryset):
-        for reg in queryset:
-            signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
+        signals.do_validate_registration.send(sender=RegistrationAdmin, regs=queryset)
         self.message_user(request, 'Validation started.', messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
@@ -2699,3 +2808,39 @@ class ModRequestAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/reject_modrequest.html', context)
+
+
+@admin.register(Broadcast)
+class BroadcastAdmin(_BaseAdmin):
+    list_display = (
+        "season",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "season__league",
+        "season",
+    )
+    search_fields = (
+        "season__tag",
+        "season__league__name",
+    )
+
+
+@admin.register(BroadcastRound)
+class BroadcastRoundAdmin(_BaseAdmin):
+    list_display = (
+        "round_id",
+        "broadcast",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "round_id__season__league",
+        "round_id__season",
+    )
+    search_fields = (
+        "round_id__season__tag",
+        "round_id__season__league__name",
+        "round_id__number",
+    )
