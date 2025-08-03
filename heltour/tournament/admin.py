@@ -522,7 +522,7 @@ class SeasonAdmin(_BaseAdmin):
                 "create_broadcast is not set for this season.",
             )
             require(
-                season.get_broadcast_id() != "",
+                season.get_broadcast_id() == "",
                 "A broadcast for this season already exists.",
             )
         except PreconditionError as e:
