@@ -25,10 +25,10 @@ from heltour.tournament.tasks import (
     _create_team_string,
     active_player_usernames,
     create_team_channel,
-    do_create_broadcast,
-    do_create_broadcast_round,
-    do_update_broadcast,
-    do_update_broadcast_round,
+    create_broadcast,
+    create_broadcast_round,
+    update_broadcast,
+    update_broadcast_round,
     start_games,
     update_player_ratings,
 )
@@ -381,7 +381,7 @@ class TestBroadcasts(TestCase):
         autospec=True,
         return_value={"round": {"id": "someroundid"}},
     )
-    def test_create_broadcast_round(self, lichessapi):
+    def test_create_or_update_broadcast_round(self, lichessapi):
         broadcast_round_id = _create_or_update_broadcast_round(self.r1, first_board=1)
         lichessapi.assert_called_once_with(
             broadcast_id="testslug1",
@@ -479,7 +479,7 @@ class TestBroadcasts(TestCase):
         )
 
     @patch("heltour.tournament.tasks._create_or_update_broadcast_round")
-    def test_do_update_broadcast_round_no_update(self, coubr):
+    def test_update_broadcast_round_no_update(self, coubr):
         BroadcastRound.objects.create(
             broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
         )
@@ -501,11 +501,11 @@ class TestBroadcasts(TestCase):
             broadcasted=True,
         )
         with Shush():
-            do_update_broadcast_round(round_=self.r1)
+            update_broadcast_round(round_id=self.r1.pk)
         coubr.assert_not_called()
 
     @patch("heltour.tournament.tasks._create_or_update_broadcast_round")
-    def test_do_update_broadcast_round_update(self, coubr):
+    def test_update_broadcast_round_update(self, coubr):
         BroadcastRound.objects.create(
             broadcast=self.bc3, round_id=self.r1, lichess_id="roundidbc3"
         )
@@ -526,7 +526,7 @@ class TestBroadcasts(TestCase):
             game_link="fakelink",
         )
         with Shush():
-            do_update_broadcast_round(round_=self.r1)
+            update_broadcast_round(round_id=self.r1.pk)
         # called only once since we only created one broadcast round for board 5+
         coubr.assert_called_once_with(round_=self.r1, first_board=5)
 
@@ -538,9 +538,9 @@ class TestBroadcasts(TestCase):
         "heltour.tournament.tasks._create_or_update_broadcast_round",
         return_value="fakerdid",
     )
-    def test_do_create_broadcast_round(self, coubr, cbg):
+    def test_create_broadcast_round(self, coubr, cbg):
         with Shush():
-            do_create_broadcast_round(round_=self.r1)
+            create_broadcast_round(round_id=self.r1.pk)
         coubr.assert_has_calls(
             calls=[
                 call(round_=self.r1, first_board=1),
@@ -552,11 +552,11 @@ class TestBroadcasts(TestCase):
         cbg.assert_called_once()
 
     @patch("heltour.tournament.tasks._create_or_update_broadcast")
-    def test_do_update_broadcast(self, coub):
+    def test_update_broadcast(self, coub):
         with Shush():
-            do_update_broadcast(season=self.s)
+            update_broadcast(season_id=self.s.pk)
         with Shush():
-            do_update_broadcast(season=self.s, first_board=5)
+            update_broadcast(season_id=self.s.pk, first_board=5)
         coub.assert_has_calls(
             calls=[
                 call(season=self.s, broadcast_id="testslug1", first_board=1),
@@ -567,19 +567,19 @@ class TestBroadcasts(TestCase):
     @patch(
         "heltour.tournament.tasks._create_or_update_broadcast", return_value="bcslug"
     )
-    def test_do_create_broadcast(self, coub):
+    def test_create_broadcast(self, coub):
         sl = get_season("lone")
         sl.create_broadcast = True
         sl.save()
         with Shush():
-            do_create_broadcast(season=self.s, first_board=1)
+            create_broadcast(season_id=self.s.pk, first_board=1)
         coub.assert_not_called()
         with Shush():
-            do_create_broadcast(season=sl, first_board=1)
+            create_broadcast(season_id=sl.pk, first_board=1)
         coub.assert_called_with(season=sl, first_board=1)
         self.assertTrue(Broadcast.objects.filter(season=sl, first_board=1).exists())
         with Shush():
-            do_create_broadcast(season=sl, first_board=3)
+            create_broadcast(season_id=sl.pk, first_board=3)
         coub.assert_called_with(season=sl, first_board=3)
         self.assertTrue(Broadcast.objects.filter(season=sl, first_board=3).exists())
         self.assertEqual(
