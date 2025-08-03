@@ -529,7 +529,7 @@ class SeasonAdmin(_BaseAdmin):
             self.message_user(request, str(e), messages.ERROR)
             return
 
-        signals.do_create_broadcast.send(sender=self.__class__, season=season)
+        signals.do_create_broadcast.send(sender=self.__class__, season_id=season.pk)
         self.message_user(request, "Trying to create broadcast.", messages.INFO)
 
 
@@ -548,7 +548,7 @@ class SeasonAdmin(_BaseAdmin):
             self.message_user(request, str(e), messages.ERROR)
             return
 
-        signals.do_update_broadcast.send(sender=self.__class__, season=season)
+        signals.do_update_broadcast.send(sender=self.__class__, season_id=season.pk)
         self.message_user(request, "Updating broadcast.", messages.INFO)
 
 
@@ -1444,7 +1444,7 @@ class RoundAdmin(_BaseAdmin):
             self.message_user(request, str(e), messages.ERROR)
             return
 
-        signals.do_create_broadcast_round.send(sender=self.__class__, round_=round_)
+        signals.do_create_broadcast_round.send(sender=self.__class__, round_id=round_.pk)
         self.message_user(
             request, "Trying to create broadcast round.", messages.INFO
         )
@@ -1463,7 +1463,7 @@ class RoundAdmin(_BaseAdmin):
             self.message_user(request, str(e), messages.ERROR)
             return
 
-        signals.do_update_broadcast_round.send(sender=self.__class__, round_=round_)
+        signals.do_update_broadcast_round.send(sender=self.__class__, round_id=round_.pk)
         self.message_user(
             request, "Updating broadcast round.", messages.INFO
         )
@@ -1488,6 +1488,7 @@ class RoundAdmin(_BaseAdmin):
         simulation.simulate_round(round_)
         self.message_user(request, 'Simulation complete.', messages.INFO)
         return redirect('admin:tournament_round_changelist')
+
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
