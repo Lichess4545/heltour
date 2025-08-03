@@ -506,7 +506,7 @@ def start_games():
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
         round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
-        signals.do_update_broadcast_round.send(sender="start_games", round_=round_)
+        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
     logger.info('[FINISHED] Done trying to start games.')
 
 
@@ -521,6 +521,7 @@ def _create_team_string(season: Season) -> str:
         ):
             lines.append(f"{team.name}; {teamplayer.player.lichess_username}")
     return urllib.parse.quote("\n".join(lines))
+
 
 def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> str:
     for broadcast in broadcasts:
@@ -646,7 +647,8 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
 
 
 @app.task()
-def do_update_broadcast_round(round_: Round) -> None:
+def update_broadcast_round(round_id: int) -> None:
+    round_ = Round.objects.get(pk=round_id)
     if not round_.season.create_broadcast:
         return
     if round_.is_team_league():
@@ -669,8 +671,14 @@ def do_update_broadcast_round(round_: Round) -> None:
             )
 
 
+@receiver(signals.do_update_broadcast_round, dispatch_uid="heltour.tournament.tasks")
+def do_update_broadcast_round(round_id: int, **kwargs) -> None:
+    update_broadcast_round.apply_async(kwargs={"round_id": round_id})
+
+
 @app.task()
-def do_create_broadcast_round(round_: Round) -> None:
+def create_broadcast_round(round_id: int) -> None:
+    round_ = Round.objects.get(pk=round_id)
     if not round_.season.create_broadcast:
         return
     broadcasts = Broadcast.objects.filter(season=round_.season)
@@ -722,8 +730,14 @@ def do_create_broadcast_round(round_: Round) -> None:
             )
 
 
+@receiver(signals.do_create_broadcast_round, dispatch_uid="heltour.tournament.tasks")
+def do_create_broadcast_round(round_id: int, **kwargs) -> None:
+    create_broadcast_round.apply_async(kwargs={"round_id": round_id})
+
+
 @app.task()
-def do_create_broadcast(season: Season, first_board: int = 1) -> None:
+def create_broadcast(season_id: int, first_board: int = 1) -> None:
+    season = Season.objects.get(pk=season_id)
     if not season.create_broadcast:
         return
     bc, _ = Broadcast.objects.get_or_create(season=season, first_board=first_board)
@@ -734,14 +748,25 @@ def do_create_broadcast(season: Season, first_board: int = 1) -> None:
         bc.save()
 
 
+@receiver(signals.do_create_broadcast, dispatch_uid="heltour.tournament.tasks")
+def do_create_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
+    create_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
+
+
 @app.task()
-def do_update_broadcast(season: Season, first_board: int = 1) -> None:
+def update_broadcast(season_id: int, first_board: int = 1) -> None:
+    season = Season.objects.get(pk=season_id)
     bcid = season.get_broadcast_id(first_board=first_board)
     if not season.create_broadcast or not bcid:
         return
     _create_or_update_broadcast(
         season=season, broadcast_id=bcid, first_board=first_board
     )
+
+
+@receiver(signals.do_update_broadcast, dispatch_uid="heltour.tournament.tasks")
+def do_update_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
+    update_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
 
 
 # How late an event is allowed to run before it's discarded instead
@@ -892,8 +917,9 @@ def pairings_published(round_id, overwrite=False):
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
     signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
+
     if season.create_broadcast:
-        signals.do_create_broadcast_round.send(sender=pairings_published, round_=round_)
+        signals.do_create_broadcast_round.send(sender=pairings_published, round_id=round_.pk)
 
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
