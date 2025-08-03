@@ -1,33 +1,93 @@
-# heltour
-League management software for the Lichess4545 league.
+# Litour (formerly heltour)
 
-# requirements
-* Python
-* Pip
-* poetry
-* Postgres (Ubuntu packages postgresql and postgresql-server-dev-9.5)
-* Fabric (pip install fabric)
-* Virtualenv (Ubuntu package virtualenv)
-* [Sass](https://sass-lang.com/install)
+League management software for chess leagues on Lichess, now branded as lots.lichess.ca.
 
-# install
-These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.
+# Quick Start
 
-1. Create a local settings file. In the heltour/local folder, copy one of the existing modules and name it "host_name.py" where "host_name" is your machine's hostname (with non-alphanumeric characters replaced by underscores).
-2. `./start.sh`
-3. `source env/bin/activate`
-4. `fab up`
-5. `fab createdb`
-6. `fab -R dev latestdb`
-8. `fab runserver`
+## Prerequisites
 
-# development
-Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
+- Docker and Docker Compose
+- Nix (for development environment)
 
-Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled.
+## Development Setup
 
-# create admin account
-Run `python manage.py createsuperuser` to create a new admin account.
+```bash
+# 1. Start the required services (PostgreSQL, Redis, MailHog)
+invoke docker-up
 
-### Optional Components
-- To generate pairings, download [JaVaFo](http://www.rrweb.org/javafo/current/javafo.jar) and set JAVAFO_COMMAND to 'java -jar /path/to/javafo.jar'
+# 2. Copy the development environment file
+cp .env.dev .env
+
+# 3. Enter the nix development environment
+nix develop
+
+# 4. Run database migrations
+invoke migrate
+
+# 5. Create a superuser account
+invoke createsuperuser
+
+# 6. Start the development server
+invoke runserver
+```
+
+The site will be available at <http://localhost:8000>
+
+### Additional Services
+
+- **MailHog Web UI**: <http://localhost:8025> (view sent emails)
+- **API Worker** (optional): `invoke runapiworker` (runs on port 8880)
+- **Celery Worker** (optional): `invoke celery` (runs background tasks)
+
+## Common Development Commands
+
+```bash
+# Docker services management
+invoke docker-up      # Start PostgreSQL, Redis, MailHog
+invoke docker-down    # Stop all services
+invoke docker-status  # Check service status
+
+# Django commands
+invoke runserver      # Start dev server on 0.0.0.0:8000
+invoke migrate        # Run database migrations
+invoke makemigrations # Create new migrations
+invoke shell          # Django shell
+invoke test           # Run tests
+invoke collectstatic  # Collect static files
+invoke compilestatic  # Compile SCSS files
+
+# Dependencies
+invoke update         # Update all dependencies via Poetry
+```
+
+## Configuration
+
+All configuration is done through environment variables. The `.env.dev` file contains defaults for local development.
+
+Key settings:
+
+- Database: PostgreSQL on localhost:5432
+- Redis: localhost:6379
+- Email: MailHog on localhost:1025 (SMTP) / 8025 (Web UI)
+- Static files: SCSS compilation via Ruby sass gem (auto-installed in nix shell)
+
+## Development Tips
+
+- The nix environment automatically installs all required tools including Python 3.11, Poetry, Ruby, and sass
+- Virtual environment is created automatically when entering nix shell
+- Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled
+- JaVaFo pairing tool is included in `thirdparty/javafo.jar`
+
+## Stopping Services
+
+```bash
+# Stop services but keep data
+invoke docker-down
+
+# Stop services and remove all data
+docker compose down -v
+```
+
+## Historical Note
+
+This project was previously known as heltour and served lichess4545. It has been rebranded to support lots.lichess.ca (Lichess Online Tournament System).

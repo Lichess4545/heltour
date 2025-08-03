@@ -20,7 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django_stubs_ext import ValuesQuerySet
 
-from heltour import settings
+from django.conf import settings
 from heltour.celery import app
 from heltour.tournament import (
     alternates_manager,
@@ -1025,6 +1025,7 @@ def alternates_manager_tick():
 
 @app.task()
 def celery_is_up():
+    logger.info("Setting uptime.celery.is_up")
     uptime.celery.is_up = True
 
 

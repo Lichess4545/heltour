@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import lichessapi
 from heltour.tournament.models import (
     LoginToken,
@@ -163,7 +163,7 @@ def _code_challenge(verifier):
 
 
 def _get_redirect_uri(request):
-    http_url =  request.build_absolute_uri(reverse('lichess_auth'))
+    http_url = request.build_absolute_uri(reverse('lichess_auth'))
     return http_url.replace('http://', settings.LICHESS_OAUTH_REDIRECT_SCHEME)
 
 

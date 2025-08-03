@@ -1,0 +1,83 @@
+services:
+  caddy:
+    image: ghcr.io/lichess4545/litour-caddy:latest
+    # ports:
+    #   - 8000:80
+    volumes:
+      - ./conf:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - caddy
+      - litour
+
+  web:
+    image: ghcr.io/lichess4545/litour-web:latest
+    env_file: "stack.env"
+    networks:
+      - litour
+
+  apiworker:
+    image: ghcr.io/lichess4545/litour-api-worker:latest
+    env_file: "stack.env"
+    environment:
+      HELTOUR_ENV: STAGING
+      HELTOUR_APP: api_worker
+    networks:
+      - litour
+
+  celery:
+    image: ghcr.io/lichess4545/litour-celery:latest
+    env_file: "stack.env"
+    networks:
+      - litour
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: heltour
+      POSTGRES_USER: heltour
+      POSTGRES_PASSWORD: heltour_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heltour"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - litour
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - litour
+
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    restart: unless-stopped
+    networks:
+      - litour
+
+volumes:
+  postgres_data:
+    name: litour_postgres_data
+  redis_data:
+    name: litour_redis_data
+  caddy_data:
+  caddy_config:
+
+networks:
+  caddy:
+    external: true
+  litour:
+    driver: overlay
+    # driver: bridge

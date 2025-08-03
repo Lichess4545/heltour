@@ -7,7 +7,7 @@ from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import lichessapi, signals
 from heltour.tournament.models import (
     MOD_REQUEST_SENDER,

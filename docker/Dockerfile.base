@@ -1,0 +1,52 @@
+FROM python:3.11-slim-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    git \
+    build-essential \
+    ruby \
+    ruby-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN gem install sass
+
+# Set up non-root user
+RUN useradd -m -u 1000 litour
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Install Poetry
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry
+
+# Install Python dependencies
+RUN poetry install --no-root --only main
+
+# Copy application code
+COPY --chown=litour:litour . .
+
+# Install the application
+ENV DEBUG=True
+ENV DATABASE_URL=
+ENV STATIC_ROOT=/app/static
+RUN poetry install --only main && \
+  mkdir -p /app/logs && \
+  mkdir -p /app/static && \
+  python manage.py compilestatic --ignore-dependencies && \
+  python manage.py collectstatic --noinput && \
+  chown -R litour:litour /app/logs # NOTE: this has to come after the collectstatic command
+
+
+# Switch to non-root user
+USER litour
