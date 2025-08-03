@@ -34,8 +34,10 @@ from heltour.tournament.models import (
     Alternate,
     Broadcast,
     BroadcastRound,
+    League,
     LeagueChannel,
     LonePlayerPairing,
+    OauthToken,
     Player,
     PlayerBye,
     PlayerPairing,
@@ -411,6 +413,8 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                     logger.exception(
                         f"[ERROR] Failed to bulk start games for league {leaguename} after removing rejected tokens."
                     )
+            else: # no tokens left after deleting rejected tokens
+               result = None
         except KeyError:
             logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
     if result is None: # starting games failed, or all tokens rejected
@@ -467,6 +471,37 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
         except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
             pass
+    return result
+
+
+def _init_start_league_games(
+    *,
+    league: League,
+    tokens: list[str],
+    league_games: QuerySet[LonePlayerPairing|TeamPlayerPairing]
+) -> dict|None:
+    tokenstring = ",".join(tokens)
+    clock = league.time_control_initial()
+    increment = league.time_control_increment()
+    variant = league.rating_type
+    do_clockstart = league.get_leaguesetting().start_clocks
+    clockstart_in = league.get_leaguesetting().start_clock_time
+    clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
+    leaguename = league.name
+    result = _start_league_games(
+        tokens=tokenstring,
+        clock=clock,
+        increment=increment,
+        do_clockstart=do_clockstart,
+        clockstart=clockstart,
+        clockstart_in=clockstart_in,
+        variant=variant,
+        leaguename=leaguename,
+        league_games=league_games,
+    )
+    round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
+    signals.do_update_broadcast_round.send(sender="start_games", round_=round_)
+    return result
 
 
 @app.task()
@@ -492,21 +527,16 @@ def start_games():
                     leagues[gameleague.name] = gameleague
                 token_dict[gameleague.name].append(f'{white_token}:{black_token}')
     for leaguename, league in leagues.items():
-        clock = league.time_control_initial()
-        increment = league.time_control_increment()
-        variant = league.rating_type
-        if variant in ['classical', 'rapid', 'blitz', 'bullet']:
-            variant = 'standard'
-        # filter games_to_start to the current league
-        league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
-        # get tokens per game
-        tokens = ','.join(token_dict[leaguename])
-        do_clockstart = league.get_leaguesetting().start_clocks
-        clockstart_in = league.get_leaguesetting().start_clock_time
-        clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
-        _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
-        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
-        signals.do_update_broadcast_round.send(sender="start_games", round_=round_)
+        _init_start_league_games(
+            league=league,
+            tokens=token_dict[leaguename],
+            league_games=games_to_start.filter(
+                loneplayerpairing__round__season__league=league
+            )
+            | games_to_start.filter(
+                teamplayerpairing__team_pairing__round__season__league=league
+            ),
+        )
     logger.info('[FINISHED] Done trying to start games.')
 
 
@@ -744,6 +774,83 @@ def do_update_broadcast(season: Season, first_board: int = 1) -> None:
     )
 
 
+@app.task()
+def _start_unscheduled_games(round_id: int) -> None:
+    result = None
+    logger.info('[START] Trying to start games.')
+    round_ = Round.objects.get(pk=round_id)
+    league = round_.season.league
+    if league.is_player_scheduled_league():
+        logger.error("[ERROR] Tried to start unscheduled games in a scheduling league.")
+        return
+    if league.is_team_league():
+        games_to_start = (
+            TeamPlayerPairing.objects.filter(
+                result="", game_link="", teampairing__round=round_
+            )
+            .exclude(white=None)
+            .exclude(black=None)
+            .select_related("white", "black")
+            .nocache()
+        )
+    else:
+        games_to_start = (
+            LonePlayerPairing.objects.filter(
+                result="", game_link="", round=round_
+            )
+            .exclude(white=None)
+            .exclude(black=None)
+            .select_related("white", "black")
+            .nocache()
+        )
+    # get a flat list from the queryset
+    playerpks = [
+        pk
+        for sidename in games_to_start.values_list(
+            "white",
+            "black",
+        )
+        for pk in sidename
+    ]
+    playerslist = list(Player.objects.filter(pk__in=playerpks))
+    token_dict = _get_or_set_token(
+        players=playerslist,
+        tournament=round_.season.league.name
+    )
+    tokens = []
+    for game in games_to_start:
+        tokens.append(
+            f"{token_dict[game.white.lichess_username]}:"
+            f"{token_dict[game.black.lichess_username]}"
+        )
+    result = _init_start_league_games(league=league, tokens=tokens, league_games=games_to_start)
+    if result is None:
+        logger.warning("[FINISHED] Failed starting games.")
+    else:
+        round_.bulk_id = result["id"]
+        round_.save()
+    logger.info('[FINISHED] Done trying to start games.')
+
+
+@receiver(signals.do_start_unscheduled_games, dispatch_uid='heltour.tournament.tasks')
+def do_start_unscheduled_games(sender, round_id: int, **kwargs) -> None:
+    _start_unscheduled_games.apply_async(args=[round_id])
+
+
+@app.task()
+def _start_clocks(round_id: int) -> None:
+    round_ = Round.objects.get(pk=round_id)
+    if round_.is_player_scheduled_league():
+        logger.error("[ERROR] Tried to start clocks in a scheduling league.")
+        return
+    lichessapi.bulk_start_clocks(bulkid=round_.bulk_id)
+
+
+@receiver(signals.do_start_clocks, dispatch_uid='heltour.tournament.tasks')
+def do_start_clocks(sender, round_id: int, **kwargs) -> None:
+    _start_clocks.apply_async(args=[round_id])
+
+
 # How late an event is allowed to run before it's discarded instead
 _max_lateness = timedelta(hours=1)
 
@@ -892,8 +999,15 @@ def pairings_published(round_id, overwrite=False):
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
     signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
+
     if season.create_broadcast:
         signals.do_create_broadcast_round.send(sender=pairings_published, round_=round_)
+
+    if not league.is_player_scheduled_league():
+        signals.do_start_unscheduled_games.send(
+            sender=pairings_published,
+            round_id=round_id,
+        )
 
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
@@ -1035,3 +1149,30 @@ def pairing_changed(instance, created, **kwargs):
         game_id = get_gameid_from_gamelink(instance.game_link)
         if game_id:
             lichessapi.add_watch(game_id)
+
+
+def _get_or_set_token(players: list[Player], tournament: str = "Lichess Tournament Pairings") -> dict[str, str]:
+    result = dict()
+    players_needing_tokens = list()
+    for player in players:
+        if not player.token_valid():
+            players_needing_tokens.append(player.lichess_username)
+        else:
+            token = player.get_access_token()
+            result[player.lichess_username] = token
+    if len(players_needing_tokens) > 0:
+        new_tokens = lichessapi.get_admin_token(lichess_usernames=players_needing_tokens, description=tournament)
+        result.update(new_tokens)
+    for player in players:
+        if player.lichess_username in players_needing_tokens:
+            token = OauthToken(
+                access_token=result[player.lichess_username],
+                token_type="admin challenge token",
+                expires=timezone.now() + timedelta(days=28),
+                account_username=player.lichess_username,
+                scope="challenge:write",
+            )
+            token.save()
+            Player.objects.filter(pk=player.id).update(oauth_token=token)
+    return result
+    
