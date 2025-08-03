@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User
@@ -68,6 +68,26 @@ class SeasonAdminTestCase(TestCase):
         cls.sp1 = SeasonPlayer.objects.create(player=cls.p1, season=cls.s)
         cls.path_s_changelist = reverse("admin:tournament_season_changelist")
         cls.path_m_p = reverse("admin:manage_players", args=[cls.s.pk])
+
+    @patch("django.contrib.admin.ModelAdmin.message_user")
+    @patch("heltour.tournament.signals.do_create_broadcast.send")
+    def test_create_several_broadcasts(self, dcb, message):
+        self.client.force_login(user=self.superuser)
+        self.client.post(
+            reverse("admin:tournament_season_changelist"),
+            data={
+                "action": "create_broadcast",
+                "_selected_action": Season.objects.all().values_list("pk", flat=True)
+            },
+            follow=True,
+        )
+        message.assert_called_once_with(
+            ANY,
+            "Can only create one broadcast at a time.",
+            ANY
+        )
+        dcb.assert_not_called()
+
 
     @patch("heltour.tournament.simulation.simulate_season")
     @patch("django.contrib.admin.ModelAdmin.message_user")
