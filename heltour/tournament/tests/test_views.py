@@ -271,7 +271,7 @@ class RegisterTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            Registration.objects.filter(lichess_username="Player1").count(), 0
+            Registration.objects.filter(player__lichess_username="Player1").count(), 0
         )
         with Shush():
             response = self.client.post(
@@ -290,7 +290,7 @@ class RegisterTestCase(TestCase):
             )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
-            Registration.objects.filter(lichess_username="Player1").first().email,
+            Registration.objects.filter(player__lichess_username="Player1").first().email,
             "player1@example.com",
         )
 

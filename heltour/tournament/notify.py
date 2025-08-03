@@ -135,7 +135,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
         return
 
     season_players = instance.seasonplayer_set.select_related('season__league').nocache()
-    pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username,
+    pending_regs = Registration.objects.filter(player__lichess_username__iexact=instance.lichess_username,
                                                status='pending') \
         .select_related('season__league').nocache()
     league_set = {sp.season.league for sp in season_players} | {reg.season.league for reg in
@@ -634,14 +634,17 @@ def notify_players_game_scheduled(round_, pairing, **kwargs):
 
     time_part = (
         f"Your game has been scheduled for {pairing.scheduled_time:%A, %H:%M UTC}."
-        "\nYou can confirm that time"
+        "\nYou can agree to the game being started automatically on lichess at that time"
+    )
+    condition_part = (
+        "The game will only be started automatically "
+        "if your opponent agrees to it as well."
     )
     confirm_url = abs_url(reverse("by_league:confirm_scheduled_time", args=[league.tag]))
-    im_msg = f"{time_part} <{confirm_url}|here>."
+    im_msg = f"{time_part} <{confirm_url}|here>. {condition_part}"
 
     li_subject = f"Round {round_} - {league}"
-    li_msg = f"{time_part}here: {confirm_url}"
-
+    li_msg = f"{time_part} here: {confirm_url} - {condition_part}"
     send_pairing_notification(
         type_="game_scheduled",
         pairing=pairing,

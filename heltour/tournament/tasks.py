@@ -1,9 +1,12 @@
+from __future__ import annotations
+# ^ for annotating unions with | syntax, can be removed once we upgrade to python 3.10+
 import json
 import re
 import sys
 import textwrap
 import time
 import traceback
+import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, List
 from more_itertools import divide, first
@@ -29,6 +32,8 @@ from heltour.tournament import (
 )
 from heltour.tournament.models import (
     Alternate,
+    Broadcast,
+    BroadcastRound,
     LeagueChannel,
     LonePlayerPairing,
     Player,
@@ -44,13 +49,15 @@ from heltour.tournament.models import (
     TeamMember,
     TeamPlayerPairing,
     abs_url,
-    add_system_comment,
     get_gameid_from_gamelink,
     get_gamelink_from_gameid,
     logger,
     lone_player_pairing_rank_dict,
 )
 from heltour.tournament.workflows import RoundTransitionWorkflow
+
+# see https://lichess.org/api#tag/Broadcasts/operation/broadcastRoundUpdate for game ids
+MAX_GAMES_LICHESS_BROADCAST: int = 100
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
@@ -69,25 +76,28 @@ def active_player_usernames() -> List[str]:
     return to_usernames(just_username(active_qs))
 
 def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
-    active_regs = just_username(
-        Registration.objects.filter(
-            status__exact="pending", season__registration_open=True
-        ).exclude(lichess_username__in=without_usernames)
-    )
     _24_hours = timezone.now() - timedelta(hours=24)
-    reg_players = Player.objects.filter(
-        lichess_username__in=active_regs, date_modified__lte=_24_hours
-    ) # TODO: simplify this once Player is a foreign key of Registration
+    active_regs = (
+        Registration.objects.filter(
+            status__exact="pending",
+            season__registration_open=True,
+            player__date_modified__lte=_24_hours,
+        )
+        .exclude(player__lichess_username__in=without_usernames)
+        .values_list("player", flat=True)
+    )
+    reg_players = Player.objects.filter(pk__in=active_regs)
     return to_usernames(just_username(reg_players))
 
 @app.task()
-def update_player_ratings():
-    active_players = active_player_usernames()
-    registered_players = registrations_needing_updates(
-        without_usernames=active_players
-    )
-    first24th = list(first(divide(24, registered_players)))
-    usernames = active_players + first24th
+def update_player_ratings(usernames: list[str] = []) -> None:
+    if len(usernames) == 0:
+        active_players = active_player_usernames()
+        registered_players = registrations_needing_updates(
+            without_usernames=active_players
+        )
+        first24th = list(first(divide(24, registered_players)))
+        usernames = active_players + first24th
     logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
@@ -99,8 +109,6 @@ def update_player_ratings():
     except Exception as e:
         logger.warning(f'[ERROR] Error getting ratings: {e}')
         logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
-
-
 
 def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
     return PlayerPairing.objects.exclude(
@@ -359,6 +367,7 @@ def _expire_bad_tokens(*, league_games, bad_token):
 
 
 def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
+    result = None
     try:
         result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
     except lichessapi.ApiClientError as err:
@@ -367,50 +376,94 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
         # try to handle errors due to rjected tokens
         e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
         try:
-           result = json.loads(e)
-           new_tokens = None
-           for bad_token in result["tokens"]:
-               _expire_bad_tokens(league_games=league_games, bad_token=bad_token)
-               # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
-               # the token string is structured as such: white_token_game1:black_token_game1,white_token_game2:black_token_game2 and so on.
-               optional_white_token = "([A-z0-9_]*:)?"
-               optional_black_token = "(:[A-z0-9_]*)?"
-               # either the pairing with the bad token is the first in the string, or there is a comma in front of it
-               start_or_comma = "(^|,)"
-               removed_token = re.sub(f'{start_or_comma}{optional_white_token}{bad_token}{optional_black_token}', '', tokens)
-               # if it was the last token, then we end up with a useless comma in the end, remove that
-               new_tokens = re.sub('^,', '', removed_token)
-           if new_tokens:
-               try:
-                   # if there are still tokens to be paired, retry, and give up afterwards.
-                   result = lichessapi.bulk_start_games(tokens=new_tokens, clock=clock, increment=increment, clockstart=clockstart, variant=variant, leaguename=leaguename)
-               except lichessapi.ApiClientError as err:
-                   # give up.
-                   logger.exception(f'[ERROR] Failed to bulk start games for league {leaguename} after removing rejected tokens.')
-           else: # no tokens left after deleting rejected tokens
-               result = None
+            result = json.loads(e)
+            new_tokens = None
+            for bad_token in result["tokens"]:
+                _expire_bad_tokens(league_games=league_games, bad_token=bad_token)
+                # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
+                # the token string is structured as such: white_token_game1:black_token_game1,white_token_game2:black_token_game2 and so on.
+                optional_white_token = "([A-z0-9_]*:)?"
+                optional_black_token = "(:[A-z0-9_]*)?"
+                # either the pairing with the bad token is the first in the string, or there is a comma in front of it
+                start_or_comma = "(^|,)"
+                removed_token = re.sub(
+                    f"{start_or_comma}{optional_white_token}{bad_token}{optional_black_token}",
+                    "",
+                    tokens,
+                )
+                # if it was the last token, then we end up with a useless comma in the end, remove that
+                new_tokens = re.sub("^,", "", removed_token)
+            if new_tokens:
+                try:
+                    # if there are still tokens to be paired, retry, and give up afterwards.
+                    result = lichessapi.bulk_start_games(
+                        tokens=new_tokens,
+                        clock=clock,
+                        increment=increment,
+                        do_clockstart=do_clockstart,
+                        clockstart=clockstart,
+                        clockstart_in=clockstart_in,
+                        variant=variant,
+                        leaguename=leaguename,
+                    )
+                except lichessapi.ApiClientError as err:
+                    # give up.
+                    logger.exception(
+                        f"[ERROR] Failed to bulk start games for league {leaguename} after removing rejected tokens."
+                    )
         except KeyError:
             logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
+    if result is None: # starting games failed, or all tokens rejected
+        return
     gamechannel = LeagueChannel.objects.filter(league__name=leaguename, type='games').first()
     # use lichess reply to set game ids
     for game in league_games:
         try:
             for gameids in result['games']:
-                if (gameids['white'] == game.white.lichess_username.lower() and
-                   gameids['black'] == game.black.lichess_username.lower()):
-                       game.game_link = get_gamelink_from_gameid(gameids['id'])
-                       game.save()
-                       signals.notify_players_game_started.send(sender=_start_league_games,
-                                                                pairing=game,
-                                                                do_clockstart=do_clockstart,
-                                                                clockstart_in=clockstart_in,
-                                                                gameid=gameids['id'])
-                       if gamechannel is not None:
-                           slackapi.send_message(channel=gamechannel.slack_channel,
-                                                 text=f'@{game.white.lichess_username} vs @{game.black.lichess_username}: {game.game_link}')
+                if (
+                    gameids["white"] == game.white.lichess_username.lower()
+                    and gameids["black"] == game.black.lichess_username.lower()
+                ):
+                    game.game_link = get_gamelink_from_gameid(gameids["id"])
+                    game.save()
+                    signals.notify_players_game_started.send(
+                        sender=_start_league_games,
+                        pairing=game,
+                        do_clockstart=do_clockstart,
+                        clockstart_in=clockstart_in,
+                        gameid=gameids["id"],
+                    )
+                    if gamechannel is not None:
+                        slackapi.send_message(
+                            channel=gamechannel.slack_channel,
+                            text=(
+                                f"<@{game.white.lichess_username}> vs "
+                                f"<@{game.black.lichess_username}>: "
+                                f"{game.game_link}"
+                            ),
+                        )
+                    if game.get_league().is_team_league():
+                        message = (
+                            f"Board {game.teamplayerpairing.board_number} game "
+                            f"<@{game.white.lichess_username}> vs "
+                            f"<@{game.black.lichess_username}> has started: "
+                            f"{game.game_link}"
+                        )
+                        if game.teamplayerpairing.white_team().slack_channel:
+                            slackapi.send_message(
+                                channel=game.teamplayerpairing.white_team().slack_channel,
+                                text=message,
+                            )
+                            time.sleep(settings.SLEEP_UNIT)
+                        if game.teamplayerpairing.black_team().slack_channel:
+                            slackapi.send_message(
+                                channel=game.teamplayerpairing.black_team().slack_channel,
+                                text=message,
+                            )
+                            time.sleep(settings.SLEEP_UNIT)
         except slackapi.SlackError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
-        except KeyError:
+        except KeyError as e:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
         except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
             pass
@@ -452,7 +505,243 @@ def start_games():
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
+        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
+        signals.do_update_broadcast_round.send(sender="start_games", round_=round_)
     logger.info('[FINISHED] Done trying to start games.')
+
+
+def _create_team_string(season: Season) -> str:
+    if not season.league.is_team_league():
+        return ""
+    teams = Team.objects.filter(season=season)
+    lines = []
+    for team in teams:
+        for teamplayer in TeamMember.objects.filter(team=team).order_by(
+            "team__number", "board_number"
+        ):
+            lines.append(f"{team.name}; {teamplayer.player.lichess_username}")
+    return urllib.parse.quote("\n".join(lines))
+
+def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> str:
+    for broadcast in broadcasts:
+        if broadcast.first_board != 1:
+            title = f"{title}{broadcast.first_board - 1}"
+        title = f"{title}\n{broadcast.lichess_id} | Boards {broadcast.first_board} - "
+    return title
+
+
+def _create_or_update_broadcast(
+    *,
+    season: Season,
+    broadcast_id: str = "",
+    grouping: str = "",
+    first_board: int = 1,
+) -> str:
+    result = ""
+    if season.league.is_team_league():
+        format_ = "Team Swiss"
+        teamTable = True
+        teams = _create_team_string(season=season)
+    else:
+        format_ = "Swiss"
+        teamTable = False
+        teams = ""
+    title = season.broadcast_title_override or f"{season.league.name} S{season.tag}"
+    # TODO maybe mention the actual highest boad instead of the highest board in theory
+    name = (
+        f"{title} Boards {first_board} to "
+        f"{first_board + MAX_GAMES_LICHESS_BROADCAST - 1}"
+    )
+    tc = season.league.time_control.replace("+", "%2b")
+    players = ""
+    markdown = (
+        f"This is the broadcast for season {season.tag} of the {season.league.name} "
+        f"league, a {season.league.rating_type} tournament with a {tc} time control "
+        "played exclusively on lichess. For more information or to sign up, visit "
+        "[our website](https://lichess4545.com)."
+    )
+    infoplayers = " ".join(
+        SeasonPlayer.objects.filter(season=season)
+        .order_by("-player__rating")
+        .values_list("player__lichess_username", flat=True)[:4]
+    )
+    try:
+        response = lichessapi.update_or_create_broadcast(
+            broadcast_id=broadcast_id,
+            name=name,
+            nrounds=season.rounds,
+            format_=format_,
+            tc=tc,
+            teamTable=teamTable,
+            grouping=grouping,
+            teams=teams,
+            players=players,
+            infoplayers=infoplayers,
+            markdown=markdown,
+        )
+        dictresult = response.get("tour")
+        if dictresult is not None:
+            result = dictresult.get("id")
+    except lichessapi.ApiWorkerError:
+        logger.error(f"[ERROR] Failed to create or update broadcast for {season}.")
+    return result
+
+
+def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> str:
+    result = ""
+    startsAt = round(datetime.timestamp(round_.start_date)) * 1000
+    if round_.is_team_league():
+        games_query = TeamPlayerPairing.objects.filter(
+            team_pairing__round=round_
+        ).order_by("team_pairing__pairing_order", "board_number")[
+            (first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)
+        ]
+    else:
+        games_query = LonePlayerPairing.objects.filter(round=round_).order_by(
+            "pairing_order"
+        )[(first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
+    game_links = []
+    broadcast_updates = []
+    for game in games_query:
+        if game.game_link:
+            game_links.append(game.game_id())
+            if not game.broadcasted:
+                game.broadcasted = True
+                broadcast_updates.append(game)
+    if round_.is_team_league():
+        updated_games = TeamPlayerPairing.objects.bulk_update(
+            broadcast_updates, ["broadcasted"]
+        )
+    else:
+        updated_games = LonePlayerPairing.objects.bulk_update(
+            broadcast_updates, ["broadcasted"]
+        )
+    broadcast_round_id = round_.get_broadcast_round_id(first_board=first_board)
+    if broadcast_round_id:
+        broadcast_id = ""
+    else:
+        broadcast_id = round_.get_broadcast_id(first_board=first_board)
+        if not broadcast_id:
+            raise ValueError(
+                f"[ERROR] trying to create {round_} for non-existent season broadcast."
+            )
+    if updated_games > 0:
+        # setting the startdate to +- now makes lichess check for updates in the games
+        startsAt = round(datetime.timestamp(timezone.now())) * 1000
+    try:
+        if not broadcast_round_id or updated_games > 0:
+            response = lichessapi.update_or_create_broadcast_round(
+                broadcast_id=broadcast_id,
+                broadcast_round_id=broadcast_round_id,
+                round_number=round_.number,
+                game_links=game_links,
+                startsAt=startsAt,
+            )
+            dictresult = response.get("round")
+            if dictresult is not None:
+                result = dictresult.get("id")
+    except lichessapi.ApiWorkerError:
+        logger.error(f"[ERROR] Failed to create or update broadcast for {round_}")
+    return result
+
+
+@app.task()
+def do_update_broadcast_round(round_: Round) -> None:
+    if not round_.season.create_broadcast:
+        return
+    if round_.is_team_league():
+        new_games = (
+            TeamPlayerPairing.objects.exclude(game_link="")
+            .filter(team_pairing__round=round_)
+            .exclude(broadcasted=True)
+        )
+    else:
+        new_games = (
+            LonePlayerPairing.objects.exclude(game_link="")
+            .filter(round=round_)
+            .exclude(broadcasted=True)
+        )
+    if new_games.exists():
+        broadcastrounds = BroadcastRound.objects.filter(round_id=round_)
+        for broadcastround in broadcastrounds:
+            _create_or_update_broadcast_round(
+                round_=round_, first_board=broadcastround.first_board
+            )
+
+
+@app.task()
+def do_create_broadcast_round(round_: Round) -> None:
+    if not round_.season.create_broadcast:
+        return
+    broadcasts = Broadcast.objects.filter(season=round_.season)
+    broadcasts_count = broadcasts.count()
+    broadcasts_count_initial = broadcasts_count
+    teamsize = 1
+    max_games = MAX_GAMES_LICHESS_BROADCAST
+    if round_.is_team_league():
+        pairingcount = TeamPlayerPairing.objects.filter(
+            team_pairing__round=round_
+        ).count()
+        teamsize = round_.season.boards
+        # calculate how many team pairings we can get into the max games lichess allows:
+        max_games = (MAX_GAMES_LICHESS_BROADCAST // teamsize) * teamsize
+    else:
+        pairingcount = LonePlayerPairing.objects.filter(round=round_).count()
+    while pairingcount > broadcasts_count * max_games:
+        broadcast = _create_or_update_broadcast(
+            season=round_.season, first_board=broadcasts_count * max_games + 1
+        )
+        Broadcast.objects.create(
+            season=round_.season,
+            lichess_id=broadcast,
+            first_board=broadcasts_count * max_games + 1,
+        )
+        broadcasts = Broadcast.objects.filter(season=round_.season)
+        broadcasts_count = broadcasts.count()
+    title = (
+        round_.season.broadcast_title_override
+        or f"{round_.season.league.name} S{round_.season.tag}"
+    )
+    grouping = _create_broadcast_grouping(broadcasts=broadcasts, title=title)
+    for bc in broadcasts:
+        if broadcasts_count_initial != broadcasts_count:
+            # only now after creating all broadcasts we have all the ids of the grouped
+            # broadcasts, so update them
+            _create_or_update_broadcast(
+                season=round_.season,
+                broadcast_id=bc.lichess_id,
+                grouping=grouping,
+                first_board=bc.first_board,
+            )
+        if not BroadcastRound.objects.filter(round_id=round_, broadcast=bc).exists():
+            broadcastround = _create_or_update_broadcast_round(
+                round_=round_, first_board=bc.first_board
+            )
+            BroadcastRound.objects.create(
+                lichess_id=broadcastround, round_id=round_, broadcast=bc
+            )
+
+
+@app.task()
+def do_create_broadcast(season: Season, first_board: int = 1) -> None:
+    if not season.create_broadcast:
+        return
+    bc, _ = Broadcast.objects.get_or_create(season=season, first_board=first_board)
+    if not bc.lichess_id:
+        bc.lichess_id = _create_or_update_broadcast(
+            season=season, first_board=first_board
+        )
+        bc.save()
+
+
+@app.task()
+def do_update_broadcast(season: Season, first_board: int = 1) -> None:
+    bcid = season.get_broadcast_id(first_board=first_board)
+    if not season.create_broadcast or not bcid:
+        return
+    _create_or_update_broadcast(
+        season=season, broadcast_id=bcid, first_board=first_board
+    )
 
 
 # How late an event is allowed to run before it's discarded instead
@@ -579,69 +868,11 @@ def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
     generate_pairings.apply_async(args=[round_id, overwrite], countdown=1)
 
 
-@app.task()
-def validate_registration(reg_id):
-    regquery = Registration.objects.filter(pk=reg_id)
-    regquery.update(last_validation_try = timezone.now())
-    reg = regquery.get()
-
-    fail_reason = None
-    warnings = []
-
-    try:
-        user_meta = lichessapi.get_user_meta(reg.lichess_username, 1)
-        player, _ = Player.objects.get_or_create(lichess_username__iexact=reg.lichess_username,
-                                                 defaults={
-                                                     'lichess_username': reg.lichess_username})
-        player.update_profile(user_meta)
-        reg.has_played_20_games = not player.provisional_for(reg.season.league)
-        if player.account_status != 'normal':
-            fail_reason = f'The lichess user "{reg.lichess_username}" has the "{player.account_status}" mark.'
-    except lichessapi.ApiClientError:
-        fail_reason = f'Client error retrieving user "{reg.lichess_username}" from lichess.'
-    except lichessapi.ApiWorkerError:
-        fail_reason = f'The lichess user "{reg.lichess_username}" could not be found.'
-
-    if not reg.has_played_20_games:
-        warnings.append('Has a provisional rating.')
-    if not reg.can_commit and (
-        reg.season.league.competitor_type != 'team' or reg.alternate_preference != 'alternate'):
-        warnings.append('Can\'t commit to a game per week.')
-    if not reg.agreed_to_rules:
-        warnings.append('Didn\'t agree to rules.')
-
-    if fail_reason:
-        regquery.update(validation_ok=False, validation_warning=False)
-        comment_text = f'Validation error: {fail_reason}'
-    elif warnings:
-        regquery.update(validation_ok=True, validation_warning=True)
-        comment_text = f'Validation warning: {" ".join(warnings)}'
-    else:
-        regquery.update(validation_ok=True, validation_warning=False)
-        comment_text = 'Validated.'
-    add_system_comment(reg, comment_text)
-
-
-@receiver(post_save, sender=Registration, dispatch_uid='heltour.tournament.tasks')
-def registration_saved(instance, created, **kwargs):
-    if not created:
-        return
-    validate_registration.apply_async(args=[instance.pk], countdown=1)
-
-
-@receiver(signals.do_validate_registration, dispatch_uid='heltour.tournament.tasks')
-def do_validate_registration(reg_id, **kwargs):
-    validate_registration.apply_async(args=[reg_id], countdown=1)
-
-
-@app.task()
-def validate_pending_registrations():
-    # we want to re-validate pending registrations if they are not marked valid already; or have recently been validated
-    reg_to_validate = Registration.objects.filter(season__registration_open=True, status__exact='pending') \
-            .exclude(Q(validation_warning=False) & Q(validation_ok=True) | Q(last_validation_try__gt=timezone.now() - timedelta(hours=24))) \
-            .order_by('last_validation_try').first()
-    if reg_to_validate is not None:
-        signals.do_validate_registration.send(sender=validate_pending_registrations, reg_id=reg_to_validate.pk)
+@receiver(signals.do_validate_registration, dispatch_uid="heltour.tournament.tasks")
+def do_validate_registration(regs: QuerySet[Registration], **kwargs) -> None:
+    update_player_ratings(
+        usernames=list(regs.values_list("player__lichess_username", flat=True))
+    )
 
 
 @app.task()
@@ -661,6 +892,8 @@ def pairings_published(round_id, overwrite=False):
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
     signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
+    if season.create_broadcast:
+        signals.do_create_broadcast_round.send(sender=pairings_published, round_=round_)
 
 
 @receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
