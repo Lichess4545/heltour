@@ -24,7 +24,7 @@ def _trunc_and_clean(input: dict) -> dict:
     output = {}
     for key, value in input.items():
         # censoring tokens
-        cleanvalue = re.sub(r"(li[opu]_)([A-Za-z0-9]+)", r"\1***", value)
+        cleanvalue = re.sub(r"(li[opu]_)([A-Za-z0-9]+)", r"\1***", str(value))
         output[key] = cleanvalue if len(cleanvalue) <= 30 else f"{cleanvalue[:27]}..."
     return output
 
