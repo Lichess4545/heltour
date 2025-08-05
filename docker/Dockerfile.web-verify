@@ -6,9 +6,6 @@ USER root
 # Install Redis server for tests
 RUN apt-get update && apt-get install -y redis-server && rm -rf /var/lib/apt/lists/*
 
-# Create logs directory with proper permissions
-RUN chown -R litour:litour /app/logs
-
 # Create a simple Redis config for tests
 RUN echo "port 6379\nbind 127.0.0.1\ndaemonize yes\nlogfile /tmp/redis.log" > /tmp/redis.conf && \
     chown litour:litour /tmp/redis.conf
@@ -28,7 +25,6 @@ ENV DJANGO_SETTINGS_MODULE=heltour.test_settings \
     REDIS_PORT=6379 \
     REDIS_DB=0 \
     CACHEOPS_REDIS_DB=1 \
-    LOG_FILE=/app/logs/test.log \
     CSRF_TRUSTED_ORIGINS=http://localhost:8000 \
     LINK_PROTOCOL=http \
     EMAIL_PORT=1025 \

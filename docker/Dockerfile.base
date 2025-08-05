@@ -41,11 +41,9 @@ ENV DEBUG=True
 ENV DATABASE_URL=
 ENV STATIC_ROOT=/app/static
 RUN poetry install --only main && \
-  mkdir -p /app/logs && \
   mkdir -p /app/static && \
   python manage.py compilestatic --ignore-dependencies && \
-  python manage.py collectstatic --noinput && \
-  chown -R litour:litour /app/logs # NOTE: this has to come after the collectstatic command
+  python manage.py collectstatic --noinput
 
 
 # Switch to non-root user

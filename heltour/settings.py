@@ -381,9 +381,6 @@ if DEBUG:
         "SHOW_TOOLBAR_CALLBACK": lambda request: True,
     }
 
-# Ensure log directory exists
-log_file = env("LOG_FILE", default=os.path.join(BASE_DIR, "logs", "all.log"))
-
 # Logging configuration
 LOGGING = {
     "version": 1,
@@ -394,31 +391,23 @@ LOGGING = {
     "handlers": {
         "default": {
             "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": log_file,
-            "maxBytes": 1024 * 1024 * 15,  # 15MB
-            "backupCount": 10,
+            "class": "logging.StreamHandler",
             "formatter": "standard",
         },
         "mail_admins": {
             "level": "ERROR",
             "class": "django.utils.log.AdminEmailHandler",
         },
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-        },
     },
     "loggers": {
         "django": {
-            "handlers": ["console"] if DEBUG else ["default"],
+            "handlers": ["default"],
             "level": "INFO",
             "propagate": True,
         },
         "heltour": {
-            "handlers": ["console"] if DEBUG else ["default"],
-            "level": "DEBUG",
+            "handlers": ["default"],
+            "level": "INFO",
             "propagate": True,
         },
     },
