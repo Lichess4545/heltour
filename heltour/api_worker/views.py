@@ -11,7 +11,6 @@ from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
 from heltour.api_worker import worker
-from heltour.settings import HELTOUR_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ def _do_lichess_api_call(
 
     try:
         headers = {
-            "User-Agent": f"Lichess4545 (heltour/{HELTOUR_VERSION}; django/{djangoversion}; python/{python_version()})",
+            "User-Agent": f"Lichess4545 (heltour/{settings.HELTOUR_VERSION}; django/{djangoversion}; python/{python_version()})",
         }
         if token:
             headers["Authorization"] = "Bearer %s" % token
