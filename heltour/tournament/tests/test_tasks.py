@@ -340,9 +340,9 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             groupings,
             "Testing the Title\n"
-            "testslug1 | Boards 1 - 2\n"
-            "testslug2 | Boards 3 - 4\n"
-            "testslug3 | Boards 5 - ",
+            "testslug1\n"
+            "testslug2\n"
+            "testslug3",
         )
 
     @patch(

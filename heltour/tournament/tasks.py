@@ -526,9 +526,7 @@ def _create_team_string(season: Season) -> str:
 
 def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> str:
     for broadcast in broadcasts:
-        if broadcast.first_board != 1:
-            title = f"{title}{broadcast.first_board - 1}"
-        title = f"{title}\n{broadcast.lichess_id} | Boards {broadcast.first_board} - "
+        title = f"{title}\n{broadcast.lichess_id}"
     return title
 
 
@@ -549,11 +547,14 @@ def _create_or_update_broadcast(
         teamTable = False
         teams = ""
     title = season.broadcast_title_override or f"{season.league.name} S{season.tag}"
-    # TODO maybe mention the actual highest boad instead of the highest board in theory
-    name = (
-        f"{title} Boards {first_board} to "
-        f"{first_board + MAX_GAMES_LICHESS_BROADCAST - 1}"
-    )
+    latest_bcr = BroadcastRound.objects.filter(
+        broadcast__season=season, broadcast__first_board=first_board
+    ).order_by("-round_id__number").first()
+    if latest_bcr is not None:
+        last_board = latest_bcr.last_board
+    else:
+        last_board = first_board + MAX_GAMES_LICHESS_BROADCAST - 1
+    name = f"{title} Boards {first_board} to {last_board}"
     tc = season.league.time_control.replace("+", "%2b")
     players = ""
     markdown = (
