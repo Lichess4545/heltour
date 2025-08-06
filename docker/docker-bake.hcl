@@ -6,7 +6,7 @@ variable "REGISTRY" {
   default = ""
 }
 
-variable "GITHUB_SHA" {
+variable "GITHUB_SHORT_SHA" {
   default = "unknown"
 }
 
@@ -62,7 +62,7 @@ target "litour-web" {
     base = "target:base"
   }
   args = {
-    GITHUB_SHA = GITHUB_SHA
+    GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
 }
 
@@ -85,7 +85,7 @@ target "litour-api-worker" {
     base = "target:base"
   }
   args = {
-    GITHUB_SHA = GITHUB_SHA
+    GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
 }
 

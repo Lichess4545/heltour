@@ -1,7 +1,7 @@
 FROM base AS web
 
 # Accept build argument
-ARG GITHUB_SHA=unknown
+ARG GITHUB_SHORT_SHA=unknown
 
 # Switch to root temporarily to install OpenJDK
 USER root
@@ -20,7 +20,7 @@ EXPOSE 8000
 # Set environment for Django
 ENV DJANGO_SETTINGS_MODULE=heltour.settings \
     PYTHONUNBUFFERED=1 \
-    HELTOUR_VERSION=${GITHUB_SHA}
+    HELTOUR_VERSION=${GITHUB_SHORT_SHA}
 
 USER litour
 

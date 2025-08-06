@@ -37,7 +37,7 @@ jobs:
             TAG=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/[^a-zA-Z0-9._-]/-/g')
             echo "TAG=${TAG}" >> $GITHUB_OUTPUT
           fi
-          echo "GITHUB_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_OUTPUT
+          echo "GITHUB_SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -60,7 +60,7 @@ jobs:
         env:
           TAG: ${{ steps.tag.outputs.TAG }}
           REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
-          GITHUB_SHA: ${{ steps.tag.outputs.GITHUB_SHA }}
+          GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
 
       # For master branch: build all images including verify, then push production images
       - name: Build and push all images
@@ -76,7 +76,7 @@ jobs:
         env:
           TAG: ${{ steps.tag.outputs.TAG }}
           REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
-          GITHUB_SHA: ${{ steps.tag.outputs.GITHUB_SHA }}
+          GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
