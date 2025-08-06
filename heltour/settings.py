@@ -25,6 +25,7 @@ env = environ.Env(
     LICHESS_OAUTH_REDIRECT_SCHEME=(str, "https"),
     HELTOUR_APP=(str, "tournament"),
     HELTOUR_ENV=(str, "dev"),
+    HELTOUR_VERSION=(str, "unknown"),
     SLACK_ANNOUNCE_CHANNEL=(str, ""),
     SLACK_TEAM_ID=(str, ""),
     CHESSTER_USER_ID=(str, ""),
@@ -324,6 +325,7 @@ FCM_API_KEY = env("FCM_API_KEY", default="")
 
 # Application-specific settings
 HELTOUR_APP = env("HELTOUR_APP")
+HELTOUR_VERSION = env("HELTOUR_VERSION")
 API_WORKER_HOST = env("API_WORKER_HOST")
 JAVAFO_COMMAND = env("JAVAFO_COMMAND")
 

@@ -1,11 +1,15 @@
 FROM base
 
+# Accept build argument
+ARG GITHUB_SHA=unknown
+
 # Expose port
 EXPOSE 8880
 
 # Set environment
 ENV PYTHONUNBUFFERED=1
 ENV HELTOUR_APP=api_worker
+ENV HELTOUR_VERSION=${GITHUB_SHA}
 
 # Start API worker
 CMD ["gunicorn", "heltour.wsgi:application", \

@@ -6,6 +6,10 @@ variable "REGISTRY" {
   default = ""
 }
 
+variable "GITHUB_SHA" {
+  default = "unknown"
+}
+
 function "tag" {
   params = [name]
   result = ["${lower(REGISTRY)}${REGISTRY != "" ? "/" : ""}${name}:${TAG}"]
@@ -57,6 +61,9 @@ target "litour-web" {
   contexts = {
     base = "target:base"
   }
+  args = {
+    GITHUB_SHA = GITHUB_SHA
+  }
 }
 
 target "javafo-verify" {
@@ -76,6 +83,9 @@ target "litour-api-worker" {
   tags = tag("litour-api-worker")
   contexts = {
     base = "target:base"
+  }
+  args = {
+    GITHUB_SHA = GITHUB_SHA
   }
 }
 
