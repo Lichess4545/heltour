@@ -653,6 +653,9 @@ def update_broadcast_round(round_id: int) -> None:
     round_ = Round.objects.get(pk=round_id)
     if not round_.season.create_broadcast:
         return
+    logger.info(
+        f"Checking whether we need to update the broadcast for {round_.season.league}"
+    )
     if round_.is_team_league():
         new_games = (
             TeamPlayerPairing.objects.exclude(game_link="")
@@ -671,6 +674,11 @@ def update_broadcast_round(round_id: int) -> None:
             _create_or_update_broadcast_round(
                 round_=round_, first_board=broadcastround.first_board
             )
+        logger.info(f"Updated broadcast for {round_.season.league} with new games.")
+    else:
+        logger.info(
+            f"Did not find any new games for the broadcast of {round_.season.league}."
+        )
 
 
 @receiver(signals.do_update_broadcast_round, dispatch_uid="heltour.tournament.tasks")
