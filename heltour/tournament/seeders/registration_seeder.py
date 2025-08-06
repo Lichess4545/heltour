@@ -67,7 +67,7 @@ class RegistrationSeeder(BaseSeeder):
         for player in selected_players:
             # Check if already registered
             if Registration.objects.filter(
-                season=season, lichess_username__iexact=player.lichess_username
+                season=season, player=player
             ).exists():
                 continue
 
@@ -91,7 +91,7 @@ class RegistrationSeeder(BaseSeeder):
 
             reg_data = {
                 "season": season,
-                "lichess_username": player.lichess_username,
+                "player": player,
                 "email": player.email,
                 "status": status,
                 "has_played_20_games": (
@@ -102,8 +102,6 @@ class RegistrationSeeder(BaseSeeder):
                 "can_commit": self.weighted_bool(0.95),
                 "agreed_to_rules": True,
                 "agreed_to_tos": True,
-                "validation_ok": self.weighted_bool(0.9),
-                "validation_warning": self.weighted_bool(0.1),
             }
 
             # Add preferences
