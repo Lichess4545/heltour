@@ -55,6 +55,8 @@ if 'HELTOUR_APP' in os.environ and os.environ['HELTOUR_APP'] == 'API_WORKER':
 else:
     HELTOUR_APP = 'tournament'
 
+HELTOUR_VERSION: str = "1.0.1"
+
 INSTALLED_APPS = [
     'cacheops',
     'django.contrib.admin',
@@ -223,11 +225,6 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=1),
         'args': ()
     },
-    'validate_pending_registrations': {
-        'task': 'heltour.tournament.tasks.validate_pending_registrations',
-        'schedule': timedelta(minutes=5),
-        'args': ()
-    },
     'celery_is_up': {
         'task': 'heltour.tournament.tasks.celery_is_up',
         'schedule': timedelta(minutes=5),
@@ -315,6 +312,8 @@ CACHEOPS = {
 }
 
 CACHEOPS_ENABLED = True
+
+SLEEP_UNIT = 1 # time to sleep, mostly used to avoid slack rate limiting; hopefully removable in the future
 
 TEAMGEN_PROCESSES_NUMBER = 8
 

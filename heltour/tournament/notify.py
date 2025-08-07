@@ -1,18 +1,37 @@
 import requests
-from heltour import settings
-from collections import namedtuple
-from heltour.tournament.chatbackend import bold, channel_message, direct_user_message, dm_link, italic, link, multiple_user_message, userlink_ping, userlink_silent
+import sys
+import time
+
 from django.core.cache import cache
-from django.urls import reverse
-from heltour.tournament.models import *
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-import logging
-from heltour.tournament import lichessapi
-import time
-import sys
+from django.urls import reverse
+from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import lichessapi, signals, slackapi
+from heltour.tournament.chatbackend import (
+    bold,
+    channel_message,
+    direct_user_message,
+    dm_link,
+    italic,
+    link,
+    multiple_user_message,
+    userlink_ping,
+    userlink_silent,
+)
+from heltour.tournament.models import (
+    LeagueChannel,
+    PlayerAvailability,
+    PlayerLateRegistration,
+    PlayerNotificationSetting,
+    PlayerWithdrawal,
+    Registration,
+    Round,
+    abs_url,
+    logger,
+)
 
 
 def _send_notification(notification_type, league, text):
@@ -132,7 +151,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
         return
 
     season_players = instance.seasonplayer_set.select_related('season__league').nocache()
-    pending_regs = Registration.objects.filter(lichess_username__iexact=instance.lichess_username,
+    pending_regs = Registration.objects.filter(player__lichess_username__iexact=instance.lichess_username,
                                                status='pending') \
         .select_related('season__league').nocache()
     league_set = {sp.season.league for sp in season_players} | {reg.season.league for reg in
@@ -327,9 +346,20 @@ def alternate_assigned(season, alt_assignment, **kwargs):
 
     # Send a message to the captains
     if aa.player == aa.replaced_player:
-        message = f'{_captains_ping(aa.team, aa.round)}I have reassigned {userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" for round {aa.round.number}.{opponent_notified}'
+        message = (
+            f"{_captains_ping(aa.team, aa.round)}I have reassigned "
+            f"{userlink_silent(_slack_user(aa.player))} to play on board "
+            f"{aa.board_number} of \"{aa.team.name}\" for round {aa.round.number}."
+            f"{opponent_notified}"
+        )
     else:
-        message = f'{_captains_ping(aa.team, aa.round)}I have assigned {userlink_silent(_slack_user(aa.player))} to play on board {aa.board_number} of "{aa.team.name}" in place of {_slack_user(aa.replaced_player)} for round {aa.round.number}.{opponent_notified}'
+        message = (
+            f"{_captains_ping(aa.team, aa.round)}I have assigned "
+            f"{userlink_silent(_slack_user(aa.player))} to play on board "
+            f"{aa.board_number} of \"{aa.team.name}\" in place of "
+            f"{_slack_user(aa.replaced_player)} for round "
+            f"{aa.round.number}.{opponent_notified}"
+        )
     _send_notification('captains', league, message)
 
 
@@ -558,7 +588,7 @@ def notify_players_round_start(round_, **kwargs):
                 # Don't send a notification, since the alternates manager will handle it
                 continue
             send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
@@ -590,7 +620,40 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
         return
 
     send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
-    time.sleep(1)
+    time.sleep(settings.SLEEP_UNIT)
+
+
+@receiver(
+    signals.notify_players_game_scheduled, dispatch_uid="heltour.tournament.notify"
+)
+def notify_players_game_scheduled(round_, pairing, **kwargs):
+    league = round_.get_league()
+    league_setting = league.get_leaguesetting()
+
+    if not league_setting.start_games:
+        return
+
+    time_part = (
+        f"Your game has been scheduled for {pairing.scheduled_time:%A, %H:%M UTC}."
+        "\nYou can agree to the game being started automatically on lichess at that time"
+    )
+    condition_part = (
+        "The game will only be started automatically "
+        "if your opponent agrees to it as well."
+    )
+    confirm_url = abs_url(reverse("by_league:confirm_scheduled_time", args=[league.tag]))
+    im_msg = f"{time_part} <{confirm_url}|here>. {condition_part}"
+
+    li_subject = f"Round {round_} - {league}"
+    li_msg = f"{time_part} here: {confirm_url} - {condition_part}"
+    send_pairing_notification(
+        type_="game_scheduled",
+        pairing=pairing,
+        im_msg=im_msg,
+        mp_msg=im_msg,
+        li_subject=li_subject,
+        li_msg=li_msg,
+    )
 
 
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
@@ -677,7 +740,7 @@ def notify_players_unscheduled(round_, **kwargs):
             # Don't send a notification, since the alternates manager is searching for an alternate
             continue
         send_pairing_notification('unscheduled_game', pairing, im_msg, mp_msg, li_subject, li_msg)
-        time.sleep(1)
+        time.sleep(settings.SLEEP_UNIT)
 
 
 @receiver(signals.game_warning, dispatch_uid='heltour.tournament.notify')

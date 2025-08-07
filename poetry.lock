@@ -1065,6 +1065,18 @@ files = [
 certbot = "*"
 
 [[package]]
+name = "more-itertools"
+version = "10.7.0"
+description = "More routines for operating on iterables, beyond itertools"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "more_itertools-10.7.0-py3-none-any.whl", hash = "sha256:d43980384673cb07d2f7d2d918c616b30c659c089ee23953f601d6609c67510e"},
+    {file = "more_itertools-10.7.0.tar.gz", hash = "sha256:9fddd5403be01a94b204faadcff459ec3568cf110265d3c54323e1e866ad29d3"},
+]
+
+[[package]]
 name = "oauth2client"
 version = "2.2.0"
 description = "OAuth 2.0 client library"
@@ -1805,14 +1817,14 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.3.0"
+version = "2.5.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "urllib3-2.3.0-py3-none-any.whl", hash = "sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df"},
-    {file = "urllib3-2.3.0.tar.gz", hash = "sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d"},
+    {file = "urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"},
+    {file = "urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760"},
 ]
 
 [package.extras]
@@ -1904,4 +1916,4 @@ typing-extensions = ">=4.5.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "cca1a31baccccc72164b8411175f3b505823b305d777d5219190d27935df2afd"
+content-hash = "643ad1ae151e23b877ecf4253737dfa6d9a05a9847db905e254f279aa88b5e73"

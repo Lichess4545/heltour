@@ -1,16 +1,38 @@
-import logging
+from datetime import timedelta
+from smtplib import SMTPException
+
 import reversion
 from django.contrib import messages
-from heltour.tournament.models import *
-from heltour.tournament import pairinggen, signals
-from heltour.tournament.chatbackend import chatbackend, chatbackend_url, invite_user, ChatBackendError, InvitationFailedError
-from smtplib import SMTPException
-from django.template.loader import render_to_string
 from django.core.mail import send_mail
-from heltour import settings
-from . import alternates_manager
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import alternates_manager, pairinggen, signals
+from heltour.tournament.chatbackend import (
+    ChatBackendError,
+    InvitationFailedError,
+    chatbackend,
+    chatbackend_url,
+    invite_user,
+)
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    AlternateBucket,
+    AlternateSearch,
+    LeagueModerator,
+    Player,
+    PlayerAvailability,
+    PlayerLateRegistration,
+    PlayerPairing,
+    Round,
+    SeasonPlayer,
+    TeamMember,
+    find,
+    logger,
+)
 
 
 class RoundTransitionWorkflow():
@@ -282,7 +304,7 @@ class UpdateBoardOrderWorkflow():
                 for alt in alternates:
                     r = alt.season_player.player.rating_for(self.season.league) or 0
                     for i in range(self.season.boards):
-                        if boundaries[i + 1] == None or r > boundaries[i + 1]:
+                        if boundaries[i + 1] is None or r > boundaries[i + 1]:
                             bucket_counts[i] += 1
                             break
 
@@ -324,8 +346,7 @@ class ApproveRegistrationWorkflow():
 
     def __init__(self, reg, round_number=None):
         self.reg = reg
-        self.player = Player.objects.filter(
-            lichess_username__iexact=self.reg.lichess_username).first()
+        self.player = reg.player
         self.league = reg.season.league
         self.round_number = round_number
 
@@ -370,7 +391,7 @@ class ApproveRegistrationWorkflow():
         return self.reg.season
 
     @property
-    def default_ljp(self):
+    def default_ljp(self) -> float:
         # Try and calculate LjP below, but use 0 if we can't
         default_ljp = 0
         season = self.default_section
@@ -379,8 +400,8 @@ class ApproveRegistrationWorkflow():
         if self.default_byes < active_round_count:
             season_players = season.seasonplayer_set.filter(is_active=True).select_related('player',
                                                                                            'loneplayerscore').nocache()
-            rating = self.reg.classical_rating if self.player is None else self.player.rating_for(
-                self.league)
+            # use 0 in the rare case that we were not able to fetch a rating
+            rating = 0 if self.player is None else self.player.rating_for(self.league)
             sp = SeasonPlayer.objects.filter(season=season, player=self.player).first()
             current_points = sp.get_loneplayerscore().points if sp else 0
 
@@ -412,17 +433,17 @@ class ApproveRegistrationWorkflow():
         return default_ljp
 
     @property
-    def active_round_count(self):
+    def active_round_count(self) -> int:
         if self.round_number:
             return self.round_number - 1
         return self.default_section.round_set.filter(publish_pairings=True).count()
 
     @property
-    def is_late(self):
+    def is_late(self) -> bool:
         return self.league.competitor_type != 'team' and self.active_round_count > 0
 
     def approve_reg(self, request, modeladmin, send_confirm_email, invite_to_slack, season,
-                    retroactive_byes, late_join_points):
+                    retroactive_byes, late_join_points) -> None:
         reg = self.reg
         if season != reg.season:
             reg.season = season
@@ -444,8 +465,8 @@ class ApproveRegistrationWorkflow():
                           'is_active': True}
             )
             if player.rating is None:
-                # This is automatically set, so don't change it if we already have a rating
-                player.rating = reg.classical_rating
+                # In the very rare case that we do not have a rating, use 0.
+                player.rating = 0
                 player.save()
 
         if self.is_late:

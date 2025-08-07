@@ -1,42 +1,119 @@
-from django.contrib import admin, messages
-from django.utils import timezone
-from heltour.tournament import lichessapi, views, forms, signals, simulation
-from heltour.tournament.chatbackend import channel_message, chatbackend, direct_user_message, get_user_list, link
-from heltour.tournament.models import *
-from reversion.admin import VersionAdmin
-from django.shortcuts import render, redirect, get_object_or_404
-import reversion
-
 import json
-from . import pairinggen
-from . import spreadsheet
+import re
+import time
+from collections import defaultdict
+from datetime import timedelta
+from smtplib import SMTPException
+from urllib.parse import quote as urlquote
+
+import reversion
+from django.contrib import admin, messages
+from django.contrib.admin.filters import (
+    FieldListFilter,
+    RelatedFieldListFilter,
+    SimpleListFilter,
+)
+from django.contrib.contenttypes.models import ContentType
+from django.core import mail
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import send_mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import Q
 from django.db.models.query import Prefetch
-from django.db import transaction
-from heltour import settings
-from datetime import timedelta
-from django_comments.models import Comment
-from django.contrib.sites.models import Site
-from django.urls import reverse, path
-from django.http.response import HttpResponse
-from django.core.mail.message import EmailMultiAlternatives
-from django.core import mail
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-from heltour.tournament.workflows import *
-from django.forms.models import ModelForm
-from django.core.exceptions import PermissionDenied
-from django.contrib.admin.filters import FieldListFilter, RelatedFieldListFilter, \
-    SimpleListFilter
-from django.templatetags.static import static
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-from django.contrib.contenttypes.models import ContentType
-from urllib.parse import quote as urlquote
-from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
-from heltour.tournament import teamgen
-import time
+from django.forms.models import ModelForm
+from django.http.response import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.templatetags.static import static
+from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django_comments.models import Comment
+from reversion.admin import VersionAdmin
 
+from heltour import settings
+from heltour.tournament import (
+    forms,
+    lichessapi,
+    pairinggen,
+    signals,
+    simulation,
+    spreadsheet,
+    teamgen,
+)
+from heltour.tournament.chatbackend import (
+    channel_message,
+    chatbackend,
+    direct_user_message,
+    get_user_list,
+    link,
+)
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    AlternateBucket,
+    AlternateSearch,
+    AlternatesManagerSetting,
+    ApiKey,
+    AvailableTime,
+    Broadcast,
+    BroadcastRound,
+    Document,
+    GameNomination,
+    GameSelection,
+    League,
+    LeagueChannel,
+    LeagueDocument,
+    LeagueModerator,
+    LeagueSetting,
+    LoginToken,
+    LonePlayerPairing,
+    LonePlayerScore,
+    ModRequest,
+    NavItem,
+    Player,
+    PlayerAvailability,
+    PlayerBye,
+    PlayerLateRegistration,
+    PlayerNotificationSetting,
+    PlayerPairing,
+    PlayerPresence,
+    PlayerWarning,
+    PlayerWithdrawal,
+    PrivateUrlAuth,
+    Registration,
+    Round,
+    ScheduledEvent,
+    ScheduledNotification,
+    Season,
+    SeasonDocument,
+    SeasonPlayer,
+    SeasonPrize,
+    SeasonPrizeWinner,
+    Section,
+    SectionGroup,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    TeamScore,
+    find,
+    get_gameid_from_gamelink,
+    getnestedattr,
+    logger,
+    normalize_gamelink,
+)
+from heltour.tournament.team_rating_utils import team_rating_range, team_rating_variance
+from heltour.tournament.workflows import (
+    ApproveRegistrationWorkflow,
+    MoveLateRegWorkflow,
+    RefreshLateRegWorkflow,
+    RoundTransitionWorkflow,
+    UpdateBoardOrderWorkflow,
+)
 
 # Customize which sections are visible
 # admin.site.register(Comment)
@@ -47,6 +124,20 @@ def redirect_with_params(*args, **kwargs):
     response = redirect(*args, **kwargs)
     response['Location'] += params
     return response
+
+
+class PreconditionError(ValueError):
+    """Raised when a function/method precondition is violated.
+
+    This exception should be raised at the beginning of a function when
+    input validation fails or required conditions are not met.
+    """
+    pass
+
+
+def require(condition, error_msg):
+    if not condition:
+        raise PreconditionError(error_msg)
 
 
 @receiver(post_save, sender=Comment, dispatch_uid='heltour.tournament.admin')
@@ -366,9 +457,21 @@ class SeasonAdmin(_BaseAdmin):
     list_display = ('__str__', 'league',)
     list_display_links = ('__str__',)
     list_filter = ('league',)
-    actions = ['update_board_order_by_rating', 'force_alternate_board_update', 'recalculate_scores',
-               'verify_data', 'review_nominated_games', 'bulk_email', 'team_spam', 'mod_report',
-               'manage_players', 'round_transition', 'simulate_tournament']
+    actions = [
+        "update_board_order_by_rating",
+        "force_alternate_board_update",
+        "recalculate_scores",
+        "verify_data",
+        "review_nominated_games",
+        "bulk_email",
+        "team_spam",
+        "mod_report",
+        "manage_players",
+        "round_transition",
+        "simulate_tournament",
+        "create_broadcast",
+        "update_broadcast",
+    ]
     league_id_field = 'league_id'
 
     def get_urls(self):
@@ -415,6 +518,45 @@ class SeasonAdmin(_BaseAdmin):
                 name='export_players'),
         ]
         return my_urls + urls
+
+    def create_broadcast(self, request, queryset):
+        try:
+            require(len(queryset) == 1, "Can only create one broadcast at a time.")
+            season = queryset[0]
+            require(
+                season.create_broadcast,
+                "create_broadcast is not set for this season.",
+            )
+            require(
+                season.get_broadcast_id() == "",
+                "A broadcast for this season already exists.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_create_broadcast.send(sender=self.__class__, season_id=season.pk)
+        self.message_user(request, "Trying to create broadcast.", messages.INFO)
+
+
+    def update_broadcast(self, request, queryset):
+        try:
+            require(
+                len(queryset) == 1,
+                "Can only update one broadcast at a time.",
+            )
+            season = queryset[0]
+            require(
+                season.get_broadcast_id() != "",
+                "Could not find broadcast to update, create one first.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_update_broadcast.send(sender=self.__class__, season_id=season.pk)
+        self.message_user(request, "Updating broadcast.", messages.INFO)
+
 
     def simulate_tournament(self, request, queryset):
         if not request.user.is_superuser:
@@ -1010,7 +1152,7 @@ class SeasonAdmin(_BaseAdmin):
                                     teammember = TeamMember.objects.filter(team=team,
                                                                            board_number=board_num).first()
                                     original_teammember = str(teammember)
-                                    if teammember == None:
+                                    if teammember is None:
                                         teammember = TeamMember(team=team, board_number=board_num)
                                     if player_info is None:
                                         teammember.delete()
@@ -1272,7 +1414,12 @@ class SeasonAdmin(_BaseAdmin):
 @admin.register(Round)
 class RoundAdmin(_BaseAdmin):
     list_filter = ('season',)
-    actions = ['generate_pairings', 'simulate_results']
+    actions = [
+        "generate_pairings",
+        "simulate_results",
+        "create_broadcast_round",
+        "update_broadcast_round",
+    ]
     league_id_field = 'season__league_id'
     search_fields = ['season__tag']
 
@@ -1287,6 +1434,45 @@ class RoundAdmin(_BaseAdmin):
                 name='review_pairings'),
         ]
         return my_urls + urls
+
+    def create_broadcast_round(self, request, queryset):
+        try:
+            require(
+                len(queryset) == 1,
+                "Can only create one broadcast round at a time.",
+            )
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
+                "Could not find broadcast for season, create it first.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_create_broadcast_round.send(sender=self.__class__, round_id=round_.pk)
+        self.message_user(
+            request, "Trying to create broadcast round.", messages.INFO
+        )
+
+    def update_broadcast_round(self, request, queryset):
+        try:
+            require(len(queryset) == 1, "Can only update one broadcast round at a time.")
+            round_ = queryset[0]
+            require(
+                round_.get_broadcast_id() != "",
+                "Could not find broadcast for season, create one first.",
+            )
+            bcrid = round_.get_broadcast_round_id()
+            require(bcrid != "", "Could not find broadcast round to update, create one first.")
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        signals.do_update_broadcast_round.send(sender=self.__class__, round_id=round_.pk)
+        self.message_user(
+            request, "Updating broadcast round.", messages.INFO
+        )
 
     def generate_pairings(self, request, queryset):
         if queryset.count() > 1:
@@ -1308,6 +1494,7 @@ class RoundAdmin(_BaseAdmin):
         simulation.simulate_round(round_)
         self.message_user(request, 'Simulation complete.', messages.INFO)
         return redirect('admin:tournament_round_changelist')
+
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
@@ -1432,7 +1619,7 @@ class RoundAdmin(_BaseAdmin):
             def pairing_error(pairing):
                 if not request.user.is_staff:
                     return None
-                if pairing.white == None or pairing.black == None:
+                if pairing.white is None or pairing.black is None:
                     return 'Missing player'
                 if pairing.white in duplicate_players:
                     return 'Duplicate player: %s' % pairing.white.lichess_username
@@ -1928,7 +2115,7 @@ class RegistrationAdmin(_BaseAdmin):
     def get_search_fields(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ('lichess_username', 'email', 'season__name')
+            ('player__lichess_username', 'email', 'season__name')
         )
 
     def changelist_view(self, request, extra_context=None):
@@ -1944,13 +2131,12 @@ class RegistrationAdmin(_BaseAdmin):
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
     def valid(self, obj):
-        if obj.validation_warning == True:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
-        elif obj.validation_ok == True:
-            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
-        elif obj.validation_ok == False:
+        if not obj.validation_ok:
             return mark_safe('<img src="%s">' % static('admin/img/icon-no.svg'))
-        return ''
+        elif obj.validation_warning:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
+        else:
+            return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
@@ -1968,8 +2154,7 @@ class RegistrationAdmin(_BaseAdmin):
         return my_urls + urls
 
     def validate(self, request, queryset):
-        for reg in queryset:
-            signals.do_validate_registration.send(sender=RegistrationAdmin, reg_id=reg.pk)
+        signals.do_validate_registration.send(sender=RegistrationAdmin, regs=queryset)
         self.message_user(request, 'Validation started.', messages.INFO)
         return redirect('admin:tournament_registration_changelist')
 
@@ -2654,3 +2839,39 @@ class ModRequestAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/reject_modrequest.html', context)
+
+
+@admin.register(Broadcast)
+class BroadcastAdmin(_BaseAdmin):
+    list_display = (
+        "season",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "season__league",
+        "season",
+    )
+    search_fields = (
+        "season__tag",
+        "season__league__name",
+    )
+
+
+@admin.register(BroadcastRound)
+class BroadcastRoundAdmin(_BaseAdmin):
+    list_display = (
+        "round_id",
+        "broadcast",
+        "first_board",
+        "lichess_id",
+    )
+    list_filter = (
+        "round_id__season__league",
+        "round_id__season",
+    )
+    search_fields = (
+        "round_id__season__tag",
+        "round_id__season__league__name",
+        "round_id__number",
+    )

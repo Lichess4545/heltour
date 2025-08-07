@@ -1,12 +1,30 @@
-from .models import *
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from heltour import settings
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.db import transaction
 import re
+from datetime import datetime, timedelta
+
+import gspread
+from django.db import transaction
+from django.utils import timezone
 from gspread.exceptions import WorksheetNotFound
+from oauth2client.service_account import ServiceAccountCredentials
+
+from heltour import settings
+from heltour.tournament.models import (
+    Alternate,
+    LonePlayerPairing,
+    LonePlayerScore,
+    Player,
+    PlayerBye,
+    PlayerLateRegistration,
+    PlayerWithdrawal,
+    Round,
+    Season,
+    SeasonPlayer,
+    Team,
+    TeamMember,
+    TeamPairing,
+    TeamPlayerPairing,
+    TeamScore,
+)
 
 
 def _open_doc(url):
@@ -480,8 +498,8 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
                                              player=player, type='half-point-bye')
 
         # TODO: Infer missing round changes from the standings page
-        round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1)
-                      if ('Rd %d' % n) in sheet_standings[0]]
+        #round_cols = [(n, sheet_standings[0].index('Rd %d' % n)) for n in range(1, round_count + 1)
+        #              if ('Rd %d' % n) in sheet_standings[0]]
 
         # TODO: Fill missing pairings from the standings page
 

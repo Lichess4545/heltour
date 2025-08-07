@@ -1,13 +1,27 @@
-from django import forms
-from django.utils.translation import gettext_lazy as _
-from ckeditor_uploader.widgets import CKEditorUploadingWidget
+from datetime import timedelta
 
-from .models import *
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
+from django import forms
 from django.core.exceptions import ValidationError
-from heltour import settings
-from django.urls import reverse
-from heltour.tournament.workflows import ApproveRegistrationWorkflow
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
 from heltour import gdpr
+from heltour.tournament.models import (
+    ALTERNATE_PREFERENCE_OPTIONS,
+    PLAYER_NOTIFICATION_TYPES,
+    GameNomination,
+    ModRequest,
+    Player,
+    PlayerNotificationSetting,
+    Registration,
+    Season,
+    SeasonPlayer,
+    Section,
+    normalize_gamelink,
+    username_validator,
+)
+from heltour.tournament.workflows import ApproveRegistrationWorkflow
 
 YES_NO_OPTIONS = (
     (True, 'Yes',),
@@ -32,10 +46,10 @@ class RegistrationForm(forms.ModelForm):
     def __init__(self, *args, rules_url='', **kwargs):
         self.season = kwargs.pop('season')
         
-        self.username = kwargs.pop('user')
-        
+        self.player = kwargs.pop('player')
+
         already_accepted = SeasonPlayer.objects.filter(
-            season__in=self.season.section_list(), player__lichess_username=self.username).exists()
+            season__in=self.season.section_list(), player=self.player).exists()
         
         league = self.season.league
         super(RegistrationForm, self).__init__(*args, **kwargs)
@@ -44,7 +58,6 @@ class RegistrationForm(forms.ModelForm):
         # 20 games
         self.fields['has_played_20_games'] = forms.TypedChoiceField(widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Can commit
-        time_control = league.time_control
         # We do not want to ask about this anymore, it was decided that it is a useless question. Hide it for now.
         self.fields['can_commit'] = forms.TypedChoiceField(initial=True, widget=forms.HiddenInput, choices=YES_NO_OPTIONS)
         # Friends and avoid
@@ -160,7 +173,7 @@ class RegistrationForm(forms.ModelForm):
     def save(self, commit=True, *args, **kwargs):
         registration = super(RegistrationForm, self).save(commit=False, *args, **kwargs)
         registration.season = self.season
-        registration.lichess_username = str(self.username)
+        registration.player = self.player
 
         is_new = registration.pk is None
         fields_changed = set(self.changed_data) & {
@@ -174,7 +187,7 @@ class RegistrationForm(forms.ModelForm):
 
         if commit:
             registration.save()
-        registration.player().agreed_to_tos()
+        registration.player.agreed_to_tos()
         return registration
 
     def clean(self):
@@ -367,7 +380,7 @@ class ContactForm(forms.Form):
         leagues = kwargs.pop('leagues')
         super(ContactForm, self).__init__(*args, **kwargs)
 
-        self.fields['league'] = forms.ChoiceField(choices=[(l.tag, l.name) for l in leagues])
+        self.fields['league'] = forms.ChoiceField(choices=[(league.tag, league.name) for league in leagues])
 
 
 class BulkEmailForm(forms.Form):
@@ -403,7 +416,7 @@ class TvFilterForm(forms.Form):
         super(TvFilterForm, self).__init__(*args, **kwargs)
 
         self.fields['league'] = forms.ChoiceField(
-            choices=[('all', 'All Leagues')] + [(l.tag, l.name) for l in leagues],
+            choices=[('all', 'All Leagues')] + [(league.tag, league.name) for league in leagues],
             initial=current_league.tag)
         if boards is not None and len(boards) > 0:
             self.fields['board'] = forms.ChoiceField(

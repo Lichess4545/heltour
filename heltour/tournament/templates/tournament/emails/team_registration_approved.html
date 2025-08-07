@@ -1,26 +1,26 @@
 {% load tournament_extras %}
 <p>Hi {{ reg.lichess_username }}!</p>
-
 <p>Your registration for {{ reg.season.name }} has been approved.</p>
-
 <p>
-Please join us on {{ chatbackend }} - if you aren't already signed up you should receive an invitation soon.
-    <br/>
+		Please join us on {{ chatbackend }} - if you aren't already signed up you should receive an invitation soon.
+    <br />
     If you don't receive an invitation you can <a href="https://www.lichess4545.com/team4545/contact/">contact us</a>
     for help.
 </p>
-
 <p>
-    {% if reg.season.is_started %}The season has already begun, so you'll probably start as an alternate.{% else %}The
+    {% if reg.season.is_started %}
+        The season has already begun, so you'll probably start as an alternate.
+    {% else %}
+        The
         season starts on {{ reg.season.start_date|date_or_q }}. You'll either be assigned to a team or start as an
-        alternate.{% endif %}
-    <br/>
+        alternate.
+    {% endif %}
+    <br />
     For more information, or if you have any questions, please check out <a href="{{ chatbackend_url }}">our
-      {{ chatbackend }}</a>.
+    {{ chatbackend }}</a>.
 </p>
-
 <p>
     Regards,
-    <br/>
+    <br />
     The {{ reg.season.league.name }} Mods
 </p>

@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
-
 {% block title %}Dashboard - {{ league.name }}{% endblock %}
-
 {% block content %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-6 col-xs-12">
@@ -12,9 +10,11 @@
                       <h3>Link {{ chatbackend }} Account</h3>
                     </div>
                     <div class="well-body">
-                      <p>To participate in the league, you need to link your {{ chatbackend }} account.</p>
-                      <p>Send <a href={{ chat_dm_link }}>@chesster</a> the message
-                            <strong><code>link</code></strong> and follow the instructions.</p>
+	                      <p>To participate in the league, you need to link your {{ chatbackend }} account.</p>
+	                      <p>
+														Send <a href={{ chat_dm_link }}>@chesster</a> the message
+                            <strong><code>link</code></strong> and follow the instructions.
+                        </p>
                     </div>
                 </div>
             {% elif slack_linked_just_now %}
@@ -33,17 +33,11 @@
                 </div>
                 <div class="well-body">
                     <p>
-                        <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                            Public profile
-                        </a>
-                        <br/>
-                        <a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">
-                            Calendar
-                        </a>
-                        <br/>
-                        <a href="{% leagueurl 'notifications' league.tag season.tag %}">
-                            Notification settings
-                        </a>
+                        <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">Public profile</a>
+                        <br />
+                        <a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">Calendar</a>
+                        <br />
+                        <a href="{% leagueurl 'notifications' league.tag season.tag %}">Notification settings</a>
                     </p>
                     <form action="{% leagueurl 'logout' league.tag %}" method="post">
                         {% csrf_token %}
@@ -62,19 +56,17 @@
                                 <td class="league-icon {{ round.season.league.theme }}"></td>
                                 <td>
                                     <div class="details">
-                                        <span class="round">
-                                            {{ round.season }} - Round {{ round.number }}
-                                        </span>
-                                        <span class="players">
-                                            {{ pairing.white }} - {{ pairing.black }}
-                                        </span>
-                                        <span class="time">
-                                            {{ pairing.scheduled_time | date_el:"m/d H:i" }}
-                                        </span>
+                                        <span class="round">{{ round.season }} - Round {{ round.number }}</span>
+                                        <span class="players">{{ pairing.white }} - {{ pairing.black }}</span>
+                                        <span class="time">{{ pairing.scheduled_time | date_el:"m/d H:i" }}</span>
                                         <span class="result">
                                             {% if pairing.game_link %}
                                                 <a href="{{ pairing.game_link }}">
-                                                {% if pairing.result %}{{ pairing.result_display }}{% else %}&#x2694;{% endif %}
+                                                    {% if pairing.result %}
+                                                        {{ pairing.result_display }}
+                                                    {% else %}
+                                                        &#x2694;
+                                                    {% endif %}
                                                 </a>
                                             {% else %}
                                                 {{ pairing.result_display }}
@@ -85,13 +77,13 @@
                                 <td>
                                     <div class="well-body">
                                         {% if round.season.league.get_leaguesetting.start_games and not pairing.game_link and pairing.scheduled_time %}
-                                           <a class="btn btn-default"
+                                            <a class="btn btn-default"
                                                href="{% leagueurl 'confirm_scheduled_time' league.tag active_season.tag %}">
-                                              Confirm
-                                             </a>
+                                                Confirm
+                                            </a>
                                         {% endif %}
                                     </div>
-                                 </td>
+                                </td>
                             </tr>
                         {% endfor %}
                     </table>
@@ -130,9 +122,7 @@
                         {% else %}
                             {% if active_season.registration_open %}
                                 <a class="btn btn-default"
-                                   href="{% leagueurl 'register' league.tag active_season.tag %}">
-                                    Register
-                                </a>
+                                   href="{% leagueurl 'register' league.tag active_season.tag %}">Register</a>
                             {% else %}
                                 <p>Registration is closed.</p>
                             {% endif %}
@@ -146,13 +136,11 @@
                         <h3>{{ last_season.name }}</h3>
                     </div>
                     <div class="well-body">
-                        <a class="btn btn-default" href="{% leagueurl 'season_landing' league.tag last_season.tag %}">
-                            Final Standings
-                        </a>
+                        <a class="btn btn-default"
+                           href="{% leagueurl 'season_landing' league.tag last_season.tag %}">Final Standings</a>
                         {% if last_season.nominations_open %}
-                            <a class="btn btn-default" href="{% leagueurl 'nominate' league.tag last_season.tag %}">
-                                Game Nominations
-                            </a>
+                            <a class="btn btn-default"
+                               href="{% leagueurl 'nominate' league.tag last_season.tag %}">Game Nominations</a>
                         {% endif %}
                     </div>
                 </div>
@@ -163,9 +151,8 @@
                 </div>
                 <div class="well-body">
                     {% for other_league in other_leagues %}
-                        <a class="btn btn-default" href="{% leagueurl 'user_dashboard' other_league.tag %}">
-                            {{ other_league.name }}
-                        </a>
+                        <a class="btn btn-default"
+                           href="{% leagueurl 'user_dashboard' other_league.tag %}">{{ other_league.name }}</a>
                     {% endfor %}
                 </div>
             </div>

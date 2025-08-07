@@ -1,11 +1,21 @@
-from heltour.tournament.models import *
-from django.urls import reverse
-import reversion
 import time
-import logging
-from heltour.tournament.workflows import UpdateBoardOrderWorkflow
+from datetime import timedelta
 
-logger = logging.getLogger(__name__)
+import reversion
+from django.urls import reverse
+from django.utils import timezone
+
+from heltour.settings import SLEEP_UNIT
+from heltour.tournament import signals, workflows
+from heltour.tournament.models import (
+    Alternate,
+    AlternateAssignment,
+    AlternateSearch,
+    PlayerAvailability,
+    TeamMember,
+    TeamPlayerPairing,
+    logger,
+)
 
 _min_bucket_update_interval = timedelta(hours=1)
 
@@ -80,7 +90,7 @@ def reset_alternate_search(season, round_, setting):
                                                      team=search.team, \
                                                      board_number=search.board_number,
                                                      round_=last_round)
-                time.sleep(1)
+                time.sleep(SLEEP_UNIT)
             else:
                 with reversion.create_revision():
                     reversion.set_comment('Alternate search cancelled')
@@ -90,7 +100,7 @@ def reset_alternate_search(season, round_, setting):
     # Update the alternate board order, but only if it hasn't been updated within the past hour
     some_bucket = season.alternatebucket_set.first()
     if some_bucket is None or some_bucket.date_modified < timezone.now() - _min_bucket_update_interval:
-        UpdateBoardOrderWorkflow(season).run(alternates_only=True)
+        workflows.UpdateBoardOrderWorkflow(season).run(alternates_only=True)
 
 
 def do_alternate_search(season, round_, board_number, setting):
@@ -146,7 +156,7 @@ def do_alternate_search(season, round_, board_number, setting):
                 alt.save()
             signals.alternate_spots_filled.send(sender=do_alternate_search, alternate=alt,
                                                 response_time=setting.unresponsive_interval)
-            time.sleep(1)
+            time.sleep(SLEEP_UNIT)
         return
 
     # Continue the search for an alternate to fill each open spot
@@ -163,7 +173,7 @@ def do_alternate_search(season, round_, board_number, setting):
             signals.alternate_search_started.send(sender=do_alternate_search, season=season,
                                                   team=teams_by_player[p], \
                                                   board_number=board_number, round_=round_)
-            time.sleep(1)
+            time.sleep(SLEEP_UNIT)
             with reversion.create_revision():
                 reversion.set_comment('Alternate search started')
                 search.status = 'started'
@@ -197,7 +207,6 @@ def do_alternate_search(season, round_, board_number, setting):
                         break
 
                 # Contact the alternate, providing them with a pair of private links to respond
-                alt_username = alt_to_contact.season_player.player.lichess_username
                 league_tag = season.league.tag
                 season_tag = season.tag
                 accept_url = reverse('by_league:by_season:alternate_accept',
@@ -210,7 +219,7 @@ def do_alternate_search(season, round_, board_number, setting):
                                               round_=round_, accept_url=accept_url,
                                               decline_url=decline_url)
                 logger.info(f'[ALT SEARCH] Successfully contacted {alt_to_contact} for an open alternate spot.')
-                time.sleep(1)
+                time.sleep(SLEEP_UNIT)
                 current_date = timezone.now()
                 with reversion.create_revision():
                     reversion.set_comment('Alternate contacted')
@@ -231,7 +240,7 @@ def do_alternate_search(season, round_, board_number, setting):
                                                                 board_number=board_number,
                                                                 round_=round_, number_contacted=len(
                             alternates_contacted))
-                    time.sleep(1)
+                    time.sleep(SLEEP_UNIT)
                     with reversion.create_revision():
                         reversion.set_comment('All alternates contacted')
                         search.status = 'all_contacted'
@@ -248,7 +257,7 @@ def round_pairings_published(round_):
             signals.alternate_search_reminder.send(sender=round_pairings_published,
                                                    season=round_.season, team=search.team, \
                                                    board_number=search.board_number, round_=round_)
-            time.sleep(1)
+            time.sleep(SLEEP_UNIT)
 
 
 def alternate_accepted(alternate):
@@ -291,7 +300,7 @@ def alternate_accepted(alternate):
                 search.save()
             signals.alternate_assigned.send(sender=alternate_accepted, season=season,
                                             alt_assignment=assignment)
-            time.sleep(1)
+            time.sleep(SLEEP_UNIT)
             return True
     return False
 

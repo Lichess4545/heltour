@@ -1,14 +1,24 @@
-from heltour import settings
-from heltour.tournament.models import *
-from heltour.tournament import lichessapi
+import time
+from datetime import timedelta
+
+import reversion
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
-from heltour.tournament.tasks import pairings_published
-from textwrap import dedent
-import reversion
-import time
+from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+from heltour import settings
+from heltour.tournament import lichessapi, signals
+from heltour.tournament.models import (
+    MOD_REQUEST_SENDER,
+    ModRequest,
+    PlayerAvailability,
+    PlayerWarning,
+    PlayerWithdrawal,
+    SeasonPlayer,
+    add_system_comment,
+    logger,
+)
 
 
 @receiver(post_save, sender=ModRequest, dispatch_uid='heltour.tournament.automod')
@@ -95,14 +105,14 @@ def automod_unresponsive(round_, **kwargs):
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.black,
                                                           opponent=p.white, pairing=p)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
         if not black_present:
             player_unresponsive(round_, p, p.black, groups)
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.white,
                                                           opponent=p.black, pairing=p)
-            time.sleep(1)
+            time.sleep(settings.SLEEP_UNIT)
     signals.notify_mods_unresponsive.send(sender=automod_unresponsive, round_=round_,
                                           warnings=groups['warning'], yellows=groups['yellow'],
                                           reds=groups['red'])

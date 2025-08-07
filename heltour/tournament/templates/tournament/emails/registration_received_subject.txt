@@ -1,1 +1,0 @@
-Registration Received - {{ reg.season.league.name }}

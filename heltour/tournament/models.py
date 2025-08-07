@@ -1,22 +1,25 @@
-from django.db import models, transaction
-from django.utils.crypto import get_random_string
-from ckeditor_uploader.fields import RichTextUploadingField
-from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from datetime import timedelta, date
-from django.utils import timezone
-from django import forms as django_forms
-from collections import namedtuple, defaultdict
-import re
-from django.core.exceptions import ValidationError
-from heltour.tournament import signals
+from __future__ import annotations
 import logging
+import re
+from collections import defaultdict, namedtuple
+from datetime import datetime, timedelta
+
+import reversion
+from ckeditor_uploader.fields import RichTextUploadingField
+from django import forms as django_forms
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db import connection, models, transaction
+from django.db.models import JSONField, Q
+from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django_comments.models import Comment
-from django.db.models import Q, JSONField
+
 from heltour import settings
+from heltour.tournament import signals
 from heltour.tournament.chatbackend import channellink
-import reversion
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +171,46 @@ class League(_BaseModel):
     def is_team_league(self):
         return self.competitor_type == 'team'
 
+    def get_active_players(self):
+        def loneteam_query() -> str:
+            if self.is_team_league():
+                return """
+                       INNER JOIN tournament_teamplayerpairing tpp ON tpp.playerpairing_ptr_id = pp.id
+                       INNER JOIN tournament_teampairing tp ON tpp.team_pairing_id = tp.id
+                       """
+            else:
+                return """
+                       INNER JOIN tournament_loneplayerpairing tp ON tp.playerpairing_ptr_id = pp.id
+                       """
+
+        def games_query(*, colour: str) -> str:
+            return f"""
+                    SELECT pp.{colour}_id as player_id, scheduled_time as played_time
+                    FROM tournament_playerpairing pp
+                    {loneteam_query()}
+                    INNER JOIN tournament_round r ON tp.round_id = r.id
+                    INNER JOIN tournament_season s ON r.season_id = s.id
+                    INNER JOIN tournament_league l ON s.league_id = l.id
+                    WHERE pp.game_link != '' AND l.id = %s
+                    """
+
+        query = f"""
+                 SELECT player_id, COUNT(player_id) as game_count, MAX(played_time) as last_played
+                 FROM (
+                 {games_query(colour='white')}
+                 UNION ALL
+                 {games_query(colour='black')}
+                 ) as all_games
+                 GROUP BY player_id
+                 ORDER BY game_count DESC
+                 """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.pk, self.pk])
+            desc = cursor.description
+            nt_result = namedtuple("Player", [col[0] for col in desc])
+            return [nt_result(*row) for row in cursor.fetchall()]
+
+
     def __str__(self):
         return self.name
 
@@ -228,6 +271,18 @@ class Season(_BaseModel):
     registration_open = models.BooleanField(default=False)
     nominations_open = models.BooleanField(default=False)
 
+    create_broadcast = models.BooleanField(
+        default=False,
+        help_text='Automatically update broadcasts. Run "create broadcast" for initial creation.',
+    )
+    broadcast_title_override = models.CharField(
+        # max length from lichess api
+        max_length=80,
+        blank=True,
+        null=True,
+        help_text="Change the broadcast name. Leave empty for default.",
+    )
+
     class Meta:
         unique_together = (('league', 'name'), ('league', 'tag'))
         permissions = (
@@ -243,8 +298,9 @@ class Season(_BaseModel):
         self.initial_start_date = self.start_date
         self.initial_is_completed = self.is_completed
 
-    def last_season_alternates(self):
-        last_season = Season.objects.filter(league=self.league, start_date__lt=self.start_date) \
+    def last_season_alternates(self) -> set[Player]:
+        start_date = self.start_date or timezone.now()
+        last_season = Season.objects.filter(league=self.league, start_date__lt=start_date) \
             .order_by('-start_date').first()
         last_season_alts = Alternate.objects.filter(season_player__season=last_season) \
             .select_related('season_player__player').nocache()
@@ -580,6 +636,13 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
+    def get_broadcast_id(self, first_board: int = 1) -> str:
+        if self.create_broadcast:
+            bc = Broadcast.objects.filter(season=self, first_board=first_board)
+            if bc.exists():
+                return bc[0].lichess_id
+        return ""
+
     @classmethod
     def get_registration_season(cls, league, season=None):
         if season is not None and season.registration_open:
@@ -695,6 +758,19 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
+    def get_broadcast_id(self, first_board: int = 1) -> str:
+        return self.season.get_broadcast_id(first_board=first_board)
+
+    def get_broadcast_round_id(self, first_board: int = 1) -> str:
+        if not self.season.get_broadcast_id():
+            return ""
+        bc = Broadcast.objects.get(season=self.season, first_board=first_board)
+        bcr = BroadcastRound.objects.filter(broadcast=bc, round_id=self)
+        if bcr.exists():
+            return bcr[0].lichess_id
+        else:
+            return ""
+
     def __str__(self):
         return "%s - Round %d" % (self.season, self.number)
 
@@ -769,7 +845,7 @@ ACCOUNT_STATUS_OPTIONS = (
 
 # -------------------------------------------------------------------------------
 class Player(_BaseModel):
-    lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    lichess_username = models.CharField(max_length=255, validators=[username_validator], unique=True)
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
@@ -827,6 +903,14 @@ class Player(_BaseModel):
             self.profile = user_meta
         self.save()
 
+    def profile_update_after(self) -> datetime:
+        # lichess gives us "seenAt" in miliseconds as the last time the user was online
+        # thus, the profile was last updated *after* this seenAt.
+        seenAt = (self.profile or {}) .get('seenAt')
+        if seenAt is not None:
+            return datetime.utcfromtimestamp(seenAt / 1000)
+        return None
+
     @classmethod
     def get_or_create(cls, lichess_username):
         player, _ = Player.objects.get_or_create(lichess_username__iexact=lichess_username,
@@ -879,7 +963,7 @@ class Player(_BaseModel):
 
     @property
     def timezone_str(self):
-        if self.timezone_offset == None:
+        if self.timezone_offset is None:
             return '?'
         seconds = self.timezone_offset.total_seconds()
         sign = '-' if seconds < 0 else '+'
@@ -1080,7 +1164,7 @@ class PlayerBye(_BaseModel):
             return self.player.rating_for(league)
 
     def refresh_rank(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.player_rank = rank_dict.get(self.player_id, None)
 
@@ -1464,6 +1548,8 @@ class PlayerPairing(_BaseModel):
     #*_confirmed: whether the player confirmed the scheduled time, so we may start games automatically.
     white_confirmed = models.BooleanField(default=False)
     black_confirmed = models.BooleanField(default=False)
+    # whether we added the game to a croadcast
+    broadcasted = models.BooleanField(default=False)
 
     colors_reversed = models.BooleanField(default=False)
 
@@ -1675,6 +1761,9 @@ class PlayerPairing(_BaseModel):
                 old_black_setting.save()
             self.update_available_upon_schedule(self.white_id)
             self.update_available_upon_schedule(self.black_id)
+            signals.notify_players_game_scheduled.send(
+                    sender=self.__class__, round_=self.get_round(), pairing=self
+            )
     
 
     def delete(self, *args, **kwargs):
@@ -1771,7 +1860,7 @@ class LonePlayerPairing(PlayerPairing):
     black_rank = models.PositiveIntegerField(blank=True, null=True)
 
     def refresh_ranks(self, rank_dict=None):
-        if rank_dict == None:
+        if rank_dict is None:
             rank_dict = lone_player_pairing_rank_dict(self.round.season)
         self.white_rank = rank_dict.get(self.white_id, None)
         self.black_rank = rank_dict.get(self.black_id, None)
@@ -1796,7 +1885,7 @@ class Registration(_BaseModel):
     status = models.CharField(max_length=255, choices=REGISTRATION_STATUS_OPTIONS)
     status_changed_by = models.CharField(blank=True, max_length=255)
     status_changed_date = models.DateTimeField(blank=True, null=True)
-    lichess_username = models.CharField(max_length=255, validators=[username_validator])
+    player = models.ForeignKey(to=Player, on_delete=models.CASCADE, null=True)
     email = models.EmailField(max_length=255)
     has_played_20_games = models.BooleanField()
     can_commit = models.BooleanField()
@@ -1810,27 +1899,39 @@ class Registration(_BaseModel):
                                            null=True)
     weeks_unavailable = models.CharField(blank=True, max_length=255)
 
-    validation_ok = models.BooleanField(blank=True, null=True, default=None)
-    validation_warning = models.BooleanField(default=False)
-    last_validation_try = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return "%s" % (self.lichess_username)
 
     def previous_registrations(self):
-        return Registration.objects.filter(lichess_username__iexact=self.lichess_username,
-                                           date_created__lt=self.date_created)
+        return Registration.objects.filter(
+            player=self.player, date_created__lt=self.date_created
+        )
 
     def other_seasons(self):
         return SeasonPlayer.objects.filter(
-            player__lichess_username__iexact=self.lichess_username).exclude(season=self.season)
+            player=self.player).exclude(season=self.season)
 
-    def player(self):
-        return Player.objects.filter(lichess_username__iexact=self.lichess_username).first()
+    @property
+    def lichess_username(self):
+        return self.player.lichess_username
 
     @property
     def rating(self):
-        return self.player().rating_for(league=self.season.league)
+        return self.player.rating_for(league=self.season.league)
+
+    @property
+    def validation_ok(self):
+        # a rating of 0 means there were problems retrieving the rating
+        return self.rating != 0 and self.player.account_status == "normal"
+
+    @property
+    def validation_warning(self):
+        return (
+            self.player.provisional_for(league=self.season.league)
+            or not self.agreed_to_rules
+            or not self.agreed_to_tos
+        )
 
     @classmethod
     def can_register(cls, user, season):
@@ -1845,14 +1946,19 @@ class Registration(_BaseModel):
 
     @classmethod
     def get_latest_registration(cls, user, season):
-        return (cls.objects
-                .filter(lichess_username__iexact=user.username, season=season)
-                .order_by('-date_created')
-                .first())
+        return (
+            cls.objects.filter(
+                player__lichess_username__iexact=user.username, season=season
+            )
+            .order_by("-date_created")
+            .first()
+        )
 
     @classmethod
     def is_registered(cls, user, season):
-        return cls.objects.filter(lichess_username__iexact=user.username, season=season).exists()
+        return cls.objects.filter(
+            player__lichess_username__iexact=user.username, season=season
+        ).exists()
 
 
 # -------------------------------------------------------------------------------
@@ -1887,7 +1993,7 @@ class SeasonPlayer(_BaseModel):
     def has_scheduled_game_in_round(self, round):
         pairingModel = TeamPlayerPairing.objects.filter(team_pairing__round=round)
         if not self.season.league.is_team_league():
-            pairingModel = LonePlayerPlairing.objects.filter(round=round)
+            pairingModel = LonePlayerPairing.objects.filter(round=round)
             
         return pairingModel.filter(
             (Q(white=self.player) | Q(black=self.player)) & Q(scheduled_time__isnull=False)#
@@ -2604,13 +2710,14 @@ class ScheduledEvent(_BaseModel):
 
 
 PLAYER_NOTIFICATION_TYPES = (
-    ('round_started', 'Round started'),
-    ('before_game_time', 'Before game time'),
-    ('game_started', 'Game started'),
-    ('game_time', 'Game time'),
-    ('unscheduled_game', 'Unscheduled game'),
-    ('game_warning', 'Game warning'),
-    ('alternate_needed', 'Alternate needed'),
+    ("round_started", "Round started"),
+    ("before_game_time", "Before game time"),
+    ("game_scheduled", "Game was scheduled"),
+    ("game_started", "Game started"),
+    ("game_time", "Game time"),
+    ("unscheduled_game", "Unscheduled game"),
+    ("game_warning", "Game warning"),
+    ("alternate_needed", "Alternate needed"),
 )
 
 
@@ -2659,12 +2766,28 @@ class PlayerNotificationSetting(_BaseModel):
             if has_other_offset or obj.offset != timedelta(minutes=60):
                 # Non-default offset, so leave everything disabled
                 return obj
-        obj.enable_lichess_mail = type_ in ('round_started', 'game_warning', 'alternate_needed')
+        obj.enable_lichess_mail = type_ in (
+            "round_started",
+            "game_warning",
+            "alternate_needed",
+        )
         obj.enable_slack_im = type_ in (
-            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game',
-            'alternate_needed')
+            "round_started",
+            "game_scheduled",
+            "game_started",
+            "before_game_time",
+            "game_time",
+            "unscheduled_game",
+            "alternate_needed",
+        )
         obj.enable_slack_mpim = type_ in (
-            'round_started', 'game_started', 'before_game_time', 'game_time', 'unscheduled_game')
+            "round_started",
+            "game_scheduled",
+            "game_started",
+            "before_game_time",
+            "game_time",
+            "unscheduled_game"
+        )
         if type_ == 'before_game_time':
             obj.offset = timedelta(minutes=60)
         return obj
@@ -2821,3 +2944,52 @@ class ModRequest(_BaseModel):
 
     def __str__(self):
         return '%s - %s' % (self.requester.lichess_username, self.get_type_display())
+
+
+class Broadcast(_BaseModel):
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    first_board = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        unique_together = ["season", "first_board"]
+        ordering = ["season", "first_board"]
+
+    def __str__(self) -> str:
+        return f"BC {self.season} B{self.first_board}"
+
+
+class BroadcastRound(_BaseModel):
+    round_id = models.ForeignKey(Round, on_delete=models.CASCADE)
+    lichess_id = models.SlugField(blank=True, max_length=10)
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ["broadcast", "round_id"]
+        ordering = ["broadcast", "round_id"]
+
+    @property
+    def first_board(self) -> int:
+        return self.broadcast.first_board
+
+    # last_board is a round property, because it may change with additional players signing up
+    @property
+    def last_board(self) -> int:
+        nextbc = (
+            Broadcast.objects.filter(
+                season=self.broadcast.season, first_board__gt=self.first_board
+            )
+            .order_by("first_board")
+            .first()
+        )
+        if nextbc is not None:
+            return nextbc.first_board - 1
+        if self.round_id.is_team_league():
+            return TeamPlayerPairing.objects.filter(
+                team_pairing__round=self.round_id
+            ).count()
+        else:
+            return LonePlayerPairing.objects.filter(round=self.round_id).count()
+
+    def __str__(self) -> str:
+        return f"BCR {self.round_id} B{self.first_board}"
