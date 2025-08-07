@@ -506,9 +506,18 @@ def start_games():
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
-        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
-        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
     logger.info('[FINISHED] Done trying to start games.')
+    # send the signal to update broadcasts of all active rounds.
+    # this could be a periodic task by itself, but the perfect time to run it happens
+    # to be directly after we started games.
+    rounds = Round.objects.filter(
+        season__is_active=True,
+        season__is_completed=False,
+        is_completed=False,
+        publish_pairings=True,
+    )
+    for round_ in rounds:
+        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
 
 
 def _create_team_string(season: Season) -> str:
