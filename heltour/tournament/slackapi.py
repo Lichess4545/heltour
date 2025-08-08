@@ -2,9 +2,8 @@ import requests
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from collections import namedtuple
-import logging
 
-logger = logging.getLogger(__name__)
+from heltour.tournament.models import logger
 
 
 def _get_slack_token():
