@@ -523,7 +523,7 @@ def start_games():
 def _create_team_string(season: Season) -> str:
     if not season.league.is_team_league():
         return ""
-    teams = Team.objects.filter(season=season)
+    teams = Team.objects.filter(season=season).order_by("number")
     lines = []
     for team in teams:
         for teamplayer in TeamMember.objects.filter(team=team).order_by(
@@ -602,16 +602,21 @@ def _create_or_update_broadcast(
 def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> str:
     result = ""
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
+    broadcast_round = round_.get_broadcast_round(first_board=first_board)
+    if broadcast_round is not None:
+        last_board = broadcast_round.last_board
+    else:
+        last_board = MAX_GAMES_LICHESS_BROADCAST
     if round_.is_team_league():
         games_query = TeamPlayerPairing.objects.filter(
             team_pairing__round=round_
         ).order_by("team_pairing__pairing_order", "board_number")[
-            (first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)
+            (first_board - 1) : last_board
         ]
     else:
         games_query = LonePlayerPairing.objects.filter(round=round_).order_by(
             "pairing_order"
-        )[(first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
+        )[(first_board - 1) : last_board]
     game_links = []
     broadcast_updates = []
     for game in games_query:
