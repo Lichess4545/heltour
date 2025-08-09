@@ -757,13 +757,25 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
+    def get_broadcast_round(self, first_board: int = 1) -> Broadcast|None:
+        bc = Broadcast.objects.filter(
+            season=self.season, first_board=first_board
+        ).first()
+        return BroadcastRound.objects.filter(
+            broadcast=bc,
+            round_id=self,
+        ).first()
+
+
     def get_broadcast_id(self, first_board: int = 1) -> str:
         return self.season.get_broadcast_id(first_board=first_board)
 
     def get_broadcast_round_id(self, first_board: int = 1) -> str:
         if not self.season.get_broadcast_id():
             return ""
-        bc = Broadcast.objects.get(season=self.season, first_board=first_board)
+        bc = Broadcast.objects.filter(
+            season=self.season, first_board=first_board
+        ).first()
         bcr = BroadcastRound.objects.filter(broadcast=bc, round_id=self)
         if bcr.exists():
             return bcr[0].lichess_id
