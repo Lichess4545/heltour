@@ -1,9 +1,9 @@
-import requests
-from heltour import settings
 from collections import namedtuple
-import logging
 
-logger = logging.getLogger(__name__)
+import requests
+
+from django.conf import settings
+from heltour.tournament.models import logger
 
 
 def _get_slack_token():
