@@ -22,14 +22,16 @@
             </div>
             <h2>Registration form</h2>
             <div class="form-row">
-                <label>Lichess username:</label>
-                {{ original.lichess_username }}
-                {% if original.validation_warning == True %}
-                    <img src="{% static 'admin/img/icon-alert.svg' %}" />
-                {% elif original.validation_ok == True %}
-                    <img src="{% static 'admin/img/icon-yes.svg' %}" />
-                {% elif original.validation_ok == False %}
+                <label>Player:</label>
+                <a href="{% leagueurl 'player_profile' original.season.league.tag original.season.tag original.player.lichess_username %}">
+                    {{ original.player.lichess_username }}
+                </a>
+                {% if not original.validation_ok %}
                     <img src="{% static 'admin/img/icon-no.svg' %}" />
+                {% elif original.validation_warning %}
+                    <img src="{% static 'admin/img/icon-alert.svg' %}" />
+                {% else %}
+                    <img src="{% static 'admin/img/icon-yes.svg' %}" />
                 {% endif %}
             </div>
             {% if perms.tournament.dox %}
@@ -39,20 +41,20 @@
                 </div>
             {% endif %}
             <div class="form-row">
-                <label>Classical rating:</label>
-                {{ original.player.rating }}
+                <label>League rating:</label>
+                {{ original.rating }}
             </div>
             <div class="form-row">
                 <label>Has established rating:</label>
-                <span class="{% if not original.has_played_20_games %}text-rejected{% endif %}">{{ original.has_played_20_games|yesno:'Yes,No' }}</span>
+                <span class="{% if provisional %}text-rejected{% endif %}">{{ provisional|yesno:'No,Yes' }}</span>
+            </div>
+            <div class="form-row">
+                <label>Last validated:</label>
+                {{ date_validated|date:"Y-m-d H:i:s" }}
             </div>
             <div class="form-row">
                 <label>Slack ID:</label>
                 {{ original.player.slack_user_id|default:'Not on slack' }}
-            </div>
-            <div class="form-row">
-                <label>Can commit to 1 long game per week:</label>
-                <span class="{% if not original.can_commit %}text-rejected{% endif %}">{{ original.can_commit|yesno:'Yes,No' }}</span>
             </div>
             {% if is_team %}
                 <div class="form-row">
