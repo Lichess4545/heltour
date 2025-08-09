@@ -13,6 +13,7 @@ from django.contrib.admin.filters import (
     RelatedFieldListFilter,
     SimpleListFilter,
 )
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -34,7 +35,6 @@ from django.utils.safestring import mark_safe
 from django_comments.models import Comment
 from reversion.admin import VersionAdmin
 
-from heltour import settings
 from heltour.tournament import (
     forms,
     lichessapi,
@@ -2373,7 +2373,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
     raw_id_fields = ('player', 'registration')
     autocomplete_fields = ('player',)
     league_id_field = 'season__league_id'
-    actions = ['bulk_email', 'link_reminder', 'link_players']
+    actions = ["bulk_email", "link_reminder", "link_players"]
 
     def in_slack(self, sp):
         return bool(sp.player.slack_user_id)
@@ -2403,34 +2403,47 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 url = reverse('by_league:login_with_token',
                               args=[sp.season.league.tag, token.secret_token])
                 url = request.build_absolute_uri(url)
-                text = f'Reminder: You need to link your Slack and Lichess accounts. {link(url=url, text="Click here")} to do that now. Contact a mod if you need help.'
+                text = (
+                    f"Reminder: You need to link your Slack and Lichess accounts. "
+                    f'{link(url=url, text="Click here")} to do that now. '
+                    "Contact a mod if you need help."
+                )
                 direct_user_message(username=uid, text=text, userid=uid)
-        return redirect('admin:tournament_seasonplayer_changelist')
-
+        return redirect("admin:tournament_seasonplayer_changelist")
 
     def link_players(self, request, queryset):
         slack_users = get_user_list()
         by_email = {u.email: u.id for u in slack_users}
         linked = 0
 
-        for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related(
-            'player').nocache():
+        for sp in queryset.filter(
+            is_active=True, player__slack_user_id=""
+        ).select_related("player").nocache():
             uid = by_email.get(sp.player.email)
             if uid:
                 sp.player.slack_user_id = uid
                 sp.player.save()
                 linked += 1
-                lichesslink = f'{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}'
-                text = f'We linked your {chatbackend()} account to the lichess account {link(url=lichesslink, text=sp.player.lichess_username)}. If that is not your lichess account, please contact a '
-                if chatbackend() == 'Zulip':
-                    text = f'{text}@*website moderator*.\nYou can do so by posting `@*website moderator*` to #**general>summon mods**'
+                lichesslink = f"{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}"
+                text = (
+                    f"We linked your {chatbackend()} account to the lichess account "
+                    f"{link(url=lichesslink, text=sp.player.lichess_username)}. "
+                    "If that is not your lichess account, please contact a "
+                )
+                if chatbackend() == "Zulip":
+                    text = (
+                        f"{text}@*website moderator*.\nYou can do so by posting "
+                        "`@*website moderator*` to #**general>summon mods**"
+                    )
                 else:
-                    text = f'{text} moderator.\nYou can do so by posting `@chesster summon mods` in #general'
+                    text = (
+                        f"{text} moderator.\n"
+                        "You can do so by posting `@chesster summon mods` in #general"
+                    )
                 direct_user_message(username=uid, text=text, userid=uid)
-        self.message_user(request, f'Linked {linked} players.')
+        self.message_user(request, f"Linked {linked} players.")
 
-        return redirect('admin:tournament_seasonplayer_changelist')
-
+        return redirect("admin:tournament_seasonplayer_changelist")
 
     def bulk_email(self, request, queryset):
         return redirect('admin:bulk_email_by_players',

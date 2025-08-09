@@ -1004,7 +1004,7 @@ def create_team_channel(team_ids):
                                        args=[team.season.league.tag, team.season.tag,
                                              team.number])).replace('https:', 'webcal:')
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
-        mods_str = ' '.join((userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
+        mods_str = " ".join((userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
         modping = inlinecode(ping_mods())
         modpingchannel = channellink(channel='general', topic='summon mods')
         pairings_url = link(url=pairings_url, text='View your team pairings')
