@@ -635,9 +635,9 @@ class Season(_BaseModel):
             return self.name
         return self.section.section_group.name
 
-    def get_broadcast_id(self, first_board: int = 1) -> str:
+    def get_broadcast_id(self, board_range_start: int = 1) -> str:
         if self.create_broadcast:
-            bc = Broadcast.objects.filter(season=self, first_board=first_board)
+            bc = Broadcast.objects.filter(season=self, board_range_start=board_range_start)
             if bc.exists():
                 return bc[0].lichess_id
         return ""
@@ -757,9 +757,9 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
-    def get_broadcast_round(self, first_board: int = 1) -> Broadcast|None:
+    def get_broadcast_round(self, board_range_start: int = 1) -> Broadcast|None:
         bc = Broadcast.objects.filter(
-            season=self.season, first_board=first_board
+            season=self.season, board_range_start=board_range_start
         ).first()
         return BroadcastRound.objects.filter(
             broadcast=bc,
@@ -767,14 +767,14 @@ class Round(_BaseModel):
         ).first()
 
 
-    def get_broadcast_id(self, first_board: int = 1) -> str:
-        return self.season.get_broadcast_id(first_board=first_board)
+    def get_broadcast_id(self, board_range_start: int = 1) -> str:
+        return self.season.get_broadcast_id(board_range_start=board_range_start)
 
-    def get_broadcast_round_id(self, first_board: int = 1) -> str:
+    def get_broadcast_round_id(self, board_range_start: int = 1) -> str:
         if not self.season.get_broadcast_id():
             return ""
         bc = Broadcast.objects.filter(
-            season=self.season, first_board=first_board
+            season=self.season, board_range_start=board_range_start
         ).first()
         bcr = BroadcastRound.objects.filter(broadcast=bc, round_id=self)
         if bcr.exists():
@@ -2960,14 +2960,14 @@ class ModRequest(_BaseModel):
 class Broadcast(_BaseModel):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     lichess_id = models.SlugField(blank=True, max_length=10)
-    first_board = models.PositiveSmallIntegerField(default=1)
+    board_range_start = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
-        unique_together = ["season", "first_board"]
-        ordering = ["season", "first_board"]
+        unique_together = ["season", "board_range_start"]
+        ordering = ["season", "board_range_start"]
 
     def __str__(self) -> str:
-        return f"BC {self.season} B{self.first_board}"
+        return f"BC {self.season} B{self.board_range_start}"
 
 
 class BroadcastRound(_BaseModel):
@@ -2980,21 +2980,21 @@ class BroadcastRound(_BaseModel):
         ordering = ["broadcast", "round_id"]
 
     @property
-    def first_board(self) -> int:
-        return self.broadcast.first_board
+    def board_range_start(self) -> int:
+        return self.broadcast.board_range_start
 
-    # last_board is a round property, because it may change with additional players signing up
+    # board_range_end is a round property, because it may change with additional players signing up
     @property
-    def last_board(self) -> int:
+    def board_range_end(self) -> int:
         nextbc = (
             Broadcast.objects.filter(
-                season=self.broadcast.season, first_board__gt=self.first_board
+                season=self.broadcast.season, board_range_start__gt=self.board_range_start
             )
-            .order_by("first_board")
+            .order_by("board_range_start")
             .first()
         )
         if nextbc is not None:
-            return nextbc.first_board - 1
+            return nextbc.board_range_start - 1
         if self.round_id.is_team_league():
             return TeamPlayerPairing.objects.filter(
                 team_pairing__round=self.round_id
@@ -3003,4 +3003,4 @@ class BroadcastRound(_BaseModel):
             return LonePlayerPairing.objects.filter(round=self.round_id).count()
 
     def __str__(self) -> str:
-        return f"BCR {self.round_id} B{self.first_board}"
+        return f"BCR {self.round_id} B{self.board_range_start}"

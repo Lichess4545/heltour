@@ -560,10 +560,10 @@ def _create_or_update_broadcast(
         broadcast__season=season, broadcast__board_range_start=board_range_start
     ).order_by("-round_id__number").first()
     if latest_bcr is not None:
-        last_board = latest_bcr.last_board
+        board_range_end = latest_bcr.board_range_end
     else:
-        last_board = board_range_start + MAX_GAMES_LICHESS_BROADCAST - 1
-    name = f"{title} Boards {board_range_start} to {last_board}"
+        board_range_end = board_range_start + MAX_GAMES_LICHESS_BROADCAST - 1
+    name = f"{title} Boards {board_range_start} to {board_range_end}"
     tc = season.league.time_control.replace("+", "%2b")
     players = ""
     markdown = (
@@ -604,19 +604,19 @@ def _create_or_update_broadcast_round(round_: Round, board_range_start: int = 1)
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
     broadcast_round = round_.get_broadcast_round(board_range_start=board_range_start)
     if broadcast_round is not None:
-        last_board = broadcast_round.last_board
+        board_range_end = broadcast_round.board_range_end
     else:
-        last_board = MAX_GAMES_LICHESS_BROADCAST
+        board_range_end = MAX_GAMES_LICHESS_BROADCAST
     if round_.is_team_league():
         games_query = TeamPlayerPairing.objects.filter(
             team_pairing__round=round_
         ).order_by("team_pairing__pairing_order", "board_number")[
-            (board_range_start - 1) : last_board
+            (board_range_start - 1) : board_range_end
         ]
     else:
         games_query = LonePlayerPairing.objects.filter(round=round_).order_by(
             "pairing_order"
-        )[(board_range_start - 1) : last_board]
+        )[(board_range_start - 1) : board_range_end]
     game_links = []
     broadcast_updates = []
     for game in games_query:
