@@ -1,14 +1,16 @@
+import logging
 from time import sleep
 
 import reversion
-
 from django.conf import settings
-from heltour.tournament.models import logger
 
 if settings.USE_CHATBACKEND == "zulip":
     from heltour.tournament import zulipapi
 if settings.USE_CHATBACKEND == "slack":
     from heltour.tournament import slackapi
+
+
+logger = logging.getLogger(__name__)
 
 
 # helper functions for formatting text
