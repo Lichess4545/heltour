@@ -137,7 +137,7 @@ def channel_message(*, channel, text, topic="(no topic)", tries=0):
                     "Error: Hit Rate Limit. "
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
-                sleep(2 * e.wait)
+                sleep(settings.SLEEP_UNIT * e.wait)
                 zulipapi.send_message(channel=channel, text=text, topic=topic, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
@@ -161,7 +161,7 @@ def send_control_message(text):
                     "Error: Hit Rate Limit. "
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
-                sleep(2 * e.wait)
+                sleep(settings.SLEEP_UNIT * e.wait)
                 zulipapi.send_direct_message(users=[int(userid)], text=text, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
@@ -185,7 +185,7 @@ def direct_user_message(*, username, text, userid, tries=0):
                     "Error: Hit Rate Limit. "
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
-                sleep(2 * e.wait)
+                sleep(settings.SLEEP_UNIT * e.wait)
                 zulipapi.send_direct_message(users=[int(userid)], text=text, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
@@ -212,7 +212,7 @@ def multiple_user_message(*, usernames, text, userids, tries=0):
                     "Error: Hit Rate Limit. "
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
-                sleep(2 * e.wait)
+                sleep(settings.SLEEP_UNIT * e.wait)
                 zulipapi.send_direct_message(users=userids_int, text=text, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
@@ -251,7 +251,7 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
                     "Error: Hit Rate Limit. "
                     f"Waiting for {e.wait + 10} seconds before retrying once."
                 )
-                sleep(e.wait + 10)
+                sleep(settings.SLEEP_UNIT*(e.wait + 10))
                 channel = zulipapi.create_channel(
                     channel_name=channel_name,
                     user_ids=user_ids_ext,
@@ -277,11 +277,11 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
             team.slack_channel = channel.id
             team.save()
         channel_message(channel=int(channel.id), text=intro_message, topic="Welcome!")
-        sleep(1)
+        sleep(settings.SLEEP_UNIT)
     elif settings.USE_CHATBACKEND == "slack":
         try:
             group = slackapi.create_group(channel_name)
-            sleep(1)
+            sleep(settings.SLEEP_UNIT)
         except slackapi.NameTaken:
             logger.error("Could not create slack team, name taken: %s" % channel_name)
             return
@@ -290,19 +290,31 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
             slackapi.invite_to_group(group.id, user_ids)
         except slackapi.SlackError:
             logger.exception("Could not invite %s to channel" % ",".join(user_ids))
-            sleep(1)
-        slackapi.invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
-        sleep(1)
+            sleep(settings.SLEEP_UNIT)
+        try:
+            slackapi.invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
+            sleep(settings.SLEEP_UNIT)
+        except slackapi.SlackError:
+            logger.exception(f"Coult not invite the listening bot to channel {channel_name} ({group.id})")
         with reversion.create_revision():
             reversion.set_comment("Creating slack channel")
             team.slack_channel = group.id
             team.save()
-        slackapi.set_group_topic(group.id, topic)
-        sleep(1)
-        slackapi.leave_group(group.id)
-        sleep(1)
-        slackapi.send_message(channel_ref, intro_message)
-        sleep(1)
+        try:
+            slackapi.set_group_topic(group.id, topic)
+            sleep(settings.SLEEP_UNIT)
+        except slackapi.SlackError:
+            logger.exception(f"Failed to set topic for channel {channel_name} ({group.id})")
+        try:
+            slackapi.leave_group(group.id)
+            sleep(settings.SLEEP_UNIT)
+        except slackapi.SlackError:
+            logger.exception(f"Failed to leave channel {channel_name} ({group.id})")
+        try:
+            slackapi.send_message(channel_ref, intro_message)
+            sleep(settings.SLEEP_UNIT)
+        except slackapi.SlackError:
+            logger.exception(f"Failed to sent intro message to channel {channel_name} ({group.id})")
     else:
         raise ChatBackendError(
             "ERROR: Unknown chat backend in settings.USE_CHATBACKEND"
