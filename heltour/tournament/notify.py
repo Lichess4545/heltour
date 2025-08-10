@@ -571,16 +571,35 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
                                                        league=league, offset=None)
 
     # Send a DM to the alternate, regardless of settings
-    round_str = 'this round' if round_.publish_pairings else f'round {round_.number}'
-    message = f'{userlink_silent(_slack_user(alternate.season_player))}: A team needs an alternate for {round_str}. Would you like to play? Please click one of the following links within {_offset_str(response_time)}.\n{link(url=abs_url(accept_url), text="Yes, I want to play")}\n{link(url=abs_url(decline_url), text="No, maybe next week")}'
-    _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+    round_str = "this round" if round_.publish_pairings else f"round {round_.number}"
+    message = (
+        f"{userlink_silent(_slack_user(alternate.season_player))}: A team needs an "
+        f"alternate for {round_str}. Would you like to play? Please click one of the "
+        f"following links within {_offset_str(response_time)}.\n"
+        f'{link(url=abs_url(accept_url), text="Yes, I want to play")}\n'
+        f'{link(url=abs_url(decline_url), text="No, maybe next week")}'
+    )
+    _message_user(
+        league=league,
+        username=_slack_user(player),
+        text=message,
+        userid=player.slack_user_id,
+    )
 
     if setting.enable_lichess_mail:
         # Send a lichess message
-        li_subject = f'Round {round_.number} - {league.name}'
-        li_msg = f'A team needs an alternate for {round_str}. Please check Slack for more information.\n' \
-                 + dm_link(usernames=[], userids=[], add_bot=True) # empty, because the listening bot is added automatically
-        _lichess_message(league, _slack_user(player), li_subject, li_msg)
+        li_subject = f"Round {round_.number} - {league.name}"
+        li_msg = (
+            f"A team needs an alternate for {round_str}. Please check Slack for more "
+            f"information.\n{dm_link(usernames=[], userids=[], add_bot=True)}"
+            # dm_link usernames empty, because the listening bot is added automatically
+        )
+        _lichess_message(
+            league=league, 
+            username=_slack_user(player),
+            subject=li_subject,
+            text=li_msg
+        )
 
 
 @receiver(signals.alternate_spots_filled, dispatch_uid='heltour.tournament.notify')
@@ -592,7 +611,12 @@ def alternate_spots_filled(alternate, response_time, **kwargs):
             response_time)
     else:
         message = 'All available alternate spots have now been filled. You\'ll be notified again if another spot opens.'
-    _message_user(league, _slack_user(alternate.season_player), message, userid=alternate.season_player.player.slack_user_id)
+    _message_user(
+        league=league,
+        username=_slack_user(alternate.season_player),
+        text=message,
+        userid=alternate.season_player.player.slack_user_id,
+    )
 
 
 # TODO: Special notification for cancelling a search/reassigning the original player?
@@ -631,9 +655,9 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     send_to_black = player is None or player == pairing.black
 
     common_params = {
-        'white': userlink_silent(white),
+        "white": userlink_silent(white),
         'white_tz': pairing.white.timezone_str,
-        'black': userlink_silent(black),
+        "black": userlink_silent(black),
         'black_tz': pairing.black.timezone_str,
         'round': round_.number,
         'season': season.name,
@@ -645,30 +669,45 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
     }
     white_params = {
-        'self': userlink_silent(white),
-        'opponent': userlink_silent(black),
+        "self": userlink_silent(white),
+        "opponent": userlink_silent(black),
         'color': 'white',
         'slack_url': dm_link(usernames=[black], userids=[black_id], add_bot=use_mpim),
     }
     white_params.update(common_params)
     black_params = {
-        'self': userlink_silent(black),
-        'opponent': userlink_silent(white),
+        "self": userlink_silent(black),
+        "opponent": userlink_silent(white),
         'color': 'black',
-        'slack_url': dm_link(usernames=[white], userids=[white_id], add_bot=use_mpim),
+        "slack_url": dm_link(usernames=[white], userids=[white_id], add_bot=use_mpim),
     }
     black_params.update(common_params)
 
     # Send slack ims
     if send_to_white and (
         white_setting.enable_slack_im or white_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        _message_user(league, white, im_msg.format(**white_params), userid=white_id)
+        _message_user(
+            league=league,
+            username=white,
+            text=im_msg.format(**white_params),
+            userid=white_id,
+        )
     if send_to_black and (
         black_setting.enable_slack_im or black_setting.enable_slack_mpim) and not use_mpim and im_msg:
-        _message_user(league, black, im_msg.format(**black_params), userid=black_id)
+        _message_user(
+            league=league,
+            username=black,
+            text=im_msg.format(**black_params),
+            userid=black_id,
+        )
     # Send slack mpim
     if send_to_white and use_mpim:
-        _message_multiple_users(league=league, usernames=[white, black], text=mp_msg.format(**common_params), userids=[white_id, black_id])
+        _message_multiple_users(
+            league=league,
+            usernames=[white, black],
+            text=mp_msg.format(**common_params),
+            userids=[white_id, black_id],
+        )
 
     # Send lichess mails second.
     if send_to_white and white_setting.enable_lichess_mail and li_subject and li_msg:
@@ -877,12 +916,12 @@ def game_warning(pairing, warning, **kwargs):
     mistakepart = ('If this was a mistake, please correct it and try again.\n'
              'If this is not a league game, you may ignore this message.')
 
-    im_msg = f'Important: Your game is not valid because {bold(warning)}\n{mistakepart}'
+    im_msg = f"Important: Your game is not valid because {bold(warning)}\n{mistakepart}"
 
     mp_msg = im_msg
 
     li_subject = 'Round {round} - {league}'
-    li_msg = f'Important: Your game is not valid because {warning}\n{mistakepart}'
+    li_msg = f"Important: Your game is not valid because {warning}\n{mistakepart}"
 
     send_pairing_notification('game_warning', pairing, im_msg, mp_msg, li_subject, li_msg)
 
@@ -890,7 +929,10 @@ def game_warning(pairing, warning, **kwargs):
 @receiver(signals.mod_request_created, dispatch_uid='heltour.tournament.notify')
 def mod_request_created(instance, **kwargs):
     review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-    message = f'{userlink_silent(_slack_user(instance.requester))} created a request: {link(url=review_url, text=instance.get_type_display())}'
+    message = (
+        f"{userlink_silent(_slack_user(instance.requester))} created a request: "
+        f"{link(url=review_url, text=instance.get_type_display())}"
+    )
     _send_notification('mod', instance.season.league, message)
 
 
@@ -902,14 +944,23 @@ def mod_request_approved(instance, **kwargs):
             message += ' Response: %s' % instance.response
     else:
         review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-        message = f'{instance.status_changed_by} approved a request by {userlink_silent(_slack_user(instance.requester))}: {link(text=instance.get_type_display(), url=review_url)}'
+        message = (
+            f"{instance.status_changed_by} approved a request by "
+            f"{userlink_silent(_slack_user(instance.requester))}: "
+            f"{link(text=instance.get_type_display(), url=review_url)}"
+        )
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been approved.' % (
         instance.season, instance.get_type_display())
     if instance.response:
         message += ' %s' % instance.response
-    _message_user(instance.season.league, _slack_user(instance.requester), message, userid=instance.requester.slack_user_id)
+    _message_user(
+        league=instance.season.league,
+        username=_slack_user(instance.requester),
+        text=message,
+        userid=instance.requester.slack_user_id,
+    )
 
 
 @receiver(signals.mod_request_rejected, dispatch_uid='heltour.tournament.notify')
@@ -920,14 +971,23 @@ def mod_request_rejected(instance, **kwargs):
             message += ' Response: %s' % instance.response
     else:
         review_url = abs_url(reverse('admin:tournament_modrequest_review', args=[instance.pk]))
-        message = f'{userlink_silent(instance.status_changed_by)} rejected a request by {userlink_silent(_slack_user(instance.requester))}: {link(url=review_url, text=instance.get_type_display())}'
+        message = (
+            f"{userlink_silent(instance.status_changed_by)} rejected a request by "
+            f"{userlink_silent(_slack_user(instance.requester))}: "
+            f"{link(url=review_url, text=instance.get_type_display())}"
+        )
     _send_notification('mod', instance.season.league, message)
 
     message = 'Your request for %s (%s) has been declined.' % (
         instance.season, instance.get_type_display())
     if instance.response:
         message += ' %s' % instance.response
-    _message_user(instance.season.league, _slack_user(instance.requester), message, instance.requester.slack_user_id)
+    _message_user(
+        league=instance.season.league,
+        username=_slack_user(instance.requester),
+        text=message,
+        userid=instance.requester.slack_user_id,
+    )
 
 
 @receiver(signals.notify_unresponsive, dispatch_uid='heltour.tournament.notify')
@@ -936,14 +996,26 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
     league = season.league
     appeal_url = abs_url(reverse('by_league:by_season:modrequest',
                                  args=[league.tag, season.tag, 'appeal_late_response']))
-    message = (f'Notice: You haven\'t messaged your {league.name} opponent in the provided chat. '
-            f'You are required to message your opponent within {_offset_str(league.get_leaguesetting().contact_period)} of the round start. {punishment}'
-            f'\nIf you\'ve messaged your opponent elsewhere, {link(url=appeal_url, text="click here")} to send a screenshot to the mods.')
+    message = (
+        f"Notice: You haven't messaged your {league.name} opponent in the provided "
+        f"chat. You are required to message your opponent within "
+        f"{_offset_str(league.get_leaguesetting().contact_period)} of the round start. "
+        f"{punishment}\nIf you've messaged your opponent elsewhere, "
+        f'{link(url=appeal_url, text="click here")} to send a screenshot to the mods.'
+    )
     if allow_continue:
         continue_url = abs_url(reverse('by_league:by_season:modrequest',
                                        args=[league.tag, season.tag, 'request_continuation']))
-        message += f'\nIf you haven\'t but want to continue playing next round, {link(url=continue_url, text="click here")}'
-    _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+        message = (
+            f"{message}\nIf you haven't but want to continue playing next round, "
+            f'{link(url=continue_url, text="click here")}'
+        )
+    _message_user(
+        league=league,
+        username=_slack_user(player),
+        text=message,
+        userid=player.slack_user_id,
+    )
 
     if league.competitor_type == 'team':
         tpp = pairing.teamplayerpairing
@@ -951,7 +1023,11 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
             team = tpp.white_team()
         else:
             team = tpp.black_team()
-        message = f'{_captains_ping(tema, round_)}{userlink_silent(_slack_user(player))} appears to be unresponsive on board {tpp.board_number} of "{team.name}" in round {round_.number}.'
+        message = (
+            f"{_captains_ping(team, round_)}{userlink_silent(_slack_user(player))} "
+            f'appears to be unresponsive on board {tpp.board_number} of "{team.name}" '
+            f"in round {round_.number}."
+        )
         _send_notification('captains', league, message)
 
 
@@ -961,10 +1037,16 @@ def notify_scheduling_draw_claim(round_, player, **kwargs):
     league = season.league
     appeal_url = abs_url(reverse('by_league:by_season:modrequest',
                                  args=[league.tag, season.tag, 'appeal_draw_scheduling']))
-    message = (f'Notice: Your {league.name} game has been ruled a scheduling draw. '
-            f'If you disagree with this, {link(url=appeal_url, text="click here")} to appeal. '
-            'Please provide reasons and a screenshot of the conversation with your opponent.')
-    _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+    message = (
+        f"Notice: Your {league.name} game has been ruled a scheduling draw. "
+        f'If you disagree with this, {link(url=appeal_url, text="click here")} to appeal. '
+        "Please provide reasons and a screenshot of the conversation with your opponent.")
+    _message_user(
+        league=league,
+        username=_slack_user(player),
+        text=message,
+        userid=player.slack_user_id,
+    )
 
 
 @receiver(signals.notify_opponent_unresponsive, dispatch_uid='heltour.tournament.notify')
@@ -972,10 +1054,18 @@ def notify_opponent_unresponsive(round_, player, opponent, pairing, **kwargs):
     season = round_.season
     league = season.league
     if league.competitor_type != 'team':
-        message = (f'Notice: Your {league.name} opponent, {userlink_silent(_slack_user(opponent))}, hasn\'t messaged you in the provided chat. '
-                'If they haven\'t contacted you, you\'re entitled to a win by forfeit. '
-                'Contact a mod to request a new pairing.')
-        _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+        message = (
+            f"Notice: Your {league.name} opponent, "
+            f"{userlink_silent(_slack_user(opponent))}, hasn't messaged you in the "
+            "provided chat. If they haven't contacted you, you're entitled to a win by "
+            "forfeit. Contact a mod to request a new pairing."
+        )
+        _message_user(
+            league=league,
+            username=_slack_user(player),
+            text=message,
+            userid=player.slack_user_id,
+        )
 
 
 @receiver(signals.notify_noshow, dispatch_uid='heltour.tournament.notify')
@@ -984,9 +1074,17 @@ def notify_noshow(round_, player, opponent, **kwargs):
     league = season.league
     claim_url = abs_url(reverse('by_league:by_season:modrequest',
                                 args=[league.tag, season.tag, 'claim_win_noshow']))
-    message = (f'Notice: It appears your opponent, {userlink_silent(_slack_user(opponent))}, has not shown up for your scheduled game time in {league.name}. '
-        f'To claim a win by forfeit, {link(url=claim_url, text="click here")}.')
-    _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+    message = (
+        f"Notice: It appears your opponent, {userlink_silent(_slack_user(opponent))}, "
+        f"has not shown up for your scheduled game time in {league.name}. "
+        f'To claim a win by forfeit, {link(url=claim_url, text="click here")}.'
+    )
+    _message_user(
+        league=league,
+        username=_slack_user(player),
+        text=message,
+        userid=player.slack_user_id,
+    )
 
 
 @receiver(signals.notify_noshow_claim, dispatch_uid='heltour.tournament.notify')
@@ -995,15 +1093,25 @@ def notify_noshow_claim(round_, player, punishment, allow_continue, **kwargs):
     league = season.league
     appeal_url = abs_url(
         reverse('by_league:by_season:modrequest', args=[league.tag, season.tag, 'appeal_noshow']))
-    message = (f'Notice: You didn\'t show up for your scheduled game time in {league.name}. '
-            'Your opponent has been given a win by forfeit. '
-            f'{punishment}\nTo appeal, {link(url=appeal_url, text="click here")}.')
+    message = (
+        f"Notice: You didn't show up for your scheduled game time in {league.name}. "
+        "Your opponent has been given a win by forfeit. "
+        f'{punishment}\nTo appeal, {link(url=appeal_url, text="click here")}.'
+    )
     if allow_continue:
         continue_url = abs_url(reverse('by_league:by_season:modrequest',
                                        args=[league.tag, season.tag, 'request_continuation']))
-        message += (f'\nOtherwise, if you want to continue playing next round, {link(url=continue_url, text="click here")}.'
-                '\nNote that you can reach out to your opponent and try to reschedule the game.')
-    _message_user(league, _slack_user(player), message, userid=player.slack_user_id)
+        message = (
+            f"{message}\nOtherwise, if you want to continue playing next round, "
+            f'{link(url=continue_url, text="click here")}.\nNote '
+            "that you can reach out to your opponent and try to reschedule the game."
+        )
+    _message_user(
+        league=league,
+        username=_slack_user(player),
+        text=message,
+        userid=player.slack_user_id,
+    )
 
 
 @receiver(signals.notify_mods_unresponsive, dispatch_uid='heltour.tournament.notify')
@@ -1014,7 +1122,7 @@ def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
     def list_str(players):
         if players:
             users = sorted((_slack_user(p) for p in players))
-            return ', '.join((userlink_silent(u) for u in users))
+            return ", ".join((userlink_silent(u) for u in users))
         else:
             return '(no players)'
 
@@ -1027,9 +1135,14 @@ def notify_mods_unresponsive(round_, warnings, yellows, reds, **kwargs):
 
 @receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.notify')
 def slack_account_linked(lichess_username, slack_user_id, **kwargs):
-    direct_user_message(username=lichess_username.lower(),
-            text=f'Your Slack account has been successfully linked to the lichess account {lichess_username}.',
-            userid=slack_user_id)
+    direct_user_message(
+        username=lichess_username.lower(),
+        text=(
+            "Your Slack account has been successfully linked to "
+            f"the lichess account {lichess_username}."
+        ),
+        userid=slack_user_id,
+    )
 
 
 def _slack_user(obj):
@@ -1052,4 +1165,13 @@ def _captains_ping(team, round_):
         opp_captain = opp.captain()
         if opp_captain is not None:
             captains.append(opp_captain)
-    return '' if len(captains) == 0 else f'{userlink_ping(_slack_user(captains[0]))}:' if len(captains) == 1 else f'{userlink_ping(_slack_user(captains[0]))}, {userlink_ping(_slack_user(captains[1]))}:'
+    return (
+        ""
+        if len(captains) == 0
+        else f"{userlink_ping(_slack_user(captains[0]))}:"
+        if len(captains) == 1
+        else (
+            f"{userlink_ping(_slack_user(captains[0]))},"
+            f" {userlink_ping(_slack_user(captains[1]))}:"
+        )
+    )
