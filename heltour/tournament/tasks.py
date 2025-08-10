@@ -1,5 +1,6 @@
 from __future__ import annotations
 # ^ for annotating unions with | syntax, can be removed once we upgrade to python 3.10+
+
 import json
 import re
 import sys
@@ -9,7 +10,6 @@ import traceback
 import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, List
-from more_itertools import divide, first
 
 import reversion
 from django.core.cache import cache
@@ -19,6 +19,7 @@ from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django_stubs_ext import ValuesQuerySet
+from more_itertools import divide, first
 
 from heltour import settings
 from heltour.celery import app
@@ -30,6 +31,8 @@ from heltour.tournament import (
     uptime,
 )
 from heltour.tournament.chatbackend import (
+    ChatBackendError,
+    channel_message,
     channellink,
     get_user,
     get_user_list,
@@ -445,38 +448,38 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                         gameid=gameids["id"],
                     )
                     if gamechannel is not None:
-                        # TODO CHATAPI VERSION!
-                        slackapi.send_message(
+                        channel_message(
                             channel=gamechannel.slack_channel,
                             text=(
-                                f"<@{game.white.lichess_username}> vs "
-                                f"<@{game.black.lichess_username}>: "
-                                f"{game.game_link}"
+                                f"{userlink_silent(game.white.lichess_username)} vs "
+                                f"{userlink_silent(game.black.lichess_username)}: "
+                                f'{link(text="Watch on lichess", url=game.game_link)}'
                             ),
+                            topic="Games",
                         )
                     if game.get_league().is_team_league():
                         message = (
                             f"Board {game.teamplayerpairing.board_number} game "
-                            f"<@{game.white.lichess_username}> vs "
-                            f"<@{game.black.lichess_username}> has started: "
-                            f"{game.game_link}"
+                            f"{userlink_silent(game.white.lichess_username)} vs "
+                            f"{userlink_silent(game.black.lichess_username)} has "
+                            f'started: {link(text="Spectate", url=game.game_link)}'
                         )
-                        # TODO CHATAPI VERSION!
                         if game.teamplayerpairing.white_team().slack_channel:
-                            slackapi.send_message(
+                            channel_message(
                                 channel=game.teamplayerpairing.white_team().slack_channel,
                                 text=message,
+                                topic="Games",
                             )
                             time.sleep(settings.SLEEP_UNIT)
-                        # TODO CHATAPI VERSION!
                         if game.teamplayerpairing.black_team().slack_channel:
-                            slackapi.send_message(
+                            channel_message(
                                 channel=game.teamplayerpairing.black_team().slack_channel,
                                 text=message,
+                                topic="Games",
                             )
                             time.sleep(settings.SLEEP_UNIT)
         # TODO CHATAPI VERSION!
-        except slackapi.SlackError:
+        except ChatBackendError:
             logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
         except KeyError as e:
             logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
