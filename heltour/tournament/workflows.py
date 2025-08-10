@@ -516,27 +516,69 @@ class ApproveRegistrationWorkflow():
                                                                         'is_available': False})
 
         if season.league.competitor_type == 'team':
-            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt',
-                    {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
-            msg_html = render_to_string('tournament/emails/team_registration_approved.html',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
+            subject = render_to_string(
+                "tournament/emails/team_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/team_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/team_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
         elif season.league.rating_type == 'blitz':
             # TODO: Make the email template a league setting
-            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt',
-                    {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
-            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
+            subject = render_to_string(
+                "tournament/emails/blitz_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/blitz_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/blitz_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
         else:
-            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt',
-                    {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
-            msg_html = render_to_string('tournament/emails/lone_registration_approved.html',
-                    {'reg': reg, 'chatbackend_url': chatbackend_url(), 'chatbackend': chatbackend()})
+            subject = render_to_string(
+                "tournament/emails/lone_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/lone_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/lone_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
 
         if send_confirm_email:
             try:
@@ -562,23 +604,34 @@ class ApproveRegistrationWorkflow():
                     try:
                         invite_user(reg.email)
                         if modeladmin:
-                            modeladmin.message_user(request,
-                                                    f'{chatbackend()} invitation sent to "{reg.email}".',
-                                                    messages.INFO)
+                            modeladmin.message_user(
+                                request,
+                                f'{chatbackend()} invitation sent to "{reg.email}".',
+                                messages.INFO,
+                            )
                     except ChatBackendError as e:
-                        logger.exception(f'Could not invite {reg.email} to {chatbackend()}')
+                        logger.exception(
+                            f"Could not invite {reg.email} to {chatbackend()}"
+                        )
                         if modeladmin:
-                            modeladmin.message_user(request,
-                                                    f'Could not invite {reg.email} to {chatbackend()} (e)".',
-                                                    messages.ERROR)
+                            modeladmin.message_user(
+                                request,
+                                f'Could not invite {reg.email} to {chatbackend()} (e)".',
+                                messages.ERROR,
+                            )
                 elif modeladmin:
-                    modeladmin.message_user(request,
-                                            f'You don\'t have permission to invite players to {chatbackend()}.',
-                                            messages.ERROR)
+                    modeladmin.message_user(
+                        request,
+                        f"You don't have permission to invite players to {chatbackend()}.",
+                        messages.ERROR,
+                    )
             except InvitationFailedError:
                 if modeladmin:
-                    modeladmin.message_user(request, f'The player could not be invited to {chatbackend()}.',
-                                            messages.WARNING)
+                    modeladmin.message_user(
+                        request,
+                        f"The player could not be invited to {chatbackend()}.",
+                        messages.WARNING,
+                    )
 
         with reversion.create_revision():
             reversion.set_user(request.user)
