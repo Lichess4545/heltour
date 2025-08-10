@@ -15,11 +15,7 @@ logger = logging.getLogger(__name__)
 
 # helper functions for formatting text
 def bold(text: str) -> str:
-    if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
-    elif settings.USE_CHATBACKEND == "log":
-        return f"*{text}*"
-    elif settings.USE_CHATBACKEND == "zulip":
+    if settings.USE_CHATBACKEND == "zulip":
         return f"**{text}**"
     elif settings.USE_CHATBACKEND == "slack":
         return f"*{text}*"
@@ -27,11 +23,17 @@ def bold(text: str) -> str:
         return text
 
 
-def channellink(*, channelprefix: str="#", channelid: str="", channel: str, topic: str="") -> str:
+def channellink(
+    *, channelprefix: str = "#", channelid: str = "", channel: str, topic: str = ""
+) -> str:
     if settings.USE_CHATBACKEND == "/dev/null":
         return ""
     elif settings.USE_CHATBACKEND == "log":
-        return f"{channelprefix}{channel}>{topic}" if topic else f"{channelprefix}{channel}"
+        return (
+            f"{channelprefix}{channel}>{topic}"
+            if topic
+            else f"{channelprefix}{channel}"
+        )
     elif settings.USE_CHATBACKEND == "zulip":
         if topic:
             return f"{channelprefix}**{channel}>{topic}**"
@@ -70,9 +72,7 @@ def chatbackend_url() -> str:
 
 
 def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
-    if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
-    elif settings.USE_CHATBACKEND == "log":
+    if settings.USE_CHATBACKEND == "/dev/null" or settings.USE_CHATBACKEND == "log":
         return ""
     elif settings.USE_CHATBACKEND == "zulip":
         if add_bot:
@@ -91,23 +91,15 @@ def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
 
 
 def inlinecode(text: str) -> str:
-    if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
-    elif settings.USE_CHATBACKEND == "log":
-        return text
     # same for slack and zulip
-    elif settings.USECHATBACKEND == "zulip" or settings.USECHATBACKEND == "slack":
+    if settings.USECHATBACKEND == "zulip" or settings.USECHATBACKEND == "slack":
         return f"`{text}`"
     else:
         return text
 
 
 def italic(text: str) -> str:
-    if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
-    elif settings.USE_CHATBACKEND == "log":
-        return text
-    elif settings.USE_CHATBACKEND == "zulip":
+    if settings.USE_CHATBACKEND == "zulip":
         return f"*{text}*"
     elif settings.USE_CHATBACKEND == "slack":
         return f"_{text}_"
@@ -116,10 +108,6 @@ def italic(text: str) -> str:
 
 
 def link(*, text: str, url: str) -> str:
-    if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
-    elif settings.USE_CHATBACKEND == "log":
-        return url
     if settings.USE_CHATBACKEND == "zulip":
         return f"[{text}]({url})"
     elif settings.USE_CHATBACKEND == "slack":
@@ -128,8 +116,12 @@ def link(*, text: str, url: str) -> str:
         return url
 
 
-def ping_mods():
-    if settings.USE_CHATBACKEND == "zulip":
+def ping_mods() -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return "@mods"
+    elif settings.USE_CHATBACKEND == "zulip":
         return "@*mods4545*"
     elif settings.USE_CHATBACKEND == "slack":
         return f"@{settings.SLACK_LISTENING_BOT} summon mods"
@@ -139,7 +131,7 @@ def ping_mods():
         )
 
 
-def userlink_ping(user):
+def userlink_ping(user: str) -> str:
     if settings.USE_CHATBACKEND == "zulip":
         return f"@**{user}**"
     elif settings.USE_CHATBACKEND == "slack":
@@ -148,7 +140,7 @@ def userlink_ping(user):
         return user
 
 
-def userlink_silent(user):
+def userlink_silent(user: str) -> str:
     if settings.USE_CHATBACKEND == "zulip":
         return f"@_**{user}**"
     elif settings.USE_CHATBACKEND == "slack":
@@ -160,8 +152,15 @@ def userlink_silent(user):
 # messaging functions
 
 
-def channel_message(*, channel, text, topic="(no topic)", tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def channel_message(
+    *, channel: str, text: str, topic: str = "(no topic)", tries: int = 0
+) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] {channel} message:\n{text}")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             zulipapi.send_message(channel=channel, text=text, topic=topic)
         except zulipapi.ZulipRateLimitHit as e:
@@ -184,8 +183,13 @@ def channel_message(*, channel, text, topic="(no topic)", tries=0):
         )
 
 
-def send_control_message(text):
-    if settings.USE_CHATBACKEND == "zulip":
+def send_control_message(text: str, tries: int = 0) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] Control message:\n{text}")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             zulipapi.send_control_message(text=text)
         except zulipapi.ZulipRateLimitHit as e:
@@ -195,7 +199,7 @@ def send_control_message(text):
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * e.wait)
-                zulipapi.send_direct_message(users=[int(userid)], text=text, tries=1)
+                zulipapi.send_control_message(text=text, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -208,8 +212,15 @@ def send_control_message(text):
         )
 
 
-def direct_user_message(*, username, text, userid, tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def direct_user_message(
+    *, username: str, text: str, userid: str, tries: int = 0
+) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKNED == "log":
+        logger.info(f"[CBE] Message to {username}:\n{text}")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             zulipapi.send_direct_message(users=[int(userid)], text=text)
         except zulipapi.ZulipRateLimitHit as e:
@@ -233,8 +244,15 @@ def direct_user_message(*, username, text, userid, tries=0):
         )
 
 
-def multiple_user_message(*, usernames, text, userids, tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def multiple_user_message(
+    *, usernames: list[str], text: str, userids: list[str], tries: int = 0
+) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] Message to {usernames}:\n{text}")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         userids_int = list(map(int, userids))
         userids_int.append(settings.ZULIP_LISTENING_BOT)
         try:
@@ -263,8 +281,21 @@ def multiple_user_message(*, usernames, text, userids, tries=0):
 # other functions
 
 
-def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def create_team_channel(
+    *,
+    team: str,
+    channel_name: str,
+    user_ids: list[str],
+    topic: str,
+    intro_message: str,
+    tries: int = 0,
+) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] Team Channel creation '{team}': {user_ids}")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         user_ids_ext = list(map(int, user_ids))
         user_ids_ext.extend([settings.ZULIP_LISTENING_BOT, settings.ZULIP_HELTOUR_BOT])
         try:
@@ -284,7 +315,7 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
                     "Error: Hit Rate Limit. "
                     f"Waiting for {e.wait + 10} seconds before retrying once."
                 )
-                sleep(settings.SLEEP_UNIT*(e.wait + 10))
+                sleep(settings.SLEEP_UNIT * (e.wait + 10))
                 channel = zulipapi.create_channel(
                     channel_name=channel_name,
                     user_ids=user_ids_ext,
@@ -328,7 +359,10 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
             slackapi.invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
             sleep(settings.SLEEP_UNIT)
         except slackapi.SlackError:
-            logger.exception(f"Coult not invite the listening bot to channel {channel_name} ({group.id})")
+            logger.exception(
+                "Could not invite the listening bot to "
+                f"channel {channel_name} ({group.id})"
+            )
         with reversion.create_revision():
             reversion.set_comment("Creating slack channel")
             team.slack_channel = group.id
@@ -337,7 +371,9 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
             slackapi.set_group_topic(group.id, topic)
             sleep(settings.SLEEP_UNIT)
         except slackapi.SlackError:
-            logger.exception(f"Failed to set topic for channel {channel_name} ({group.id})")
+            logger.exception(
+                f"Failed to set topic for channel {channel_name} ({group.id})"
+            )
         try:
             slackapi.leave_group(group.id)
             sleep(settings.SLEEP_UNIT)
@@ -347,21 +383,29 @@ def create_team_channel(*, team, channel_name, user_ids, topic, intro_message, t
             slackapi.send_message(channel_ref, intro_message)
             sleep(settings.SLEEP_UNIT)
         except slackapi.SlackError:
-            logger.exception(f"Failed to sent intro message to channel {channel_name} ({group.id})")
+            logger.exception(
+                f"Failed to sent intro message to channel {channel_name} ({group.id})"
+            )
     else:
         raise ChatBackendError(
             "ERROR: Unknown chat backend in settings.USE_CHATBACKEND"
         )
 
 
-def get_user(user_id, tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def get_user(user_id: str, tries: int = 0) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] Logging request for id: {user_id}")
+        return ""
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             return zulipapi.get_user(user_id=int(user_id))
         except zulipapi.ZulipRateLimitHit as e:
             if tries < 1:
                 logger.error(
-                    f"Error: Hit Rate Limit. Waiting for {2*e.wait} seconds before retrying once."
+                    f"Error: Hit Rate Limit. Waiting for {2*e.wait} seconds "
+                    "before retrying once."
                 )
                 sleep(2 * e.wait)
                 zulipapi.get_user(user_id, tries=1)
@@ -378,8 +422,13 @@ def get_user(user_id, tries=0):
         )
 
 
-def get_user_list(tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def get_user_list(tries: int = 0) -> list[str]:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return []
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info("[CBE] Logging request to list all users.")
+        return []
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             return zulipapi.get_user_list()
         except zulipapi.ZulipRateLimitHit as e:
@@ -403,8 +452,13 @@ def get_user_list(tries=0):
         )
 
 
-def invite_user(email, tries=0):
-    if settings.USE_CHATBACKEND == "zulip":
+def invite_user(email: str, tries: int = 0) -> None:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return
+    elif settings.USE_CHATBACKEND == "log":
+        logger.info(f"[CBE] Logging request to invite {email}.")
+        return
+    elif settings.USE_CHATBACKEND == "zulip":
         try:
             zulipapi.invite_user(email)
         except zulipapi.ZulipRateLimitHit as e:
