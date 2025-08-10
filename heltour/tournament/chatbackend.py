@@ -14,8 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 # helper functions for formatting text
-def bold(text):
-    if settings.USE_CHATBACKEND == "zulip":
+def bold(text: str) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return f"*{text}*"
+    elif settings.USE_CHATBACKEND == "zulip":
         return f"**{text}**"
     elif settings.USE_CHATBACKEND == "slack":
         return f"*{text}*"
@@ -23,8 +27,12 @@ def bold(text):
         return text
 
 
-def channellink(*, channelprefix="#", channelid="", channel, topic=""):
-    if settings.USE_CHATBACKEND == "zulip":
+def channellink(*, channelprefix: str="#", channelid: str="", channel: str, topic: str="") -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return f"{channelprefix}{channel}>{topic}" if topic else f"{channelprefix}{channel}"
+    elif settings.USE_CHATBACKEND == "zulip":
         if topic:
             return f"{channelprefix}**{channel}>{topic}**"
         else:
@@ -40,12 +48,18 @@ def channellink(*, channelprefix="#", channelid="", channel, topic=""):
         )
 
 
-def chatbackend():
+def chatbackend() -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
     return settings.USE_CHATBACKEND.capitalize()
 
 
-def chatbackend_url():
-    if settings.USE_CHATBACKEND == "zulip":
+def chatbackend_url() -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return "log"
+    elif settings.USE_CHATBACKEND == "zulip":
         return settings.ZULIP_URL
     elif settings.USE_CHATBACKEND == "slack":
         return settings.SLACK_URL
@@ -55,8 +69,12 @@ def chatbackend_url():
         )
 
 
-def dm_link(*, usernames, userids, add_bot):
-    if settings.USE_CHATBACKEND == "zulip":
+def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return ""
+    elif settings.USE_CHATBACKEND == "zulip":
         if add_bot:
             userids.append(settings.ZULIP_LISTENING_BOT)
         users = ",".join(str(u) for u in userids)
@@ -72,13 +90,24 @@ def dm_link(*, usernames, userids, add_bot):
         )
 
 
-def inlinecode(text):
+def inlinecode(text: str) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return text
     # same for slack and zulip
-    return f"`{text}`"
+    elif settings.USECHATBACKEND == "zulip" or settings.USECHATBACKEND == "slack":
+        return f"`{text}`"
+    else:
+        return text
 
 
-def italic(text):
-    if settings.USE_CHATBACKEND == "zulip":
+def italic(text: str) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return text
+    elif settings.USE_CHATBACKEND == "zulip":
         return f"*{text}*"
     elif settings.USE_CHATBACKEND == "slack":
         return f"_{text}_"
@@ -86,7 +115,11 @@ def italic(text):
         return text
 
 
-def link(*, text, url):
+def link(*, text: str, url: str) -> str:
+    if settings.USE_CHATBACKEND == "/dev/null":
+        return ""
+    elif settings.USE_CHATBACKEND == "log":
+        return url
     if settings.USE_CHATBACKEND == "zulip":
         return f"[{text}]({url})"
     elif settings.USE_CHATBACKEND == "slack":
