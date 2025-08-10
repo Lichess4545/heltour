@@ -2,7 +2,7 @@ from unittest.mock import ANY, patch
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -88,7 +88,7 @@ class SeasonAdminTestCase(TestCase):
         )
         dcb.assert_not_called()
 
-
+    @override_settings(DEBUG=True)
     @patch("heltour.tournament.simulation.simulate_season")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_simulate(self, message, simulate):
