@@ -927,7 +927,7 @@ def pairings_published(round_id, overwrite=False):
             season.registration_open = False
             season.save()
 
-    send_control_message(f'refresh pairings {league.tag}')
+    send_control_message(f"refresh pairings {league.tag}")
     alternates_manager.round_pairings_published(round_)
     signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
@@ -1007,15 +1007,20 @@ def create_team_channel(team_ids):
         mods_str = " ".join((userlink_silent(lm.player.lichess_username.lower()) for lm in mods))
         modping = inlinecode(ping_mods())
         modpingchannel = channellink(channel='general', topic='summon mods')
-        pairings_url = link(url=pairings_url, text='View your team pairings')
-        calendar_url = link(url=calendar_url, text='Import your team pairings to your calendar')
+        pairings_url = link(url=pairings_url, text="View your team pairings")
+        calendar_url = link(
+            url=calendar_url, text="Import your team pairings to your calendar"
+        )
         season_start = '?' if team.season.start_date is None else team.season.start_date.strftime(
             '%b %-d')
-        intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start,
-                                                       modping=modping, modpingchannel=modpingchannel,
-                                                       pairings_url=pairings_url,
-                                                       calendar_url=calendar_url,
-                                                       )
+        intro_message_formatted = intro_message.format(
+            mods=mods_str,
+            season_start=season_start,
+            modping=modping,
+            modpingchannel=modpingchannel,
+            pairings_url=pairings_url,
+            calendar_url=calendar_url,
+        )
         team_members = team.teammember_set.select_related('player').nocache()
         user_ids = [tm.player.slack_user_id for tm in team_members]
         channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
@@ -1025,7 +1030,7 @@ def create_team_channel(team_ids):
             channel_name=channel_name,
             user_ids=user_ids,
             topic=topic,
-            intro_message=intro_message_formatted
+            intro_message=intro_message_formatted,
         )
 
 

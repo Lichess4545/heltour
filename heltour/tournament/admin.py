@@ -823,7 +823,10 @@ class SeasonAdmin(_BaseAdmin):
                 teams = season.team_set.all()
                 for t in teams:
                     if t.slack_channel:
-                        channel_message(channel=t.slack_channel, text=form.cleaned_data['text'])
+                        channel_message(
+                            channel=t.slack_channel,
+                            text=form.cleaned_data["text"]
+                        )
                         time.sleep(1)
                 self.message_user(request, 'Spam sent to %d teams.' % len(teams), messages.INFO)
                 return redirect('admin:tournament_season_changelist')
