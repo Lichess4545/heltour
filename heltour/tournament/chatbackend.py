@@ -1,4 +1,5 @@
 import logging
+from collections import namedtuple
 from time import sleep
 
 import reversion
@@ -12,6 +13,9 @@ if settings.USE_CHATBACKEND == "slack":
 
 logger = logging.getLogger(__name__)
 
+
+SlackUser = namedtuple("SlackUser", ["id", "display_name", "email", "tz_offset"])
+SlackGroup = namedtuple("SlackGroup", ["id", "name"])
 
 # helper functions for formatting text
 def bold(text: str) -> str:
@@ -392,12 +396,12 @@ def create_team_channel(
         )
 
 
-def get_user(user_id: str, tries: int = 0) -> str:
+def get_user(user_id: str, tries: int = 0):
     if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
+        return SlackUser(id="", display_name="", email="", tz_offset=0)
     elif settings.USE_CHATBACKEND == "log":
         logger.info(f"[CBE] Logging request for id: {user_id}")
-        return ""
+        return SlackUser(id="", display_name="", email="", tz_offset=0)
     elif settings.USE_CHATBACKEND == "zulip":
         try:
             return zulipapi.get_user(user_id=int(user_id))
