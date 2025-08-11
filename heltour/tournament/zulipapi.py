@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytz
 from django.conf import settings
-from zulip import Client
+from zulip import Client, ZulipError
 
 from heltour.tournament.models import logger
 
@@ -33,8 +33,8 @@ def _initial_connection():
                     "max lengths of topics/message/stream_name/stream_description"
                 )
                 return
-    except:  # TODO: which error would Client or Client.register raise?
-        logger.error("ERROR: Could not connect to zulip")
+    except ZulipError as e: 
+        logger.error(f"ERROR: Could not connect to zulip - {e}")
         return
     return (
         max_topic_length,
@@ -67,8 +67,8 @@ def invite_user(email, *args, **kwargs):
         human_client = Client(
             config_file=settings.ZULIP_CONFIG_NOBOT, client="ZulipHeltour"
         )
-    except:  # TODO: which error would Client or Client.register raise?
-        raise ZulipError("ERROR connecting human client for user invitations.")
+    except ZulipError as e:
+        raise ZulipError(f"ERROR connecting human client for user invitations: {e}")
         return
     r = human_client.call_endpoint(url="/invites", method="POST", request=params)
     if not r["result"] == "success":
@@ -329,10 +329,6 @@ def create_channel(
 
 def invite_to_group(channel_name, user_ids):
     create_channel(channel_name=channel_name, user_ids=user_ids)
-
-
-class ZulipError(Exception):
-    pass
 
 
 class AlreadyInTeamError(ZulipError):
