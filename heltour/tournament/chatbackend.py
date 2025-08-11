@@ -92,7 +92,7 @@ def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
 
 def inlinecode(text: str) -> str:
     # same for slack and zulip
-    if settings.USECHATBACKEND == "zulip" or settings.USECHATBACKEND == "slack":
+    if settings.USE_CHATBACKEND == "zulip" or settings.USE_CHATBACKEND == "slack":
         return f"`{text}`"
     else:
         return text
