@@ -174,7 +174,7 @@ def channel_message(
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * e.wait)
-                zulipapi.send_message(channel=channel, text=text, topic=topic, tries=1)
+                channel_message(channel=channel, text=text, topic=topic, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -203,7 +203,7 @@ def send_control_message(text: str, tries: int = 0) -> None:
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * e.wait)
-                zulipapi.send_control_message(text=text, tries=1)
+                send_control_message(text=text, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -234,7 +234,9 @@ def direct_user_message(
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * e.wait)
-                zulipapi.send_direct_message(users=[int(userid)], text=text, tries=1)
+                direct_user_message(
+                    username=username, text=text, userid=userid, tries=1
+                )
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -268,7 +270,9 @@ def multiple_user_message(
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * e.wait)
-                zulipapi.send_direct_message(users=userids_int, text=text, tries=1)
+                multiple_user_message(
+                    usernames=usernames, text=text, userids=userids, tries=1
+                )
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -320,15 +324,12 @@ def create_team_channel(
                     f"Waiting for {e.wait + 10} seconds before retrying once."
                 )
                 sleep(settings.SLEEP_UNIT * (e.wait + 10))
-                channel = zulipapi.create_channel(
+                channel = create_team_channel(
+                    team=team,
                     channel_name=channel_name,
-                    user_ids=user_ids_ext,
+                    user_ids=user_ids,
                     topic=topic,
-                    invite_only=True,
-                    history_public=False,
-                    can_add_subscribers_ids=user_ids_ext,
-                    can_remove_subscribers_ids=user_ids_ext,
-                    can_admin_channel_ids=user_ids_ext,
+                    intro_message=intro_message,
                     tries=1,
                 )
             else:
@@ -396,7 +397,7 @@ def create_team_channel(
         )
 
 
-def get_user(user_id: str, tries: int = 0):
+def get_user(user_id: str, tries: int = 0) -> tuple[str, str, str, int]:
     if settings.USE_CHATBACKEND == "/dev/null":
         return SlackUser(id="", display_name="", email="", tz_offset=0)
     elif settings.USE_CHATBACKEND == "log":
@@ -412,7 +413,7 @@ def get_user(user_id: str, tries: int = 0):
                     "before retrying once."
                 )
                 sleep(2 * e.wait)
-                zulipapi.get_user(user_id, tries=1)
+                get_user(user_id, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -426,7 +427,7 @@ def get_user(user_id: str, tries: int = 0):
         )
 
 
-def get_user_list(tries: int = 0) -> list[str]:
+def get_user_list(tries: int = 0) -> list[namedtuple]:
     if settings.USE_CHATBACKEND == "/dev/null":
         return []
     elif settings.USE_CHATBACKEND == "log":
@@ -442,7 +443,7 @@ def get_user_list(tries: int = 0) -> list[str]:
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(2 * e.wait)
-                zulipapi.get_user_list(tries=1)
+                get_user_list(tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
@@ -472,7 +473,7 @@ def invite_user(email: str, tries: int = 0) -> None:
                     f"Waiting for {2*e.wait} seconds before retrying once."
                 )
                 sleep(2 * e.wait)
-                zulipapi.invite_user(email, tries=1)
+                invite_user(email, tries=1)
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
