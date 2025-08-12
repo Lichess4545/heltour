@@ -112,6 +112,11 @@ module.exports.drag = require('./drag');
 
 		for (var key in extend) {
 
+			// Skip dangerous properties to prevent prototype pollution
+			if (key === '__proto__' || key === 'constructor') {
+				continue;
+			}
+
 			if (typeOf(base[key]) === 'object' && typeOf(extend[key]) === 'object') {
 
 				base[key] = merge_recursive(base[key], extend[key]);
