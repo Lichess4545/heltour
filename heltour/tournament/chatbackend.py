@@ -56,7 +56,7 @@ def channellink(
 
 def chatbackend() -> str:
     if settings.USE_CHATBACKEND == "/dev/null":
-        return ""
+        return "/dev/null"
     return settings.USE_CHATBACKEND.capitalize()
 
 
