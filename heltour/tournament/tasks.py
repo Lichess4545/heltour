@@ -64,18 +64,21 @@ UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 def to_usernames(users: UsernamesQuerySet) -> List[str]:
     return list(users.values_list("lichess_username", flat=True))
 
+
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
         .order_by('lichess_username') \
         .values('lichess_username') \
         .distinct()
 
+
 def active_player_usernames() -> List[str]:
     players_qs = Player.objects.all()
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
-def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
+
+def registrations_needing_updates(without_usernames: List[str]) -> QuerySet[Player]:
     _24_hours = timezone.now() - timedelta(hours=24)
     active_regs = (
         Registration.objects.filter(
@@ -87,17 +90,24 @@ def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
         .values_list("player", flat=True)
     )
     reg_players = Player.objects.filter(pk__in=active_regs).order_by("date_modified")
-    return to_usernames(just_username(reg_players))
+    return reg_players
+
+
+def fetch_players_to_update() -> List[str]:
+    active_players = active_player_usernames()
+    registered_players = registrations_needing_updates(
+        without_usernames=active_players
+    )
+    first24th = [
+        player.lichess_username for player in list(first(divide(24, registered_players)))
+    ]
+    return active_players + first24th
+
 
 @app.task()
 def update_player_ratings(usernames: list[str] = []) -> None:
     if len(usernames) == 0:
-        active_players = active_player_usernames()
-        registered_players = registrations_needing_updates(
-            without_usernames=active_players
-        )
-        first24th = list(first(divide(24, registered_players)))
-        usernames = active_players + first24th
+        usernames = fetch_players_to_update()
     logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
