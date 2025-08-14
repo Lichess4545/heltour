@@ -63,8 +63,8 @@
                     {% comment %} feature temporarily disabled because of slack leaking usernames which cannot be changed on an unpaid instance
                     {% if player.slack_user_id %}
                         <div>
-                          <a href="https://slack.com/app_redirect?team={{ slack_id }}&channel={{ player.slack_user_id }}">Message {{ player.lichess_username }}
-                                on Slack</a></div>
+                          <a href={{ dm_player }}>Message {{ player.lichess_username }}
+                            on {{ chatbackend }}</a></div>
                     {% endif %}
                     {% endcomment %}
                     <div>

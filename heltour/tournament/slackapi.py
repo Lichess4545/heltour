@@ -1,7 +1,10 @@
-import requests
-from heltour import settings
-from collections import namedtuple
 import logging
+from collections import namedtuple
+
+import requests
+
+from django.conf import settings
+
 
 logger = logging.getLogger(__name__)
 
