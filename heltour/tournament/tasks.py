@@ -8,7 +8,7 @@ import time
 import traceback
 import urllib.parse
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict
 
 import reversion
 from django.core.cache import cache
@@ -62,7 +62,7 @@ MAX_GAMES_LICHESS_BROADCAST: int = 100
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
 
-def to_usernames(users: UsernamesQuerySet) -> List[str]:
+def to_usernames(users: UsernamesQuerySet) -> list[str]:
     return list(users.values_list("lichess_username", flat=True))
 
 
@@ -73,13 +73,13 @@ def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
         .distinct()
 
 
-def active_player_usernames() -> List[str]:
+def active_player_usernames() -> list[str]:
     players_qs = Player.objects.all()
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
 
-def registrations_needing_updates(without_usernames: List[str]) -> QuerySet[Player]:
+def registrations_needing_updates(without_usernames: list[str]) -> QuerySet[Player]:
     _24_hours = timezone.now() - timedelta(hours=24)
     active_regs = (
         Registration.objects.filter(
@@ -94,7 +94,7 @@ def registrations_needing_updates(without_usernames: List[str]) -> QuerySet[Play
     return reg_players
 
 
-def fetch_players_to_update() -> List[str]:
+def fetch_players_to_update() -> list[str]:
     active_players = active_player_usernames()
     registered_players = registrations_needing_updates(without_usernames=active_players)
     first24th = [
