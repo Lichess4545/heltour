@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest.mock import ANY, call, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from heltour.tournament.lichessapi import ApiClientError
@@ -236,6 +236,7 @@ class TestTeamChannel(TestCase):
         createCommonLeagueData()
         cls.team_ids = Team.objects.all().order_by("pk").values("pk")
 
+    @override_settings(USE_CHATBACKEND="slack")
     @patch(
         "heltour.tournament.slackapi.create_group",
         side_effect=[
