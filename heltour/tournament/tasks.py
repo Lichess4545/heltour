@@ -9,7 +9,6 @@ import traceback
 import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, List
-from more_itertools import divide, first
 
 import reversion
 from django.core.cache import cache
@@ -19,6 +18,7 @@ from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django_stubs_ext import ValuesQuerySet
+from more_itertools import divide, first
 
 from heltour import settings
 from heltour.celery import app
@@ -61,6 +61,7 @@ MAX_GAMES_LICHESS_BROADCAST: int = 100
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
+
 def to_usernames(users: UsernamesQuerySet) -> List[str]:
     return list(users.values_list("lichess_username", flat=True))
 
@@ -95,11 +96,10 @@ def registrations_needing_updates(without_usernames: List[str]) -> QuerySet[Play
 
 def fetch_players_to_update() -> List[str]:
     active_players = active_player_usernames()
-    registered_players = registrations_needing_updates(
-        without_usernames=active_players
-    )
+    registered_players = registrations_needing_updates(without_usernames=active_players)
     first24th = [
-        player.lichess_username for player in list(first(divide(24, registered_players)))
+        player.lichess_username
+        for player in list(first(divide(24, registered_players)))
     ]
     return active_players + first24th
 
@@ -112,13 +112,16 @@ def update_player_ratings(usernames: list[str] = []) -> None:
     updated = 0
     try:
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
-            p = Player.objects.get(lichess_username__iexact=user_meta['id'])
+            p = Player.objects.get(lichess_username__iexact=user_meta["id"])
             p.update_profile(user_meta)
             updated += 1
-        logger.info(f'[FINISHED] Updated {updated}/{len(usernames)} player ratings')
+        logger.info(f"[FINISHED] Updated {updated}/{len(usernames)} player ratings")
     except Exception as e:
-        logger.warning(f'[ERROR] Error getting ratings: {e}')
-        logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
+        logger.warning(f"[ERROR] Error getting ratings: {e}")
+        logger.warning(
+            f"[ERROR] Only updated {updated}/{len(usernames)} player ratings"
+        )
+
 
 def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
     return PlayerPairing.objects.exclude(

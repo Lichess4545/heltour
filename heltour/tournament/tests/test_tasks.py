@@ -89,7 +89,9 @@ class TestHelpers(TestCase):
         ch_playername = "RegPlayer12"
         Player.objects.get(lichess_username=ch_playername).save()
         now.return_value = self.now
-        self.assertEqual(fetch_players_to_update(), self.playernames + [ch_playername, playerlist[0]])
+        self.assertEqual(
+            fetch_players_to_update(), self.playernames + [ch_playername, playerlist[0]]
+        )
 
 
 class TestUpdateRatings(TestCase):
@@ -614,4 +616,3 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             Broadcast.objects.get(season=sl, first_board=3).lichess_id, "bcslug"
         )
-
