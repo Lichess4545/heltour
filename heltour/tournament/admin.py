@@ -2143,7 +2143,7 @@ class RegistrationAdmin(_BaseAdmin):
             return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
 
     def date_validated(self, obj):
-        obj.player.date_modified
+        return obj.player.date_modified
 
     date_validated.admin_order_field = "-player__date_modified"
 
