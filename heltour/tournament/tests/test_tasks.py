@@ -333,12 +333,12 @@ class TestBroadcasts(TestCase):
         cls.s.create_broadcast = True
         cls.s.broadcast_title_override = "Amazing Broadcast Title"
         cls.s.save()
-        Broadcast.objects.create(lichess_id="testslug1", season=cls.s, first_board=1)
+        Broadcast.objects.create(lichess_id="testslug1", season=cls.s, board_range_start=1)
         cls.bc2 = Broadcast.objects.create(
-            lichess_id="testslug2", season=cls.s, first_board=3
+            lichess_id="testslug2", season=cls.s, board_range_start=3
         )
         cls.bc3 = Broadcast.objects.create(
-            lichess_id="testslug3", season=cls.s, first_board=5
+            lichess_id="testslug3", season=cls.s, board_range_start=5
         )
         cls.r1 = get_round(league_type="team", round_number=1)
         cls.r1.start_date = timezone.now()
@@ -372,9 +372,9 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             groupings,
             "Testing the Title\n"
-            "testslug1 | Boards 1 - 2\n"
-            "testslug2 | Boards 3 - 4\n"
-            "testslug3 | Boards 5 - ",
+            "testslug1\n"
+            "testslug2\n"
+            "testslug3",
         )
 
     @patch(
@@ -414,7 +414,7 @@ class TestBroadcasts(TestCase):
         return_value={"round": {"id": "someroundid"}},
     )
     def test_create_or_update_broadcast_round(self, lichessapi):
-        broadcast_round_id = _create_or_update_broadcast_round(self.r1, first_board=1)
+        broadcast_round_id = _create_or_update_broadcast_round(self.r1, board_range_start=1)
         lichessapi.assert_called_once_with(
             broadcast_id="testslug1",
             broadcast_round_id="",
@@ -492,12 +492,12 @@ class TestBroadcasts(TestCase):
             black=team5.teammember_set.get(board_number=2).player,
             game_link="https://lichess.org/fakelink",
         )
-        broadcast_round_id2 = _create_or_update_broadcast_round(self.r1, first_board=3)
+        broadcast_round_id2 = _create_or_update_broadcast_round(self.r1, board_range_start=3)
         self.assertEqual(broadcast_round_id2, "")
         self.assertFalse(
             TeamPlayerPairing.objects.get(team_pairing=tp3, board_number=2).broadcasted
         )
-        broadcast_round_id3 = _create_or_update_broadcast_round(self.r1, first_board=5)
+        broadcast_round_id3 = _create_or_update_broadcast_round(self.r1, board_range_start=5)
         lichessapi.assert_called_once_with(
             broadcast_id="",
             broadcast_round_id="roundidbc3",
@@ -560,7 +560,7 @@ class TestBroadcasts(TestCase):
         with Shush():
             update_broadcast_round(round_id=self.r1.pk)
         # called only once since we only created one broadcast round for board 5+
-        coubr.assert_called_once_with(round_=self.r1, first_board=5)
+        coubr.assert_called_once_with(round_=self.r1, board_range_start=5)
 
     @patch(
         "heltour.tournament.tasks._create_broadcast_grouping",
@@ -575,9 +575,9 @@ class TestBroadcasts(TestCase):
             create_broadcast_round(round_id=self.r1.pk)
         coubr.assert_has_calls(
             calls=[
-                call(round_=self.r1, first_board=1),
-                call(round_=self.r1, first_board=3),
-                call(round_=self.r1, first_board=5),
+                call(round_=self.r1, board_range_start=1),
+                call(round_=self.r1, board_range_start=3),
+                call(round_=self.r1, board_range_start=5),
             ],
             any_order=True,
         )
@@ -588,11 +588,11 @@ class TestBroadcasts(TestCase):
         with Shush():
             update_broadcast(season_id=self.s.pk)
         with Shush():
-            update_broadcast(season_id=self.s.pk, first_board=5)
+            update_broadcast(season_id=self.s.pk, board_range_start=5)
         coub.assert_has_calls(
             calls=[
-                call(season=self.s, broadcast_id="testslug1", first_board=1),
-                call(season=self.s, broadcast_id="testslug3", first_board=5),
+                call(season=self.s, broadcast_id="testslug1", board_range_start=1),
+                call(season=self.s, broadcast_id="testslug3", board_range_start=5),
             ]
         )
 
@@ -604,16 +604,20 @@ class TestBroadcasts(TestCase):
         sl.create_broadcast = True
         sl.save()
         with Shush():
-            create_broadcast(season_id=self.s.pk, first_board=1)
+            create_broadcast(season_id=self.s.pk, board_range_start=1)
         coub.assert_not_called()
         with Shush():
-            create_broadcast(season_id=sl.pk, first_board=1)
-        coub.assert_called_with(season=sl, first_board=1)
-        self.assertTrue(Broadcast.objects.filter(season=sl, first_board=1).exists())
+            create_broadcast(season_id=sl.pk, board_range_start=1)
+        coub.assert_called_with(season=sl, board_range_start=1)
+        self.assertTrue(
+            Broadcast.objects.filter(season=sl, board_range_start=1).exists()
+        )
         with Shush():
-            create_broadcast(season_id=sl.pk, first_board=3)
-        coub.assert_called_with(season=sl, first_board=3)
-        self.assertTrue(Broadcast.objects.filter(season=sl, first_board=3).exists())
+            create_broadcast(season_id=sl.pk, board_range_start=3)
+        coub.assert_called_with(season=sl, board_range_start=3)
+        self.assertTrue(
+            Broadcast.objects.filter(season=sl, board_range_start=3).exists()
+        )
         self.assertEqual(
-            Broadcast.objects.get(season=sl, first_board=3).lichess_id, "bcslug"
+            Broadcast.objects.get(season=sl, board_range_start=3).lichess_id, "bcslug"
         )

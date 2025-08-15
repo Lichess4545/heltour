@@ -519,15 +519,24 @@ def start_games():
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
-        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
-        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
     logger.info('[FINISHED] Done trying to start games.')
+    # send the signal to update broadcasts of all active rounds.
+    # this could be a periodic task by itself, but the perfect time to run it happens
+    # to be directly after we started games.
+    rounds = Round.objects.filter(
+        season__is_active=True,
+        season__is_completed=False,
+        is_completed=False,
+        publish_pairings=True,
+    )
+    for round_ in rounds:
+        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
 
 
 def _create_team_string(season: Season) -> str:
     if not season.league.is_team_league():
         return ""
-    teams = Team.objects.filter(season=season)
+    teams = Team.objects.filter(season=season).order_by("number")
     lines = []
     for team in teams:
         for teamplayer in TeamMember.objects.filter(team=team).order_by(
@@ -539,9 +548,7 @@ def _create_team_string(season: Season) -> str:
 
 def _create_broadcast_grouping(broadcasts: QuerySet[Broadcast], title: str) -> str:
     for broadcast in broadcasts:
-        if broadcast.first_board != 1:
-            title = f"{title}{broadcast.first_board - 1}"
-        title = f"{title}\n{broadcast.lichess_id} | Boards {broadcast.first_board} - "
+        title = f"{title}\n{broadcast.lichess_id}"
     return title
 
 
@@ -550,7 +557,7 @@ def _create_or_update_broadcast(
     season: Season,
     broadcast_id: str = "",
     grouping: str = "",
-    first_board: int = 1,
+    board_range_start: int = 1,
 ) -> str:
     result = ""
     if season.league.is_team_league():
@@ -562,11 +569,14 @@ def _create_or_update_broadcast(
         teamTable = False
         teams = ""
     title = season.broadcast_title_override or f"{season.league.name} S{season.tag}"
-    # TODO maybe mention the actual highest boad instead of the highest board in theory
-    name = (
-        f"{title} Boards {first_board} to "
-        f"{first_board + MAX_GAMES_LICHESS_BROADCAST - 1}"
-    )
+    latest_bcr = BroadcastRound.objects.filter(
+        broadcast__season=season, broadcast__board_range_start=board_range_start
+    ).order_by("-round_id__number").first()
+    if latest_bcr is not None:
+        board_range_end = latest_bcr.board_range_end
+    else:
+        board_range_end = board_range_start + MAX_GAMES_LICHESS_BROADCAST - 1
+    name = f"{title} Boards {board_range_start} to {board_range_end}"
     tc = season.league.time_control.replace("+", "%2b")
     players = ""
     markdown = (
@@ -602,19 +612,24 @@ def _create_or_update_broadcast(
     return result
 
 
-def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> str:
+def _create_or_update_broadcast_round(round_: Round, board_range_start: int = 1) -> str:
     result = ""
     startsAt = round(datetime.timestamp(round_.start_date)) * 1000
+    broadcast_round = round_.get_broadcast_round(board_range_start=board_range_start)
+    if broadcast_round is not None:
+        board_range_end = broadcast_round.board_range_end
+    else:
+        board_range_end = MAX_GAMES_LICHESS_BROADCAST
     if round_.is_team_league():
         games_query = TeamPlayerPairing.objects.filter(
             team_pairing__round=round_
         ).order_by("team_pairing__pairing_order", "board_number")[
-            (first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)
+            (board_range_start - 1) : board_range_end
         ]
     else:
         games_query = LonePlayerPairing.objects.filter(round=round_).order_by(
             "pairing_order"
-        )[(first_board - 1) : (first_board + MAX_GAMES_LICHESS_BROADCAST - 1)]
+        )[(board_range_start - 1) : board_range_end]
     game_links = []
     broadcast_updates = []
     for game in games_query:
@@ -631,11 +646,13 @@ def _create_or_update_broadcast_round(round_: Round, first_board: int = 1) -> st
         updated_games = LonePlayerPairing.objects.bulk_update(
             broadcast_updates, ["broadcasted"]
         )
-    broadcast_round_id = round_.get_broadcast_round_id(first_board=first_board)
+    broadcast_round_id = round_.get_broadcast_round_id(
+        board_range_start=board_range_start
+    )
     if broadcast_round_id:
         broadcast_id = ""
     else:
-        broadcast_id = round_.get_broadcast_id(first_board=first_board)
+        broadcast_id = round_.get_broadcast_id(board_range_start=board_range_start)
         if not broadcast_id:
             raise ValueError(
                 f"[ERROR] trying to create {round_} for non-existent season broadcast."
@@ -665,6 +682,9 @@ def update_broadcast_round(round_id: int) -> None:
     round_ = Round.objects.get(pk=round_id)
     if not round_.season.create_broadcast:
         return
+    logger.info(
+        f"Checking whether we need to update the broadcast for {round_.season.league}"
+    )
     if round_.is_team_league():
         new_games = (
             TeamPlayerPairing.objects.exclude(game_link="")
@@ -681,8 +701,13 @@ def update_broadcast_round(round_id: int) -> None:
         broadcastrounds = BroadcastRound.objects.filter(round_id=round_)
         for broadcastround in broadcastrounds:
             _create_or_update_broadcast_round(
-                round_=round_, first_board=broadcastround.first_board
+                round_=round_, board_range_start=broadcastround.board_range_start
             )
+        logger.info(f"Updated broadcast for {round_.season.league} with new games.")
+    else:
+        logger.info(
+            f"Did not find any new games for the broadcast of {round_.season.league}."
+        )
 
 
 @receiver(signals.do_update_broadcast_round, dispatch_uid="heltour.tournament.tasks")
@@ -711,12 +736,12 @@ def create_broadcast_round(round_id: int) -> None:
         pairingcount = LonePlayerPairing.objects.filter(round=round_).count()
     while pairingcount > broadcasts_count * max_games:
         broadcast = _create_or_update_broadcast(
-            season=round_.season, first_board=broadcasts_count * max_games + 1
+            season=round_.season, board_range_start=broadcasts_count * max_games + 1
         )
         Broadcast.objects.create(
             season=round_.season,
             lichess_id=broadcast,
-            first_board=broadcasts_count * max_games + 1,
+            board_range_start=broadcasts_count * max_games + 1,
         )
         broadcasts = Broadcast.objects.filter(season=round_.season)
         broadcasts_count = broadcasts.count()
@@ -733,11 +758,11 @@ def create_broadcast_round(round_id: int) -> None:
                 season=round_.season,
                 broadcast_id=bc.lichess_id,
                 grouping=grouping,
-                first_board=bc.first_board,
+                board_range_start=bc.board_range_start,
             )
         if not BroadcastRound.objects.filter(round_id=round_, broadcast=bc).exists():
             broadcastround = _create_or_update_broadcast_round(
-                round_=round_, first_board=bc.first_board
+                round_=round_, board_range_start=bc.board_range_start
             )
             BroadcastRound.objects.create(
                 lichess_id=broadcastround, round_id=round_, broadcast=bc
@@ -750,37 +775,43 @@ def do_create_broadcast_round(round_id: int, **kwargs) -> None:
 
 
 @app.task()
-def create_broadcast(season_id: int, first_board: int = 1) -> None:
+def create_broadcast(season_id: int, board_range_start: int = 1) -> None:
     season = Season.objects.get(pk=season_id)
     if not season.create_broadcast:
         return
-    bc, _ = Broadcast.objects.get_or_create(season=season, first_board=first_board)
+    bc, _ = Broadcast.objects.get_or_create(
+        season=season, board_range_start=board_range_start
+    )
     if not bc.lichess_id:
         bc.lichess_id = _create_or_update_broadcast(
-            season=season, first_board=first_board
+            season=season, board_range_start=board_range_start
         )
         bc.save()
 
 
 @receiver(signals.do_create_broadcast, dispatch_uid="heltour.tournament.tasks")
-def do_create_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
-    create_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
+def do_create_broadcast(season_id: int, board_range_start: int = 1, **kwargs) -> None:
+    create_broadcast.apply_async(
+        kwargs={"season_id": season_id, "board_range_start": board_range_start}
+    )
 
 
 @app.task()
-def update_broadcast(season_id: int, first_board: int = 1) -> None:
+def update_broadcast(season_id: int, board_range_start: int = 1) -> None:
     season = Season.objects.get(pk=season_id)
-    bcid = season.get_broadcast_id(first_board=first_board)
+    bcid = season.get_broadcast_id(board_range_start=board_range_start)
     if not season.create_broadcast or not bcid:
         return
     _create_or_update_broadcast(
-        season=season, broadcast_id=bcid, first_board=first_board
+        season=season, broadcast_id=bcid, board_range_start=board_range_start
     )
 
 
 @receiver(signals.do_update_broadcast, dispatch_uid="heltour.tournament.tasks")
-def do_update_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
-    update_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
+def do_update_broadcast(season_id: int, board_range_start: int = 1, **kwargs) -> None:
+    update_broadcast.apply_async(
+        kwargs={"season_id": season_id, "board_range_start": board_range_start}
+    )
 
 
 # How late an event is allowed to run before it's discarded instead
