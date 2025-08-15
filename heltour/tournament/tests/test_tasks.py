@@ -83,14 +83,15 @@ class TestHelpers(TestCase):
             now.return_value += timedelta(seconds=1)
         # set time back to now
         now.return_value = self.now
-        self.assertEqual(fetch_players_to_update(), self.playernames + playerlist[0:2])
+        self.assertEqual(fetch_players_to_update(), self.playernames + playerlist[0:3])
         # push some player to the front by changing the modified date
         now.return_value = self.now - timedelta(hours=72)
         ch_playername = "RegPlayer12"
         Player.objects.get(lichess_username=ch_playername).save()
         now.return_value = self.now
         self.assertEqual(
-            fetch_players_to_update(), self.playernames + [ch_playername, playerlist[0]]
+            fetch_players_to_update(),
+            self.playernames + [ch_playername] + playerlist[0:2],
         )
 
 

@@ -97,11 +97,12 @@ def registrations_needing_updates(without_usernames: list[str]) -> QuerySet[Play
 def fetch_players_to_update() -> list[str]:
     active_players = active_player_usernames()
     registered_players = registrations_needing_updates(without_usernames=active_players)
-    first24th = [
+    # get onlye the first couple to distribute the api calls over time
+    first10th = [
         player.lichess_username
-        for player in list(first(divide(24, registered_players)))
+        for player in list(first(divide(10, registered_players)))
     ]
-    return active_players + first24th
+    return active_players + first10th
 
 
 @app.task()
