@@ -925,9 +925,18 @@ class SeasonAdmin(_BaseAdmin):
                 if p.scheduled_time and p.scheduled_time < timezone.now() - timedelta(hours=1):
                     return 'text-rejected'
                 return ''
-
-            pairings_wo_results = [(p, text_class(p)) for p in last_round.pairings.order_by(
-                'loneplayerpairing__pairing_order').filter(result='')]
+            
+            if last_round.is_team_league():
+                order_strings = [
+                    "teamplayerpairing__team_pairing__pairing_order",
+                    "teamplayerpairing__board_number",
+                ]
+            else:
+                order_strings = ["loneplayerpairing__pairing_order"]
+            pairings_wo_results = [
+                (p, text_class(p))
+                for p in last_round.pairings.order_by(*order_strings).filter(result="")
+            ]
 
         ct_pairing = ContentType.objects.get_for_model(PlayerPairing)
         ct_season_player = ContentType.objects.get_for_model(SeasonPlayer)
