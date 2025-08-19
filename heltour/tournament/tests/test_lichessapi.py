@@ -105,7 +105,7 @@ class NoShowTestCase(SimpleTestCase):
         send_mail(
             lichess_username="thomas",
             subject="you're late to your game",
-            text="please join it"
+            text="please join it",
         )
         apicall.assert_called_once_with(
             url="testhost/lichessapi/inbox/thomas?priority=0&max_retries=5",
