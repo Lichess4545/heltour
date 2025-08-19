@@ -31,9 +31,13 @@ else:
     from .settings_default import *
 
 # Host-based settings overrides.
+hostname = platform.node().split('.')[0]
+hostname_clean = re.sub('[^\\w]', '_', hostname)
 try:
-    hostname = platform.node().split('.')[0]
-    exec('from .local.%s import *' % re.sub('[^\\w]', '_', hostname))
+    if not re.search("[0-9]", hostname_clean[:1]):
+        exec(f'from .local.{hostname_clean} import *')
+    else:
+        exec(f'from .local.settings_{hostname_clean} import *')
 except ImportError:
     pass  # ignore missing local settings
 
