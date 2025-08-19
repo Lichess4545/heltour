@@ -2106,7 +2106,17 @@ class RegistrationAdmin(_BaseAdmin):
     def get_list_display(self, request):
         return self.remove_email_if_no_dox(
             request.user,
-            ['review', 'email', 'status', 'valid', 'season', 'section', 'rating', 'date_created']
+            [
+                "review",
+                "email",
+                "status",
+                "valid",
+                "season",
+                "section",
+                "rating",
+                "date_created",
+                "date_validated",
+            ],
         )
 
     def get_fields(self, request, obj=None):
@@ -2140,6 +2150,11 @@ class RegistrationAdmin(_BaseAdmin):
             return mark_safe('<img src="%s">' % static('admin/img/icon-alert.svg'))
         else:
             return mark_safe('<img src="%s">' % static('admin/img/icon-yes.svg'))
+
+    def date_validated(self, obj):
+        return obj.player.date_modified
+
+    date_validated.admin_order_field = "-player__date_modified"
 
     def get_urls(self):
         urls = super(RegistrationAdmin, self).get_urls()
@@ -2217,14 +2232,16 @@ class RegistrationAdmin(_BaseAdmin):
         is_team = reg.season.league.competitor_type == 'team'
 
         context = {
-            'has_permission': True,
-            'opts': self.model._meta,
-            'site_url': '/',
-            'original': reg,
-            'title': 'Review registration',
-            'form': form,
-            'is_team': is_team,
-            'changelist_filters': changelist_filters
+            "has_permission": True,
+            "opts": self.model._meta,
+            "site_url": "/",
+            "original": reg,
+            "provisional": reg.player.provisional_for(league=reg.season.league),
+            "title": "Review registration",
+            "form": form,
+            "is_team": is_team,
+            "date_validated": reg.player.date_modified,
+            "changelist_filters": changelist_filters,
         }
 
         return render(request, 'tournament/admin/review_registration.html', context)

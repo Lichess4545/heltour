@@ -9,7 +9,7 @@ import time
 import traceback
 import urllib.parse
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict
 
 import reversion
 from django.core.cache import cache
@@ -74,8 +74,10 @@ MAX_GAMES_LICHESS_BROADCAST: int = 100
 
 UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
 
-def to_usernames(users: UsernamesQuerySet) -> List[str]:
+
+def to_usernames(users: UsernamesQuerySet) -> list[str]:
     return list(users.values_list("lichess_username", flat=True))
+
 
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
     return qs \
@@ -83,12 +85,14 @@ def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
         .values('lichess_username') \
         .distinct()
 
-def active_player_usernames() -> List[str]:
+
+def active_player_usernames() -> list[str]:
     players_qs = Player.objects.all()
     active_qs = players_qs.filter(seasonplayer__season__is_completed=False)
     return to_usernames(just_username(active_qs))
 
-def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
+
+def registrations_needing_updates(without_usernames: list[str]) -> QuerySet[Player]:
     _24_hours = timezone.now() - timedelta(hours=24)
     active_regs = (
         Registration.objects.filter(
@@ -97,32 +101,41 @@ def registrations_needing_updates(without_usernames: List[str]) -> List[str]:
             player__date_modified__lte=_24_hours,
         )
         .exclude(player__lichess_username__in=without_usernames)
-        .order_by("player__date_modified")
         .values_list("player", flat=True)
     )
-    reg_players = Player.objects.filter(pk__in=active_regs)
-    return to_usernames(just_username(reg_players))
+    reg_players = Player.objects.filter(pk__in=active_regs).order_by("date_modified")
+    return reg_players
+
+
+def fetch_players_to_update() -> list[str]:
+    active_players = active_player_usernames()
+    registered_players = registrations_needing_updates(without_usernames=active_players)
+    # get onlye the first couple to distribute the api calls over time
+    first10th = [
+        player.lichess_username
+        for player in list(first(divide(10, registered_players)))
+    ]
+    return active_players + first10th
+
 
 @app.task()
 def update_player_ratings(usernames: list[str] = []) -> None:
     if len(usernames) == 0:
-        active_players = active_player_usernames()
-        registered_players = registrations_needing_updates(
-            without_usernames=active_players
-        )
-        first24th = list(first(divide(24, registered_players)))
-        usernames = active_players + first24th
+        usernames = fetch_players_to_update()
     logger.info(f"[START] Updating {len(usernames)} player ratings")
     updated = 0
     try:
         for user_meta in lichessapi.enumerate_user_metas(usernames, priority=1):
-            p = Player.objects.get(lichess_username__iexact=user_meta['id'])
+            p = Player.objects.get(lichess_username__iexact=user_meta["id"])
             p.update_profile(user_meta)
             updated += 1
-        logger.info(f'[FINISHED] Updated {updated}/{len(usernames)} player ratings')
+        logger.info(f"[FINISHED] Updated {updated}/{len(usernames)} player ratings")
     except Exception as e:
-        logger.warning(f'[ERROR] Error getting ratings: {e}')
-        logger.warning(f'[ERROR] Only updated {updated}/{len(usernames)} player ratings')
+        logger.warning(f"[ERROR] Error getting ratings: {e}")
+        logger.warning(
+            f"[ERROR] Only updated {updated}/{len(usernames)} player ratings"
+        )
+
 
 def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
     return PlayerPairing.objects.exclude(

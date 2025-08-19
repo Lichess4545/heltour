@@ -24,16 +24,18 @@ from heltour.tournament.tasks import (
     _create_or_update_broadcast_round,
     _create_team_string,
     active_player_usernames,
-    create_team_channel,
     create_broadcast,
     create_broadcast_round,
+    create_team_channel,
+    fetch_players_to_update,
+    start_games,
     update_broadcast,
     update_broadcast_round,
-    start_games,
     update_player_ratings,
 )
 from heltour.tournament.tests.testutils import (
     Shush,
+    create_reg,
     createCommonLeagueData,
     get_league,
     get_player,
@@ -47,6 +49,10 @@ class TestHelpers(TestCase):
     def setUpTestData(cls):
         createCommonLeagueData()
         cls.playernames = ["Player" + str(i) for i in range(1, 9)]
+        cls.s = get_season("team")
+        cls.s.registration_open = True
+        cls.s.save()
+        cls.now = timezone.now()
 
     def test_username_helpers(self, *args):
         self.assertEqual(
@@ -61,6 +67,32 @@ class TestHelpers(TestCase):
         self.assertEqual(
             active_player_usernames(), self.playernames
         )  # no duplicate names
+
+    @patch("django.utils.timezone.now")
+    def test_fetch_players(self, now):
+        now.return_value = self.now
+        create_reg(season=self.s, name="lakinwecker")
+        # reg is not included as it was updated recently.
+        self.assertEqual(fetch_players_to_update(), self.playernames)
+        playerlist = []
+        # create a number of older regs
+        now.return_value = self.now - timedelta(hours=48)
+        for counter in range(1, 30):
+            create_reg(season=self.s, name=f"RegPlayer{counter}")
+            playerlist.append(f"RegPlayer{counter}")
+            now.return_value += timedelta(seconds=1)
+        # set time back to now
+        now.return_value = self.now
+        self.assertEqual(fetch_players_to_update(), self.playernames + playerlist[0:3])
+        # push some player to the front by changing the modified date
+        now.return_value = self.now - timedelta(hours=72)
+        ch_playername = "RegPlayer12"
+        Player.objects.get(lichess_username=ch_playername).save()
+        now.return_value = self.now
+        self.assertEqual(
+            fetch_players_to_update(),
+            self.playernames + [ch_playername] + playerlist[0:2],
+        )
 
 
 class TestUpdateRatings(TestCase):
@@ -586,4 +618,3 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             Broadcast.objects.get(season=sl, first_board=3).lichess_id, "bcslug"
         )
-
