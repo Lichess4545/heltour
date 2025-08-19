@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from platform import python_version
 
@@ -18,12 +19,23 @@ logger = logging.getLogger(__name__)
 # Optimize for typical rate limits: 1, 2, 5, 10 minutes
 retry_wait_times = {0: 60, 1: 60, 2: 180, 3: 300, 4: 600}
 
+
+def _trunc_and_clean(input: dict) -> dict:
+    output = {}
+    for key, value in input.items():
+        # censoring tokens
+        cleanvalue = re.sub(r"(li[opu]_)([A-Za-z0-9]+)", r"\1***", str(value))
+        output[key] = cleanvalue if len(cleanvalue) <= 30 else f"{cleanvalue[:27]}..."
+    return output
+
+
 def _get_lichess_api_token():
     try:
         with open(settings.LICHESS_API_TOKEN_FILE_PATH) as fin:
             return fin.read().strip()
     except IOError:
         return None
+
 
 def _do_lichess_api_call(
     redis_key,
@@ -41,7 +53,9 @@ def _do_lichess_api_call(
     token = _get_lichess_api_token()
 
 
-    logger.info('API call: %s' % url)
+    logger.info(f"API call: {method} {url}")
+    if post_data:
+        logger.info(f"POST data: {_trunc_and_clean(post_data)}")
 
     try:
         headers = {
