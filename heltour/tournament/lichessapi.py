@@ -1,11 +1,13 @@
 from __future__ import annotations
 # ^ needed for annotating str|None and int|None prior to python 3.10
-import requests
-import time
+
 import json
-from django.core.cache import cache
 import logging
-from heltour import settings
+import time
+
+import requests
+from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -121,13 +123,28 @@ def get_latest_game_metas(*, lichess_username, since, number, opponent, variant,
 
 
 # Sends a mail on lichess
-def send_mail(lichess_username, subject, text, priority=0, max_retries=5, timeout=1800):
-    url = '%s/lichessapi/inbox/%s?priority=%s&max_retries=%s' % (
-        settings.API_WORKER_HOST, lichess_username, priority, max_retries)
-    post_data = {'text': '%s\n%s' % (subject, text)}
-    result = _apicall_with_error_parsing(url, timeout, post_data=post_data)
-    if result != 'ok':
-        logger.error('Error sending mail: %s' % result)
+def send_mail(
+    lichess_username: str,
+    subject: str,
+    text: str,
+    priority: int = 0,
+    max_retries: int = 5,
+    timeout: int = 1800
+) -> None:
+    url = (
+        f"{settings.API_WORKER_HOST}/lichessapi/inbox/{lichess_username}"
+        f"?priority={priority}&max_retries={max_retries}"
+    )
+    post_data = {"text": f"{subject}\n{text}"}
+    result_json = _apicall_with_error_parsing(
+        url=url,
+        timeout=timeout,
+        post_data=post_data,
+    )
+    result = json.loads(result_json)
+    if "ok" not in result or not result["ok"]:
+        logger.error(f"Error sending mail: {result}")
+
 
 def watch_games(game_ids):
     try:

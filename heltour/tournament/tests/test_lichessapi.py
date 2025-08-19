@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from heltour.tournament.lichessapi import (
+    send_mail,
     update_or_create_broadcast,
     update_or_create_broadcast_round,
 )
@@ -91,4 +92,46 @@ class NoShowTestCase(SimpleTestCase):
             ),
             timeout=30,
             post_data="name=Round 0&syncIds=gamelink1 gamelink2&status=started",
+        )
+
+    @override_settings(API_WORKER_HOST="testhost")
+    @patch(
+        "heltour.tournament.lichessapi._apicall_with_error_parsing",
+        return_value='{"ok": true}',
+        autospec=True,
+    )
+    @patch("heltour.tournament.lichessapi.logger.error", autospec=True)
+    def test_send_mail_ok(self, logger, apicall):
+        send_mail(
+            lichess_username="thomas",
+            subject="you're late to your game",
+            text="please join it",
+        )
+        apicall.assert_called_once_with(
+            url="testhost/lichessapi/inbox/thomas?priority=0&max_retries=5",
+            timeout=1800,
+            post_data={"text": "you're late to your game\nplease join it"},
+        )
+        logger.assert_not_called()
+
+    @override_settings(API_WORKER_HOST="testhost")
+    @patch(
+        "heltour.tournament.lichessapi._apicall_with_error_parsing",
+        return_value='{"error": "this request is invalid because ..."}',
+        autospec=True,
+    )
+    @patch("heltour.tournament.lichessapi.logger.error", autospec=True)
+    def test_send_mail_fail(self, logger, apicall):
+        send_mail(
+            lichess_username="ivan",
+            subject="prison",
+            text="don't murder people"
+        )
+        apicall.assert_called_once_with(
+            url="testhost/lichessapi/inbox/ivan?priority=0&max_retries=5",
+            timeout=1800,
+            post_data={"text": "prison\ndon't murder people"},
+        )
+        logger.assert_called_once_with(
+            "Error sending mail: {'error': 'this request is invalid because ...'}"
         )
