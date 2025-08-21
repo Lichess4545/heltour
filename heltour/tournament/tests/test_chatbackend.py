@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
 from heltour.tournament.chatbackend import (
@@ -13,6 +14,7 @@ from heltour.tournament.chatbackend import (
     inlinecode,
     italic,
     link,
+    multiple_user_message,
     ping_mods,
     send_control_message,
     userlink_ping,
@@ -134,8 +136,8 @@ class ZulipFormatTestCase(SimpleTestCase):
     #            }
     #        )
 
-    #@patch("zulip.Client")
-    #def test_direct_user_message(self, client):
+    # @patch("zulip.Client")
+    # def test_direct_user_message(self, client):
     #    client.return_value.register.return_value = {
     #        "result": "success",
     #        "max_topic_length": 100,
@@ -155,6 +157,32 @@ class ZulipFormatTestCase(SimpleTestCase):
     #            "type": "direct",
     #            "to": [1],
     #            "content": "testing direct messages",
+    #        }
+    #    )
+
+    #@patch("zulip.Client")
+    #def test_multiple_user_message(self, client):
+    #    client.return_value.register.return_value = {
+    #        "result": "success",
+    #        "max_topic_length": 100,
+    #        "max_message_length": 1000,
+    #        "max_stream_name_length": 100,
+    #        "max_stream_description_length": 1000,
+    #    }
+    #    client.return_value.send_message.return_value = {
+    #        "result": "success",
+    #    }
+    #    with Shush():
+    #        multiple_user_message(
+    #            usernames=["lakinwecker", "glbert"],
+    #            userids=["0001", "0002"],
+    #            text="testing direct messages to multiple users",
+    #        )
+    #    client.return_value.send_message.assert_called_with(
+    #        {
+    #            "type": "direct",
+    #            "to": [1, 2, settings.ZULIP_LISTENING_BOT],
+    #            "content": "testing direct messages to multiple users",
     #        }
     #    )
 
@@ -256,5 +284,22 @@ class SlackFormatTestCase(SimpleTestCase):
             json={
                 "text": "forward to @lakinwecker",
                 "attachments": [{"text": "testing direct messages"}],
-            }
+            },
+        )
+
+    @patch("heltour.tournament.slackapi._get_slack_webhook", return_value="someurl")
+    @patch("requests.post")
+    def test_multiple_user_message(self, post, webhook):
+        with Shush():
+            multiple_user_message(
+                usernames=["lakinwecker", "chesster"],
+                userids=["0001", "0002"],
+                text="testing direct messages to multiple users",
+            )
+        post.assert_called_with(
+            "someurl",
+            json={
+                "text": "forward to @lakinwecker+@chesster",
+                "attachments": [{"text": "testing direct messages to multiple users"}],
+            },
         )
