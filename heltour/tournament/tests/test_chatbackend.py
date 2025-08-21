@@ -8,6 +8,7 @@ from heltour.tournament.chatbackend import (
     channellink,
     chatbackend,
     chatbackend_url,
+    direct_user_message,
     dm_link,
     inlinecode,
     italic,
@@ -86,53 +87,76 @@ class ZulipFormatTestCase(SimpleTestCase):
     def test_userlink_silent(self):
         self.assertEqual(userlink_silent("glbert"), "@_**glbert**")
 
+    # TODO: find a good way to make the following tests work without a local import
+    #    @patch("zulip.Client")
+    #    def test_channel_message(self, client):
+    #        client.return_value.register.return_value = {
+    #            "result": "success",
+    #            "max_topic_length": 100,
+    #            "max_message_length": 1000,
+    #            "max_stream_name_length": 100,
+    #            "max_stream_description_length": 1000,
+    #        }
+    #        client.return_value.send_message.return_value = {
+    #            "result": "success",
+    #        }
+    #        with Shush():
+    #            channel_message(channel="testchannel", text="testing")
+    #        client.return_value.send_message.assert_called_with(
+    #            {
+    #                "type": "channel",
+    #                "to": "testchannel",
+    #                "content": "testing",
+    #                "topic": "(no topic)",
+    #            }
+    #        )
 
-# TODO: find a good way to make the following tests work without a local import
-#    @patch("zulip.Client")
-#    def test_channel_message(self, client):
-#        client.return_value.register.return_value = {
-#            "result": "success",
-#            "max_topic_length": 100,
-#            "max_message_length": 1000,
-#            "max_stream_name_length": 100,
-#            "max_stream_description_length": 1000,
-#        }
-#        client.return_value.send_message.return_value = {
-#            "result": "success",
-#        }
-#        with Shush():
-#            channel_message(channel="testchannel", text="testing")
-#        client.return_value.send_message.assert_called_with(
-#            {
-#                "type": "channel",
-#                "to": "testchannel",
-#                "content": "testing",
-#                "topic": "(no topic)",
-#            }
-#        )
+    #    @patch("zulip.Client")
+    #    def test_control_message(self, client):
+    #        client.return_value.register.return_value = {
+    #            "result": "success",
+    #            "max_topic_length": 100,
+    #            "max_message_length": 1000,
+    #            "max_stream_name_length": 100,
+    #            "max_stream_description_length": 1000,
+    #        }
+    #        client.return_value.send_message.return_value = {
+    #            "result": "success",
+    #        }
+    #        with Shush():
+    #            send_control_message(text="testing control messages")
+    #        client.return_value.send_message.assert_called_with(
+    #            {
+    #                "type": "channel",
+    #                "to": "msg-forward",
+    #                "content": "testing control messages",
+    #                "topic": "control",
+    #            }
+    #        )
 
-#    @patch("zulip.Client")
-#    def test_control_message(self, client):
-#        client.return_value.register.return_value = {
-#            "result": "success",
-#            "max_topic_length": 100,
-#            "max_message_length": 1000,
-#            "max_stream_name_length": 100,
-#            "max_stream_description_length": 1000,
-#        }
-#        client.return_value.send_message.return_value = {
-#            "result": "success",
-#        }
-#        with Shush():
-#            send_control_message(text="testing control messages")
-#        client.return_value.send_message.assert_called_with(
-#            {
-#                "type": "channel",
-#                "to": "msg-forward",
-#                "content": "testing control messages",
-#                "topic": "control",
-#            }
-#        )
+    #@patch("zulip.Client")
+    #def test_direct_user_message(self, client):
+    #    client.return_value.register.return_value = {
+    #        "result": "success",
+    #        "max_topic_length": 100,
+    #        "max_message_length": 1000,
+    #        "max_stream_name_length": 100,
+    #        "max_stream_description_length": 1000,
+    #    }
+    #    client.return_value.send_message.return_value = {
+    #        "result": "success",
+    #    }
+    #    with Shush():
+    #        direct_user_message(
+    #            username="lakinwecker", userid="0001", text="testing direct messages"
+    #        )
+    #    client.return_value.send_message.assert_called_with(
+    #        {
+    #            "type": "direct",
+    #            "to": [1],
+    #            "content": "testing direct messages",
+    #        }
+    #    )
 
 
 @override_settings(USE_CHATBACKEND="slack")
@@ -219,3 +243,18 @@ class SlackFormatTestCase(SimpleTestCase):
         with Shush():
             send_control_message(text="testing control messages")
         post.assert_called_with("someurl", json={"text": "testing control messages"})
+
+    @patch("heltour.tournament.slackapi._get_slack_webhook", return_value="someurl")
+    @patch("requests.post")
+    def test_direct_user_message(self, post, webhook):
+        with Shush():
+            direct_user_message(
+                username="lakinwecker", userid="0001", text="testing direct messages"
+            )
+        post.assert_called_with(
+            "someurl",
+            json={
+                "text": "forward to @lakinwecker",
+                "attachments": [{"text": "testing direct messages"}],
+            }
+        )
