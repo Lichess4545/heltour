@@ -169,6 +169,26 @@ class TestUpdateTVState(TestCase):
         self.assertEqual("1/2-1/2", LonePlayerPairing.objects.get(pk=self.lpppk).result)
         addwatch.assert_not_called()
 
+    @patch(
+        "heltour.tournament.lichessapi.get_game_meta",
+        return_value={
+            "status": "insufficientMaterialClaim",
+            "moves": "e4 c5 Nf3",
+        },
+        autospec=True,
+    )
+    @patch(
+        "heltour.tournament.tasks.get_gameid_from_gamelink",
+        return_value="fakeid",
+        autospec=True,
+    )
+    @patch("heltour.tournament.lichessapi.add_watch")
+    def test_insufficientmaterialclaim(self, addwatch, gamelink, gamemeta):
+        update_tv_state()
+        gamemeta.assert_called_once_with("fakeid", priority=1, timeout=300)
+        self.assertEqual("1/2-1/2", LonePlayerPairing.objects.get(pk=self.lpppk).result)
+        addwatch.assert_not_called()
+
 
 @patch("heltour.tournament.lichessapi.add_watch", return_value=None)
 class TestAutostartGames(TestCase):
