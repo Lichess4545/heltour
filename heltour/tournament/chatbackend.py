@@ -5,6 +5,7 @@ from time import sleep
 import reversion
 from django.conf import settings
 
+
 if settings.USE_CHATBACKEND == "zulip":
     from heltour.tournament import zulipapi
 if settings.USE_CHATBACKEND == "slack":
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 SlackUser = namedtuple("SlackUser", ["id", "display_name", "email", "tz_offset"])
 SlackGroup = namedtuple("SlackGroup", ["id", "name"])
+
 
 # helper functions for formatting text
 def bold(text: str) -> str:
@@ -291,7 +293,7 @@ def multiple_user_message(
 
 def create_team_channel(
     *,
-    team: str,
+    team,
     channel_name: str,
     user_ids: list[str],
     topic: str,
