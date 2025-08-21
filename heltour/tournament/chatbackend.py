@@ -221,7 +221,7 @@ def direct_user_message(
 ) -> None:
     if settings.USE_CHATBACKEND == "/dev/null":
         return
-    elif settings.USE_CHATBACKNED == "log":
+    elif settings.USE_CHATBACKEND == "log":
         logger.info(f"[CBE] Message to {username}:\n{text}")
         return
     elif settings.USE_CHATBACKEND == "zulip":
