@@ -321,10 +321,14 @@ def update_tv_state():
                     game.tv_state = 'hide'
                 if 'moves' in meta and ' ' in meta['moves']: # ' ' indicates >= 2 moves
                     game.tv_state = 'has_moves'
-                if 'status' in meta and meta['status'] == 'draw':
-                    game.result = '1/2-1/2'
-                if meta.get('status') == 'aborted':
-                    game.game_link = ''
+                if meta.get("status") in [
+                    "draw",
+                    "stalemate",
+                    "insufficientMaterialClaim",
+                ]:
+                    game.result = "1/2-1/2"
+                if meta.get("status") == "aborted":
+                    game.game_link = ""
                 elif 'winner' in meta and meta[
                     'status'] != 'timeout':  # timeout = claim victory (which isn't allowed)
                     if meta['winner'] == 'white':

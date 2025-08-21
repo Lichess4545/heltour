@@ -9,6 +9,7 @@ from heltour.tournament.models import (
     Broadcast,
     BroadcastRound,
     League,
+    LonePlayerPairing,
     OauthToken,
     Player,
     Round,
@@ -32,6 +33,7 @@ from heltour.tournament.tasks import (
     update_broadcast,
     update_broadcast_round,
     update_player_ratings,
+    update_tv_state,
 )
 from heltour.tournament.tests.testutils import (
     Shush,
@@ -129,6 +131,63 @@ class TestUpdateRatings(TestCase):
         self.assertEqual(p2.rating_for(league=tl), 1800)
         self.assertEqual(p2.rating_for(league=self.l960), 1000)
         self.assertEqual(get_player("Player3").rating_for(league=tl), 0)
+
+
+class TestUpdateTVState(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        r = get_round(league_type="lone", round_number=1)
+        p1 = get_player("Player1")
+        p2 = get_player("Player2")
+        lpp = LonePlayerPairing.objects.create(
+            round=r,
+            white=p1,
+            black=p2,
+            game_link="fakelink",
+            pairing_order=1,
+        )
+        cls.lpppk = lpp.pk
+
+    @patch(
+        "heltour.tournament.lichessapi.get_game_meta",
+        return_value={
+            "status": "stalemate",
+            "moves": "d4 Nf6",
+        },
+        autospec=True,
+    )
+    @patch(
+        "heltour.tournament.tasks.get_gameid_from_gamelink",
+        return_value="fakeid",
+        autospec=True,
+    )
+    @patch("heltour.tournament.lichessapi.add_watch")
+    def test_stalemate(self, addwatch, gamelink, gamemeta):
+        update_tv_state()
+        gamemeta.assert_called_once_with("fakeid", priority=1, timeout=300)
+        self.assertEqual("1/2-1/2", LonePlayerPairing.objects.get(pk=self.lpppk).result)
+        addwatch.assert_not_called()
+
+    @patch(
+        "heltour.tournament.lichessapi.get_game_meta",
+        return_value={
+            "status": "insufficientMaterialClaim",
+            "moves": "e4 c5 Nf3",
+        },
+        autospec=True,
+    )
+    @patch(
+        "heltour.tournament.tasks.get_gameid_from_gamelink",
+        return_value="fakeid",
+        autospec=True,
+    )
+    @patch("heltour.tournament.lichessapi.add_watch")
+    def test_insufficientmaterialclaim(self, addwatch, gamelink, gamemeta):
+        update_tv_state()
+        gamemeta.assert_called_once_with("fakeid", priority=1, timeout=300)
+        self.assertEqual("1/2-1/2", LonePlayerPairing.objects.get(pk=self.lpppk).result)
+        addwatch.assert_not_called()
 
 
 @patch("heltour.tournament.lichessapi.add_watch", return_value=None)
