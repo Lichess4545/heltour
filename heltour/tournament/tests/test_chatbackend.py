@@ -4,7 +4,6 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from heltour.tournament.chatbackend import (
-    SlackGroup,
     bold,
     channel_message,
     channellink,
@@ -13,6 +12,7 @@ from heltour.tournament.chatbackend import (
     create_team_channel,
     direct_user_message,
     dm_link,
+    get_user,
     inlinecode,
     italic,
     link,
@@ -22,7 +22,8 @@ from heltour.tournament.chatbackend import (
     userlink_ping,
     userlink_silent,
 )
-from heltour.tournament.tests.testutils import createCommonLeagueData, Shush, get_team
+from heltour.tournament.slackapi import SlackGroup, SlackUser
+from heltour.tournament.tests.testutils import Shush, createCommonLeagueData, get_team
 
 
 @override_settings(USE_CHATBACKEND="zulip")
@@ -188,6 +189,38 @@ class ZulipFormatTestCase(SimpleTestCase):
     #        }
     #    )
 
+    # @patch("zulip.Client")
+    # def test_get_user(self, client):
+    #    client.return_value.register.return_value = {
+    #        "result": "success",
+    #        "max_topic_length": 100,
+    #        "max_message_length": 1000,
+    #        "max_stream_name_length": 100,
+    #        "max_stream_description_length": 1000,
+    #    }
+    #    client.return_value.get_user_by_id.return_value = {
+    #        "result": "success",
+    #        "user": {
+    #            "user_id": 2,
+    #            "timezone": "CET",
+    #            "email": "no@fakeimail",
+    #            "full_name": "glbert",
+    #        },
+    #    }
+    #    result = get_user(user_id="0002")
+    #    client.return_value.get_user_by_id.assert_called_once_with(2)
+    #    self.assertEqual(
+    #        result,
+    #        SlackUser(
+    #            id="2",
+    #            name_deprecated="",
+    #            real_name="",
+    #            display_name="glbert",
+    #            email="no@fakeimail",
+    #            tz_offset=7200.0,
+    #        ),
+    #    )
+
 
 @override_settings(USE_CHATBACKEND="slack")
 class SlackFormatTestCase(SimpleTestCase):
@@ -304,6 +337,40 @@ class SlackFormatTestCase(SimpleTestCase):
                 "text": "forward to @lakinwecker+@chesster",
                 "attachments": [{"text": "testing direct messages to multiple users"}],
             },
+        )
+
+    @patch("heltour.tournament.slackapi._get_slack_token", return_value="faketoken")
+    @patch("requests.get")
+    def test_get_user(self, get, token):
+        get.return_value.json.return_value = {
+            "ok": True,
+            "user": {
+                "id": "0002",
+                "name": "glbert",
+                "profile": {
+                    "real_name": "gl bert",
+                    "display_name": "glbert-disp",
+                    "email": "example@fakeimail",
+                },
+                "tz_offset": "0",
+            },
+        }
+        result = get_user(user_id="0002")
+        token.assert_called_once()
+        get.assert_called_once_with(
+            "https://slack.com/api/users.info",
+            params={"user": "0002", "token": "faketoken"},
+        )
+        self.assertEqual(
+            result,
+            SlackUser(
+                id="0002",
+                name_deprecated="glbert",
+                real_name="gl bert",
+                display_name="glbert-disp",
+                email="example@fakeimail",
+                tz_offset="0",
+            ),
         )
 
 
