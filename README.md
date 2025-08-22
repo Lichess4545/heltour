@@ -8,6 +8,7 @@ League management software for chess leagues on Lichess, now branded as lots.lic
 
 - Docker and Docker Compose
 - Nix (for development environment)
+- invoke
 
 ## Development Setup
 
@@ -16,7 +17,7 @@ League management software for chess leagues on Lichess, now branded as lots.lic
 invoke docker-up
 
 # 2. Copy the development environment file
-cp .env.dev .env
+cp .env.example .env
 
 # 3. Enter the nix development environment
 nix develop
@@ -55,6 +56,7 @@ invoke shell          # Django shell
 invoke test           # Run tests
 invoke collectstatic  # Collect static files
 invoke compilestatic  # Compile SCSS files
+invoke seed-minimal   # Fill the database with some simulated values
 
 # Dependencies
 invoke update         # Update all dependencies via Poetry
