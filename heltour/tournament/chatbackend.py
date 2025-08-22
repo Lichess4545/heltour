@@ -396,7 +396,7 @@ def create_team_channel(
         )
 
 
-def get_user(user_id: str, tries: int = 0) -> tuple[str, str, str, int]:
+def get_user(user_id: str, tries: int = 0) -> namedtuple:
     if settings.USE_CHATBACKEND == "/dev/null":
         return SlackUser(
             id="",
