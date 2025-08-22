@@ -1,4 +1,3 @@
-from collections import namedtuple
 from datetime import datetime
 
 import pytz
@@ -6,9 +5,7 @@ from django.conf import settings
 from zulip import Client, ZulipError
 
 from heltour.tournament.models import logger
-
-SlackUser = namedtuple("SlackUser", ["id", "display_name", "email", "tz_offset"])
-SlackGroup = namedtuple("SlackGroup", ["id", "name"])
+from heltour.tournament.slackapi import SlackGroup, SlackUser
 
 
 def _initial_connection():
@@ -33,7 +30,7 @@ def _initial_connection():
                     "max lengths of topics/message/stream_name/stream_description"
                 )
                 return
-    except ZulipError as e: 
+    except ZulipError as e:
         logger.error(f"ERROR: Could not connect to zulip - {e}")
         return
     return (
@@ -118,10 +115,12 @@ def get_user_list():
             tzseconds = 0.0
         result.append(
             SlackUser(
-                str(m.get("user_id")),
-                m.get("full_name"),
-                m.get("delivery_email"),
-                tzseconds,
+                id=str(m.get("user_id")),
+                display_name=m.get("full_name"),
+                email=m.get("delivery_email"),
+                tz_offset=tzseconds,
+                name_deprecated="",
+                real_name="",
             )
         )
     return result
@@ -154,7 +153,12 @@ def get_user(user_id):
     else:
         tzseconds = 0.0
     return SlackUser(
-        str(m.get("user_id")), m.get("full_name"), m.get("email"), tzseconds
+        id=str(m.get("user_id")),
+        display_name=m.get("full_name"),
+        email=m.get("email"),
+        tz_offset=tzseconds,
+        name_deprecated="",
+        real_name="",
     )
 
 
