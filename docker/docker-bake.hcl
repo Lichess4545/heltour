@@ -20,11 +20,11 @@ group "verify" {
 }
 
 group "default" {
-  targets = ["base", "verify", "litour-caddy", "litour-web", "litour-api-worker", "litour-celery"]
+  targets = ["base", "verify", "litour-caddy", "litour-web", "litour-api-worker", "litour-celery", "litour-migrate"]
 }
 
 group "production" {
-  targets = ["litour-caddy", "litour-web", "litour-api-worker", "litour-celery"]
+  targets = ["litour-caddy", "litour-web", "litour-api-worker", "litour-celery", "litour-migrate"]
 }
 
 target "base" {
@@ -93,6 +93,15 @@ target "litour-celery" {
   context = "."
   dockerfile = "docker/Dockerfile.celery"
   tags = tag("litour-celery")
+  contexts = {
+    base = "target:base"
+  }
+}
+
+target "litour-migrate" {
+  context = "."
+  dockerfile = "docker/Dockerfile.migrate"
+  tags = tag("litour-migrate")
   contexts = {
     base = "target:base"
   }

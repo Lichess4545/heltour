@@ -10,12 +10,18 @@ services:
     networks:
       - caddy
       - litour
+    deploy:
+      update_config:
+        order: start-first
 
   web:
     image: ghcr.io/lichess4545/litour-web:latest
     env_file: "stack.env"
     networks:
       - litour
+    deploy:
+      update_config:
+        order: start-first
 
   apiworker:
     image: ghcr.io/lichess4545/litour-api-worker:latest
@@ -25,12 +31,18 @@ services:
       HELTOUR_APP: api_worker
     networks:
       - litour
+    deploy:
+      update_config:
+        order: start-first
 
   celery:
     image: ghcr.io/lichess4545/litour-celery:latest
     env_file: "stack.env"
     networks:
       - litour
+    deploy:
+      update_config:
+        order: start-first
 
   postgres:
     image: postgres:15-alpine
@@ -47,6 +59,9 @@ services:
       retries: 5
     networks:
       - litour
+    deploy:
+      update_config:
+        order: start-first
 
   redis:
     image: redis:7-alpine
@@ -60,6 +75,17 @@ services:
       retries: 5
     networks:
       - litour
+    deploy:
+      update_config:
+        order: start-first
+  
+  migrate:
+    # image: ghcr.io/lichess4545/litour-migrate:latest
+    image: litour-migrate:latest
+    env_file: "stack.env"
+    networks:
+      - litour
+    restart: no
 
   mailpit:
     image: axllent/mailpit:v1.24.1

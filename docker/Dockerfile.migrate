@@ -1,0 +1,7 @@
+FROM base AS web
+
+# Set environment for Django
+ENV DJANGO_SETTINGS_MODULE=heltour.settings \
+    PYTHONUNBUFFERED=1
+
+CMD ["python", "manage.py", "migrate"]
