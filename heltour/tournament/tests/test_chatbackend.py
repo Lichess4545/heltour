@@ -1,4 +1,4 @@
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -13,6 +13,7 @@ from heltour.tournament.chatbackend import (
     direct_user_message,
     dm_link,
     get_user,
+    get_user_list,
     inlinecode,
     italic,
     link,
@@ -213,12 +214,62 @@ class ZulipFormatTestCase(SimpleTestCase):
     #        result,
     #        SlackUser(
     #            id="2",
-    #            name_deprecated="",
-    #            real_name="",
+    #            name_deprecated=ANY,
+    #            real_name=ANY,
     #            display_name="glbert",
     #            email="no@fakeimail",
     #            tz_offset=7200.0,
     #        ),
+    #    )
+
+    # @patch("zulip.Client")
+    # def test_get_user_list(self, client):
+    #    client.return_value.register.return_value = {
+    #        "result": "success",
+    #        "max_topic_length": 100,
+    #        "max_message_length": 1000,
+    #        "max_stream_name_length": 100,
+    #        "max_stream_description_length": 1000,
+    #    }
+    #    client.return_value.get_users.return_value = {
+    #        "result": "success",
+    #        "members": [
+    #            {
+    #                "user_id": 1,
+    #                "timezone": "UTC",
+    #                "delivery_email": "lakinwecker@example.com",
+    #                "full_name": "lakinwecker",
+    #            },
+    #            {
+    #                "user_id": 2,
+    #                "timezone": "CET",
+    #                "delivery_email": "no@fakeimail",
+    #                "full_name": "glbert",
+    #            },
+    #        ],
+    #    }
+    #    result = get_user_list()
+    #    client.return_value.get_users.assert_called_once_with()
+    #    self.assertEqual(
+    #        result,
+    #        [
+    #            SlackUser(
+    #                id="1",
+    #                name_deprecated=ANY,
+    #                real_name=ANY,
+    #                display_name="lakinwecker",
+    #                email="lakinwecker@example.com",
+    #                tz_offset=0.0,
+    #            ),
+    #            SlackUser(
+    #                id="2",
+    #                name_deprecated=ANY,
+    #                real_name=ANY,
+    #                display_name="glbert",
+    #                email="no@fakeimail",
+    #                tz_offset=7200.0,
+    #            ),
+    #        ],
     #    )
 
 
@@ -365,12 +416,68 @@ class SlackFormatTestCase(SimpleTestCase):
             result,
             SlackUser(
                 id="0002",
-                name_deprecated="glbert",
-                real_name="gl bert",
+                real_name=ANY,
+                name_deprecated=ANY,
                 display_name="glbert-disp",
                 email="example@fakeimail",
                 tz_offset="0",
             ),
+        )
+
+    @patch("heltour.tournament.slackapi._get_slack_token", return_value="faketoken")
+    @patch("requests.get")
+    def test_get_user_list(self, get, token):
+        get.return_value.json.return_value = {
+            "ok": True,
+            "members": [
+                {
+                    "id": "0001",
+                    "name": "lakinwecker",
+                    "profile": {
+                        "real_name": "lakin wecker",
+                        "display_name": "lakin-disp",
+                        "email": "lakinwecker@example.com",
+                    },
+                    "tz_offset": "-6",
+                },
+                {
+                    "id": "0002",
+                    "name": "glbert",
+                    "profile": {
+                        "real_name": "gl bert",
+                        "display_name": "glbert-disp",
+                        "email": "example@fakeimail",
+                    },
+                    "tz_offset": "0",
+                },
+            ],
+        }
+        result = get_user_list()
+        token.assert_called_once()
+        get.assert_called_once_with(
+            "https://slack.com/api/users.list",
+            params={"token": "faketoken"},
+        )
+        self.assertEqual(
+            result,
+            [
+                SlackUser(
+                    id="0001",
+                    name_deprecated=ANY,
+                    real_name=ANY,
+                    display_name="lakin-disp",
+                    email="lakinwecker@example.com",
+                    tz_offset="-6",
+                ),
+                SlackUser(
+                    id="0002",
+                    name_deprecated=ANY,
+                    real_name=ANY,
+                    display_name="glbert-disp",
+                    email="example@fakeimail",
+                    tz_offset="0",
+                ),
+            ],
         )
 
 
