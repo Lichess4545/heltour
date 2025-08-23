@@ -15,6 +15,7 @@ from heltour.tournament.chatbackend import (
     get_user,
     get_user_list,
     inlinecode,
+    invite_user,
     italic,
     link,
     multiple_user_message,
@@ -272,6 +273,33 @@ class ZulipFormatTestCase(SimpleTestCase):
     #        ],
     #    )
 
+    # @patch("zulip.Client")
+    # def test_invite_user(self, client):
+    #    client.return_value.register.return_value = {
+    #        "result": "success",
+    #        "max_topic_length": 100,
+    #        "max_message_length": 1000,
+    #        "max_stream_name_length": 100,
+    #        "max_stream_description_length": 1000,
+    #    }
+    #    client.return_value.call_endpoint.return_value = {
+    #        "result": "success",
+    #    }
+    #    with Shush():
+    #        invite_user("sgis@glbert.com")
+    #    client.return_value.call_endpoint.assert_called_once_with(
+    #        url="/invites",
+    #        method="POST",
+    #        request={
+    #            "invitee_emails": "sgis@glbert.com",
+    #            "invite_expires_in_minutes": 40320,
+    #            "invite_as": 600,
+    #            "stream_ids": [],
+    #            "include_realm_default_subscriptions": "true",
+    #            "notify_referrer_on_join": "false",
+    #        },
+    #    )
+
 
 @override_settings(USE_CHATBACKEND="slack")
 class SlackFormatTestCase(SimpleTestCase):
@@ -478,6 +506,19 @@ class SlackFormatTestCase(SimpleTestCase):
                     tz_offset="0",
                 ),
             ],
+        )
+
+    @patch("heltour.tournament.slackapi._get_slack_token", return_value="faketoken")
+    @patch("requests.get")
+    def test_inivite_user(self, get, token):
+        get.return_value.json.return_value = {
+            "ok": True,
+        }
+        invite_user("sgis@glbert.com")
+        token.assert_called_once()
+        get.assert_called_once_with(
+            "https://slack.com/api/users.admin.invite",
+            params={"token": "faketoken", "email": "sgis@glbert.com"},
         )
 
 
