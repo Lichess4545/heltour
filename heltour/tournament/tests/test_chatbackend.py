@@ -301,6 +301,103 @@ class ZulipFormatTestCase(SimpleTestCase):
     #    )
 
 
+@override_settings(USE_CHATBACKEND="/dev/null")
+class DevNullFormatTestCase(SimpleTestCase):
+    def test_bold(self):
+        self.assertEqual(bold("some text"), "some text")
+
+    def test_channellink(self):
+        self.assertEqual(
+            channellink(
+                channelprefix="#",
+                channelid="someid",
+                channel="testchannel",
+                topic="tests",
+            ),
+            "",
+        )
+        self.assertEqual(
+            channellink(channelid="someid", channel="testchannel", topic="tests"),
+            "",
+        )
+        self.assertEqual(channellink(channel="testchannel"), "")
+
+    def test_chatbackend_str(self):
+        self.assertEqual(chatbackend(), "/dev/null")
+
+    def test_chatbackend_url(self):
+        self.assertEqual(chatbackend_url(), "")
+
+    def test_dm_link(self):
+        self.assertEqual(
+            dm_link(
+                usernames=["glbert", "lakinwecker"],
+                userids=["U666", "U001"],
+                add_bot=False,
+            ),
+            "",
+        )
+        self.assertEqual(
+            dm_link(
+                usernames=["glbert", "lakinwecker"],
+                userids=["U666", "U001"],
+                add_bot=True,
+            ),
+            "",
+        )
+
+    def test_inlinecode(self):
+        self.assertEqual(inlinecode("some text"), "some text")
+
+    def test_link(self):
+        self.assertEqual(
+            link(text="Lichess4545", url="https://lichess4545.com"),
+            "https://lichess4545.com",
+        )
+
+    def test_ping_mods(self):
+        self.assertEqual(ping_mods(), "")
+
+    def test_userlink_ping(self):
+        self.assertEqual(userlink_ping("Tranzoo"), "Tranzoo")
+
+    def test_userlink_silent(self):
+        self.assertEqual(userlink_silent("lakinwecker"), "lakinwecker")
+
+    # in the following functions we expect nothing to happen,
+    # so nothing to assert
+    def test_empty_functions(self):
+        channel_message(channel="testchannel", text="testing")
+        send_control_message(text="testing control messages")
+        direct_user_message(
+            username="lakinwecker", userid="0001", text="testing direct messages"
+        )
+        multiple_user_message(
+            usernames=["lakinwecker", "chesster"],
+            userids=["0001", "0002"],
+            text="testing direct messages to multiple users",
+        )
+        invite_user("sgis@glbert.com")
+
+    def test_get_user(self):
+        result = get_user(user_id="0002")
+        self.assertEqual(
+            result,
+            SlackUser(
+                id="",
+                display_name="",
+                email="",
+                tz_offset=0,
+                real_name="",
+                name_deprecated="",
+            ),
+        )
+
+    def test_get_user_list(self):
+        result = get_user_list()
+        self.assertEqual(result, [])
+
+
 @override_settings(USE_CHATBACKEND="slack")
 class SlackFormatTestCase(SimpleTestCase):
     def test_bold(self):
@@ -636,3 +733,14 @@ class TeamChannelCreation(TestCase):
         leave_group.assert_called_once()
         send_message.assert_called_once_with("#channelname", "welcome to your channel")
         self.assertEqual("id1", get_team("Team 1").slack_channel)
+
+    @override_settings(USE_CHATBACKEND="/dev/null")
+    def test_devnull_create_team_channels(self):
+        create_team_channel(
+            team=self.t,
+            channel_name="channelname",
+            user_ids=["1", "2"],
+            topic="channel topic",
+            intro_message="welcome to your channel",
+        )
+        # we do not expect anthing to happen.
