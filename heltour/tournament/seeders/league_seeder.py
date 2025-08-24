@@ -5,7 +5,9 @@ League seeder for creating test leagues.
 import random
 from datetime import timedelta
 from typing import List
-from heltour.tournament.models import League, LeagueSetting
+
+from heltour.tournament.models import AlternatesManagerSetting, League, LeagueSetting
+
 from .base import BaseSeeder
 
 
@@ -89,6 +91,10 @@ class LeagueSeeder(BaseSeeder):
                 notify_for_registrations=self.weighted_bool(0.7),
                 notify_for_pre_season_registrations=self.weighted_bool(0.5),
             )
+
+            # for team leagues, create associated settings for the alternates manager
+            if league.is_team_league():
+                AlternatesManagerSetting.objects.create(league=league)
 
             leagues.append(self._track_object(league))
 
