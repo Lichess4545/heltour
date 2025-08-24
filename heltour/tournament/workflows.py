@@ -9,7 +9,14 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from heltour import settings
-from heltour.tournament import alternates_manager, pairinggen, signals, slackapi
+from heltour.tournament import alternates_manager, pairinggen, signals
+from heltour.tournament.chatbackend import (
+    ChatBackendError,
+    InvitationFailedError,
+    chatbackend,
+    chatbackend_url,
+    invite_user,
+)
 from heltour.tournament.models import (
     Alternate,
     AlternateAssignment,
@@ -509,27 +516,69 @@ class ApproveRegistrationWorkflow():
                                                                         'is_available': False})
 
         if season.league.competitor_type == 'team':
-            subject = render_to_string('tournament/emails/team_registration_approved_subject.txt',
-                                       {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/team_registration_approved.txt',
-                                         {'reg': reg})
-            msg_html = render_to_string('tournament/emails/team_registration_approved.html',
-                                        {'reg': reg})
+            subject = render_to_string(
+                "tournament/emails/team_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/team_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/team_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
         elif season.league.rating_type == 'blitz':
             # TODO: Make the email template a league setting
-            subject = render_to_string('tournament/emails/blitz_registration_approved_subject.txt',
-                                       {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/blitz_registration_approved.txt',
-                                         {'reg': reg})
-            msg_html = render_to_string('tournament/emails/blitz_registration_approved.html',
-                                        {'reg': reg})
+            subject = render_to_string(
+                "tournament/emails/blitz_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/blitz_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/blitz_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
         else:
-            subject = render_to_string('tournament/emails/lone_registration_approved_subject.txt',
-                                       {'reg': reg})
-            msg_plain = render_to_string('tournament/emails/lone_registration_approved.txt',
-                                         {'reg': reg})
-            msg_html = render_to_string('tournament/emails/lone_registration_approved.html',
-                                        {'reg': reg})
+            subject = render_to_string(
+                "tournament/emails/lone_registration_approved_subject.txt",
+                {"reg": reg},
+            )
+            msg_plain = render_to_string(
+                "tournament/emails/lone_registration_approved.txt",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
+            msg_html = render_to_string(
+                "tournament/emails/lone_registration_approved.html",
+                {
+                    "reg": reg,
+                    "chatbackend_url": chatbackend_url(),
+                    "chatbackend": chatbackend(),
+                },
+            )
 
         if send_confirm_email:
             try:
@@ -553,30 +602,36 @@ class ApproveRegistrationWorkflow():
             try:
                 if request.user.has_perm('tournament.invite_to_slack'):
                     try:
-                        slackapi.invite_user(reg.email)
+                        invite_user(reg.email)
                         if modeladmin:
-                            modeladmin.message_user(request,
-                                                    'Slack invitation sent to "%s".' % reg.email,
-                                                    messages.INFO)
-                    except slackapi.SlackError as e:
-                        logger.exception('Could not invite %s to slack' % reg.email)
+                            modeladmin.message_user(
+                                request,
+                                f'{chatbackend()} invitation sent to "{reg.email}".',
+                                messages.INFO,
+                            )
+                    except ChatBackendError as e:
+                        logger.exception(
+                            f"Could not invite {reg.email} to {chatbackend()}"
+                        )
                         if modeladmin:
-                            modeladmin.message_user(request,
-                                                    'Could not invite %s to slack (%s)".' % (reg.email, e),
-                                                    messages.ERROR)
+                            modeladmin.message_user(
+                                request,
+                                f'Could not invite {reg.email} to {chatbackend()} (e)".',
+                                messages.ERROR,
+                            )
                 elif modeladmin:
-                    modeladmin.message_user(request,
-                                            'You don\'t have permission to invite players to slack.',
-                                            messages.ERROR)
-            except slackapi.AlreadyInTeam:
+                    modeladmin.message_user(
+                        request,
+                        f"You don't have permission to invite players to {chatbackend()}.",
+                        messages.ERROR,
+                    )
+            except InvitationFailedError:
                 if modeladmin:
-                    modeladmin.message_user(request, 'The player is already in the slack group.',
-                                            messages.WARNING)
-            except slackapi.AlreadyInvited:
-                if modeladmin:
-                    modeladmin.message_user(request,
-                                            'The player has already been invited to the slack group.',
-                                            messages.WARNING)
+                    modeladmin.message_user(
+                        request,
+                        f"The player could not be invited to {chatbackend()}.",
+                        messages.WARNING,
+                    )
 
         with reversion.create_revision():
             reversion.set_user(request.user)
