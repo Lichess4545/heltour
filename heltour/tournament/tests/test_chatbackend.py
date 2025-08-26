@@ -8,6 +8,7 @@ from heltour.tournament.chatbackend import (
     channel_message,
     channellink,
     chatbackend,
+    chatbackend_render,
     chatbackend_url,
     create_team_channel,
     direct_user_message,
@@ -51,6 +52,9 @@ class ZulipFormatTestCase(SimpleTestCase):
 
     def test_chatbackend_str(self):
         self.assertEqual(chatbackend(), "Zulip")
+
+    def test_chatbackend_render(self):
+        self.assertTrue(chatbackend_render())
 
     def test_chatbackend_url(self):
         self.assertEqual(chatbackend_url(), "https://lichess4545-test.zulipchat.com")
@@ -325,6 +329,9 @@ class DevNullFormatTestCase(SimpleTestCase):
     def test_chatbackend_str(self):
         self.assertEqual(chatbackend(), "/dev/null")
 
+    def test_chatbackend_render(self):
+        self.assertFalse(chatbackend_render())
+
     def test_chatbackend_url(self):
         self.assertEqual(chatbackend_url(), "")
 
@@ -421,6 +428,9 @@ class SlackFormatTestCase(SimpleTestCase):
 
     def test_chatbackend_str(self):
         self.assertEqual(chatbackend(), "Slack")
+
+    def test_chatbackend_render(self):
+        self.assertTrue(chatbackend_render())
 
     def test_chatbackend_url(self):
         self.assertEqual(chatbackend_url(), "https://lichess4545.slack.com")
