@@ -25,7 +25,12 @@ from django.views.generic import View
 from icalendar import Calendar, Event
 
 from heltour.tournament import alternates_manager, lichessapi, oauth, uptime
-from heltour.tournament.chatbackend import chatbackend, chatbackend_url, dm_link
+from heltour.tournament.chatbackend import (
+    chatbackend,
+    chatbackend_render,
+    chatbackend_url,
+    dm_link,
+)
 from heltour.tournament.forms import (
     ContactForm,
     DeleteNominationForm,
@@ -1511,6 +1516,7 @@ class UserDashboardView(LeagueView):
             'last_season': last_season,
             'my_pairings': my_pairings,
             'approved': approved,
+            "chatbackend_render": chatbackend_render(),
             "chat_dm_link": dm_link(usernames=[], userids=[], add_bot=True),
         }
         return self.render('tournament/user_dashboard.html', context)
@@ -1591,7 +1597,10 @@ class ContactSuccessView(LeagueView):
 
 class AboutView(LeagueView):
     def view(self):
-        context = {"chatbackend_url": chatbackend_url()}
+        context = {
+            "chatbackend_url": chatbackend_url(),
+            "chatbackend_render": chatbackend_render(),
+        }
         return self.render("tournament/about.html", context)
 
 
@@ -1758,6 +1767,7 @@ class PlayerProfileView(LeagueView):
             'career_score_total': career_score_total,
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
             'trophies': trophies,
+            "chatbackend_render": chatbackend_render(),
             "dm_player": dm_link(
                 usernames=[player],
                 userids=[player.slack_user_id],

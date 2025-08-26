@@ -58,6 +58,9 @@ def chatbackend() -> str:
         return "/dev/null"
     return settings.USE_CHATBACKEND.capitalize()
 
+def chatbackend_render() -> bool:
+    return settings.USE_CHATBACKEND in ["slack", "zulip"]
+
 
 def chatbackend_url() -> str:
     if settings.USE_CHATBACKEND == "/dev/null":

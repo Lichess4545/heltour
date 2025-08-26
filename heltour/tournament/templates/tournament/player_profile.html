@@ -61,7 +61,7 @@
                 </div>
                 <div class="well-body">
                     {% comment %} feature temporarily disabled because of slack leaking usernames which cannot be changed on an unpaid instance
-                    {% if player.slack_user_id %}
+                    {% if player.slack_user_id and chatbackend_render %}
                         <div>
                           <a href={{ dm_player }}>Message {{ player.lichess_username }}
                             on {{ chatbackend }}</a></div>

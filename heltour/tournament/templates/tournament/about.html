@@ -13,8 +13,11 @@
                         Lichess leagues are a place for players to organize long chess games on <a href="https://lichess.org/">lichess.org</a>.
                     </p>
                     <p>
-                        The leagues are managed by volunteer moderators. We use <a href="{{ chatbackend_url }}">{{ chatbackend }}</a>
-                        as our main form of communication.
+                        The leagues are managed by volunteer moderators.
+                        {% if chatbackend_render %}
+                            We use <a href="{{ chatbackend_url }}">{{ chatbackend }}</a>
+                            as our main form of communication.
+                        {% endif %}
                     </p>
                     <p>We are officially a part of the lichess.org site ("Lichess").</p>
                     <p>
