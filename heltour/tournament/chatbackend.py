@@ -337,7 +337,7 @@ def create_team_channel(
         except zulipapi.ZulipError as e:
             logger.error(
                 "Could not create slack team, name probably taken: "
-                f"{channel_name}\nError msg: {e.message}"
+                f"{channel_name}\nError msg: {e}"
             )
             return
         with reversion.create_revision():
@@ -430,7 +430,7 @@ def get_user(user_id: str, tries: int = 0) -> namedtuple:
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
-            logger.error(f"Could not get user {user_id}.\nError msg: {e.message}")
+            logger.error(f"Could not get user {user_id}.\nError msg: {e}")
             raise InvitationFailedError(repr(e))
     elif settings.USE_CHATBACKEND == "slack":
         return slackapi.get_user(user_id=user_id)
@@ -460,7 +460,7 @@ def get_user_list(tries: int = 0) -> list[namedtuple]:
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
-            logger.error(f"Could get user list.\nError msg: {e.message}")
+            logger.error(f"Could get user list.\nError msg: {e}")
             raise InvitationFailedError(repr(e))
     elif settings.USE_CHATBACKEND == "slack":
         return slackapi.get_user_list()
@@ -490,7 +490,7 @@ def invite_user(email: str, tries: int = 0) -> None:
             else:
                 logger.error(f"Error: Hit Rate Limit twice. Giving up.\n{e.message}")
         except zulipapi.ZulipError as e:
-            logger.error(f"Could invite user {email}.\nError msg: {e.message}")
+            logger.error(f"Could invite user {email}.\nError msg: {e}")
             raise InvitationFailedError(repr(e))
     elif settings.USE_CHATBACKEND == "slack":
         try:
