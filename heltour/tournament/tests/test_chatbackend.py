@@ -1,3 +1,4 @@
+import importlib
 from unittest.mock import ANY, call, patch
 
 from django.conf import settings
@@ -31,6 +32,21 @@ from heltour.tournament.tests.testutils import Shush, createCommonLeagueData, ge
 
 @override_settings(USE_CHATBACKEND="zulip")
 class ZulipFormatTestCase(SimpleTestCase):
+    @classmethod
+    @patch("zulip.Client")
+    def setUp(cls, client):
+        client.return_value.register.return_value = {
+            "result": "success",
+            "max_topic_length": 100,
+            "max_message_length": 1000,
+            "max_stream_name_length": 100,
+            "max_stream_description_length": 1000,
+        }
+        # reload chatbackend so that the patched zulip client is created
+        import heltour.tournament.chatbackend
+
+        importlib.reload(heltour.tournament.chatbackend)
+
     def test_bold(self):
         self.assertEqual(bold("some text"), "**some text**")
 
@@ -98,185 +114,155 @@ class ZulipFormatTestCase(SimpleTestCase):
     def test_userlink_silent(self):
         self.assertEqual(userlink_silent("glbert"), "@_**glbert**")
 
-    # TODO: find a good way to make the following tests work without a local import
-    #    @patch("zulip.Client")
-    #    def test_channel_message(self, client):
-    #        client.return_value.register.return_value = {
-    #            "result": "success",
-    #            "max_topic_length": 100,
-    #            "max_message_length": 1000,
-    #            "max_stream_name_length": 100,
-    #            "max_stream_description_length": 1000,
-    #        }
-    #        client.return_value.send_message.return_value = {
-    #            "result": "success",
-    #        }
-    #        with Shush():
-    #            channel_message(channel="testchannel", text="testing")
-    #        client.return_value.send_message.assert_called_with(
-    #            {
-    #                "type": "channel",
-    #                "to": "testchannel",
-    #                "content": "testing",
-    #                "topic": "(no topic)",
-    #            }
-    #        )
+    @patch(
+        "heltour.tournament.zulipapi._client.send_message",
+        return_value={"result": "success"},
+        autospec=True,
+    )
+    def test_channel_message(self, sm):
+        with Shush():
+            channel_message(channel="testchannel", text="testing")
+        sm.assert_called_with(
+            {
+                "type": "channel",
+                "to": "testchannel",
+                "content": "testing",
+                "topic": "(no topic)",
+            }
+        )
 
-    #    @patch("zulip.Client")
-    #    def test_control_message(self, client):
-    #        client.return_value.register.return_value = {
-    #            "result": "success",
-    #            "max_topic_length": 100,
-    #            "max_message_length": 1000,
-    #            "max_stream_name_length": 100,
-    #            "max_stream_description_length": 1000,
-    #        }
-    #        client.return_value.send_message.return_value = {
-    #            "result": "success",
-    #        }
-    #        with Shush():
-    #            send_control_message(text="testing control messages")
-    #        client.return_value.send_message.assert_called_with(
-    #            {
-    #                "type": "channel",
-    #                "to": "msg-forward",
-    #                "content": "testing control messages",
-    #                "topic": "control",
-    #            }
-    #        )
+    @patch(
+        "heltour.tournament.zulipapi._client.send_message",
+        return_value={"result": "success"},
+        autospec=True,
+    )
+    def test_control_message(self, sm):
+        with Shush():
+            send_control_message(text="testing control messages")
+        sm.assert_called_with(
+            {
+                "type": "channel",
+                "to": "msg-forward",
+                "content": "testing control messages",
+                "topic": "control",
+            }
+        )
 
-    # @patch("zulip.Client")
-    # def test_direct_user_message(self, client):
-    #    client.return_value.register.return_value = {
-    #        "result": "success",
-    #        "max_topic_length": 100,
-    #        "max_message_length": 1000,
-    #        "max_stream_name_length": 100,
-    #        "max_stream_description_length": 1000,
-    #    }
-    #    client.return_value.send_message.return_value = {
-    #        "result": "success",
-    #    }
-    #    with Shush():
-    #        direct_user_message(
-    #            username="lakinwecker", userid="0001", text="testing direct messages"
-    #        )
-    #    client.return_value.send_message.assert_called_with(
-    #        {
-    #            "type": "direct",
-    #            "to": [1],
-    #            "content": "testing direct messages",
-    #        }
-    #    )
+    @patch(
+        "heltour.tournament.zulipapi._client.send_message",
+        return_value={"result": "success"},
+        autospec=True,
+    )
+    def test_direct_user_message(self, sm):
+        with Shush():
+            direct_user_message(
+                username="lakinwecker", userid="0001", text="testing direct messages"
+            )
+        sm.assert_called_with(
+            {
+                "type": "direct",
+                "to": [1],
+                "content": "testing direct messages",
+            }
+        )
 
-    # @patch("zulip.Client")
-    # def test_multiple_user_message(self, client):
-    #    client.return_value.register.return_value = {
-    #        "result": "success",
-    #        "max_topic_length": 100,
-    #        "max_message_length": 1000,
-    #        "max_stream_name_length": 100,
-    #        "max_stream_description_length": 1000,
-    #    }
-    #    client.return_value.send_message.return_value = {
-    #        "result": "success",
-    #    }
-    #    with Shush():
-    #        multiple_user_message(
-    #            usernames=["lakinwecker", "glbert"],
-    #            userids=["0001", "0002"],
-    #            text="testing direct messages to multiple users",
-    #        )
-    #    client.return_value.send_message.assert_called_with(
-    #        {
-    #            "type": "direct",
-    #            "to": [1, 2, settings.ZULIP_LISTENING_BOT],
-    #            "content": "testing direct messages to multiple users",
-    #        }
-    #    )
+    @patch(
+        "heltour.tournament.zulipapi._client.send_message",
+        return_value={
+            "result": "success",
+        },
+        autospec=True,
+    )
+    def test_multiple_user_message(self, sm):
+        with Shush():
+            multiple_user_message(
+                usernames=["lakinwecker", "glbert"],
+                userids=["0001", "0002"],
+                text="testing direct messages to multiple users",
+            )
+        sm.assert_called_with(
+            {
+                "type": "direct",
+                "to": [1, 2, settings.ZULIP_LISTENING_BOT],
+                "content": "testing direct messages to multiple users",
+            }
+        )
 
-    # @patch("zulip.Client")
-    # def test_get_user(self, client):
-    #    client.return_value.register.return_value = {
-    #        "result": "success",
-    #        "max_topic_length": 100,
-    #        "max_message_length": 1000,
-    #        "max_stream_name_length": 100,
-    #        "max_stream_description_length": 1000,
-    #    }
-    #    client.return_value.get_user_by_id.return_value = {
-    #        "result": "success",
-    #        "user": {
-    #            "user_id": 2,
-    #            "timezone": "CET",
-    #            "email": "no@fakeimail",
-    #            "full_name": "glbert",
-    #        },
-    #    }
-    #    result = get_user(user_id="0002")
-    #    client.return_value.get_user_by_id.assert_called_once_with(2)
-    #    self.assertEqual(
-    #        result,
-    #        SlackUser(
-    #            id="2",
-    #            name_deprecated=ANY,
-    #            real_name=ANY,
-    #            display_name="glbert",
-    #            email="no@fakeimail",
-    #            tz_offset=7200.0,
-    #        ),
-    #    )
+    @patch(
+        "heltour.tournament.zulipapi._client.get_user_by_id",
+        return_value={
+            "result": "success",
+            "user": {
+                "user_id": 2,
+                "timezone": "CET",
+                "email": "no@fakeimail",
+                "full_name": "glbert",
+            },
+        },
+        autospec=True,
+    )
+    def test_get_user(self, gubi):
+        result = get_user(user_id="0002")
+        gubi.assert_called_once_with(2)
+        self.assertEqual(
+            result,
+            SlackUser(
+                id="2",
+                name_deprecated=ANY,
+                real_name=ANY,
+                display_name="glbert",
+                email="no@fakeimail",
+                tz_offset=7200.0,
+            ),
+        )
 
-    # @patch("zulip.Client")
-    # def test_get_user_list(self, client):
-    #    client.return_value.register.return_value = {
-    #        "result": "success",
-    #        "max_topic_length": 100,
-    #        "max_message_length": 1000,
-    #        "max_stream_name_length": 100,
-    #        "max_stream_description_length": 1000,
-    #    }
-    #    client.return_value.get_users.return_value = {
-    #        "result": "success",
-    #        "members": [
-    #            {
-    #                "user_id": 1,
-    #                "timezone": "UTC",
-    #                "delivery_email": "lakinwecker@example.com",
-    #                "full_name": "lakinwecker",
-    #            },
-    #            {
-    #                "user_id": 2,
-    #                "timezone": "CET",
-    #                "delivery_email": "no@fakeimail",
-    #                "full_name": "glbert",
-    #            },
-    #        ],
-    #    }
-    #    result = get_user_list()
-    #    client.return_value.get_users.assert_called_once_with()
-    #    self.assertEqual(
-    #        result,
-    #        [
-    #            SlackUser(
-    #                id="1",
-    #                name_deprecated=ANY,
-    #                real_name=ANY,
-    #                display_name="lakinwecker",
-    #                email="lakinwecker@example.com",
-    #                tz_offset=0.0,
-    #            ),
-    #            SlackUser(
-    #                id="2",
-    #                name_deprecated=ANY,
-    #                real_name=ANY,
-    #                display_name="glbert",
-    #                email="no@fakeimail",
-    #                tz_offset=7200.0,
-    #            ),
-    #        ],
-    #    )
+    @patch(
+        "heltour.tournament.zulipapi._client.get_users",
+        return_value={
+            "result": "success",
+            "members": [
+                {
+                    "user_id": 1,
+                    "timezone": "UTC",
+                    "delivery_email": "lakinwecker@example.com",
+                    "full_name": "lakinwecker",
+                },
+                {
+                    "user_id": 2,
+                    "timezone": "CET",
+                    "delivery_email": "no@fakeimail",
+                    "full_name": "glbert",
+                },
+            ],
+        },
+        autospec=True,
+    )
+    def test_get_user_list(self, gu):
+        result = get_user_list()
+        gu.assert_called_once_with()
+        self.assertEqual(
+            result,
+            [
+                SlackUser(
+                    id="1",
+                    name_deprecated=ANY,
+                    real_name=ANY,
+                    display_name="lakinwecker",
+                    email="lakinwecker@example.com",
+                    tz_offset=0.0,
+                ),
+                SlackUser(
+                    id="2",
+                    name_deprecated=ANY,
+                    real_name=ANY,
+                    display_name="glbert",
+                    email="no@fakeimail",
+                    tz_offset=7200.0,
+                ),
+            ],
+        )
 
+    # TODO: figure out how to activate this test, which uses it's own client
     # @patch("zulip.Client")
     # def test_invite_user(self, client):
     #    client.return_value.register.return_value = {
