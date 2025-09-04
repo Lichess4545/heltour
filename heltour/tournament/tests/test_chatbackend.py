@@ -32,6 +32,20 @@ from heltour.tournament.tests.testutils import Shush, createCommonLeagueData, ge
 
 @override_settings(USE_CHATBACKEND="zulip")
 class ZulipFormatTestCase(SimpleTestCase):
+    @classmethod
+    @patch("zulip.Client")
+    def setUp(cls, client):
+        client.return_value.register.return_value = {
+            "result": "success",
+            "max_topic_length": 100,
+            "max_message_length": 1000,
+            "max_stream_name_length": 100,
+            "max_stream_description_length": 1000,
+        }
+        # reload chatbackend so that the patched zulip client is created
+        import heltour.tournament.chatbackend
+        importlib.reload(heltour.tournament.chatbackend)
+
     def test_bold(self):
         self.assertEqual(bold("some text"), "**some text**")
 
