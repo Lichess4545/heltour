@@ -247,33 +247,32 @@ class ZulipFormatTestCase(SimpleTestCase):
             ],
         )
 
-    # TODO: figure out how to activate this test, which uses it's own client
-    # @patch("zulip.Client")
-    # def test_invite_user(self, client):
-    #    client.return_value.register.return_value = {
-    #        "result": "success",
-    #        "max_topic_length": 100,
-    #        "max_message_length": 1000,
-    #        "max_stream_name_length": 100,
-    #        "max_stream_description_length": 1000,
-    #    }
-    #    client.return_value.call_endpoint.return_value = {
-    #        "result": "success",
-    #    }
-    #    with Shush():
-    #        invite_user("sgis@glbert.com")
-    #    client.return_value.call_endpoint.assert_called_once_with(
-    #        url="/invites",
-    #        method="POST",
-    #        request={
-    #            "invitee_emails": "sgis@glbert.com",
-    #            "invite_expires_in_minutes": 40320,
-    #            "invite_as": 600,
-    #            "stream_ids": [],
-    #            "include_realm_default_subscriptions": "true",
-    #            "notify_referrer_on_join": "false",
-    #        },
-    #    )
+    @patch("heltour.tournament.zulipapi.Client")
+    def test_invite_user(self, client):
+        client.return_value.register.return_value = {
+            "result": "success",
+            "max_topic_length": 100,
+            "max_message_length": 1000,
+            "max_stream_name_length": 100,
+            "max_stream_description_length": 1000,
+        }
+        client.return_value.call_endpoint.return_value = {
+            "result": "success",
+        }
+        with Shush():
+            invite_user("sgis@glbert.com")
+        client.return_value.call_endpoint.assert_called_once_with(
+            url="/invites",
+            method="POST",
+            request={
+                "invitee_emails": "sgis@glbert.com",
+                "invite_expires_in_minutes": 40320,
+                "invite_as": 600,
+                "stream_ids": [],
+                "include_realm_default_subscriptions": "true",
+                "notify_referrer_on_join": "false",
+            },
+        )
 
 
 @override_settings(USE_CHATBACKEND="/dev/null")
