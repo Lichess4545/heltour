@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from heltour import gdpr
+from heltour.tournament.chatbackend import chatbackend, chatbackend_render
 from heltour.tournament.models import (
     ALTERNATE_PREFERENCE_OPTIONS,
     PLAYER_NOTIFICATION_TYPES,
@@ -68,12 +69,15 @@ class RegistrationForm(forms.ModelForm):
                 self.fields['friends'] = forms.CharField(required=False, widget=forms.HiddenInput)
                 self.fields['avoid'] = forms.CharField(required=False, widget=forms.HiddenInput)
             else:
+                chatbackend_text = f" All players must join {chatbackend()}." if chatbackend_render() else ""
+                friends_helptext = _(
+                    "Note: Please enter their exact Lichess usernames. "
+                    "Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. "
+                    f"All players must register.{chatbackend_text} "
+                )
                 self.fields['friends'] = forms.CharField(required=False, label=_(
                     'Are there any friends you would like to be teammates with?'),
-                                                         help_text=_(
-                                                             'Note: Please enter their exact Lichess usernames. '
-                                                             'Usernames can be separated by commas, e.g.: Ledger4545, Chesster, DrNykterstein. '
-                                                             'All players must register. All players must join Slack. '))
+                                                         help_text=friends_helptext)
                 self.fields['avoid'] = forms.CharField(required=False, label=_(
                     'Are there any players you would NOT like to be teammates with?'),
                                                        help_text=_(
