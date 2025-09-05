@@ -158,6 +158,7 @@ class LeagueView(BaseView):
                                       self.season.tag if self.season is not None else None),
             'other_leagues': League.objects.filter(is_active=True).order_by(
                 "display_order").exclude(pk=self.league.pk),
+            "chatbackend_render": chatbackend_render(),
             "chatbackend": chatbackend(),
         })
         context.update(self.extra_context)
@@ -1516,7 +1517,6 @@ class UserDashboardView(LeagueView):
             'last_season': last_season,
             'my_pairings': my_pairings,
             'approved': approved,
-            "chatbackend_render": chatbackend_render(),
             "chat_dm_link": dm_link(usernames=[], userids=[], add_bot=True),
         }
         return self.render('tournament/user_dashboard.html', context)
@@ -1599,7 +1599,6 @@ class AboutView(LeagueView):
     def view(self):
         context = {
             "chatbackend_url": chatbackend_url(),
-            "chatbackend_render": chatbackend_render(),
         }
         return self.render("tournament/about.html", context)
 
@@ -1767,7 +1766,6 @@ class PlayerProfileView(LeagueView):
             'career_score_total': career_score_total,
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
             'trophies': trophies,
-            "chatbackend_render": chatbackend_render(),
             "dm_player": dm_link(
                 usernames=[player],
                 userids=[player.slack_user_id],
