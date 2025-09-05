@@ -1,21 +1,37 @@
+import logging
 from datetime import datetime
 
 import pytz
 from django.conf import settings
 from zulip import Client, ZulipError
 
-from heltour.tournament.models import logger
 from heltour.tournament.slackapi import SlackGroup, SlackUser
+
+logger = logging.getLogger(__name__)
 
 
 def _initial_connection():
-    if "_client" in globals():
-        return
+    if set(
+        [
+            "_max_topic_length",
+            "_max_message_length",
+            "_max_stream_name_length",
+            "_max_stream_description_length",
+            "_client",
+        ]
+    ).issubset(globals()):
+        return (
+            _max_topic_length,
+            _max_message_length,
+            _max_stream_name_length,
+            _max_stream_description_length,
+            _client,
+        )
     try:
         client = Client(config_file=settings.ZULIP_CONFIG, client="ZulipHeltour")
         register = client.register(event_types=["realm"])
         if not register["result"] == "success":
-            raise ZulipError(f'ERROR in getting client register: {register["msg"]}')
+            raise ZulipError(f"ERROR in getting client register: {register['msg']}")
         else:
             try:
                 max_topic_length = register["max_topic_length"]
@@ -29,10 +45,10 @@ def _initial_connection():
                     "ERROR: Realm response does not contain zulip server setting for "
                     "max lengths of topics/message/stream_name/stream_description"
                 )
-                return
+                return None, None, None, None, None
     except ZulipError as e:
         logger.error(f"ERROR: Could not connect to zulip - {e}")
-        return
+        return None, None, None, None, None
     return (
         max_topic_length,
         max_message_length,
@@ -74,7 +90,7 @@ def invite_user(email, *args, **kwargs):
                 channel=settings.ZULIP_ERROR_LOG,
                 text=(
                     f"Could not invite {email}\nError Code: "
-                    f'{r["code"]}\nError msg: {r["msg"]}',
+                    f"{r['code']}\nError msg: {r['msg']}",
                 ),
             )
         if r["code"] == "INVITATION_FAILED":
@@ -97,7 +113,7 @@ def get_user_list():
                 channel=settings.ZULIP_ERROR_LOG,
                 text=(
                     "Could not retrieve user list.\n"
-                    f'Error Code: {r["code"]}\nError msg: {r["msg"]}'
+                    f"Error Code: {r['code']}\nError msg: {r['msg']}"
                 ),
             )
         if r["code"] == "RATE_LIMIT_HIT":
@@ -134,7 +150,7 @@ def get_user(user_id):
                 channel=settings.ZULIP_ERROR_LOG,
                 text=(
                     f"Could not retrieve user {user_id}.\n"
-                    f'Error Code: {r["code"]}\nError msg: {r["msg"]}'
+                    f"Error Code: {r['code']}\nError msg: {r['msg']}"
                 ),
             )
         if r["code"] == "RATE_LIMIT_HIT":
@@ -201,11 +217,11 @@ def _message(*, channel, channel_type, text, topic="(no topic)"):
             send_message(
                 channel=settings.ZULIP_ERROR_LOG,
                 text=(
-                    f'Could not send message to {channel}>{topic}.\n'
-                    f'Error Code: {r["code"]}\nError msg: {r["msg"]}'
+                    f"Could not send message to {channel}>{topic}.\n"
+                    f"Error Code: {r['code']}\nError msg: {r['msg']}"
                 ),
             )
-        logger.error(f'Could not send message to {channel}>{topic}, error:\n{r["msg"]}')
+        logger.error(f"Could not send message to {channel}>{topic}, error:\n{r['msg']}")
         if r["code"] == "RATE_LIMIT_HIT":
             raise ZulipRateLimitHit(message=r["msg"], wait=r["retry-after"])
         else:
@@ -319,8 +335,8 @@ def create_channel(
             send_message(
                 channel=settings.ZULIP_ERROR_LOG,
                 text=(
-                    f'Could not create channel {channel_name} for user ids {user_ids}.\n'
-                    f'Error Code: {r["code"]}\nError msg: {r["msg"]}'
+                    f"Could not create channel {channel_name} for user ids {user_ids}.\n"
+                    f"Error Code: {r['code']}\nError msg: {r['msg']}"
                 ),
             )
         if r["code"] == "RATE_LIMIT_HIT":
