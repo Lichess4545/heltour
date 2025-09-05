@@ -37,7 +37,9 @@
                         <br />
                         <a href="webcal://{{ request.get_host }}{% url 'player_icalendar' player.lichess_username %}">Calendar</a>
                         <br />
-                        <a href="{% leagueurl 'notifications' league.tag season.tag %}">Notification settings</a>
+                        {% if chatbackend_render %}
+                            <a href="{% leagueurl 'notifications' league.tag season.tag %}">Notification settings</a>
+                        {% endif %}
                     </p>
                     <form action="{% leagueurl 'logout' league.tag %}" method="post">
                         {% csrf_token %}
