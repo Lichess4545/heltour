@@ -12,6 +12,7 @@ from heltour import settings
 from heltour.tournament import alternates_manager, pairinggen, signals
 from heltour.tournament.chatbackend import (
     chatbackend,
+    chatbackend_render,
     chatbackend_url,
     invite_user,
     ChatBackendError,
@@ -526,6 +527,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
             msg_html = render_to_string(
@@ -534,6 +536,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
         elif season.league.rating_type == 'blitz':
@@ -548,6 +551,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
             msg_html = render_to_string(
@@ -556,6 +560,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
         else:
@@ -569,6 +574,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
             msg_html = render_to_string(
@@ -577,6 +583,7 @@ class ApproveRegistrationWorkflow():
                     "reg": reg,
                     "chatbackend_url": chatbackend_url(),
                     "chatbackend": chatbackend(),
+                    "chatbackend_render": chatbackend_render(),
                 },
             )
 
