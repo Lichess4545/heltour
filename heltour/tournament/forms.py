@@ -442,15 +442,18 @@ class NotificationsForm(forms.Form):
                                                                type=type_)
             self.fields[type_ + "_lichess"] = forms.BooleanField(required=False, label="Lichess",
                                                                  initial=setting.enable_lichess_mail)
-            self.fields[type_ + "_slack"] = forms.BooleanField(required=False, label="Slack",
-                                                               initial=setting.enable_slack_im)
+            self.fields[type_ + "_slack"] = forms.BooleanField(
+                required=False, label=chatbackend(), initial=setting.enable_slack_im
+            )
             # users should not be able to switch off the pairing messages in slack, 
             # as they have to reply to those messages to be considered responsive
             is_round_started_type = type_ == 'round_started'
-            self.fields[type_ + "_slack_wo"] = forms.BooleanField(required=False,
-                                                                  label="Slack (with opponent)",
-                                                                  initial=is_round_started_type or setting.enable_slack_mpim,
-                                                                  disabled=is_round_started_type)
+            self.fields[type_ + "_slack_wo"] = forms.BooleanField(
+                required=False,
+                label=f"{chatbackend()} (with opponent)",
+                initial=is_round_started_type or setting.enable_slack_mpim,
+                disabled=is_round_started_type,
+            )
             # users cannot switch off lichess messages for started games, as the bulk api requires us to send those
             is_game_started_type = type_ == 'game_started'
             self.fields[type_ + "_lichess"] = forms.BooleanField(required=False,
