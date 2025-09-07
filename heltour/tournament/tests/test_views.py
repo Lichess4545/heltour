@@ -393,3 +393,40 @@ class TvTestCase(TestCase):
         self.assertNotContains(response, '"black_rating": 1833')
         self.assertContains(response, '"white_rating": 1621')
         self.assertContains(response, '"black_rating": 1684')
+
+
+class PlayerProfileCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        Season.objects.all().update(is_active=True)
+
+    def test_profile_view_lw(self):
+        self.client.login(username="Player1", password="test")
+        # should probably rather do this as well as some other tests in this file
+        # using RequestFactoy instead. using client is the lazy alternative.
+        response = self.client.get(
+            reverse(
+                "by_league:by_season:player_profile",
+                args=["loneleague", "loneseason", "Player1"],
+            )
+        )
+        self.assertEqual(
+            response.context["other_season_leagues"],
+            [(get_league("lone"), [(get_season("lone"), 0, None)])],
+        )
+        self.assertEqual(response.context["has_other_seasons"], False)
+
+    def test_profile_view_team(self):
+        self.client.login(username="Player2")
+        response = self.client.get(
+            reverse(
+                "by_league:by_season:player_profile",
+                args=["teamleague", "teamseason", "Player2"],
+            )
+        )
+        self.assertEqual(
+            response.context["other_season_leagues"],
+            [(get_league("lone"), [(get_season("lone"), 0, None)])],
+        )
+        self.assertEqual(response.context["has_other_seasons"], True)
