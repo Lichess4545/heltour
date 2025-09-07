@@ -4,6 +4,7 @@ from heltour.api_worker.views import _clean
 
 
 class HelpersTestCase(SimpleTestCase):
+    # the "secrets" below are no actual secrets, just of the same form.
     def test_clean(self):
         self.assertEqual(_clean("lip_CSh4NzWorZZKQZKkiTuc"), "lip_***")
         self.assertEqual(_clean("liu_dKvawsUqOEyGU2EDno1x"), "liu_***")
