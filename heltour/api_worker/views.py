@@ -20,11 +20,15 @@ logger = logging.getLogger(__name__)
 retry_wait_times = {0: 60, 1: 60, 2: 180, 3: 300, 4: 600}
 
 
-def _trunc_and_clean(input: dict) -> dict:
+def _clean(secret: str) -> str:
+    return re.sub(r"(li[opu]_)([A-Za-z0-9]+)", r"\1***", secret)
+
+
+def _trunc_and_clean(postdata: dict) -> dict:
     output = {}
-    for key, value in input.items():
+    for key, value in postdata.items():
         # censoring tokens
-        cleanvalue = re.sub(r"(li[opu]_)([A-Za-z0-9]+)", r"\1***", str(value))
+        cleanvalue = _clean(str(value))
         output[key] = cleanvalue if len(cleanvalue) <= 30 else f"{cleanvalue[:27]}..."
     return output
 
