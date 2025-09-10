@@ -318,9 +318,13 @@ SLEEP_UNIT = 1 # time to sleep, mostly used to avoid slack rate limiting; hopefu
 TEAMGEN_PROCESSES_NUMBER = 8
 
 GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH = '/home/lichess4545/etc/heltour/gspread.conf'
+USE_CHATBACKEND = "slack" # zulip or slack atm
+SLACK_URL = "https://lichess4545.slack.com"
 SLACK_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-token.conf'
 SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/slack-channel-builder-token.conf'
 SLACK_WEBHOOK_FILE_PATH = '/home/lichess4545/etc/heltour/slack-webhook.conf'
+SLACK_LISTENING_BOT = "chesster" # name, without @
+SLACK_LISTENING_BOT_ID = "U0VCPUT7T"
 LICHESS_API_TOKEN_FILE_PATH = '/home/lichess4545/etc/heltour/lichess-api-token.conf'
 JAVAFO_COMMAND = 'java -jar /home/lichess4545/etc/heltour/javafo.jar'
 FCM_API_KEY_FILE_PATH = '/home/lichess4545/etc/heltour/fcm-key.conf'
