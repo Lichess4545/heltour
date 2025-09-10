@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from heltour.tournament.models import LeagueChannel, LeagueSetting, LonePlayerPairing
 from heltour.tournament.notify import (
+    _lichess_message,
     _message_multiple_users,
     _message_user,
     _send_notification,
@@ -65,6 +66,18 @@ class UnderscoreFunctions(TestCase):
         )
         self.assertEqual(result, None)
         sm.assert_called_once_with("@glbert+@test_user+@lakinwecker+@chesster", tm)
+
+    @patch("heltour.tournament.lichessapi.send_mail")
+    def test_lichess_message(self, lichessapi_sm, slack_sm):
+        tm = "your game is starting soon."
+        result = _lichess_message(
+            league=self.l, username="Lichess4545", subject="test", text=tm
+        )
+        self.assertEqual(result, None)
+        slack_sm.assert_not_called()
+        lichessapi_sm.assert_called_once_with(
+            "Lichess4545", "test", "your game is starting soon."
+        )
 
 
 class PairingNotificationsTestCase(TestCase):
