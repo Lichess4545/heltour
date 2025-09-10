@@ -9,13 +9,23 @@
                     <h3>Contact</h3>
                 </div>
                 <div class="well-body">
-                    <p>Have any questions about the league or need help getting on Slack? Use this form.</p>
-                    {% if slack_linked %}
-                        <p>
-                            <span style="color: #c00">You are already on Slack. If at all possible, please ask your question there.</span>
-                        </p>
-                    {% else %}
-                        <p>If you are already on Slack, please ask your question there instead.</p>
+                    <p>
+                        Have any questions about the
+                        {% if chatbackend_render %}
+                            league or need help getting on {{ chatbackend }}?
+                        {% else %}
+                            league?
+                        {% endif %}
+                        Use this form.
+                    </p>
+                    {% if chatbackend_render %}
+                        {% if slack_linked %}
+                            <p>
+                                <span style="color: #c00">You are already on {{ chatbackend }}. If at all possible, please ask your question there.</span>
+                            </p>
+                        {% else %}
+                            <p>If you are already on {{ chatbackend }}, please ask your question there instead.</p>
+                        {% endif %}
                     {% endif %}
                     <form action="" method="post">
                         {% csrf_token %}
