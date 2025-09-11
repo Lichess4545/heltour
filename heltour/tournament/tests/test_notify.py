@@ -1,21 +1,31 @@
+import contextlib
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 
-from heltour.tournament.models import LeagueChannel, LeagueSetting, LonePlayerPairing
+from heltour.tournament.models import (
+    LeagueChannel,
+    LeagueSetting,
+    LonePlayerPairing,
+)
 from heltour.tournament.notify import (
     _lichess_message,
     _message_multiple_users,
     _message_user,
     _send_notification,
     notify_players_game_scheduled,
+    registration_saved,
 )
 from heltour.tournament.tests.testutils import (
+    Shush,
+    create_reg,
     createCommonLeagueData,
     get_league,
     get_player,
     get_round,
+    get_season,
 )
 
 
@@ -77,6 +87,54 @@ class UnderscoreFunctions(TestCase):
         slack_sm.assert_not_called()
         lichessapi_sm.assert_called_once_with(
             "Lichess4545", "test", "your game is starting soon."
+        )
+
+
+@patch("heltour.tournament.slackapi.send_message", autospec=True)
+class RegistrationsTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.l = get_league("lone")
+        cls.l.enable_notifications = True
+        cls.l.save()
+        cls.lc = LeagueChannel.objects.create(
+            league=cls.l, type="mod", slack_channel="#test_mods"
+        )
+        cls.s = get_season("lone")
+        cls.s.start_date = timezone.now() - timedelta(hours=5)
+        cls.s.save()
+        cls.player_str = "Player10"
+        cls.message_str = (
+            f"@{cls.player_str} (0) has "
+            "<https://example.com/admin/tournament/registration/1/review/?"
+            "_changelist_filters=status__exact%3Dpending"
+            f"%26season__id__exact%3D{cls.s.pk}|registered>"
+            f" for {cls.l.name}. "
+            "<https://example.com/admin/tournament/registration/"
+            f"?status__exact=pending&season__id__exact={cls.s.pk}|1 pending>"
+        )
+        with contextlib.redirect_stdout(None):
+            cls.reg = create_reg(season=cls.s, name=cls.player_str)
+
+    def test_registration_saved_preseason(self, sm):
+        self.s.start_date = timezone.now() + timedelta(hours=5)
+        registration_saved(instance=self.reg, created=True)
+        sm.assert_not_called()
+        setting = self.s.league.get_leaguesetting()
+        setting.notify_for_pre_season_registrations = True
+        setting.save()
+        registration_saved(instance=self.reg, created=True)
+        sm.assert_called_once_with(
+            "#test_mods",
+            self.message_str,
+        )
+
+    def test_registration_saved(self, sm):
+        registration_saved(instance=self.reg, created=True)
+        sm.assert_called_once_with(
+            "#test_mods",
+            self.message_str,
         )
 
 
