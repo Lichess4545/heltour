@@ -12,7 +12,6 @@ from heltour.tournament.models import (
     PlayerLateRegistration,
     PlayerWithdrawal,
     Registration,
-    SeasonPlayer,
 )
 from heltour.tournament.notify import (
     _lichess_message,
@@ -20,6 +19,8 @@ from heltour.tournament.notify import (
     _message_user,
     _send_notification,
     latereg_saved,
+    notify_mods_no_result,
+    notify_mods_unscheduled,
     notify_players_game_scheduled,
     pairing_forfeit_changed,
     player_account_status_changed,
@@ -161,10 +162,15 @@ class ModNotifications(TestCase):
         cls.r = get_round(league_type="lone", round_number=1)
         cls.p = get_player("Player1")
         cls.p2 = get_player("Player2")
+        cls.p3 = get_player("Player3")
+        cls.p4 = get_player("Player4")
         cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
         cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
         cls.pp = LonePlayerPairing.objects.create(
             white=cls.p, black=cls.p2, result="1F-0X", pairing_order=1, round=cls.r
+        )
+        cls.pp2 = LonePlayerPairing.objects.create(
+            white=cls.p3, black=cls.p4, pairing_order=2, round=cls.r
         )
 
     def test_latereg_saved(self, sn):
@@ -205,6 +211,39 @@ class ModNotifications(TestCase):
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
             "<https://example.com/loneleague/player/"
             f"{self.p.lichess_username}/|Player profile>",
+        )
+        sn.reset_mock()
+        player_account_status_changed(
+            instance=self.p, old_value="closed", new_value="normal"
+        )
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"@{self.p.lichess_username.lower()} "
+            f"<https://lichess.org/@/{self.p.lichess_username}|lichess> account"
+            " status changed from closed to normal. "
+            "<https://example.com/loneleague/player/"
+            f"{self.p.lichess_username}/|Player profile>",
+        )
+
+    def test_notify_mods_unscheduled(self, sn):
+        notify_mods_unscheduled(round_=self.r)
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"{self.r} - The following games are "
+            f"unscheduled: @{self.p3.lichess_username.lower()}"
+            f" vs @{self.p4.lichess_username.lower()}",
+        )
+
+    def test_notify_mods_missing_result(self, sn):
+        notify_mods_no_result(round_=self.r)
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"{self.r} - The following games are "
+            f"missing results: @{self.p3.lichess_username.lower()}"
+            f" vs @{self.p4.lichess_username.lower()}",
         )
 
 
