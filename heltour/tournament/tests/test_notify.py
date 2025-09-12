@@ -1,7 +1,7 @@
-import contextlib
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.db.models.signals import post_save
 from django.test import TestCase
 from django.utils import timezone
 
@@ -9,6 +9,7 @@ from heltour.tournament.models import (
     LeagueChannel,
     LeagueSetting,
     LonePlayerPairing,
+    Registration,
 )
 from heltour.tournament.notify import (
     _lichess_message,
@@ -19,7 +20,7 @@ from heltour.tournament.notify import (
     registration_saved,
 )
 from heltour.tournament.tests.testutils import (
-    Shush,
+    DisconnectSignal,
     create_reg,
     createCommonLeagueData,
     get_league,
@@ -114,7 +115,12 @@ class RegistrationsTestCase(TestCase):
             "<https://example.com/admin/tournament/registration/"
             f"?status__exact=pending&season__id__exact={cls.s.pk}|1 pending>"
         )
-        with contextlib.redirect_stdout(None):
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
             cls.reg = create_reg(season=cls.s, name=cls.player_str)
 
     def test_registration_saved_preseason(self, sm):
