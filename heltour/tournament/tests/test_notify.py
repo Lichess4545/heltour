@@ -12,6 +12,7 @@ from heltour.tournament.models import (
     PlayerLateRegistration,
     PlayerWithdrawal,
     Registration,
+    SeasonPlayer,
 )
 from heltour.tournament.notify import (
     _lichess_message,
@@ -20,7 +21,10 @@ from heltour.tournament.notify import (
     _send_notification,
     latereg_saved,
     notify_players_game_scheduled,
+    pairing_forfeit_changed,
+    player_account_status_changed,
     registration_saved,
+    withdrawal_saved,
 )
 from heltour.tournament.tests.testutils import (
     DisconnectSignal,
@@ -156,16 +160,51 @@ class ModNotifications(TestCase):
         createCommonLeagueData()
         cls.r = get_round(league_type="lone", round_number=1)
         cls.p = get_player("Player1")
+        cls.p2 = get_player("Player2")
         cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
         cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
-        
-    def test_latereg_saved(self, sm):
+        cls.pp = LonePlayerPairing.objects.create(
+            white=cls.p, black=cls.p2, result="1F-0X", pairing_order=1, round=cls.r
+        )
+
+    def test_latereg_saved(self, sn):
         latereg_saved(instance=self.reg, created=True)
-        sm.assert_called_once_with(
+        sn.assert_called_once_with(
             "mod",
             self.reg.round.season.league,
             f"@{self.p.lichess_username} <https://example.com/admin/tournament/"
             f"season/{self.r.season.pk}/manage_players/|added> for round {self.r.number}",
+        )
+
+    def test_withrawal(self, sn):
+        withdrawal_saved(instance=self.withdrawal, created=True)
+        sn.assert_called_once_with(
+            "mod",
+            self.withdrawal.round.season.league,
+            f"@{self.p.lichess_username} <https://example.com/admin/tournament/season"
+            f"/{self.r.season.pk}/manage_players/|withdrawn> for round {self.r.number}",
+        )
+
+    def test_pairing_forfeit_changed(self, sn):
+        pairing_forfeit_changed(instance=self.pp)
+        sn.assert_called_with(
+            "mod",
+            self.pp.round.season.league,
+            f"@{self.pp.white.lichess_username.lower()} vs "
+            f"@{self.pp.black.lichess_username.lower()} 1F-0X",
+        )
+
+    def test_player_account_status_changed(self, sn):
+        player_account_status_changed(
+            instance=self.p, old_value="normal", new_value="closed"
+        )
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"@{self.p.lichess_username.lower()} marked as closed on "
+            f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
+            "<https://example.com/loneleague/player/"
+            f"{self.p.lichess_username}/|Player profile>",
         )
 
 
