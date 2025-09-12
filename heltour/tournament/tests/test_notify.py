@@ -9,6 +9,8 @@ from heltour.tournament.models import (
     LeagueChannel,
     LeagueSetting,
     LonePlayerPairing,
+    PlayerLateRegistration,
+    PlayerWithdrawal,
     Registration,
 )
 from heltour.tournament.notify import (
@@ -16,6 +18,7 @@ from heltour.tournament.notify import (
     _message_multiple_users,
     _message_user,
     _send_notification,
+    latereg_saved,
     notify_players_game_scheduled,
     registration_saved,
 )
@@ -91,7 +94,7 @@ class UnderscoreFunctions(TestCase):
         )
 
 
-@patch("heltour.tournament.slackapi.send_message", autospec=True)
+@patch("heltour.tournament.notify._send_notification", autospec=True)
 class RegistrationsTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -123,24 +126,46 @@ class RegistrationsTestCase(TestCase):
         ):
             cls.reg = create_reg(season=cls.s, name=cls.player_str)
 
-    def test_registration_saved_preseason(self, sm):
+    def test_registration_saved_preseason(self, sn):
         self.s.start_date = timezone.now() + timedelta(hours=5)
         registration_saved(instance=self.reg, created=True)
-        sm.assert_not_called()
+        sn.assert_not_called()
         setting = self.s.league.get_leaguesetting()
         setting.notify_for_pre_season_registrations = True
         setting.save()
         registration_saved(instance=self.reg, created=True)
-        sm.assert_called_once_with(
-            "#test_mods",
+        sn.assert_called_once_with(
+            "mod",
+            self.l,
             self.message_str,
         )
 
-    def test_registration_saved(self, sm):
+    def test_registration_saved(self, sn):
         registration_saved(instance=self.reg, created=True)
-        sm.assert_called_once_with(
-            "#test_mods",
+        sn.assert_called_once_with(
+            "mod",
+            self.l,
             self.message_str,
+        )
+
+
+@patch("heltour.tournament.notify._send_notification", autospec=True)
+class ModNotifications(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.r = get_round(league_type="lone", round_number=1)
+        cls.p = get_player("Player1")
+        cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
+        cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
+        
+    def test_latereg_saved(self, sm):
+        latereg_saved(instance=self.reg, created=True)
+        sm.assert_called_once_with(
+            "mod",
+            self.reg.round.season.league,
+            f"@{self.p.lichess_username} <https://example.com/admin/tournament/"
+            f"season/{self.r.season.pk}/manage_players/|added> for round {self.r.number}",
         )
 
 
