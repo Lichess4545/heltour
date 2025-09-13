@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.db.models.signals import post_save
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from heltour.tournament.models import (
@@ -12,6 +13,7 @@ from heltour.tournament.models import (
     PlayerLateRegistration,
     PlayerWithdrawal,
     Registration,
+    abs_url,
 )
 from heltour.tournament.notify import (
     _lichess_message,
@@ -20,11 +22,16 @@ from heltour.tournament.notify import (
     _send_notification,
     latereg_saved,
     notify_mods_no_result,
+    notify_mods_pairings_published,
+    notify_mods_pending_regs,
+    notify_mods_round_start_done,
     notify_mods_unscheduled,
     notify_players_game_scheduled,
+    pairings_generated,
     pairing_forfeit_changed,
     player_account_status_changed,
     registration_saved,
+    starting_round_transition,
     withdrawal_saved,
 )
 from heltour.tournament.tests.testutils import (
@@ -114,15 +121,6 @@ class RegistrationsTestCase(TestCase):
         cls.s.start_date = timezone.now() - timedelta(hours=5)
         cls.s.save()
         cls.player_str = "Player10"
-        cls.message_str = (
-            f"@{cls.player_str} (0) has "
-            "<https://example.com/admin/tournament/registration/1/review/?"
-            "_changelist_filters=status__exact%3Dpending"
-            f"%26season__id__exact%3D{cls.s.pk}|registered>"
-            f" for {cls.l.name}. "
-            "<https://example.com/admin/tournament/registration/"
-            f"?status__exact=pending&season__id__exact={cls.s.pk}|1 pending>"
-        )
         with DisconnectSignal(
             signal=post_save,
             receiver=registration_saved,
@@ -130,6 +128,16 @@ class RegistrationsTestCase(TestCase):
             dispatch_uid="heltour.tournament.notify",
         ):
             cls.reg = create_reg(season=cls.s, name=cls.player_str)
+
+        url_review = abs_url(reverse("admin:review_registration", args=[cls.reg.pk]))
+        url_regs = abs_url(reverse("admin:tournament_registration_changelist"))
+        cls.message_str = (
+            f"@{cls.player_str} (0) has <"
+            f"{url_review}?_changelist_filters=status__exact%3Dpending"
+            f"%26season__id__exact%3D{cls.s.pk}|registered>"
+            f" for {cls.l.name}. "
+            f"<{url_regs}?status__exact=pending&season__id__exact={cls.s.pk}|1 pending>"
+        )
 
     def test_registration_saved_preseason(self, sn):
         self.s.start_date = timezone.now() + timedelta(hours=5)
@@ -151,6 +159,17 @@ class RegistrationsTestCase(TestCase):
             "mod",
             self.l,
             self.message_str,
+        )
+
+    def test_notify_mods_pending_regs(self, sn):
+        r = get_round(league_type="lone", round_number=1)
+        notify_mods_pending_regs(round_=r)
+        url = abs_url(reverse("admin:tournament_registration_changelist"))
+        sn.assert_called_once_with(
+            "mod",
+            self.l,
+            f"<{url}?status__exact=pending&season__id__exact="
+            f"{r.season.pk}|1 pending registrations>",
         )
 
 
@@ -175,20 +194,20 @@ class ModNotifications(TestCase):
 
     def test_latereg_saved(self, sn):
         latereg_saved(instance=self.reg, created=True)
+        url = abs_url(reverse("admin:manage_players", args=[self.r.season.pk]))
         sn.assert_called_once_with(
             "mod",
             self.reg.round.season.league,
-            f"@{self.p.lichess_username} <https://example.com/admin/tournament/"
-            f"season/{self.r.season.pk}/manage_players/|added> for round {self.r.number}",
+            f"@{self.p.lichess_username} <{url}|added> for round {self.r.number}",
         )
 
     def test_withrawal(self, sn):
         withdrawal_saved(instance=self.withdrawal, created=True)
+        url = abs_url(reverse("admin:manage_players", args=[self.r.season.pk]))
         sn.assert_called_once_with(
             "mod",
             self.withdrawal.round.season.league,
-            f"@{self.p.lichess_username} <https://example.com/admin/tournament/season"
-            f"/{self.r.season.pk}/manage_players/|withdrawn> for round {self.r.number}",
+            f"@{self.p.lichess_username} <{url}|withdrawn> for round {self.r.number}",
         )
 
     def test_pairing_forfeit_changed(self, sn):
@@ -204,13 +223,18 @@ class ModNotifications(TestCase):
         player_account_status_changed(
             instance=self.p, old_value="normal", new_value="closed"
         )
+        url = abs_url(
+            reverse(
+                "by_league:player_profile",
+                args=[self.r.season.league.tag, self.p.lichess_username],
+            )
+        )
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
             f"@{self.p.lichess_username.lower()} marked as closed on "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
-            "<https://example.com/loneleague/player/"
-            f"{self.p.lichess_username}/|Player profile>",
+            f"<{url}|Player profile>",
         )
         sn.reset_mock()
         player_account_status_changed(
@@ -222,8 +246,7 @@ class ModNotifications(TestCase):
             f"@{self.p.lichess_username.lower()} "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess> account"
             " status changed from closed to normal. "
-            "<https://example.com/loneleague/player/"
-            f"{self.p.lichess_username}/|Player profile>",
+            f"<{url}|Player profile>",
         )
 
     def test_notify_mods_unscheduled(self, sn):
@@ -244,6 +267,41 @@ class ModNotifications(TestCase):
             f"{self.r} - The following games are "
             f"missing results: @{self.p3.lichess_username.lower()}"
             f" vs @{self.p4.lichess_username.lower()}",
+        )
+
+    def test_notify_mods_pairings_published(self, sn):
+        notify_mods_pairings_published(round_=self.r)
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"{self.r} pairings published.",
+        )
+
+    def test_notify_mods_round_start_done(self, sn):
+        notify_mods_round_start_done(round_=self.r)
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"{self.r} notifications sent.",
+        )
+
+    def test_pairings_generated(self, sn):
+        pairings_generated(round_=self.r)
+        url = abs_url(reverse("admin:review_pairings", args=[self.r.pk]))
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            f"Pairings generated for round {self.r.number}. " f"<{url}|Review>",
+        )
+
+    def test_starting_round_transition(self, sn):
+        starting_round_transition(
+            season=self.r.season, msg_list=[("blah", None), ("bosh", None)]
+        )
+        sn.assert_called_once_with(
+            "mod",
+            self.r.season.league,
+            "Starting automatic round transition...\nblah\nbosh",
         )
 
 
