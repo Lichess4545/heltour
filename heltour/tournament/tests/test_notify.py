@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.db.models.signals import post_save
 from django.test import TestCase
@@ -7,12 +7,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from heltour.tournament.models import (
+    AlternateAssignment,
     LeagueChannel,
     LeagueSetting,
     LonePlayerPairing,
     PlayerLateRegistration,
     PlayerWithdrawal,
     Registration,
+    TeamPairing,
+    TeamPlayerPairing,
     abs_url,
 )
 from heltour.tournament.notify import (
@@ -20,6 +23,11 @@ from heltour.tournament.notify import (
     _message_multiple_users,
     _message_user,
     _send_notification,
+    alternate_assigned,
+    alternate_search_all_contacted,
+    alternate_search_failed,
+    alternate_search_reminder,
+    alternate_search_started,
     latereg_saved,
     notify_mods_no_result,
     notify_mods_pairings_published,
@@ -42,6 +50,7 @@ from heltour.tournament.tests.testutils import (
     get_player,
     get_round,
     get_season,
+    get_team,
 )
 
 
@@ -291,7 +300,7 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"Pairings generated for round {self.r.number}. " f"<{url}|Review>",
+            f"Pairings generated for round {self.r.number}. <{url}|Review>",
         )
 
     def test_starting_round_transition(self, sn):
@@ -302,6 +311,149 @@ class ModNotifications(TestCase):
             "mod",
             self.r.season.league,
             "Starting automatic round transition...\nblah\nbosh",
+        )
+
+
+@patch("heltour.tournament.notify._message_user", autospec=True)
+@patch("heltour.tournament.notify._send_notification", autospec=True)
+class OtherNotifications(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.r = get_round(league_type="team", round_number=1)
+        cls.l = cls.r.season.league
+        cls.team1 = get_team("Team 1")
+        team2 = get_team("Team 2")
+        tp1 = cls.team1.teammember_set.get(board_number=1)
+        tp4 = team2.teammember_set.get(board_number=2)
+        tp1.is_captain = True
+        tp1.save()
+        tp4.is_captain = True
+        tp4.save()
+        cls.p1 = tp1.player
+        cls.p1_lower = cls.p1.lichess_username.lower()
+        cls.p2 = get_player("Player2")
+        cls.p3 = team2.teammember_set.get(board_number=1).player
+        tp = TeamPairing.objects.create(
+            white_team=cls.team1, black_team=team2, round=cls.r, pairing_order=0
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp,
+            board_number=1,
+            white=cls.p1,
+            black=cls.p3,
+            white_confirmed=False,
+            black_confirmed=False,
+        )
+        TeamPlayerPairing.objects.create(
+            team_pairing=tp,
+            board_number=2,
+            white=team2.teammember_set.get(board_number=2).player,
+            black=cls.team1.teammember_set.get(board_number=2).player,
+            white_confirmed=False,
+            black_confirmed=False,
+        )
+        cls.cap_ping = f"<@{cls.p1_lower}>, <@{tp4.player.lichess_username.lower()}>: "
+
+    def test_alternate_search_started(self, sn, mu):
+        alternate_search_started(
+            season=self.r.season, team=self.team1, board_number=1, round_=self.r
+        )
+        url = abs_url(
+            reverse(
+                "by_league:by_season:edit_availability",
+                args=[self.r.season.league.tag, self.r.season.tag],
+            )
+        )
+        mu.assert_has_calls(
+            [
+                call(
+                    self.l,
+                    self.p1.lichess_username.lower(),
+                    f"@{self.p1_lower}: I am searching for an "
+                    f"alternate to replace you for round {self.r.number}, since "
+                    "you have been marked as unavailable. To stop the search and"
+                    f" set yourself available again, <{url}|click here>.",
+                ),
+                call(
+                    self.l,
+                    self.p3.lichess_username.lower(),
+                    f"@{self.p3.lichess_username.lower()}: Your opponent, "
+                    f"@{self.p1_lower}, has been marked as "
+                    "unavailable. I am searching for an alternate for you to "
+                    "play, please be patient.",
+                ),
+            ],
+            any_order=True,
+        )
+        sn.assert_called_once_with(
+            "captains",
+            self.l,
+            f"{self.cap_ping}I have started searching for an alternate for "
+            f'<@{self.p1_lower}> on board 1 of "{self.team1.name}" in '
+            f"round {self.r.number}.",
+        )
+
+    def test_alternate_search_reminder(self, sn, mu):
+        alternate_search_reminder(
+            season=self.r.season, team=self.team1, board_number=1, round_=self.r
+        )
+        mu.assert_not_called()
+        sn.assert_called_once_with(
+            "captains",
+            self.l,
+            f"{self.cap_ping}I am still searching for an alternate for <@{self.p1_lower}>"
+            f' on board 1 of "{self.team1.name}" in round {self.r.number}.',
+        )
+
+    def test_alternate_search_all_contacted(self, sn, mu):
+        alternate_search_all_contacted(
+            season=self.r.season,
+            team=self.team1,
+            board_number=1,
+            round_=self.r,
+            number_contacted=5,
+        )
+        sn.assert_called_once_with(
+            "captains",
+            self.l,
+            f"{self.cap_ping}I have messaged every eligible alternate for board 1 of "
+            f'"{self.team1.name}". Still waiting for responses from 5.',
+        )
+
+    def test_alternate_search_failed(self, sn, mu):
+        alternate_search_failed(
+            season=self.r.season,
+            team=self.team1,
+            board_number=1,
+            round_=self.r,
+        )
+        sn.assert_called_once_with(
+            "captains",
+            self.l,
+            f"{self.cap_ping}Sorry, I could not find an alternate for board 1 of"
+            f' "{self.team1.name}" in round {self.r.number}.',
+        )
+
+    @patch("heltour.tournament.notify._notify_alternate_and_opponent")
+    def test_alternate_assigned(self, naao, sn, mu):
+        naao.return_value = self.p3
+        aa = AlternateAssignment.objects.create(
+            player=self.p2,
+            replaced_player=self.p1,
+            board_number=1,
+            round=self.r,
+            team=self.team1,
+        )
+        alternate_assigned(season=self.r.season, alt_assignment=aa)  #
+        naao.assert_called_once_with(self.l, aa)
+        sn.assert_called_once_with(
+            "captains",
+            self.l,
+            f"{self.cap_ping}I have assigned <@{self.p2.lichess_username.lower()}> to "
+            f'play on board 1 of "{self.team1.name}" in place of <@{self.p1_lower}> for'
+            f" round {self.r.number}. Their opponent, @{self.p3.lichess_username.lower()}"
+            ", has been notified.",
         )
 
 
