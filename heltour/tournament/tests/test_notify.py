@@ -7,13 +7,16 @@ from django.urls import reverse
 from django.utils import timezone
 
 from heltour.tournament.models import (
+    Alternate,
     AlternateAssignment,
     LeagueChannel,
     LeagueSetting,
     LonePlayerPairing,
+    Player,
     PlayerLateRegistration,
     PlayerWithdrawal,
     Registration,
+    SeasonPlayer,
     TeamPairing,
     TeamPlayerPairing,
     abs_url,
@@ -23,8 +26,10 @@ from heltour.tournament.notify import (
     _message_multiple_users,
     _message_user,
     _notify_alternate_and_opponent,
+    _offset_str,
     _send_notification,
     alternate_assigned,
+    alternate_needed,
     alternate_search_all_contacted,
     alternate_search_failed,
     alternate_search_reminder,
@@ -114,6 +119,12 @@ class UnderscoreFunctions(TestCase):
         lichessapi_sm.assert_called_once_with(
             "Lichess4545", "test", "your game is starting soon."
         )
+
+    def test_offset_str(self, sm):
+        self.assertEqual(_offset_str(None), "?")
+        self.assertEqual(_offset_str(timedelta(hours=1)), "1 hour")
+        self.assertEqual(_offset_str(timedelta(hours=3)), "3 hours")
+        self.assertEqual(_offset_str(timedelta(hours=3, minutes=5)), "185 minutes")
 
 
 @patch("heltour.tournament.notify._send_notification", autospec=True)
@@ -512,6 +523,35 @@ class OtherNotifications(TestCase):
             f'play on board 1 of "{self.team1.name}" in place of <@{self.p1_lower}> for'
             f" round {self.r.number}. Their opponent, @{self.p3_lower}"
             ", has been notified.",
+        )
+
+    @patch("heltour.tournament.notify._lichess_message")
+    def test_alternate_needed(self, lm, sn, mu):
+        pb = Player.objects.create(lichess_username="PlayerB")
+        pb_lower = pb.lichess_username.lower()
+        spb = SeasonPlayer.objects.create(player=pb, season=self.r.season)
+        alt = Alternate.objects.create(season_player=spb, board_number=1)
+        alternate_needed(
+            alternate=alt,
+            round_=self.r,
+            response_time=timedelta(hours=1),
+            accept_url="/accept",
+            decline_url="/decline",
+        )
+        sn.assert_not_called()
+        mu.assert_called_once_with(
+            self.l,
+            pb_lower,
+            f"@{pb_lower}: A team needs an alternate for round {self.r.number}. "
+            "Would you like to play? Please click one of the following links within 1 hour.\n"
+            f"<{abs_url('/accept')}|Yes, I want to play>\n<{abs_url('/decline')}|No, maybe next week>",
+        )
+        lm.assert_called_once_with(
+            self.l, 
+            pb_lower,
+            f"Round {self.r.number} - {self.l.name}",
+            f"A team needs an alternate for round {self.r.number}. Please check Slack for more information.\n"
+            "https://lichess4545.slack.com/messages/@chesster/",
         )
 
 
