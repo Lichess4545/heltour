@@ -34,6 +34,7 @@ from heltour.tournament.notify import (
     alternate_search_failed,
     alternate_search_reminder,
     alternate_search_started,
+    alternate_spots_filled,
     latereg_saved,
     notify_mods_no_result,
     notify_mods_pairings_published,
@@ -45,6 +46,7 @@ from heltour.tournament.notify import (
     pairing_forfeit_changed,
     player_account_status_changed,
     registration_saved,
+    send_pairing_notification,
     starting_round_transition,
     withdrawal_saved,
 )
@@ -355,7 +357,7 @@ class OtherNotifications(TestCase):
         tp = TeamPairing.objects.create(
             white_team=cls.team1, black_team=team2, round=cls.r, pairing_order=0
         )
-        TeamPlayerPairing.objects.create(
+        cls.tpp1 = TeamPlayerPairing.objects.create(
             team_pairing=tp,
             board_number=1,
             white=cls.p1,
@@ -372,6 +374,10 @@ class OtherNotifications(TestCase):
             black_confirmed=False,
         )
         cls.cap_ping = f"<@{cls.p1_lower}>, <@{cls.p4_lower}>: "
+        pb = Player.objects.create(lichess_username="PlayerB")
+        cls.pb_lower = pb.lichess_username.lower()
+        spb = SeasonPlayer.objects.create(player=pb, season=cls.r.season)
+        cls.alt = Alternate.objects.create(season_player=spb, board_number=1)
 
     def test_alternate_search_started(self, sn, mu):
         alternate_search_started(
@@ -481,7 +487,8 @@ class OtherNotifications(TestCase):
                     "has been replaced by an alternate. Please contact your new opponent, "
                     f"<@{self.p2_lower}>, as soon as possible.",
                 ),
-            ]
+            ],
+            any_order=True,
         )
         spn.assert_called_once_with(
             "round_started",
@@ -527,12 +534,8 @@ class OtherNotifications(TestCase):
 
     @patch("heltour.tournament.notify._lichess_message")
     def test_alternate_needed(self, lm, sn, mu):
-        pb = Player.objects.create(lichess_username="PlayerB")
-        pb_lower = pb.lichess_username.lower()
-        spb = SeasonPlayer.objects.create(player=pb, season=self.r.season)
-        alt = Alternate.objects.create(season_player=spb, board_number=1)
         alternate_needed(
-            alternate=alt,
+            alternate=self.alt,
             round_=self.r,
             response_time=timedelta(hours=1),
             accept_url="/accept",
@@ -541,17 +544,52 @@ class OtherNotifications(TestCase):
         sn.assert_not_called()
         mu.assert_called_once_with(
             self.l,
-            pb_lower,
-            f"@{pb_lower}: A team needs an alternate for round {self.r.number}. "
+            self.pb_lower,
+            f"@{self.pb_lower}: A team needs an alternate for round {self.r.number}. "
             "Would you like to play? Please click one of the following links within 1 hour.\n"
             f"<{abs_url('/accept')}|Yes, I want to play>\n<{abs_url('/decline')}|No, maybe next week>",
         )
         lm.assert_called_once_with(
-            self.l, 
-            pb_lower,
+            self.l,
+            self.pb_lower,
             f"Round {self.r.number} - {self.l.name}",
             f"A team needs an alternate for round {self.r.number}. Please check Slack for more information.\n"
             "https://lichess4545.slack.com/messages/@chesster/",
+        )
+
+    def test_alternate_spots_filled(self, sn, mu):
+        self.alt.status = "unresponsive"
+        alternate_spots_filled(alternate=self.alt, response_time=timedelta(hours=1))
+        mu.assert_called_once_with(
+            self.l,
+            self.pb_lower,
+            "All available alternate spots have now been filled. "
+            "You've been moved to the bottom of the list since you didn't respond "
+            "within 1 hour.",
+        )
+
+    @patch("heltour.tournament.notify._lichess_message")
+    @patch("heltour.tournament.notify._message_multiple_users")
+    def test_send_pairing_notification(self, mmu, lm, sn, mu):
+        send_pairing_notification(
+            type_="round_started",
+            pairing=self.tpp1,
+            im_msg="im msg",
+            mp_msg="mp msg",
+            li_subject="li_subject",
+            li_msg="li_msg",
+        )
+        mmu.assert_called_once_with(
+            self.l,
+            [self.p1_lower, self.p3_lower],
+            "mp msg",
+        )
+        lm.assert_has_calls(
+            [
+                call(self.l, self.p1_lower, "li_subject", "li_msg"),
+                call(self.l, self.p3_lower, "li_subject", "li_msg"),
+            ],
+            any_order=True,
         )
 
 
