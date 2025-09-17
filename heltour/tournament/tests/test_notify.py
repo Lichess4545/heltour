@@ -22,6 +22,7 @@ from heltour.tournament.notify import (
     _lichess_message,
     _message_multiple_users,
     _message_user,
+    _notify_alternate_and_opponent,
     _send_notification,
     alternate_assigned,
     alternate_search_all_contacted,
@@ -192,6 +193,9 @@ class ModNotifications(TestCase):
         cls.p2 = get_player("Player2")
         cls.p3 = get_player("Player3")
         cls.p4 = get_player("Player4")
+        cls.p_lower = cls.p.lichess_username.lower()
+        cls.p3_lower = cls.p3.lichess_username.lower()
+        cls.p4_lower = cls.p4.lichess_username.lower()
         cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
         cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
         cls.pp = LonePlayerPairing.objects.create(
@@ -241,7 +245,7 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"@{self.p.lichess_username.lower()} marked as closed on "
+            f"@{self.p_lower} marked as closed on "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
             f"<{url}|Player profile>",
         )
@@ -252,7 +256,7 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"@{self.p.lichess_username.lower()} "
+            f"@{self.p_lower} "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess> account"
             " status changed from closed to normal. "
             f"<{url}|Player profile>",
@@ -264,8 +268,8 @@ class ModNotifications(TestCase):
             "mod",
             self.r.season.league,
             f"{self.r} - The following games are "
-            f"unscheduled: @{self.p3.lichess_username.lower()}"
-            f" vs @{self.p4.lichess_username.lower()}",
+            f"unscheduled: @{self.p3_lower}"
+            f" vs @{self.p4_lower}",
         )
 
     def test_notify_mods_missing_result(self, sn):
@@ -274,8 +278,8 @@ class ModNotifications(TestCase):
             "mod",
             self.r.season.league,
             f"{self.r} - The following games are "
-            f"missing results: @{self.p3.lichess_username.lower()}"
-            f" vs @{self.p4.lichess_username.lower()}",
+            f"missing results: @{self.p3_lower}"
+            f" vs @{self.p4_lower}",
         )
 
     def test_notify_mods_pairings_published(self, sn):
@@ -333,7 +337,10 @@ class OtherNotifications(TestCase):
         cls.p1 = tp1.player
         cls.p1_lower = cls.p1.lichess_username.lower()
         cls.p2 = get_player("Player2")
+        cls.p2_lower = cls.p2.lichess_username.lower()
         cls.p3 = team2.teammember_set.get(board_number=1).player
+        cls.p3_lower = cls.p3.lichess_username.lower()
+        cls.p4_lower = tp4.player.lichess_username.lower()
         tp = TeamPairing.objects.create(
             white_team=cls.team1, black_team=team2, round=cls.r, pairing_order=0
         )
@@ -353,7 +360,7 @@ class OtherNotifications(TestCase):
             white_confirmed=False,
             black_confirmed=False,
         )
-        cls.cap_ping = f"<@{cls.p1_lower}>, <@{tp4.player.lichess_username.lower()}>: "
+        cls.cap_ping = f"<@{cls.p1_lower}>, <@{cls.p4_lower}>: "
 
     def test_alternate_search_started(self, sn, mu):
         alternate_search_started(
@@ -369,7 +376,7 @@ class OtherNotifications(TestCase):
             [
                 call(
                     self.l,
-                    self.p1.lichess_username.lower(),
+                    self.p1_lower,
                     f"@{self.p1_lower}: I am searching for an "
                     f"alternate to replace you for round {self.r.number}, since "
                     "you have been marked as unavailable. To stop the search and"
@@ -377,8 +384,8 @@ class OtherNotifications(TestCase):
                 ),
                 call(
                     self.l,
-                    self.p3.lichess_username.lower(),
-                    f"@{self.p3.lichess_username.lower()}: Your opponent, "
+                    self.p3_lower,
+                    f"@{self.p3_lower}: Your opponent, "
                     f"@{self.p1_lower}, has been marked as "
                     "unavailable. I am searching for an alternate for you to "
                     "play, please be patient.",
@@ -435,9 +442,8 @@ class OtherNotifications(TestCase):
             f' "{self.team1.name}" in round {self.r.number}.',
         )
 
-    @patch("heltour.tournament.notify._notify_alternate_and_opponent")
-    def test_alternate_assigned(self, naao, sn, mu):
-        naao.return_value = self.p3
+    @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
+    def test_notify_alternate_and_opponent(self, spn, sn, mu):
         aa = AlternateAssignment.objects.create(
             player=self.p2,
             replaced_player=self.p1,
@@ -445,14 +451,66 @@ class OtherNotifications(TestCase):
             round=self.r,
             team=self.team1,
         )
+        _notify_alternate_and_opponent(self.l, aa)
+        sn.assert_not_called()
+        mu.assert_has_calls(
+            [
+                call(
+                    self.l,
+                    self.p2_lower,
+                    f"@{self.p2_lower}: You are playing on board 1 of "
+                    f'"{self.team1.name}". The team captain is <@{self.p1_lower}>.\nPlease '
+                    f"contact your opponent, <@{self.p3_lower}>, as"
+                    " soon as possible.",
+                ),
+                call(
+                    self.l,
+                    self.p3_lower,
+                    f"@{self.p3_lower}: Your opponent, @{self.p1_lower}, "
+                    "has been replaced by an alternate. Please contact your new opponent, "
+                    f"<@{self.p2_lower}>, as soon as possible.",
+                ),
+            ]
+        )
+        spn.assert_called_once_with(
+            "round_started",
+            aa.team.get_teampairing(aa.round).teamplayerpairing_set.get(
+                board_number=aa.board_number
+            ),
+            "You have been paired for Round {round} in {season}.\n"
+            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n"
+            "When you have agreed on a time, post it in {scheduling_channel_link}.",
+            "You have been paired for Round {round} in {season}.\n"
+            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "Message your opponent here as soon as possible.\n"
+            "When you have agreed on a time, post it in {scheduling_channel_link}.",
+            "Round {round} - {league}",
+            "You have been paired for Round {round} in {season}.\n"
+            "@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n"
+            "Message your opponent on Slack as soon as possible.\n"
+            "{slack_url}\n"
+            "When you have agreed on a time, post it in {scheduling_channel}.",
+        )
+
+    @patch("heltour.tournament.notify._notify_alternate_and_opponent", autospec=True)
+    def test_alternate_assigned(self, naao, sn, mu):
+        aa = AlternateAssignment.objects.create(
+            player=self.p2,
+            replaced_player=self.p1,
+            board_number=1,
+            round=self.r,
+            team=self.team1,
+        )
+        naao.return_value = self.p3
         alternate_assigned(season=self.r.season, alt_assignment=aa)  #
         naao.assert_called_once_with(self.l, aa)
         sn.assert_called_once_with(
             "captains",
             self.l,
-            f"{self.cap_ping}I have assigned <@{self.p2.lichess_username.lower()}> to "
+            f"{self.cap_ping}I have assigned <@{self.p2_lower}> to "
             f'play on board 1 of "{self.team1.name}" in place of <@{self.p1_lower}> for'
-            f" round {self.r.number}. Their opponent, @{self.p3.lichess_username.lower()}"
+            f" round {self.r.number}. Their opponent, @{self.p3_lower}"
             ", has been notified.",
         )
 
