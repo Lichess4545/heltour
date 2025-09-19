@@ -14,6 +14,7 @@ from heltour.tournament.models import (
     LonePlayerPairing,
     Player,
     PlayerLateRegistration,
+    PlayerPairing,
     PlayerWithdrawal,
     Registration,
     SeasonPlayer,
@@ -42,6 +43,7 @@ from heltour.tournament.notify import (
     notify_mods_round_start_done,
     notify_mods_unscheduled,
     notify_players_game_scheduled,
+    notify_players_round_start,
     pairings_generated,
     pairing_forfeit_changed,
     player_account_status_changed,
@@ -52,6 +54,7 @@ from heltour.tournament.notify import (
 )
 from heltour.tournament.tests.testutils import (
     DisconnectSignal,
+    Shush,
     create_reg,
     createCommonLeagueData,
     get_league,
@@ -338,7 +341,12 @@ class OtherNotifications(TestCase):
     def setUpTestData(cls):
         createCommonLeagueData()
         cls.r = get_round(league_type="team", round_number=1)
+        cls.r.publish_pairings = True
+        with Shush():
+            cls.r.save()
         cls.l = cls.r.season.league
+        cls.l.enable_notifications = True
+        cls.l.save()
         cls.team1 = get_team("Team 1")
         team2 = get_team("Team 2")
         tp1 = cls.team1.teammember_set.get(board_number=1)
@@ -365,7 +373,7 @@ class OtherNotifications(TestCase):
             white_confirmed=False,
             black_confirmed=False,
         )
-        TeamPlayerPairing.objects.create(
+        cls.tpp2 = TeamPlayerPairing.objects.create(
             team_pairing=tp,
             board_number=2,
             white=team2.teammember_set.get(board_number=2).player,
@@ -532,8 +540,10 @@ class OtherNotifications(TestCase):
             ", has been notified.",
         )
 
-    @patch("heltour.tournament.notify._lichess_message")
+    @patch("heltour.tournament.notify._lichess_message", autospec=True)
     def test_alternate_needed(self, lm, sn, mu):
+        self.r.publish_pairings=False
+        self.r.save()
         alternate_needed(
             alternate=self.alt,
             round_=self.r,
@@ -568,8 +578,8 @@ class OtherNotifications(TestCase):
             "within 1 hour.",
         )
 
-    @patch("heltour.tournament.notify._lichess_message")
-    @patch("heltour.tournament.notify._message_multiple_users")
+    @patch("heltour.tournament.notify._lichess_message", autospec=True)
+    @patch("heltour.tournament.notify._message_multiple_users", autospec=True)
     def test_send_pairing_notification(self, mmu, lm, sn, mu):
         send_pairing_notification(
             type_="round_started",
@@ -590,6 +600,50 @@ class OtherNotifications(TestCase):
                 call(self.l, self.p3_lower, "li_subject", "li_msg"),
             ],
             any_order=True,
+        )
+
+    @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
+    def test_notify_players_round_start(self, spn, sn, mu):
+        notify_players_round_start(self.r)
+        im_msg = (
+            "You have been paired for Round {round} in {season}.\n"
+            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n"
+            "When you have agreed on a time, post it in {scheduling_channel_link}."
+        )
+        mp_msg = (
+            "You have been paired for Round {round} in {season}.\n"
+            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "Message your opponent here within {contact_period}.\n"
+            "When you have agreed on a time, post it in {scheduling_channel_link}."
+        )
+        li_subject = "Round {round} - {league}"
+        li_msg = (
+            "You have been paired for Round {round} in {season}.\n"
+            "@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n"
+            "Message your opponent on Slack within {contact_period}.\n"
+            "{slack_url}\n"
+            "When you have agreed on a time, post it in {scheduling_channel}."
+        )
+        spn.assert_has_calls(
+            [
+                call(
+                    "round_started",
+                    PlayerPairing.objects.get(pk=self.tpp1.pk),
+                    im_msg,
+                    mp_msg,
+                    li_subject,
+                    li_msg
+                ),
+                call(
+                    "round_started",
+                    PlayerPairing.objects.get(pk=self.tpp2.pk),
+                    im_msg,
+                    mp_msg,
+                    li_subject,
+                    li_msg,
+                ),
+             ]
         )
 
 
