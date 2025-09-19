@@ -43,6 +43,7 @@ from heltour.tournament.notify import (
     notify_mods_round_start_done,
     notify_mods_unscheduled,
     notify_players_game_scheduled,
+    notify_players_game_time,
     notify_players_late_pairing,
     notify_players_round_start,
     pairings_generated,
@@ -658,6 +659,26 @@ class OtherNotifications(TestCase):
             self.mp_msg,
             self.li_subject,
             self.li_msg,
+        )
+
+    @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
+    def test_notify_players_game_time(self, spn, sn, mu):
+        notify_players_game_time(pairing=self.tpp1)
+        spn.assert_called_once_with(
+            "game_time",
+            self.tpp1,
+            "Your game is about to start.\n"
+            "<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n"
+            "Send a <https://lichess.org/?user={opponent}#friend|lichess challenge> "
+            "for a rated {time_control} game as {color}.",
+            "Your game is about to start.\n"
+            "<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n"
+            "Send a lichess challenge for a rated {time_control} game.",
+            "Round {round} - {league}",
+            "Your game is about to start.\n"
+            "@{white} (white pieces) vs @{black} (black pieces)\n"
+            "Send a challenge for a rated {time_control} game as {color}.\n"
+            "https://lichess.org/?user={opponent}#friend",
         )
 
 
