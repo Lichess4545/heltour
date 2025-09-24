@@ -34,7 +34,7 @@ from django.utils.safestring import mark_safe
 from django_comments.models import Comment
 from reversion.admin import VersionAdmin
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import (
     forms,
     lichessapi,
@@ -58,6 +58,7 @@ from heltour.tournament.models import (
     Document,
     GameNomination,
     GameSelection,
+    InviteCode,
     League,
     LeagueChannel,
     LeagueDocument,
@@ -79,6 +80,7 @@ from heltour.tournament.models import (
     PlayerWithdrawal,
     PrivateUrlAuth,
     Registration,
+    RegistrationMode,
     Round,
     ScheduledEvent,
     ScheduledNotification,
@@ -147,6 +149,46 @@ def comment_saved(instance, created, **kwargs):
         return
     league = League.objects.get(pk=league_id)
     signals.league_comment.send(sender=comment_saved, league=league, comment=instance)
+
+
+@receiver(
+    post_save,
+    sender=Registration,
+    dispatch_uid="heltour.tournament.admin.registration_auto_approval",
+)
+def registration_saved(instance, created, **kwargs):
+    """Auto-approve registrations with valid invite codes in invite-only leagues"""
+    if not created:
+        return
+
+    # Check if this is a new approved registration with an invite code
+    if (
+        instance.status == "approved"
+        and instance.invite_code_used
+        and instance.season.league.registration_mode == RegistrationMode.INVITE_ONLY
+    ):
+        # Import here to avoid circular imports
+        from heltour.tournament.workflows import (
+            create_team_with_captain,
+            add_player_to_team,
+        )
+
+        # Create SeasonPlayer
+        season_player, _ = SeasonPlayer.objects.get_or_create(
+            season=instance.season,
+            player=instance.player,
+            defaults={"is_active": True, "registration": instance},
+        )
+
+        # Handle team creation/assignment based on invite code type
+        invite_code = instance.invite_code_used
+        if invite_code.code_type == "captain":
+            create_team_with_captain(instance.player, instance.season)
+        elif invite_code.code_type == "team_member" and invite_code.team:
+            add_player_to_team(instance.player, invite_code.team)
+
+        # Email sending would happen here if the template existed
+        # TODO: Add email template and enable email sending
 
 
 # -------------------------------------------------------------------------------
@@ -297,7 +339,7 @@ class LeagueAdmin(_BaseAdmin):
         if self.has_assigned_perm(request.user, 'change'):
             return ()
         return ('competitor_type', 'tag', 'theme', 'display_order', 'description', 'is_active',
-                'is_default', 'enable_notifications')
+                'is_default', 'enable_notifications', 'registration_mode', 'email_required', 'show_provisional_warning', 'ask_availability')
 
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
@@ -465,6 +507,7 @@ class SeasonAdmin(_BaseAdmin):
         "simulate_tournament",
         "create_broadcast",
         "update_broadcast",
+        "generate_invite_codes",
     ]
     league_id_field = 'league_id'
 
@@ -504,6 +547,11 @@ class SeasonAdmin(_BaseAdmin):
             path('<int:object_id>/mod_report/',
                 self.admin_site.admin_view(self.mod_report_view),
                 name='mod_report'),
+            path(
+                "<int:object_id>/generate_invite_codes/",
+                self.admin_site.admin_view(self.generate_invite_codes_view),
+                name="generate_invite_codes",
+            ),
             path('<int:object_id>/pre_round_report/',
                 self.admin_site.admin_view(self.pre_round_report_view),
                 name='pre_round_report'),
@@ -757,6 +805,24 @@ class SeasonAdmin(_BaseAdmin):
             return
         return redirect('admin:bulk_email', object_id=queryset[0].pk)
 
+    def generate_invite_codes(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(
+                request,
+                "Invite codes can only be generated for one season at a time.",
+                messages.ERROR,
+            )
+            return
+        season = queryset[0]
+        if season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            self.message_user(
+                request,
+                f"{season.league.name} is not configured for invite-only registration.",
+                messages.ERROR,
+            )
+            return
+        return redirect("admin:generate_invite_codes", object_id=season.pk)
+
     def bulk_email_view(self, request, object_id):
         season = get_object_or_404(Season, pk=object_id)
         if not request.user.has_perm('tournament.bulk_email', season.league):
@@ -834,6 +900,71 @@ class SeasonAdmin(_BaseAdmin):
         }
 
         return render(request, 'tournament/admin/team_spam.html', context)
+
+    def generate_invite_codes_view(self, request, object_id):
+        season = get_object_or_404(Season, pk=object_id)
+        if not request.user.has_perm("tournament.change_season", season.league):
+            raise PermissionDenied
+
+        if season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            messages.error(
+                request,
+                f"{season.league.name} is not configured for invite-only registration.",
+            )
+            return redirect("admin:tournament_season_changelist")
+
+        # Get existing invite codes statistics
+        existing_codes = InviteCode.objects.filter(league=season.league, season=season)
+        captain_codes = existing_codes.filter(code_type="captain")
+        team_codes = existing_codes.filter(code_type="team_member")
+
+        stats = {
+            "total": existing_codes.count(),
+            "captain_codes": {
+                "total": captain_codes.count(),
+                "used": captain_codes.filter(used_by__isnull=False).count(),
+                "available": captain_codes.filter(used_by__isnull=True).count(),
+            },
+            "team_codes": {
+                "total": team_codes.count(),
+                "used": team_codes.filter(used_by__isnull=False).count(),
+                "available": team_codes.filter(used_by__isnull=True).count(),
+            },
+        }
+
+        if request.method == "POST":
+            try:
+                count = int(request.POST.get("count", 0))
+                code_type = request.POST.get("code_type", "captain")
+
+                if count < 1 or count > 10000:
+                    messages.error(request, "Count must be between 1 and 10,000")
+                else:
+                    codes = InviteCode.create_batch(
+                        league=season.league,
+                        season=season,
+                        count=count,
+                        created_by=request.user,
+                        code_type=code_type,
+                    )
+                    messages.success(
+                        request,
+                        f"Successfully generated {len(codes)} {code_type} invite codes.",
+                    )
+                    return redirect("admin:tournament_invitecode_changelist")
+
+            except Exception as e:
+                messages.error(request, f"Error generating codes: {str(e)}")
+
+        context = {
+            "season": season,
+            "stats": stats,
+            "title": f"Generate Invite Codes - {season}",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+        }
+
+        return render(request, "tournament/admin/generate_invite_codes.html", context)
 
     def mod_report(self, request, queryset):
         if queryset.count() > 1:
@@ -1413,6 +1544,8 @@ class RoundAdmin(_BaseAdmin):
         "simulate_results",
         "create_broadcast_round",
         "update_broadcast_round",
+        "start_games",
+        "start_clocks"
     ]
     league_id_field = 'season__league_id'
     search_fields = ['season__tag']
@@ -1489,6 +1622,38 @@ class RoundAdmin(_BaseAdmin):
         self.message_user(request, 'Simulation complete.', messages.INFO)
         return redirect('admin:tournament_round_changelist')
 
+    def start_games(self, request, queryset):
+        try:
+            require(len(queryset) == 1, "Can only start games one round at a time.")
+            round_ = queryset[0]
+            require(
+                not round_.is_player_scheduled_league(),
+                "Attempting to start games for a scheduling league."
+                " Change league setting first.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+        self.message_user(request, "Attempting to start games.", messages.INFO)
+        signals.do_start_unscheduled_games.send(sender=request.user, round_id=round_.pk)
+
+    def start_clocks(self, request, queryset):
+        try:
+            require(
+                len(queryset) == 1,
+                "Starting the clock for more than one round at a time is currently not possible.",
+            )
+            round_ = queryset[0]
+            require(
+                not round_.is_player_scheduled_league(),
+                "This round is part of a league where players schedule themselves.\n"
+                "Change the 'scheduling' league setting to enable starting clocks.",
+            )
+        except PreconditionError as e:
+            self.message_user(request, str(e), messages.ERROR)
+            return
+        self.message_user(request, "Attempting to start clocks.", messages.INFO)
+        signals.do_start_clocks.send(sender=request.user, round_id=round_.pk)
 
     def generate_pairings_view(self, request, object_id):
         round_ = get_object_or_404(Round, pk=object_id)
@@ -1845,7 +2010,11 @@ class TeamAdmin(_BaseAdmin):
     search_fields = ('name',)
     list_filter = ('season',)
     inlines = [TeamMemberInline]
-    actions = ['update_board_order_by_rating', 'create_slack_channels']
+    actions = [
+        "update_board_order_by_rating",
+        "create_slack_channels",
+        "generate_team_invite_codes",
+    ]
     league_id_field = 'season__league_id'
     league_competitor_type = 'team'
 
@@ -1879,6 +2048,112 @@ class TeamAdmin(_BaseAdmin):
         signals.do_create_team_channel.send(sender=self, team_ids=team_ids)
         self.message_user(request, 'Creating %d channels. %d skipped.' % (len(team_ids), skipped),
                           messages.INFO)
+
+    def generate_team_invite_codes(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(
+                request,
+                "Invite codes can only be generated for one team at a time.",
+                messages.ERROR,
+            )
+            return
+        team = queryset[0]
+        if team.season.league.registration_mode != RegistrationMode.INVITE_ONLY:
+            self.message_user(
+                request,
+                f"{team.season.league.name} is not configured for invite-only registration.",
+                messages.ERROR,
+            )
+            return
+        return redirect("admin:generate_team_invite_codes", object_id=team.pk)
+
+    def get_urls(self):
+        urls = super(TeamAdmin, self).get_urls()
+        my_urls = [
+            path(
+                "<int:object_id>/generate_team_invite_codes/",
+                self.admin_site.admin_view(self.generate_team_invite_codes_view),
+                name="generate_team_invite_codes",
+            ),
+        ]
+        return my_urls + urls
+
+    def generate_team_invite_codes_view(self, request, object_id):
+        team = get_object_or_404(Team, pk=object_id)
+
+        # Check if user is captain of this team
+        is_captain = TeamMember.objects.filter(
+            team=team,
+            player__lichess_username__iexact=request.user.username,
+            is_captain=True,
+        ).exists()
+
+        if not is_captain and not request.user.has_perm(
+            "tournament.change_team", team.season.league
+        ):
+            raise PermissionDenied
+
+        # Get existing team invite codes
+        existing_codes = InviteCode.objects.filter(
+            league=team.season.league,
+            season=team.season,
+            code_type="team_member",
+            team=team,
+        )
+
+        stats = {
+            "total": existing_codes.count(),
+            "used": existing_codes.filter(used_by__isnull=False).count(),
+            "available": existing_codes.filter(used_by__isnull=True).count(),
+        }
+
+        # Calculate maximum allowed codes (2x board count)
+        max_boards = team.season.boards
+        max_codes = max_boards * 2
+        remaining_allowed = max(0, max_codes - existing_codes.count())
+
+        if request.method == "POST":
+            try:
+                count = int(request.POST.get("count", 0))
+
+                if count < 1:
+                    messages.error(request, "Count must be at least 1")
+                elif count > remaining_allowed:
+                    messages.error(
+                        request,
+                        f"You can only generate {remaining_allowed} more codes (maximum {max_codes} total)",
+                    )
+                else:
+                    codes = InviteCode.create_batch(
+                        league=team.season.league,
+                        season=team.season,
+                        count=count,
+                        created_by=request.user,
+                        code_type="team_member",
+                        team=team,
+                    )
+                    messages.success(
+                        request,
+                        f"Successfully generated {len(codes)} team member invite codes.",
+                    )
+                    return redirect("admin:tournament_invitecode_changelist")
+
+            except Exception as e:
+                messages.error(request, f"Error generating codes: {str(e)}")
+
+        context = {
+            "team": team,
+            "stats": stats,
+            "max_codes": max_codes,
+            "remaining_allowed": remaining_allowed,
+            "title": f"Generate Team Member Invite Codes - {team.name}",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+        }
+
+        return render(
+            request, "tournament/admin/generate_team_invite_codes.html", context
+        )
 
 
 # -------------------------------------------------------------------------------
@@ -2862,3 +3137,75 @@ class BroadcastRoundAdmin(_BaseAdmin):
         "round_id__season__league__name",
         "round_id__number",
     )
+
+
+@admin.register(InviteCode)
+class InviteCodeAdmin(_BaseAdmin):
+    list_display = (
+        "code",
+        "code_type",
+        "league",
+        "season",
+        "team",
+        "used_by",
+        "used_at",
+        "created_by",
+    )
+    list_filter = ("league", "season", "code_type", "team", "used_at")
+    search_fields = ("code", "used_by__lichess_username", "team__name")
+    readonly_fields = ("code", "used_by", "used_at", "date_created", "date_modified")
+    actions = ["export_codes"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:  # Creating new invite code
+            return ("used_by", "used_at", "date_created", "date_modified")
+        else:  # Editing existing invite code
+            return ("code", "used_by", "used_at", "date_created", "date_modified")
+
+    def has_add_permission(self, request):
+        # Users should use the batch generation feature instead
+        return False
+
+    def export_codes(self, request, queryset):
+        """Export selected invite codes as CSV"""
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="invite_codes.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Code",
+                "Type",
+                "League",
+                "Season",
+                "Team",
+                "Status",
+                "Used By",
+                "Used At",
+                "Created By",
+                "Notes",
+            ]
+        )
+
+        for code in queryset:
+            writer.writerow(
+                [
+                    code.code,
+                    code.get_code_type_display(),
+                    code.league.name,
+                    code.season.name,
+                    code.team.name if code.team else "",
+                    "Used" if code.used_by else "Available",
+                    code.used_by.lichess_username if code.used_by else "",
+                    code.used_at.strftime("%Y-%m-%d %H:%M:%S") if code.used_at else "",
+                    code.created_by.username if code.created_by else "",
+                    code.notes,
+                ]
+            )
+
+        return response
+
+    export_codes.short_description = "Export selected codes as CSV"

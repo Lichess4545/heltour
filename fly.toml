@@ -1,0 +1,39 @@
+# fly.toml app configuration file generated for fwccc on 2025-09-07T13:15:43-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'fwccc'
+primary_region = 'fra'
+console_command = 'python /app/manage.py shell'
+
+[build]
+
+[deploy]
+  release_command = 'python /app/manage.py migrate --noinput'
+
+[env]
+  PORT = '8000'
+  DJANGO_SETTINGS_MODULE = 'heltour.settings'
+
+[processes]
+  web = 'gunicorn heltour.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --log-file - --access-logfile - --error-logfile -'
+  apiworker = 'sh -c "HELTOUR_APP=api_worker gunicorn heltour.wsgi:application --bind "[::]:8880" --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --log-file - --access-logfile - --error-logfile -"'
+  celery = 'celery -A heltour worker -l info -E -B'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['web']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[[statics]]
+  guest_path = '/app/static'
+  url_prefix = '/static/'

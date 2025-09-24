@@ -3,9 +3,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
-from heltour import settings
-from heltour.tournament.models import Player, Registration, format_score
-from static_precompiler.utils import compile_static
+from heltour.tournament.models import Registration, format_score
 
 register = template.Library()
 
@@ -142,18 +140,6 @@ def date_el(datetime, arg=None):
     return mark_safe('<time datetime="%s">%s</time>' % (
         datetime.isoformat(), formats.date_format(datetime, arg)))
 
-
-@register.filter
-def compile_if_debug(path):
-    # This is a bit of hackery to make static precompilation work with manifest storage
-    if settings.DEBUG:
-        try:
-            compile_static(path)
-        except FileExistsError:
-            compile_static(path)
-    return path.replace('.scss', '.css')
-
-
 @register.filter
 def mean(lst):
     if len(lst) == 0:
@@ -193,6 +179,71 @@ def can_register(user, season):
 @register.filter
 def is_registered(user, season):
     return Registration.is_registered(user, season)
+
+
+@register.filter
+def get_team_status(user, season):
+    """Get the team status for a user in a season.
+    
+    Returns a dict with:
+    - has_team: bool
+    - is_captain: bool
+    - team: Team object or None
+    - needs_setup: bool (captain without team)
+    """
+    from heltour.tournament.models import Player, TeamMember, Registration
+    
+    if not user.is_authenticated or not season:
+        return None
+    
+    try:
+        player = Player.objects.get(lichess_username__iexact=user.username)
+    except Player.DoesNotExist:
+        return None
+    
+    # Check if user is on a team
+    team_member = TeamMember.objects.filter(
+        player=player,
+        team__season=season
+    ).select_related('team').first()
+    
+    if team_member:
+        return {
+            'has_team': True,
+            'is_captain': team_member.is_captain,
+            'team': team_member.team,
+            'needs_setup': False
+        }
+    
+    # Check if user is a captain who needs to set up team
+    registration = Registration.objects.filter(
+        player=player,
+        season=season,
+        status='approved',
+        invite_code_used__code_type='captain'
+    ).first()
+    
+    if registration:
+        return {
+            'has_team': False,
+            'is_captain': True,
+            'team': None,
+            'needs_setup': True
+        }
+    
+    return {
+        'has_team': False,
+        'is_captain': False,
+        'team': None,
+        'needs_setup': False
+    }
+
+
+@register.filter
+def is_invite_only_league(league):
+    """Check if a league is invite-only."""
+    from heltour.tournament.models import RegistrationMode
+    return league and league.registration_mode == RegistrationMode.INVITE_ONLY
 
 
 def concat(str1, str2):

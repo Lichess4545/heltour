@@ -36,10 +36,10 @@
                     <p>
                         You are registering as <strong>{{ user }}</strong>.
                         <br>
-                        If you want to change the account you register with, you can logout <a href="/team4545/player/">here</a>.
+                        If you want to change the account you register with, you can logout <a href="/{{ registration_season.league.tag }}/player/">here</a>.
                         <br>
                         As per our
-                        <a href="/team4545/document/terms-of-service/">Terms of Service</a> once you
+                        <a href="/{{ registration_season.league.tag }}/document/terms-of-service/">Terms of Service</a> once you
                         participate in our league with this account you will always need to use it.
                     </p>
                     {% if registration_season.is_started and league.name == "Lichess4545 League" and not user|is_registered:registration_season %}

@@ -7,6 +7,12 @@
             <div class="well">
                 <div class="well-head">
                     <h3>{{ team.name }}</h3>
+                    {% if can_manage_team %}
+                        <a href="{% leagueurl 'team_manage' league.tag season.tag team.number %}"
+                           class="btn btn-primary btn-sm pull-right">
+                            <span class="glyphicon glyphicon-cog"></span> Manage Team
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="well-body">
                     <div class="player-profile-section">
