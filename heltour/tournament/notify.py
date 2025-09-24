@@ -7,7 +7,7 @@ from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import lichessapi, signals, slackapi
 from heltour.tournament.models import (
     LeagueChannel,

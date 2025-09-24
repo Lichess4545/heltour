@@ -8,7 +8,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import alternates_manager, pairinggen, signals, slackapi
 from heltour.tournament.models import (
     Alternate,
@@ -22,10 +22,33 @@ from heltour.tournament.models import (
     PlayerPairing,
     Round,
     SeasonPlayer,
+    Team,
     TeamMember,
     find,
     logger,
 )
+
+
+def create_team_with_captain(player, season):
+    """Mark player as captain but don't create team yet - team creation happens in team setup view."""
+    # Just return None - the team will be created when captain completes setup
+    return None
+
+
+def add_player_to_team(player, team):
+    """Add a player to an existing team."""
+    existing_members = TeamMember.objects.filter(team=team).order_by("-board_number")
+    next_board = 1
+    if existing_members.exists():
+        next_board = existing_members.first().board_number + 1
+
+    return TeamMember.objects.create(
+        team=team,
+        player=player,
+        board_number=next_board,
+        is_captain=False,
+        is_vice_captain=False,
+    )
 
 
 class RoundTransitionWorkflow():
@@ -492,6 +515,21 @@ class ApproveRegistrationWorkflow():
                 if last_sp is not None and last_sp.games_missed >= 2 and self.league.get_leaguesetting().carry_over_red_cards_as_yellow:
                     sp.games_missed = 1
                     sp.save()
+                
+                # Handle team creation/assignment for invite-only leagues
+                if (
+                    season.league.is_invite_only()
+                    and season.league.competitor_type == "team"
+                    and reg.invite_code_used
+                ):
+                    invite_code = reg.invite_code_used
+
+                    if invite_code.code_type == "captain":
+                        self._handle_captain_invite(player, season, modeladmin, request)
+                    elif invite_code.code_type == "team_member" and invite_code.team:
+                        self._handle_team_member_invite(
+                            player, invite_code.team, modeladmin, request
+                        )
 
         # Set availability
         ''' weeks that are set unavailable already will not be switched back to available here. 
@@ -590,6 +628,23 @@ class ApproveRegistrationWorkflow():
             modeladmin.message_user(request,
                                     'Registration for "%s" approved.' % reg.lichess_username,
                                     messages.INFO)
+
+    def _handle_captain_invite(self, player, season, modeladmin, request):
+        """Handle creation of a new team when a captain invite code is used."""
+        team = create_team_with_captain(player, season)
+        if modeladmin:
+            modeladmin.message_user(
+                request,
+                f'Created new team "{team.name}" with {player.lichess_username} as captain',
+            )
+
+    def _handle_team_member_invite(self, player, team, modeladmin, request):
+        """Handle adding a player to an existing team when a team member invite code is used."""
+        add_player_to_team(player, team)
+        if modeladmin:
+            modeladmin.message_user(
+                request, f'Added {player.lichess_username} to team "{team.name}"'
+            )
 
 
 class MoveLateRegWorkflow():

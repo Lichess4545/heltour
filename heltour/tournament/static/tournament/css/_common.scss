@@ -144,6 +144,31 @@ table .team-link {
 .player-profile-row .well-body {
     overflow: auto;
 }
+
+// Team profile well-head alignment
+.player-profile-row .well-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 40px;
+    
+    h3 {
+        margin: 0;
+        line-height: 1;
+        font-size: 18px;
+    }
+    
+    .btn {
+        margin: 0;
+        white-space: nowrap;
+    }
+    
+    // Handle pull-right class for flexbox
+    .pull-right {
+        margin-left: auto;
+    }
+}
 .player-profile-row .profile-links {
     margin: 3px 0px;
 }

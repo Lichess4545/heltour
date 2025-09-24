@@ -131,16 +131,42 @@
                             <a href="{% leagueurl 'league_dashboard' league.tag season.tag %}">Dashboard</a>
                         </li>
                     {% endif %}
-                    {% if user|can_register:registration_season %}
-                        <li>
-                            <a href="{% leagueurl 'register' league.tag None %}">
-                                {% if user|is_registered:registration_season %}
-                                    Change Registration
-                                {% else %}
-                                    Register
+                    {% if league.is_invite_only and season %}
+                        {% with team_status=user|get_team_status:season %}
+                            {% if team_status %}
+                                {% if team_status.has_team %}
+                                    <li>
+                                        {% if team_status.is_captain %}
+                                            <a href="{% leagueurl 'team_manage' league.tag season.tag team_status.team.number %}">
+                                                Manage Team
+                                            </a>
+                                        {% else %}
+                                            <a href="{% leagueurl 'team_profile' league.tag season.tag team_status.team.number %}">
+                                                My Team
+                                            </a>
+                                        {% endif %}
+                                    </li>
+                                {% elif team_status.needs_setup %}
+                                    <li>
+                                        <a href="{% leagueurl 'team_create' league.tag season.tag %}">
+                                            Create Team
+                                        </a>
+                                    </li>
                                 {% endif %}
-                            </a>
-                        </li>
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        {% if user|can_register:registration_season %}
+                            <li>
+                                <a href="{% leagueurl 'register' league.tag None %}">
+                                    {% if user|is_registered:registration_season %}
+                                        Change Registration
+                                    {% else %}
+                                        Register
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% endif %}
                     {% endif %}
                     {% if user.is_authenticated %}
                         <li>

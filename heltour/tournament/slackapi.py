@@ -1,5 +1,5 @@
 import requests
-from heltour import settings
+from django.conf import settings
 from collections import namedtuple
 import logging
 

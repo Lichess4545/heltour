@@ -4,6 +4,10 @@
 {% block body %}
     <div id="home-container">
         <div class="container" id="home-league-list">
+            {% if display_fwcc_banner %}
+                {% include 'tournament/fwcc_banner.html' %}
+            {% endif %}
+
             <div class="row">
                 {% if leagues %}
                     {% for l in leagues %}

@@ -251,6 +251,10 @@ class RegisterTestCase(TestCase):
             round_duration=timedelta(hours=1),
         )
         season = get_season("team")
+        # Enable email requirement for this test
+        league = get_league("team")
+        league.email_required = True
+        league.save()
         Round.objects.filter(season=season).update(
             start_date=timezone.now() + timedelta(hours=1)
         )

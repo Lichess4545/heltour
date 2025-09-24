@@ -102,8 +102,8 @@ class Shush:
         logging.disable(logging.CRITICAL)
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         logging.disable(logging.NOTSET)
-        if type is not None:
-            logging.getLogger(__name__).error(f"Error {type}: {value}")
+        if exc_type is not None:
+            logging.getLogger(__name__).error(f"Error {exc_type}: {exc_value}")
         return True

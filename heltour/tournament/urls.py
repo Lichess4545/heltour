@@ -77,7 +77,17 @@ season_urlpatterns = [
         name="player_profile",
     ),
     path(
+        "team/create/",
+        views.TeamCreateView.as_view(),
+        name="team_create"
+    ),
+    path(
         "team/<int:team_number>/", views.TeamProfileView.as_view(), name="team_profile"
+    ),
+    path(
+        "team/<int:team_number>/manage/",
+        views.TeamManageView.as_view(),
+        name="team_manage",
     ),
     path("tv/", cache_control(no_cache=True)(views.TvView.as_view()), name="tv"),
     path(

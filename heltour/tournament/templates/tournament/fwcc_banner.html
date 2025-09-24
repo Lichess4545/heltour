@@ -1,0 +1,96 @@
+<style>
+  /* === FIDE WCC 2025 two-column block === */
+  .wcc-cta {
+    display: flex;
+    flex-wrap: wrap;
+    border: 0;
+    margin: 0 auto 100px;
+    max-width: 1100px;
+    min-height: 220px;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wcc-cta__col {
+    flex: 1 1 320px;            /* responsive: stacks under ~640px */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  /* Left column — black background with the image */
+  .wcc-cta__left {
+    background: #000;
+  }
+  .wcc-cta__left img {
+    max-width: 90%;
+    height: auto;
+    display: block;
+    filter: none;               /* ensure logo colors are preserved */
+  }
+
+  /* Right column — #102644 background with white text */
+  .wcc-cta__right {
+    background: #102644;
+    color: #fff;
+    text-align: center;
+    gap: 16px;
+    flex-direction: column;
+  }
+  .wcc-cta__heading {
+    font-size: clamp(1.1rem, 2.5vw, 1.75rem);
+    line-height: 1.2;
+    margin: 0 0 12px 0;
+    font-weight: 700;
+  }
+
+  /* Button */
+  .wcc-cta__btn {
+    display: inline-block;
+    background: #8181EA;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    border: 0;
+    border-radius: 0;           /* square corners */
+    padding: 12px 20px;
+    line-height: 1;
+    box-shadow: none;
+    transition: transform 0.08s ease, filter 0.15s ease;
+    cursor: pointer;
+  }
+  .wcc-cta__btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  .wcc-cta__btn:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+  .wcc-cta__btn:active {
+    transform: translateY(0);
+  }
+
+  /* Optional: tighten layout on very small screens */
+  @media (max-width: 480px) {
+    .wcc-cta__col { padding: 18px; }
+  }
+</style>
+
+<div class="wcc-cta">
+  <div class="wcc-cta__col wcc-cta__left">
+    <img
+      src="https://worldcorporate.fide.com/wp-content/uploads/2023/05/FIDE_WCCC2025_Logo_Horisontal_Negative.svg"
+      alt="FIDE World Corporate Championship 2025"
+      loading="lazy"
+    />
+  </div>
+  <div class="wcc-cta__col wcc-cta__right">
+    <h2 class="wcc-cta__heading">
+      Register for the FIDE World Corporate Championship 2025
+    </h2>
+    <a class="wcc-cta__btn" href="https://www.tickettailor.com/events/worldcorporate2025" aria-label="Buy Tickets for FIDE World Corporate Championship 2025">
+      Buy Tickets
+    </a>
+  </div>
+</div>

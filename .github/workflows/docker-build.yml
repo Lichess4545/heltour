@@ -1,0 +1,95 @@
+name: Docker Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: lichess4545
+
+jobs:
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate tag
+        id: tag
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "TAG=latest" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "TAG=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            # Use branch name as tag, sanitized for Docker
+            TAG=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/[^a-zA-Z0-9._-]/-/g')
+            echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          fi
+          echo "GITHUB_SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # For non-master branches: only run verification
+      - name: Build and verify
+        if: github.ref != 'refs/heads/master'
+        uses: docker/bake-action@v5
+        with:
+          files: docker/docker-bake.hcl
+          targets: verify
+          push: false
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+        env:
+          TAG: ${{ steps.tag.outputs.TAG }}
+          REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
+          GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
+
+      # For master branch: build all images including verify, then push production images
+      - name: Build and push all images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/bake-action@v5
+        with:
+          files: docker/docker-bake.hcl
+          targets: default
+          push: true
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+        env:
+          TAG: ${{ steps.tag.outputs.TAG }}
+          REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
+          GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      web: ${{ secrets.LITOUR_DEPLOY_STAGING_WEB }}
+      apiworker: ${{ secrets.LITOUR_DEPLOY_STAGING_APIWORKER }}
+      caddy: ${{ secrets.LITOUR_DEPLOY_STAGING_CADDY }}
+      migrate: ${{ secrets.LITOUR_DEPLOY_STAGING_MIGRATE }}
+    strategy:
+      matrix:
+        service: [web, apiworker, caddy, migrate]
+    steps:
+      - name: deploy ${{ matrix.service }}
+        run: curl -X POST ${{ env[matrix.service] }}

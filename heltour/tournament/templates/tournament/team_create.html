@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load tournament_extras %}
+{% block title %}Create Team - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h2>Create Your Team</h2>
+                <hr>
+                <div class="well">
+                    <div class="well-head">
+                        <h3>Team Information</h3>
+                    </div>
+                    <div class="well-body">
+                        <p class="lead">
+                            As a team captain, please provide the following information to set up your team for 
+                            <strong>{{ season.name }}</strong>.
+                        </p>
+                        
+                        <form method="post" class="form-horizontal">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Team Name -->
+                            <div class="form-group {% if form.team_name.errors %}has-error{% endif %}">
+                                <label for="{{ form.team_name.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.team_name.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.team_name }}
+                                    {% if form.team_name.help_text %}
+                                        <p class="help-block">{{ form.team_name.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.team_name.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.team_name.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Company Name -->
+                            <div class="form-group {% if form.company_name.errors %}has-error{% endif %}">
+                                <label for="{{ form.company_name.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.company_name.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.company_name }}
+                                    {% if form.company_name.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.company_name.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Number of Players -->
+                            <div class="form-group {% if form.number_of_players.errors %}has-error{% endif %}">
+                                <label for="{{ form.number_of_players.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.number_of_players.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.number_of_players }}
+                                    {% if form.number_of_players.help_text %}
+                                        <p class="help-block">{{ form.number_of_players.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.number_of_players.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.number_of_players.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Company Address -->
+                            <div class="form-group {% if form.company_address.errors %}has-error{% endif %}">
+                                <label for="{{ form.company_address.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.company_address.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.company_address }}
+                                    {% if form.company_address.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.company_address.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Team Contact Email -->
+                            <div class="form-group {% if form.team_contact_email.errors %}has-error{% endif %}">
+                                <label for="{{ form.team_contact_email.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.team_contact_email.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.team_contact_email }}
+                                    {% if form.team_contact_email.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.team_contact_email.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Team Contact Number -->
+                            <div class="form-group {% if form.team_contact_number.errors %}has-error{% endif %}">
+                                <label for="{{ form.team_contact_number.id_for_label }}" class="col-sm-3 control-label">
+                                    {{ form.team_contact_number.label }}
+                                </label>
+                                <div class="col-sm-9">
+                                    {{ form.team_contact_number }}
+                                    {% if form.team_contact_number.errors %}
+                                        <p class="help-block text-danger">
+                                            {% for error in form.team_contact_number.errors %}{{ error }}{% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="form-group">
+                                <div class="col-sm-offset-3 col-sm-9">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        Create Team
+                                    </button>
+                                    <a href="{% leagueurl 'season_landing' league.tag season.tag %}" 
+                                       class="btn btn-default btn-lg">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <div class="alert alert-info" style="margin-top: 20px;">
+                            <strong>Next Steps:</strong> After creating your team, you'll be able to:
+                            <ul>
+                                <li>Generate invite codes for your team members</li>
+                                <li>Manage your team roster and board order</li>
+                                <li>Update team information as needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
