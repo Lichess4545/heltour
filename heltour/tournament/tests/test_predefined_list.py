@@ -70,9 +70,13 @@ class PredefinedListParsingTest(TestCase):
 
 
 class PredefinedListValidationTest(TestCase):
+    """Tests with all three predefined list flags enabled."""
+
     def setUp(self):
         self.season = _create_season(
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username=True,
+            validate_predefined_list_contains_fide_id=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             validate_has_rating=False,
             validate_account_status=False,
             validate_not_provisional=False,
@@ -120,9 +124,11 @@ class PredefinedListValidationTest(TestCase):
         self.assertFalse(check.fide_match)
         self.assertIn("Not in predefined list", check.detail)
 
-    def test_standard_mode_unchanged(self):
+    def test_all_flags_off_skips_predefined_checks(self):
         season = _create_season(
-            validate_predefined_list=False,
+            validate_predefined_list_contains_username=False,
+            validate_predefined_list_contains_fide_id=False,
+            validate_predefined_list_contains_username_fide_id_together=False,
             predefined_player_list="player1,12345",
             tag_prefix="std",
         )

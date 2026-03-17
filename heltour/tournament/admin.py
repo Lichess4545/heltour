@@ -2,6 +2,7 @@ import json
 import re
 import time
 from collections import defaultdict
+from typing import ClassVar
 from datetime import timedelta
 from smtplib import SMTPException
 from urllib.parse import quote as urlquote
@@ -29,7 +30,7 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.urls import path, reverse
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django_comments.models import Comment
 from reversion.admin import VersionAdmin
@@ -3435,13 +3436,29 @@ class RegistrationAdmin(_BaseAdmin):
         )
         return mark_safe('<a href="%s"><b>%s</b></a>' % (_url, obj.lichess_username))
 
+    VALIDATION_ISSUE_ICONS: ClassVar[dict[str, str]] = {
+        "no_rating": "\u0030\ufe0f\u20e3",
+        "account_not_normal": "\U0001f6ab",
+        "fide_id_wrong_player": "\U0001f194",
+        "predefined_fide_mismatch": "\U0001f522",
+        "not_in_predefined_list": "\U0001f4cb",
+        "fide_id_not_in_predefined_list": "\U0001f3f7\ufe0f",
+        "fide_id_duplicate": "\U0001f465",
+        "provisional_rating": "\u23f3",
+        "rules_not_agreed": "\U0001f4dc",
+        "tos_not_agreed": "\U0001f4c4",
+    }
+
     def valid(self, obj):
-        if obj.validation_status == ValidationStatus.ERROR:
-            return mark_safe('<img src="%s">' % static("admin/img/icon-no.svg"))
-        elif obj.validation_status == ValidationStatus.WARNING:
-            return mark_safe('<img src="%s">' % static("admin/img/icon-alert.svg"))
-        else:
+        if obj.validation_status == ValidationStatus.OK:
             return mark_safe('<img src="%s">' % static("admin/img/icon-yes.svg"))
+        issues = obj.validation_issues or []
+        parts = []
+        for issue in issues:
+            icon = self.VALIDATION_ISSUE_ICONS.get(issue["code"], "\u2753")
+            escaped_msg = escape(issue["message"])
+            parts.append(f'<span title="{escaped_msg}">{icon}</span>')
+        return mark_safe(" ".join(parts))
 
     def date_validated(self, obj):
         return obj.player.date_modified
@@ -3549,7 +3566,11 @@ class RegistrationAdmin(_BaseAdmin):
         is_team = reg.season.league.competitor_type == "team"
 
         predefined_list_detail = None
-        if reg.season.validate_predefined_list:
+        if (
+            reg.season.validate_predefined_list_contains_username
+            or reg.season.validate_predefined_list_contains_fide_id
+            or reg.season.validate_predefined_list_contains_username_fide_id_together
+        ):
             predefined_list_detail = reg.predefined_list_check().detail
 
         context = {

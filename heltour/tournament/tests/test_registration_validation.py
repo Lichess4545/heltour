@@ -172,7 +172,9 @@ class CombinedStandardAndPredefinedTest(TestCase):
     def test_standard_and_predefined_both_active(self):
         season = _create_season(
             tag_prefix="combo",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username=True,
+            validate_predefined_list_contains_fide_id=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             predefined_player_list="comboplayer,12345",
         )
         player = _create_player("comboplayer")
@@ -181,10 +183,10 @@ class CombinedStandardAndPredefinedTest(TestCase):
         self.assertTrue(reg.validation_ok)
         self.assertFalse(reg.validation_warning)
 
-    def test_predefined_fails_while_standard_passes(self):
+    def test_predefined_pairing_fails_while_standard_passes(self):
         season = _create_season(
             tag_prefix="combofail",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             predefined_player_list="someone_else,12345",
         )
         player = _create_player("combofailplayer")
@@ -196,7 +198,9 @@ class CombinedStandardAndPredefinedTest(TestCase):
     def test_standard_fails_while_predefined_passes(self):
         season = _create_season(
             tag_prefix="combofail2",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username=True,
+            validate_predefined_list_contains_fide_id=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             predefined_player_list="combofail2player,12345",
         )
         player = _create_player("combofail2player", account_status="closed")
@@ -263,7 +267,7 @@ class ComputeValidationTest(TestCase):
     def test_error_fide_id_wrong_player(self):
         season = _create_season(
             tag_prefix="compfide",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             predefined_player_list="realplayer,12345",
         )
         player = _create_player("compfideplayer")
@@ -276,7 +280,7 @@ class ComputeValidationTest(TestCase):
     def test_warning_predefined_fide_mismatch(self):
         season = _create_season(
             tag_prefix="compfidem",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username_fide_id_together=True,
             predefined_player_list="compfidemplayer,12345",
         )
         player = _create_player("compfidemplayer")
@@ -289,7 +293,7 @@ class ComputeValidationTest(TestCase):
     def test_warning_not_in_predefined_list(self):
         season = _create_season(
             tag_prefix="compnotpl",
-            validate_predefined_list=True,
+            validate_predefined_list_contains_username=True,
             predefined_player_list="someone,12345",
         )
         player = _create_player("compnotplplayer")
@@ -298,6 +302,46 @@ class ComputeValidationTest(TestCase):
         self.assertEqual(status, ValidationStatus.WARNING)
         codes = [i["code"] for i in issues]
         self.assertIn("not_in_predefined_list", codes)
+
+    def test_warning_fide_id_not_in_predefined_list(self):
+        season = _create_season(
+            tag_prefix="compfidenil",
+            validate_predefined_list_contains_fide_id=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("compfidenilplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.WARNING)
+        codes = [i["code"] for i in issues]
+        self.assertIn("fide_id_not_in_predefined_list", codes)
+
+    def test_warning_fide_id_no_fide_provided(self):
+        season = _create_season(
+            tag_prefix="compfidenone",
+            validate_predefined_list_contains_fide_id=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("compfidenoneplayer")
+        reg = _create_reg(season, player, fide_id="")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.WARNING)
+        codes = [i["code"] for i in issues]
+        self.assertIn("fide_id_not_in_predefined_list", codes)
+
+    def test_warning_fide_id_duplicate(self):
+        season = _create_season(
+            tag_prefix="compfidedup",
+            validate_predefined_list_contains_fide_id=True,
+            predefined_player_list="player_a,12345",
+        )
+        player_a = _create_player("compfidedupplayera")
+        _create_reg(season, player_a, fide_id="12345")
+        player_b = _create_player("compfidedupplayerb")
+        reg_b = _create_reg(season, player_b, fide_id="12345")
+        status, issues = reg_b.compute_validation()
+        codes = [i["code"] for i in issues]
+        self.assertIn("fide_id_duplicate", codes)
 
     def test_multiple_issues_error_wins(self):
         season = _create_season(tag_prefix="compmulti")
@@ -312,6 +356,112 @@ class ComputeValidationTest(TestCase):
         self.assertIn("provisional_rating", codes)
         self.assertIn("rules_not_agreed", codes)
         self.assertGreaterEqual(len(issues), 3)
+
+
+class IndependentPredefinedFlagsTest(TestCase):
+    def test_username_only_ignores_fide_mismatch(self):
+        season = _create_season(
+            tag_prefix="uonly",
+            validate_predefined_list_contains_username=True,
+            predefined_player_list="uonlyplayer,12345",
+        )
+        player = _create_player("uonlyplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.OK)
+        codes = [i["code"] for i in issues]
+        self.assertNotIn("predefined_fide_mismatch", codes)
+        self.assertNotIn("fide_id_not_in_predefined_list", codes)
+
+    def test_username_only_warns_unknown_player(self):
+        season = _create_season(
+            tag_prefix="uonlywarn",
+            validate_predefined_list_contains_username=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("uonlywarnplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.WARNING)
+        codes = [i["code"] for i in issues]
+        self.assertIn("not_in_predefined_list", codes)
+
+    def test_fide_only_ignores_unknown_username(self):
+        season = _create_season(
+            tag_prefix="fonly",
+            validate_predefined_list_contains_fide_id=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("fonlyplayer")
+        reg = _create_reg(season, player, fide_id="12345")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.OK)
+        codes = [i["code"] for i in issues]
+        self.assertNotIn("not_in_predefined_list", codes)
+
+    def test_fide_only_warns_unknown_fide(self):
+        season = _create_season(
+            tag_prefix="fonlywarn",
+            validate_predefined_list_contains_fide_id=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("fonlywarnplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.WARNING)
+        codes = [i["code"] for i in issues]
+        self.assertIn("fide_id_not_in_predefined_list", codes)
+
+    def test_pairing_only_errors_on_stolen_fide(self):
+        season = _create_season(
+            tag_prefix="pstolen",
+            validate_predefined_list_contains_username_fide_id_together=True,
+            predefined_player_list="realplayer,12345",
+        )
+        player = _create_player("pstolenplayer")
+        reg = _create_reg(season, player, fide_id="12345")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.ERROR)
+        codes = [i["code"] for i in issues]
+        self.assertIn("fide_id_wrong_player", codes)
+
+    def test_pairing_only_warns_on_fide_mismatch(self):
+        season = _create_season(
+            tag_prefix="pmismatch",
+            validate_predefined_list_contains_username_fide_id_together=True,
+            predefined_player_list="pmismatchplayer,12345",
+        )
+        player = _create_player("pmismatchplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.WARNING)
+        codes = [i["code"] for i in issues]
+        self.assertIn("predefined_fide_mismatch", codes)
+
+    def test_pairing_only_ok_when_neither_in_list(self):
+        season = _create_season(
+            tag_prefix="pneither",
+            validate_predefined_list_contains_username_fide_id_together=True,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("pneitherplayer")
+        reg = _create_reg(season, player, fide_id="99999")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.OK)
+
+    def test_all_flags_off_skips_all_predefined_checks(self):
+        season = _create_season(
+            tag_prefix="alloff",
+            validate_predefined_list_contains_username=False,
+            validate_predefined_list_contains_fide_id=False,
+            validate_predefined_list_contains_username_fide_id_together=False,
+            predefined_player_list="someone,12345",
+        )
+        player = _create_player("alloffplayer")
+        reg = _create_reg(season, player, fide_id="12345")
+        status, issues = reg.compute_validation()
+        self.assertEqual(status, ValidationStatus.OK)
+        self.assertEqual(issues, [])
 
 
 class RefreshValidationTest(TestCase):

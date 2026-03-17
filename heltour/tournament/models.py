@@ -610,7 +610,9 @@ class Season(_BaseModel):
     validate_not_provisional = models.BooleanField(default=True)
     validate_agreed_to_rules = models.BooleanField(default=True)
     validate_agreed_to_tos = models.BooleanField(default=True)
-    validate_predefined_list = models.BooleanField(default=False)
+    validate_predefined_list_contains_username = models.BooleanField(default=False)
+    validate_predefined_list_contains_fide_id = models.BooleanField(default=False)
+    validate_predefined_list_contains_username_fide_id_together = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (("league", "name"), ("league", "tag"))
@@ -3047,7 +3049,54 @@ class Registration(_BaseModel):
             ]
         return []
 
-    def _check_predefined_list(self) -> list[dict]:
+    def _check_predefined_list_username(self) -> list[dict]:
+        check = self.predefined_list_check()
+        if not check.username_match:
+            return [
+                {
+                    "code": "not_in_predefined_list",
+                    "severity": "warning",
+                    "message": "Username not in predefined list",
+                }
+            ]
+        return []
+
+    def _check_predefined_list_fide_id(self) -> list[dict]:
+        fide_id = self.fide_id.strip()
+        if not fide_id:
+            return [
+                {
+                    "code": "fide_id_not_in_predefined_list",
+                    "severity": "warning",
+                    "message": "No FIDE ID provided",
+                }
+            ]
+        fide_map = self.season.predefined_fide_to_username()
+        if fide_id not in fide_map:
+            return [
+                {
+                    "code": "fide_id_not_in_predefined_list",
+                    "severity": "warning",
+                    "message": f"FIDE ID {fide_id} not in predefined list",
+                }
+            ]
+        issues: list[dict] = []
+        duplicate_count = (
+            Registration.objects.filter(season=self.season, fide_id=fide_id)
+            .exclude(pk=self.pk)
+            .count()
+        )
+        if duplicate_count > 0:
+            issues.append(
+                {
+                    "code": "fide_id_duplicate",
+                    "severity": "warning",
+                    "message": f"FIDE ID {fide_id} is also used by {duplicate_count} other registration(s)",
+                }
+            )
+        return issues
+
+    def _check_predefined_list_pairing(self) -> list[dict]:
         check = self.predefined_list_check()
         if not check.username_match and check.fide_match:
             return [
@@ -3061,14 +3110,6 @@ class Registration(_BaseModel):
             return [
                 {
                     "code": "predefined_fide_mismatch",
-                    "severity": "warning",
-                    "message": check.detail,
-                }
-            ]
-        if not check.username_match and not check.fide_match:
-            return [
-                {
-                    "code": "not_in_predefined_list",
                     "severity": "warning",
                     "message": check.detail,
                 }
@@ -3113,7 +3154,9 @@ class Registration(_BaseModel):
     ] = [
         ("validate_has_rating", _check_has_rating),
         ("validate_account_status", _check_account_status),
-        ("validate_predefined_list", _check_predefined_list),
+        ("validate_predefined_list_contains_username", _check_predefined_list_username),
+        ("validate_predefined_list_contains_fide_id", _check_predefined_list_fide_id),
+        ("validate_predefined_list_contains_username_fide_id_together", _check_predefined_list_pairing),
         ("validate_not_provisional", _check_not_provisional),
         ("validate_agreed_to_rules", _check_agreed_to_rules),
         ("validate_agreed_to_tos", _check_agreed_to_tos),
