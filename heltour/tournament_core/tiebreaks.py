@@ -289,6 +289,16 @@ def calculate_head_to_head(
     Returns:
         The head-to-head score
     """
+    # H2H only applies if every pair in the tied group has played each other
+    for comp_id in tied_competitors:
+        comp = all_scores.get(comp_id)
+        if comp is None:
+            continue
+        opponents_played = {r.opponent_id for r in comp.match_results if not r.is_bye}
+        expected = tied_competitors - {comp_id}
+        if not expected.issubset(opponents_played):
+            return 0.0
+
     h2h_score = 0.0
 
     for result in competitor_score.match_results:

@@ -157,6 +157,42 @@ class SimpleTiebreakTests(unittest.TestCase):
         self.assertEqual(calculate_head_to_head(results[2], tied_set, results), 2)
         self.assertEqual(calculate_head_to_head(results[3], tied_set, results), 2)
 
+    def test_head_to_head_incomplete_pairings_individual(self):
+        """H2H returns 0 when not all tied competitors have played each other."""
+        # A(1), B(2), C(3) are tied at 2 MP, 1.0 GP
+        # A played B (won) and C (lost) — but B and C never played each other
+        # H2H should NOT apply for any of them
+        players = [1, 2, 3, 4, 5]
+        matches_with_rounds = [
+            # A beats B
+            (1, create_single_game_match(1, 2, GameResult.P1_WIN)),
+            # C beats A
+            (2, create_single_game_match(3, 1, GameResult.P1_WIN)),
+            # B beats D (gives B a win so B ends at 2 MP)
+            (1, create_single_game_match(2, 4, GameResult.P1_WIN)),
+            # E beats C (gives C a loss so C ends at 2 MP)
+            (2, create_single_game_match(5, 3, GameResult.P1_WIN)),
+        ]
+
+        tournament = create_tournament_from_matches(
+            players, matches_with_rounds, STANDARD_SCORING
+        )
+        results = tournament.calculate_results()
+
+        # A: beat B (2) + lost to C (0) = 2 MP, 1.0 GP
+        # B: lost to A (0) + beat D (2) = 2 MP, 1.0 GP
+        # C: beat A (2) + lost to E (0) = 2 MP, 1.0 GP
+        self.assertEqual(results[1].match_points, 2)
+        self.assertEqual(results[2].match_points, 2)
+        self.assertEqual(results[3].match_points, 2)
+
+        tied_set = {1, 2, 3}
+
+        # B and C never played, so H2H is not applicable — all should be 0
+        self.assertEqual(calculate_head_to_head(results[1], tied_set, results), 0)
+        self.assertEqual(calculate_head_to_head(results[2], tied_set, results), 0)
+        self.assertEqual(calculate_head_to_head(results[3], tied_set, results), 0)
+
     def test_head_to_head_no_games_against_tied(self):
         """Test H2H when player hasn't played anyone in the tied set."""
         players = [1, 2, 3, 4, 5, 6]
