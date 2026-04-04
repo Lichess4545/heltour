@@ -64,9 +64,15 @@ services:
     environment:
       LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
       DATABASE_URL_FILE: /run/secrets/wucc_prod_db_url
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
     secrets:
       - wucc_prod_db_url
       - litour_prod_lichess_api_token
+      - litour_app_secret_key
+      - email_host_user
+      - email_host_password
     networks:
       - litour
     deploy:
