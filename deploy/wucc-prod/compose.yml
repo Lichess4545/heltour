@@ -24,7 +24,7 @@ services:
       EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
       EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
     secrets:
-      - wucc_prod_db_url
+      - lichess4545_wucc_prod_url
       - litour_app_secret_key
       - litour_prod_lichess_api_token
       - email_host_user
