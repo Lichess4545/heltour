@@ -7,7 +7,7 @@
         }
     }
 
-    reverse_proxy @notStatic lichess4545-wucc-prod_web:8000
+    reverse_proxy @notStatic lichess4545-wucc_web:8000
 
     file_server
 }
