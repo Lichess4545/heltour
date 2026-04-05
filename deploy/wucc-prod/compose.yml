@@ -19,12 +19,12 @@ services:
     env_file: "stack.env"
     environment:
       LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
-      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url
+      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url_v2
       SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
       EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
       EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
     secrets:
-      - lichess4545_wucc_prod_db_url
+      - lichess4545_wucc_prod_db_url_v2
       - litour_app_secret_key
       - litour_prod_lichess_api_token
       - email_host_user
@@ -40,14 +40,14 @@ services:
     env_file: "stack.env"
     environment:
       LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
-      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url
+      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url_v2
       HELTOUR_ENV: prod
       HELTOUR_APP: api_worker
       SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
       EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
       EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
     secrets:
-      - lichess4545_wucc_prod_db_url
+      - lichess4545_wucc_prod_db_url_v2
       - litour_prod_lichess_api_token
       - litour_app_secret_key
       - email_host_user
@@ -63,12 +63,12 @@ services:
     env_file: "stack.env"
     environment:
       LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
-      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url
+      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url_v2
       SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
       EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
       EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
     secrets:
-      - lichess4545_wucc_prod_db_url
+      - lichess4545_wucc_prod_db_url_v2
       - litour_prod_lichess_api_token
       - litour_app_secret_key
       - email_host_user
@@ -83,9 +83,9 @@ services:
     image: ghcr.io/lichess4545/litour-migrate:latest
     env_file: "stack.env"
     environment:
-      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url
+      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url_v2
     secrets:
-      - lichess4545_wucc_prod_db_url
+      - lichess4545_wucc_prod_db_url_v2
     networks:
       - litour
     deploy:
@@ -121,7 +121,7 @@ networks:
     # driver: bridge
 
 secrets:
-  lichess4545_wucc_prod_db_url:
+  lichess4545_wucc_prod_db_url_v2:
     external: true
   litour_prod_lichess_api_token:
     external: true
