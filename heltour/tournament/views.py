@@ -3896,6 +3896,11 @@ class NotificationsView(LoginRequiredMixin, SeasonView):
         return self.view(post=True)
 
 
+class SiteLoginView(View):
+    def get(self, request, *args, **kwargs):
+        return oauth.redirect_for_authorization(request, None, None)
+
+
 class LoginView(LeagueView):
     def view(self, secret_token=None):
         return oauth.redirect_for_authorization(self.request, self.league.tag, secret_token)

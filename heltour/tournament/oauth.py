@@ -117,8 +117,10 @@ def login_with_code(request, code, encoded_state):
     if redir_url:
         request.session["login_redirect"] = None
         return redirect(redir_url)
-    else:
+    elif state.get("league"):
         return redirect("by_league:user_dashboard", state["league"])
+    else:
+        return redirect("home")
 
 
 def _normalize_username(username: str) -> str:

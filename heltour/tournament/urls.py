@@ -223,6 +223,7 @@ urlpatterns = [
         name="player_icalendar",
     ),
     path("api/", include((api_urlpatterns, "tournament"), "api")),
+    path("login/", views.SiteLoginView.as_view(), name="site_login"),
     path("auth/slack/", auth.SlackAuth.as_view(), name="slack_auth"),
     path("auth/lichess/", views.OAuthCallbackView.as_view(), name="lichess_auth"),
     path(
