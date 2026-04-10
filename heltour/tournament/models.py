@@ -258,6 +258,12 @@ class League(_BaseModel):
     )
 
     # Corporate/organizational information settings
+    organisation_label = models.CharField(
+        max_length=100,
+        blank=True,
+        default="Company / University / Organisation",
+        help_text="Label used for organisation-related fields in registration and team creation forms (e.g., 'Company', 'University', 'Organisation').",
+    )
     require_corporate_email = models.BooleanField(
         default=False,
         help_text="If true, require corporate_email during registration. Default is false.",
@@ -1845,9 +1851,9 @@ class Team(_BaseModel):
     seed_rating = models.PositiveIntegerField(blank=True, null=True)
 
     # Captain-provided team information
-    company_name = models.CharField(max_length=255, verbose_name="Company name")
+    company_name = models.CharField(max_length=255, verbose_name="Organisation name")
     company_address = models.TextField(
-        blank=True, verbose_name="Company office address"
+        blank=True, verbose_name="Physical address"
     )
     team_contact_email = models.EmailField(
         blank=True, verbose_name="Team contact email"

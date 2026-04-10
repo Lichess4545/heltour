@@ -24,6 +24,7 @@ class Command(BaseCommand):
                 'require_fide_id': False,
                 'require_regional_rating': False,
                 'regional_rating_name': '',
+                'organisation_label': '',
                 'email_required': False,
             },
             {
@@ -40,6 +41,7 @@ class Command(BaseCommand):
                 'require_fide_id': True,
                 'require_regional_rating': False,
                 'regional_rating_name': '',
+                'organisation_label': '',
                 'email_required': True,
             },
             {
@@ -56,6 +58,7 @@ class Command(BaseCommand):
                 'require_fide_id': True,
                 'require_regional_rating': False,
                 'regional_rating_name': '',
+                'organisation_label': 'Company',
                 'email_required': True,
             },
             {
@@ -72,6 +75,7 @@ class Command(BaseCommand):
                 'require_fide_id': False,
                 'require_regional_rating': False,
                 'regional_rating_name': '',
+                'organisation_label': '',
                 'email_required': True,
             },
             {
@@ -88,6 +92,7 @@ class Command(BaseCommand):
                 'require_fide_id': False,
                 'require_regional_rating': True,
                 'regional_rating_name': 'USCF',
+                'organisation_label': '',
                 'email_required': True,
             },
         ]
@@ -113,6 +118,7 @@ class Command(BaseCommand):
                     'require_fide_id': demo['require_fide_id'],
                     'require_regional_rating': demo['require_regional_rating'],
                     'regional_rating_name': demo['regional_rating_name'],
+                    'organisation_label': demo['organisation_label'],
                     'email_required': demo['email_required'],
                     'show_provisional_warning': False,
                     'ask_availability': False,

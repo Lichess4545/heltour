@@ -152,6 +152,13 @@ class RegistrationForm(forms.ModelForm):
         # Configure corporate email field
         if league.require_corporate_email:
             self.fields["corporate_email"].required = True
+            label = league.organisation_label or "Organisation"
+            self.fields["corporate_email"].label = _(
+                f"{label} Email Address"
+            )
+            self.fields["corporate_email"].help_text = _(
+                f"Please use your {label.lower()} email address"
+            )
         else:
             del self.fields["corporate_email"]
 
@@ -996,6 +1003,9 @@ class TeamCreateForm(forms.Form):
         self.season = kwargs.pop("season")
         self.player = kwargs.pop("player")
         super().__init__(*args, **kwargs)
+        label = self.season.league.organisation_label or "Company / University / Organisation"
+        self.fields["company_name"].label = f"{label} Name"
+        self.fields["company_address"].label = "Physical Address"
 
     def clean_team_name(self):
         name = self.cleaned_data["team_name"].strip()

@@ -408,10 +408,11 @@ class LeagueAdmin(_BaseAdmin):
             "Corporate/Organizational Information Settings",
             {
                 "fields": (
+                    "organisation_label",
                     "require_corporate_email",
                     "require_contact_number",
                 ),
-                "description": "Configure corporate and organizational information requirements.",
+                "description": "Configure organisation-related field labels and requirements. Set organisation_label to customize terminology (e.g., 'Company', 'University').",
             },
         ),
         (
