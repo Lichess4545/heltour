@@ -17,6 +17,21 @@
         {% block common_css %}
             <link href="{% static "lib/css/bootstrap.min.css" %}" rel="stylesheet">
             <link href="{% sass_src "tournament/css/main.scss" %}" rel="stylesheet">
+            <style>
+                :root {
+                    --custom-theme-primary: {{ CUSTOM_THEME_PRIMARY_COLOR }};
+                    --custom-theme-dark-primary: {{ CUSTOM_THEME_DARK_PRIMARY_COLOR }};
+                    --custom-theme-secondary: {{ CUSTOM_THEME_SECONDARY_COLOR }};
+                    --custom-theme-nav-focus: {{ CUSTOM_THEME_NAV_FOCUS_COLOR }};
+                    {% if CUSTOM_THEME_LOGO_URL %}
+                    --custom-theme-logo: url("{{ CUSTOM_THEME_LOGO_URL }}");
+                    --custom-theme-logo-padding: 59px;
+                    {% else %}
+                    --custom-theme-logo: none;
+                    --custom-theme-logo-padding: 0;
+                    {% endif %}
+                }
+            </style>
         {% endblock %}
         {% block css %}{% endblock %}
         {% block head_js %}{% endblock %}

@@ -67,6 +67,10 @@
             yq # YAML processing
             tree # Directory visualization
 
+            # Image optimization
+            imagemagick # `magick` for resize/convert
+            pngquant # Lossy PNG palette reduction
+
             # temp deployment area.
             flyctl
 

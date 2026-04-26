@@ -10,6 +10,8 @@
             {% static 'tournament/img/power-lightning-favicon.png' %}
         {% elif league.theme == 'yellow' %}
             {% static 'tournament/img/dice-favicon.png' %}
+        {% elif league.theme == 'custom' and CUSTOM_THEME_LOGO_URL %}
+            {{ CUSTOM_THEME_LOGO_URL }}
         {% else %}
             {{ block.super }}
         {% endif %}
@@ -29,6 +31,9 @@
         {% elif league.theme == 'yellow' %}
             <meta property="og:image"
                   content="https://{{ request.get_host }}{% static 'tournament/img/dice-yellow.png' %}" />
+        {% elif league.theme == 'custom' and CUSTOM_THEME_LOGO_URL %}
+            <meta property="og:image"
+                  content="https://{{ request.get_host }}{{ CUSTOM_THEME_LOGO_URL }}" />
         {% endif %}
     {% endspaceless %}
 {% endblock %}

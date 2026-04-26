@@ -129,6 +129,7 @@ THEME_OPTIONS = (
     ("green", "Green"),
     ("red", "Red"),
     ("yellow", "Yellow"),
+    ("custom", "Custom (colors from settings)"),
 )
 RATING_TYPE_OPTIONS = (
     ("classical", "Classical"),
