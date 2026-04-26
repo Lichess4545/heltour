@@ -8,6 +8,10 @@
                 {% include 'tournament/fwcc_banner.html' %}
             {% endif %}
 
+            {% if display_fwutcc_banner %}
+                {% include 'tournament/fwutcc_banner.html' %}
+            {% endif %}
+
             <div class="row">
                 {% if leagues %}
                     {% for l in leagues %}
