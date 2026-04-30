@@ -1720,12 +1720,12 @@ def backfill_fide_data_for_season(season_id: int) -> None:
                 )
         elif player.fide_profile and not player.gender:
             # Re-derive gender from already-cached profile (no API call needed).
-            sex = player.fide_profile.get("sex")
-            if sex == "M":
+            fide_gender = player.fide_profile.get("gender")
+            if fide_gender == "M":
                 player.gender = "male"
                 player.save()
                 gender_updates += 1
-            elif sex == "F":
+            elif fide_gender == "F":
                 player.gender = "female"
                 player.save()
                 gender_updates += 1

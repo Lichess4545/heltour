@@ -1509,10 +1509,10 @@ class Player(_BaseModel):
     def update_fide_profile(self, fide_meta):
         self.fide_profile = fide_meta
         if not self.gender:
-            sex = (fide_meta or {}).get("sex")
-            if sex == "M":
+            fide_gender = (fide_meta or {}).get("gender")
+            if fide_gender == "M":
                 self.gender = "male"
-            elif sex == "F":
+            elif fide_gender == "F":
                 self.gender = "female"
         self.save()
 
