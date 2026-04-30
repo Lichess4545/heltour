@@ -484,6 +484,19 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     content: '(C)';
 }
 
+.gender-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
 #table-alternates > tbody > tr > td {
     padding: 0;
     vertical-align: top;

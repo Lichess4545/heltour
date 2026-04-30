@@ -29,9 +29,7 @@
                                                 {% player_display_name team_member.player %}
                                                 {% if team_member.player_rating_display and not zen_mode %}({{ team_member.player_rating_display }}){% endif %}
                                             </a>
-                                            {% if show_gender and team_member.player.gender %}
-                                                <span class="label label-default gender-badge" title="{{ team_member.player.get_gender_display }}">{{ team_member.player.gender|slice:":1"|upper }}</span>
-                                            {% endif %}
+                                            {% if show_gender %}{% gender_badge team_member.player %}{% endif %}
                                         {% endif %}
                                     </td>
                                 </tr>
