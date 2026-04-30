@@ -11,6 +11,24 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         demos = [
             {
+                'name': 'FIDE World University Team Chess Championship 2026',
+                'tag': 'fwutcc-2026',
+                'description': 'Almaty 2026 — uses the custom theme, colors set via env vars (CUSTOM_THEME_*)',
+                'theme': 'custom',
+                'require_name': True,
+                'require_personal_email': True,
+                'require_gender': False,
+                'require_date_of_birth': False,
+                'require_nationality': True,
+                'require_corporate_email': False,
+                'require_contact_number': False,
+                'require_fide_id': True,
+                'require_regional_rating': False,
+                'regional_rating_name': '',
+                'organisation_label': 'University',
+                'email_required': True,
+            },
+            {
                 'name': 'Minimal Casual League',
                 'tag': 'demo-minimal',
                 'description': 'Casual tournament - only username needed',
@@ -103,7 +121,7 @@ class Command(BaseCommand):
                 defaults={
                     'name': demo['name'],
                     'description': demo['description'],
-                    'theme': 'blue',
+                    'theme': demo.get('theme', 'blue'),
                     'time_control': '45+45',
                     'rating_type': 'classical',
                     'competitor_type': 'team',

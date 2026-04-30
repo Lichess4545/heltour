@@ -5,7 +5,12 @@ from .models import Announcement
 def common_settings(request):
     return {
         'STAGING': settings.STAGING,
-        'DEBUG': settings.DEBUG
+        'DEBUG': settings.DEBUG,
+        'CUSTOM_THEME_PRIMARY_COLOR': settings.CUSTOM_THEME_PRIMARY_COLOR,
+        'CUSTOM_THEME_DARK_PRIMARY_COLOR': settings.CUSTOM_THEME_DARK_PRIMARY_COLOR,
+        'CUSTOM_THEME_SECONDARY_COLOR': settings.CUSTOM_THEME_SECONDARY_COLOR,
+        'CUSTOM_THEME_NAV_FOCUS_COLOR': settings.CUSTOM_THEME_NAV_FOCUS_COLOR,
+        'CUSTOM_THEME_LOGO_URL': settings.CUSTOM_THEME_LOGO_URL,
     }
 
 

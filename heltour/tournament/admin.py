@@ -2745,7 +2745,7 @@ class TeamMemberInline(admin.TabularInline):
 # -------------------------------------------------------------------------------
 @admin.register(Team)
 class TeamAdmin(_BaseAdmin):
-    list_display = ("name", "season")
+    list_display = ("name", "season", "manage_link")
     search_fields = ("name",)
     list_filter = ("season",)
     inlines = [TeamMemberInline]
@@ -2757,6 +2757,15 @@ class TeamAdmin(_BaseAdmin):
     ]
     league_id_field = "season__league_id"
     league_competitor_type = "team"
+
+    def manage_link(self, obj):
+        url = reverse(
+            "by_league:by_season:team_manage",
+            args=[obj.season.league.tag, obj.season.tag, obj.number],
+        )
+        return format_html('<a href="{}" target="_blank">Manage</a>', url)
+
+    manage_link.short_description = "Manage"
 
     def update_board_order_by_rating(self, request, queryset):
         for team in queryset.all():

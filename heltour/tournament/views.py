@@ -259,6 +259,8 @@ class HomeView(BaseView):
         context = {
             'leagues': leagues,
             'display_fwcc_banner': settings.DISPLAY_FWCC_BANNER,
+            'fwutcc_banner_enabled': settings.FWUTCC_BANNER_ENABLED,
+            'fwutcc_banner_url': settings.FWUTCC_BANNER_URL,
         }
         return self.render('tournament/home.html', context)
 

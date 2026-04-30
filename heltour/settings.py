@@ -334,6 +334,20 @@ HELTOUR_VERSION = env("HELTOUR_VERSION")
 API_WORKER_HOST = env("API_WORKER_HOST")
 JAVAFO_COMMAND = env("JAVAFO_COMMAND")
 DISPLAY_FWCC_BANNER = env("DISPLAY_FWCC_BANNER", default=False, cast=bool)
+FWUTCC_BANNER_ENABLED = env("FWUTCC_BANNER_ENABLED", default=False, cast=bool)
+FWUTCC_BANNER_URL = env("FWUTCC_BANNER_URL", default="")
+
+# Custom theme colors — used by leagues with theme="custom".
+# Defaults match the FIDE World University Team Chess Championship 2026 brand.
+CUSTOM_THEME_PRIMARY_COLOR = env("CUSTOM_THEME_PRIMARY_COLOR", default="#2d3892")
+CUSTOM_THEME_DARK_PRIMARY_COLOR = env("CUSTOM_THEME_DARK_PRIMARY_COLOR", default="#1a2466")
+CUSTOM_THEME_SECONDARY_COLOR = env("CUSTOM_THEME_SECONDARY_COLOR", default="#5662b5")
+CUSTOM_THEME_NAV_FOCUS_COLOR = env("CUSTOM_THEME_NAV_FOCUS_COLOR", default="#3f4ba3")
+# URL of the logo shown in the navbar and league tile for theme="custom".
+# Default points to the bundled FIDE shield. Set to an empty string to hide.
+CUSTOM_THEME_LOGO_URL = env(
+    "CUSTOM_THEME_LOGO_URL", default="/static/tournament/img/fwutcc/logo.png"
+)
 
 # Sleep interval for alternates manager (in seconds)
 SLEEP_UNIT = env("SLEEP_UNIT", default=1.0)

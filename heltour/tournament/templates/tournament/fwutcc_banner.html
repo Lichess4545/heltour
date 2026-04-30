@@ -1,0 +1,115 @@
+{% load static %}
+<style>
+  /* === FIDE World University Team Chess Championship 2026 banner === */
+  .fwutcc-cta {
+    position: relative;
+    overflow: hidden;
+    background: #2d3892;
+    color: #fff;
+    border: 0;
+    margin: 0 auto 100px;
+    max-width: 1100px;
+    min-height: 260px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .fwutcc-cta__text {
+    flex: 1 1 60%;
+    padding: 32px 28px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    z-index: 2;
+  }
+
+  .fwutcc-cta__heading {
+    font-size: clamp(1.2rem, 2.4vw, 2.1rem);
+    line-height: 1.05;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .fwutcc-cta__subheading {
+    font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .fwutcc-cta__art {
+    flex: 1 1 40%;
+    background-image: url("{% static 'tournament/img/fwutcc/chess-pieces.webp' %}");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: contain;
+    align-self: stretch;
+  }
+
+  .fwutcc-cta__btn {
+    align-self: flex-start;
+    display: inline-block;
+    background: #ffffff;
+    color: #2d3892;
+    text-decoration: none;
+    font-weight: 700;
+    border: 0;
+    border-radius: 0;
+    padding: 12px 22px;
+    line-height: 1;
+    box-shadow: none;
+    transition: transform 0.08s ease, filter 0.15s ease;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .fwutcc-cta__btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  .fwutcc-cta__btn:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    color: #2d3892;
+    text-decoration: none;
+  }
+  .fwutcc-cta__btn:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .fwutcc-cta {
+      flex-direction: column;
+      min-height: 0;
+    }
+    .fwutcc-cta__art {
+      min-height: 180px;
+      background-position: center;
+    }
+    .fwutcc-cta__text {
+      padding: 22px 20px;
+    }
+  }
+</style>
+
+<div class="fwutcc-cta">
+  <div class="fwutcc-cta__text">
+    <h2 class="fwutcc-cta__heading">
+      FIDE World University Team Chess Championship 2026
+    </h2>
+    <p class="fwutcc-cta__subheading">Almaty 2026</p>
+    {% if fwutcc_banner_url %}
+      <a class="fwutcc-cta__btn" href="{{ fwutcc_banner_url }}" aria-label="Learn more about the FIDE World University Team Chess Championship 2026">
+        Learn More
+      </a>
+    {% endif %}
+  </div>
+  <div class="fwutcc-cta__art" aria-hidden="true"></div>
+</div>
