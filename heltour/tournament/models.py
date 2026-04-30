@@ -1411,6 +1411,14 @@ ACCOUNT_STATUS_OPTIONS = (
     ("closed", "Closed"),
 )
 
+GENDER_CHOICES = (
+    ("male", "Male"),
+    ("female", "Female"),
+    ("non-binary", "Non-binary"),
+    ("not-represented", "My gender is not represented"),
+    ("prefer-not-disclose", "Prefer not to disclose"),
+)
+
 
 # -------------------------------------------------------------------------------
 class Player(_BaseModel):
@@ -1432,6 +1440,8 @@ class Player(_BaseModel):
 
     fide_id = models.CharField(max_length=20, blank=True)
     fide_profile = JSONField(blank=True, null=True)
+
+    gender = models.CharField(max_length=50, blank=True, choices=GENDER_CHOICES)
 
     date_first_agreed_to_tos = models.DateTimeField(blank=True, null=True)
     date_last_agreed_to_tos = models.DateTimeField(blank=True, null=True)
@@ -1498,6 +1508,12 @@ class Player(_BaseModel):
 
     def update_fide_profile(self, fide_meta):
         self.fide_profile = fide_meta
+        if not self.gender:
+            sex = (fide_meta or {}).get("sex")
+            if sex == "M":
+                self.gender = "male"
+            elif sex == "F":
+                self.gender = "female"
         self.save()
 
     def profile_update_after(self) -> datetime:
@@ -2951,13 +2967,6 @@ class Registration(_BaseModel):
     first_name = models.CharField(max_length=100, blank=True, verbose_name="First Name")
     last_name = models.CharField(max_length=100, blank=True, verbose_name="Family Name")
 
-    GENDER_CHOICES = [
-        ("male", "Male"),
-        ("female", "Female"),
-        ("non-binary", "Non-binary"),
-        ("not-represented", "My gender is not represented"),
-        ("prefer-not-disclose", "Prefer not to disclose"),
-    ]
     gender = models.CharField(
         max_length=50, blank=True, choices=GENDER_CHOICES, verbose_name="Gender"
     )

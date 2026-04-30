@@ -69,6 +69,9 @@
                                                           {% endif %}>
                                                         {% if board.player %}
                                                             <a href="{% leagueurl 'player_profile' league.tag season.tag board.player.lichess_username %}">{% player_display_name board.player %}</a>
+                                                            {% if show_gender and board.player.gender %}
+                                                                <span class="label label-default gender-badge" title="{{ board.player.get_gender_display }}">{{ board.player.gender|slice:":1"|upper }}</span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </span>
                                                 </td>
@@ -121,6 +124,9 @@
                                                                 player-red-card" title="2+ games missed"
                                                             {% else %}"{% endif %}>
                                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">{% player_display_name alt.season_player.player %}</a>
+                                                                {% if show_gender and alt.season_player.player.gender %}
+                                                                    <span class="label label-default gender-badge" title="{{ alt.season_player.player.get_gender_display }}">{{ alt.season_player.player.gender|slice:":1"|upper }}</span>
+                                                                {% endif %}
                                                             </span>
                                                         {% endif %}
                                                     </td>

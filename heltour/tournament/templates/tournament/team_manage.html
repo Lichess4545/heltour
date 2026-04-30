@@ -198,6 +198,7 @@
                                     <tr>
                                         <th>Board</th>
                                         <th>Player</th>
+                                        <th>Gender</th>
                                         <th>Role</th>
                                     </tr>
                                 </thead>
@@ -214,6 +215,9 @@
                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
                                                     {{ team_member.player.lichess_username }}
                                                 </a>
+                                            </td>
+                                            <td>
+                                                {{ team_member.player.get_gender_display|default:"—" }}
                                             </td>
                                             <td>
                                                 {% if team_member.is_captain %}

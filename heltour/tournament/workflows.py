@@ -506,6 +506,8 @@ class ApproveRegistrationWorkflow():
                               'is_active': True}
             if reg.fide_id:
                 player_defaults['fide_id'] = reg.fide_id
+            if reg.gender:
+                player_defaults['gender'] = reg.gender
             player, _ = Player.objects.update_or_create(
                 lichess_username__iexact=reg.lichess_username,
                 defaults=player_defaults

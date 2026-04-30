@@ -999,13 +999,14 @@ class RostersView(SeasonView):
         
         @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket,
                    Player, PlayerAvailability, *common_team_models)
-        def _view(league_tag, season_tag, user_data, can_edit):
+        def _view(league_tag, season_tag, user_data, can_edit, show_gender):
             if self.league.competitor_type != 'team':
                 raise Http404
             if self.season is None:
                 context = {
                     'can_edit': self.request.user.has_perm('tournament.manage_players',
                                                            self.league),
+                    'show_gender': show_gender,
                 }
                 return self.render('tournament/team_rosters.html', context)
 
@@ -1070,11 +1071,13 @@ class RostersView(SeasonView):
                 'red_card_players': red_card_players,
                 'show_legend': show_legend,
                 'can_edit': can_edit,
+                'show_gender': show_gender,
             }
             return self.render('tournament/team_rosters.html', context)
 
         return _view(self.league.tag, self.season.tag, self.user_data,
-                     self.request.user.has_perm('tournament.manage_players', self.league))
+                     self.request.user.has_perm('tournament.manage_players', self.league),
+                     self.request.user.has_perm('tournament.view_dashboard', self.league))
 
 
 class StandingsView(SeasonView):
@@ -1585,6 +1588,9 @@ class LeagueDashboardView(LeagueView):
         if 'update_fide_ratings' in request.POST:
             return self._handle_update_fide_ratings()
 
+        if 'backfill_fide_data' in request.POST:
+            return self._handle_backfill_fide_data()
+
         # If it's not a knockout-related request, fall back to GET behavior
         return self.view()
     
@@ -1629,6 +1635,17 @@ class LeagueDashboardView(LeagueView):
         messages.success(
             self.request,
             "FIDE ratings update started. This runs in the background.",
+        )
+        return self.view()
+
+    def _handle_backfill_fide_data(self):
+        from django.contrib import messages
+        from heltour.tournament.tasks import backfill_fide_data_for_season
+        backfill_fide_data_for_season.delay(self.season.pk)
+        messages.success(
+            self.request,
+            "Backfill started: copying FIDE IDs and gender from registrations to "
+            "players, then fetching FIDE profiles. This runs in the background.",
         )
         return self.view()
 
@@ -3123,11 +3140,17 @@ class TeamProfileView(LeagueView):
                     ):
                         can_manage_team = True
 
+        show_gender = (
+            can_manage_team
+            or self.request.user.has_perm('tournament.view_dashboard', self.league)
+        )
+
         context = {
             'team': team,
             'prev_members': prev_members,
             'matches': matches,
             "can_manage_team": can_manage_team,
+            'show_gender': show_gender,
         }
         return self.render('tournament/team_profile.html', context)
 

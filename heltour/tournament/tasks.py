@@ -1676,3 +1676,61 @@ def force_update_all_fide_ratings() -> None:
                 f"Failed to fetch FIDE profile for {player.lichess_username} (FIDE ID: {player.fide_id})"
             )
     logger.info(f"[FINISHED] Force updated {updated}/{players.count()} FIDE ratings")
+
+
+@app.task()
+def backfill_fide_data_for_season(season_id: int) -> None:
+    """For each Registration in this season:
+      1. Copy reg.fide_id → player.fide_id when player.fide_id is empty.
+      2. Copy reg.gender → player.gender when player.gender is empty.
+      3. If player.fide_id is set but no fide_profile cached, fetch it (which also
+         populates player.gender from FIDE 'sex' when available).
+      4. If player.fide_profile is already cached but player.gender is empty,
+         derive gender from cached 'sex' without re-fetching."""
+    season = Season.objects.select_related("league").get(pk=season_id)
+    regs = Registration.objects.filter(season=season).select_related("player")
+    fide_id_updates = 0
+    gender_updates = 0
+    refreshed = 0
+    fetch_failures = 0
+    for reg in regs:
+        player = reg.player
+        if player is None:
+            continue
+        changed = False
+        if reg.fide_id and not player.fide_id:
+            player.fide_id = reg.fide_id
+            fide_id_updates += 1
+            changed = True
+        if reg.gender and not player.gender:
+            player.gender = reg.gender
+            gender_updates += 1
+            changed = True
+        if changed:
+            player.save()
+        if player.fide_id and not player.fide_profile:
+            try:
+                fide_meta = lichessapi.get_fide_player(player.fide_id, priority=1)
+                player.update_fide_profile(fide_meta)
+                refreshed += 1
+            except lichessapi.ApiWorkerError:
+                fetch_failures += 1
+                logger.warning(
+                    f"Failed to fetch FIDE profile for {player.lichess_username} (FIDE ID: {player.fide_id})"
+                )
+        elif player.fide_profile and not player.gender:
+            # Re-derive gender from already-cached profile (no API call needed).
+            sex = player.fide_profile.get("sex")
+            if sex == "M":
+                player.gender = "male"
+                player.save()
+                gender_updates += 1
+            elif sex == "F":
+                player.gender = "female"
+                player.save()
+                gender_updates += 1
+    logger.info(
+        f"[FINISHED] Backfill for season {season.tag}: "
+        f"{fide_id_updates} fide_ids, {gender_updates} genders copied; "
+        f"{refreshed} FIDE profiles fetched ({fetch_failures} failures)"
+    )
