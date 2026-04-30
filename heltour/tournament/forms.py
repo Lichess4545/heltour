@@ -1093,18 +1093,15 @@ class BoardOrderForm(forms.Form):
         self.upcoming_round = kwargs.pop("upcoming_round", None)
         super().__init__(*args, **kwargs)
 
-        # Create fields for each team member
+        # Create fields for each team member. Boards above season.boards are
+        # treated as reserve slots; we don't cap them here.
         team_members = self.team.teammember_set.select_related("player").order_by(
             "board_number"
         )
 
-        # Allow assigning up to the total number of team members, with some buffer for flexibility
-        max_board = max(self.team.season.boards, team_members.count() + 2)
-
         for member in team_members:
             self.fields[f"player_{member.player.id}"] = forms.IntegerField(
                 min_value=1,
-                max_value=max_board,
                 initial=member.board_number,
                 label=member.player.lichess_username,
                 widget=forms.NumberInput(
@@ -1134,16 +1131,6 @@ class BoardOrderForm(forms.Form):
             # Check for duplicates
             if len(board_numbers) != len(set(board_numbers)):
                 raise forms.ValidationError("Each board number must be unique.")
-
-            # Check that all assigned boards are within valid range
-            invalid_boards = [
-                b for b in board_numbers if b > self.team.season.boards + 2
-            ]
-            if invalid_boards:
-                invalid_list = sorted(list(set(invalid_boards)))
-                raise forms.ValidationError(
-                    f"Board numbers {invalid_list} are too high. Maximum allowed is {self.team.season.boards + 2}."
-                )
 
         return cleaned_data
 
