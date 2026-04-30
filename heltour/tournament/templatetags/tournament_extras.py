@@ -18,25 +18,17 @@ def player_display_name(context, player):
     return player.lichess_username
 
 
-_GENDER_BADGE_BG = {
-    "male": "#2c5e8e",
-    "female": "#7ea3c8",
-}
-
-
 @register.simple_tag
 def gender_badge(player):
-    """Render a colored 1-letter gender badge for a player. Returns empty
-    safe-string when the player has no gender set."""
+    """Render a 1-letter gender badge for a player. Returns empty safe-string
+    when the player has no gender set."""
     gender = getattr(player, "gender", "")
     if not gender:
         return ""
-    bg = _GENDER_BADGE_BG.get(gender, "#777")
     title = player.get_gender_display()
     letter = gender[:1].upper()
     return mark_safe(
-        f'<span class="gender-badge" style="background-color: {bg};" '
-        f'title="{title}">{letter}</span>'
+        f'<span class="gender-badge gender-badge-{gender}" title="{title}">{letter}</span>'
     )
 
 
