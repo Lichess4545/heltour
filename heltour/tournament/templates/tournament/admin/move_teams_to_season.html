@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">Home</a>
+        &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst|escape }}</a>
+        &rsaquo; <a href="{% url 'admin:tournament_team_changelist' %}">Teams</a>
+        &rsaquo; Move Teams to New Season
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1>Move Teams to New Season</h1>
+
+    <div class="module">
+        <h2>Teams to be Moved</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    <th>Current Season</th>
+                    <th>League</th>
+                    <th>Members</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in teams_with_blockers %}
+                    <tr>
+                        <td>{{ entry.team.name }}</td>
+                        <td>{{ entry.team.season }}</td>
+                        <td>{{ entry.team.season.league }}</td>
+                        <td>{{ entry.team.teammember_set.count }}</td>
+                        <td>
+                            {% if entry.blockers %}
+                                <strong style="color: #b00;">Blocked:</strong>
+                                {{ entry.blockers|join:", " }}
+                            {% else %}
+                                <span style="color: #070;">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if any_blocked %}
+        <div class="module">
+            <p style="color: #b00;">
+                <strong>One or more selected teams cannot be moved.</strong>
+                Moving is only allowed before a season has any games, byes,
+                alternate activity, knockout records, invite codes, or non-zero
+                standings. Use <em>Copy Teams to New Season</em> instead, or
+                clear the blocking data first.
+            </p>
+            <p>
+                <a href="{% url 'admin:tournament_team_changelist' %}" class="button cancel-link">Back to Teams</a>
+            </p>
+        </div>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="module">
+                <h2>Select Target Season</h2>
+                <fieldset class="module aligned">
+                    <div class="form-row">
+                        <label for="id_target_season">Target Season:</label>
+                        <select name="target_season" id="id_target_season" required>
+                            <option value="">Select a season...</option>
+                            {% regroup available_seasons by league as leagues %}
+                            {% for league in leagues %}
+                                <optgroup label="{{ league.grouper }}">
+                                    {% for season in league.list %}
+                                        <option value="{{ season.id }}">
+                                            {{ season }}
+                                            {% if season.is_active %}(Active){% endif %}
+                                            {% if season.is_completed %}(Completed){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <p class="help">Select a compatible team season (same number of boards). Cross-league moves are allowed.</p>
+                    </div>
+                </fieldset>
+            </div>
+
+            <div class="submit-row">
+                <input type="submit" value="Move Teams" class="default">
+                <a href="{% url 'admin:tournament_team_changelist' %}" class="button cancel-link">Cancel</a>
+            </div>
+        </form>
+    {% endif %}
+
+    <div class="module">
+        <h2>What happens on move:</h2>
+        <ul>
+            <li>The team's season is reassigned to the target season (across leagues if applicable).</li>
+            <li>Team members, board order, captain/vice-captain flags, contact info, and seed rating are preserved.</li>
+            <li>Players are auto-registered (<code>SeasonPlayer</code>) in the target season if not already.</li>
+            <li>Slack channel is cleared (was tied to the source season).</li>
+            <li>Team number is reassigned to the next available number in the target season.</li>
+            <li>If the team name collides in the target season, a counter is appended (e.g., "Team Name (2)").</li>
+            <li>Team invite codes follow the team — their league/season are rewritten to the target.</li>
+        </ul>
+
+        <h2>Move is blocked when the team has any of:</h2>
+        <ul>
+            <li>Team pairings (as white or black)</li>
+            <li>Team byes</li>
+            <li>Alternate assignments or alternate searches</li>
+            <li>Knockout seedings or advancements</li>
+            <li>Multi-match progress records</li>
+            <li>A non-zero <code>TeamScore</code> (any tiebreak/points/match count)</li>
+        </ul>
+    </div>
+{% endblock %}

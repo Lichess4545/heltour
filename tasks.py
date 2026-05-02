@@ -136,6 +136,31 @@ def createsuperuser(c):
     c.run(f"python {manage_py} createsuperuser", pty=True)
 
 
+@task(
+    help={
+        "username": "Username (default: admin)",
+        "password": "Password (default: test12345)",
+        "email": "Email (default: admin@example.com)",
+    }
+)
+def make_admin(c, username="admin", password="test12345", email="admin@example.com"):
+    """Create or update a Django superuser non-interactively (default: admin / test12345)."""
+    import shlex
+
+    manage_py = project_relative("manage.py")
+    script = (
+        "from django.contrib.auth import get_user_model; "
+        "U = get_user_model(); "
+        f"u, created = U.objects.update_or_create("
+        f"username={username!r}, "
+        f"defaults={{'email': {email!r}, 'is_staff': True, "
+        f"'is_superuser': True, 'is_active': True}}); "
+        f"u.set_password({password!r}); u.save(); "
+        "print(('Created' if created else 'Updated') + ' superuser ' + u.username)"
+    )
+    c.run(f"python {manage_py} shell -c {shlex.quote(script)}", pty=True)
+
+
 @task
 def docker_up(c):
     """Start Docker Compose services (PostgreSQL, Redis, MailHog)."""
@@ -323,6 +348,90 @@ def reset_db_hard(c):
     c.run(f"python {manage_py} migrate", pty=True)
 
     print(f"Database '{db_name}' recreated and migrations applied.")
+
+
+@task(
+    help={
+        "dump_file": "Path to a specific .dump file (default: latest wucc_backup_*.dump in project root)",
+        "yes": "Skip the confirmation prompt",
+    }
+)
+def restore_db(c, dump_file=None, yes=False):
+    """Restore the local database from a pg_dump custom-format (-F c) backup.
+
+    Drops and recreates the database referenced by DATABASE_URL, then
+    pg_restores the dump into it.
+    """
+    import glob
+    from urllib.parse import urlparse
+
+    if dump_file is None:
+        candidates = sorted(glob.glob(project_relative("wucc_backup_*.dump")))
+        if not candidates:
+            print(
+                "ERROR: No wucc_backup_*.dump files found in the project root. "
+                "Pass --dump-file=<path> to specify one explicitly."
+            )
+            return
+        # Filenames embed YYYYMMDD_HHMMSS, so lexicographic sort == chronological.
+        dump_file = candidates[-1]
+
+    if not os.path.isfile(dump_file):
+        print(f"ERROR: Dump file not found: {dump_file}")
+        return
+
+    db_url = env.str("DATABASE_URL", default="")
+    if not db_url:
+        print("ERROR: DATABASE_URL not set")
+        return
+
+    parsed = urlparse(db_url)
+    db_name = parsed.path[1:]
+    db_host = parsed.hostname or "localhost"
+    db_port = parsed.port or 5432
+    db_user = parsed.username or ""
+    db_pass = parsed.password or ""
+
+    if not db_name:
+        print("ERROR: Could not parse database name from DATABASE_URL")
+        return
+
+    print(f"Will restore from: {dump_file}")
+    print(f"Target: {db_user}@{db_host}:{db_port}/{db_name}")
+    print("WARNING: This will DROP and RECREATE the local database!")
+    if not yes:
+        confirm = input("Continue? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("Aborted.")
+            return
+
+    conn_params = []
+    if db_host:
+        conn_params.append(f"--host={db_host}")
+    if db_port:
+        conn_params.append(f"--port={db_port}")
+    if db_user:
+        conn_params.append(f"--username={db_user}")
+    conn_string = " ".join(conn_params)
+
+    env_vars = ""
+    if db_pass:
+        env_vars = f"PGPASSWORD='{db_pass}' "
+
+    print(f"Dropping database '{db_name}'...")
+    c.run(
+        f"{env_vars}dropdb {conn_string} {db_name} --if-exists",
+        warn=True,
+    )
+    print(f"Creating database '{db_name}'...")
+    c.run(f"{env_vars}createdb {conn_string} {db_name}")
+    print(f"Restoring from {dump_file}...")
+    c.run(
+        f"{env_vars}pg_restore {conn_string} --dbname={db_name} "
+        f"--no-owner --no-privileges --verbose '{dump_file}'",
+        pty=True,
+    )
+    print(f"Database '{db_name}' restored from {dump_file}")
 
 
 @task

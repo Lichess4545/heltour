@@ -19,6 +19,7 @@ from django.core import mail
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db import transaction
 from django.db.models import Max, Q
 from django.db.models.query import Prefetch
 from django.db.models.signals import post_save
@@ -2754,6 +2755,7 @@ class TeamAdmin(_BaseAdmin):
         "create_slack_channels",
         "generate_team_invite_codes",
         "copy_teams_to_new_season",
+        "move_teams_to_new_season",
     ]
     league_id_field = "season__league_id"
     league_competitor_type = "team"
@@ -2835,6 +2837,15 @@ class TeamAdmin(_BaseAdmin):
         query_string = urlencode({"team_ids": ",".join(team_ids)})
         return redirect(f"{base_url}?{query_string}")
 
+    def move_teams_to_new_season(self, request, queryset):
+        team_ids = [str(team.id) for team in queryset]
+        from django.urls import reverse
+        from urllib.parse import urlencode
+
+        base_url = reverse("admin:move_teams_to_season")
+        query_string = urlencode({"team_ids": ",".join(team_ids)})
+        return redirect(f"{base_url}?{query_string}")
+
     def get_urls(self):
         urls = super(TeamAdmin, self).get_urls()
         my_urls = [
@@ -2847,6 +2858,11 @@ class TeamAdmin(_BaseAdmin):
                 "copy_teams_to_season/",
                 self.admin_site.admin_view(self.copy_teams_to_season_view),
                 name="copy_teams_to_season",
+            ),
+            path(
+                "move_teams_to_season/",
+                self.admin_site.admin_view(self.move_teams_to_season_view),
+                name="move_teams_to_season",
             ),
         ]
         return my_urls + urls
@@ -3059,6 +3075,209 @@ class TeamAdmin(_BaseAdmin):
             copied_count += 1
 
         return copied_count
+
+    def _team_move_blockers(self, team):
+        """Return a list of human-readable reasons this team can't be moved.
+
+        A team is movable only if its current season has no progressing
+        data attached: no pairings, byes, alt assignments/searches, knockout
+        records, multi-match progress, invite codes, or non-zero standings.
+        """
+        blockers = []
+        pairing_count = TeamPairing.objects.filter(
+            Q(white_team=team) | Q(black_team=team)
+        ).count()
+        if pairing_count:
+            blockers.append(f"{pairing_count} team pairing(s)")
+        bye_count = TeamBye.objects.filter(team=team).count()
+        if bye_count:
+            blockers.append(f"{bye_count} team bye(s)")
+        alt_assignment_count = AlternateAssignment.objects.filter(team=team).count()
+        if alt_assignment_count:
+            blockers.append(f"{alt_assignment_count} alternate assignment(s)")
+        alt_search_count = AlternateSearch.objects.filter(team=team).count()
+        if alt_search_count:
+            blockers.append(f"{alt_search_count} alternate search(es)")
+        seeding_count = KnockoutSeeding.objects.filter(team=team).count()
+        if seeding_count:
+            blockers.append(f"{seeding_count} knockout seeding(s)")
+        advancement_count = KnockoutAdvancement.objects.filter(team=team).count()
+        if advancement_count:
+            blockers.append(f"{advancement_count} knockout advancement(s)")
+        progress_count = TeamMultiMatchProgress.objects.filter(team=team).count()
+        if progress_count:
+            blockers.append(f"{progress_count} multi-match progress record(s)")
+        try:
+            score = team.teamscore
+            if (
+                score.match_count
+                or score.match_points
+                or score.game_points
+                or score.playoff_score
+                or score.head_to_head
+                or score.games_won
+                or score.sb_score
+                or score.buchholz
+            ):
+                blockers.append("non-zero team score")
+        except TeamScore.DoesNotExist:
+            pass
+        return blockers
+
+    def move_teams_to_season_view(self, request):
+        team_ids_param = request.GET.get("team_ids", "")
+        if not team_ids_param:
+            messages.error(request, "No teams selected")
+            return redirect("admin:tournament_team_changelist")
+
+        try:
+            team_ids = [
+                int(id.strip()) for id in team_ids_param.split(",") if id.strip()
+            ]
+        except ValueError:
+            messages.error(request, "Invalid team IDs")
+            return redirect("admin:tournament_team_changelist")
+
+        teams = Team.objects.filter(id__in=team_ids).select_related(
+            "season", "season__league"
+        )
+        if not teams.exists():
+            messages.error(request, "No valid teams found")
+            return redirect("admin:tournament_team_changelist")
+
+        team_blockers = {team.id: self._team_move_blockers(team) for team in teams}
+        any_blocked = any(team_blockers[team.id] for team in teams)
+
+        source_boards = teams.first().season.boards
+        source_season_ids = {team.season_id for team in teams}
+        available_seasons = (
+            Season.objects.filter(
+                league__competitor_type="team", boards=source_boards
+            )
+            .exclude(id__in=source_season_ids)
+            .order_by("-start_date")
+        )
+
+        if request.method == "POST":
+            if any_blocked:
+                messages.error(
+                    request,
+                    "One or more selected teams have data that prevents moving. "
+                    "Use Copy instead, or remove the blocking data first.",
+                )
+            else:
+                target_season_id = request.POST.get("target_season")
+                if not target_season_id:
+                    messages.error(request, "Please select a target season")
+                else:
+                    try:
+                        target_season = Season.objects.get(
+                            id=target_season_id,
+                            league__competitor_type="team",
+                            boards=source_boards,
+                        )
+                        if target_season.id in source_season_ids:
+                            raise ValueError(
+                                "Target season must differ from the source season"
+                            )
+
+                        for team in teams:
+                            if not request.user.has_perm(
+                                "tournament.manage_players", team.season.league
+                            ):
+                                raise PermissionDenied(
+                                    f"You don't have permission to manage teams in {team.season.league}"
+                                )
+                        if not request.user.has_perm(
+                            "tournament.manage_players", target_season.league
+                        ):
+                            raise PermissionDenied(
+                                "You don't have permission to manage teams in the target season"
+                            )
+
+                        moved_count = self._move_teams(
+                            teams, target_season, request.user
+                        )
+                        messages.success(
+                            request,
+                            f"Successfully moved {moved_count} teams to {target_season}",
+                        )
+                        return redirect("admin:tournament_team_changelist")
+                    except Season.DoesNotExist:
+                        messages.error(request, "Invalid target season")
+                    except PermissionDenied as e:
+                        messages.error(request, str(e))
+                    except ValueError as e:
+                        messages.error(request, str(e))
+                    except Exception as e:
+                        messages.error(request, f"Error moving teams: {str(e)}")
+
+        teams_with_blockers = [
+            {"team": team, "blockers": team_blockers[team.id]} for team in teams
+        ]
+        context = {
+            "teams_with_blockers": teams_with_blockers,
+            "any_blocked": any_blocked,
+            "available_seasons": available_seasons,
+            "title": "Move Teams to New Season",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+        }
+
+        return render(request, "tournament/admin/move_teams_to_season.html", context)
+
+    def _move_teams(self, teams, target_season, user):
+        moved_count = 0
+
+        with transaction.atomic():
+            for team in teams:
+                blockers = self._team_move_blockers(team)
+                if blockers:
+                    raise ValueError(
+                        f"Team '{team.name}' cannot be moved: {', '.join(blockers)}"
+                    )
+
+                max_number = (
+                    Team.objects.filter(season=target_season)
+                    .exclude(pk=team.pk)
+                    .aggregate(Max("number"))["number__max"]
+                    or 0
+                )
+                next_number = max_number + 1
+
+                team_name = team.name
+                existing_names = set(
+                    Team.objects.filter(season=target_season)
+                    .exclude(pk=team.pk)
+                    .values_list("name", flat=True)
+                )
+                if team_name in existing_names:
+                    counter = 2
+                    while f"{team_name} ({counter})" in existing_names:
+                        counter += 1
+                    team_name = f"{team_name} ({counter})"
+
+                for member in team.teammember_set.all():
+                    SeasonPlayer.objects.get_or_create(
+                        season=target_season, player=member.player
+                    )
+
+                team.season = target_season
+                team.number = next_number
+                team.name = team_name
+                team.slack_channel = ""
+                team.save()
+
+                # Team invite codes are per-team; repoint them to the
+                # target season/league so they stay valid post-move.
+                InviteCode.objects.filter(team=team).update(
+                    league=target_season.league,
+                    season=target_season,
+                )
+
+                moved_count += 1
+
+        return moved_count
 
 
 # -------------------------------------------------------------------------------
