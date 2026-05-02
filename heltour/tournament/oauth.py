@@ -2,8 +2,6 @@ import base64
 import hashlib
 from datetime import timedelta
 from unicodedata import normalize
-from platform import python_version
-from django import __version__ as djangoversion
 from contextlib import contextmanager
 
 import requests
@@ -18,6 +16,7 @@ from django.utils.crypto import get_random_string
 
 from django.conf import settings
 from heltour.tournament import lichessapi
+from heltour.tournament.lichessapi import default_headers
 from heltour.tournament.models import (
     LoginToken,
     OauthToken,
@@ -38,12 +37,6 @@ def disable_ipv6():
         yield
     finally:
         requests.packages.urllib3.util.connection.HAS_IPV6 = original_value
-
-
-def default_headers():
-    return {
-        "User-Agent": f"Lichess4545 (heltour/{settings.HELTOUR_VERSION}; django/{djangoversion}; python/{python_version()})",
-    }
 
 
 def redirect_for_authorization(request, league_tag, secret_token):

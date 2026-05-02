@@ -139,11 +139,12 @@ def createCommonLeagueData(round_count: int = 3, team_count: int = 4) -> None:
 
 class Shush:
     def __enter__(self):
+        self._prev_disable_level = logging.root.manager.disable
         logging.disable(logging.CRITICAL)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        logging.disable(logging.NOTSET)
+        logging.disable(self._prev_disable_level)
         if exc_type is not None:
             logging.getLogger(__name__).error(f"Error {exc_type}: {exc_value}")
         return True

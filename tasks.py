@@ -63,6 +63,13 @@ def celery(c, purge=False):
         c.run("celery -A heltour worker -l info", pty=True)
 
 
+@task
+def watch_games(c):
+    """Stream lichess games for active pairings and update them in real time."""
+    manage_py = project_relative("manage.py")
+    c.run(f"python -u {manage_py} watch_games", pty=True)
+
+
 @task(
     optional=["app"],
     help={"app": "Optionally specify app or specific migration, e.g. 'invoke migrate -a \"tournament 0001\"'"},

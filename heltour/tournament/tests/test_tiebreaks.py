@@ -242,6 +242,104 @@ class TeamTiebreakTestCase(TestCase):
             sort_key[5], team_score.head_to_head
         )  # Fourth configured tiebreak
 
+    def test_seven_tiebreak_slots_in_sort_key(self):
+        """All seven configured tiebreaks should appear in pairing_sort_key in order."""
+        tournament = (
+            self.create_base_tournament(rounds=1)
+            .round(1)
+            .match("Team 1", "Team 2", "1-0", "1/2-1/2")
+            .complete()
+            .calculate()
+            .build()
+        )
+
+        season = tournament.seasons["Test Season"]
+        league = season.league
+
+        league.team_tiebreak_1 = "game_points"
+        league.team_tiebreak_2 = "head_to_head"
+        league.team_tiebreak_3 = "games_won"
+        league.team_tiebreak_4 = "sonneborn_berger"
+        league.team_tiebreak_5 = "buchholz"
+        league.team_tiebreak_6 = "eggsb"
+        league.team_tiebreak_7 = "emmsb"
+        league.save()
+
+        self.assertEqual(
+            league.get_team_tiebreaks(),
+            [
+                "game_points",
+                "head_to_head",
+                "games_won",
+                "sonneborn_berger",
+                "buchholz",
+                # eggsb and emmsb both map to sb_score, but get_team_tiebreaks
+                # only deduplicates by name, not by underlying field.
+                "eggsb",
+                "emmsb",
+            ],
+        )
+
+        season.calculate_scores()
+
+        team_score = TeamScore.objects.get(team__season=season, team__number=1)
+        sort_key = team_score.pairing_sort_key()
+
+        # playoff_score, match_points, then 7 tiebreaks, then seed_rating = 10
+        self.assertEqual(len(sort_key), 10)
+        self.assertEqual(sort_key[2], team_score.game_points)
+        self.assertEqual(sort_key[3], team_score.head_to_head)
+        self.assertEqual(sort_key[4], team_score.games_won)
+        self.assertEqual(sort_key[5], team_score.sb_score)
+        self.assertEqual(sort_key[6], team_score.buchholz)
+        # eggsb and emmsb both read from sb_score
+        self.assertEqual(sort_key[7], team_score.sb_score)
+        self.assertEqual(sort_key[8], team_score.sb_score)
+        self.assertEqual(sort_key[9], team_score.team.seed_rating)
+
+    def test_blank_tiebreak_slots_are_skipped(self):
+        """Blank tiebreak fields (including the new 5/6/7) should be omitted."""
+        tournament = self.create_base_tournament(rounds=1).build()
+        league = tournament.simulator.leagues["TL"]
+
+        league.team_tiebreak_1 = "game_points"
+        league.team_tiebreak_2 = ""
+        league.team_tiebreak_3 = "buchholz"
+        league.team_tiebreak_4 = ""
+        league.team_tiebreak_5 = "sonneborn_berger"
+        league.team_tiebreak_6 = ""
+        league.team_tiebreak_7 = ""
+        league.save()
+
+        self.assertEqual(
+            league.get_team_tiebreaks(),
+            ["game_points", "buchholz", "sonneborn_berger"],
+        )
+
+    def test_new_tiebreak_fields_default_blank(self):
+        """team_tiebreak_5/6/7 should default to blank for new leagues."""
+        tournament = self.create_base_tournament(rounds=1).build()
+        league = tournament.simulator.leagues["TL"]
+
+        self.assertEqual(league.team_tiebreak_5, "")
+        self.assertEqual(league.team_tiebreak_6, "")
+        self.assertEqual(league.team_tiebreak_7, "")
+
+    def test_new_tiebreak_fields_validate_choices(self):
+        """team_tiebreak_5/6/7 should validate against TEAM_TIEBREAK_OPTIONS."""
+        tournament = self.create_base_tournament(rounds=1).build()
+        league = tournament.simulator.leagues["TL"]
+
+        for choice, _label in TEAM_TIEBREAK_OPTIONS:
+            league.team_tiebreak_5 = choice
+            league.team_tiebreak_6 = choice
+            league.team_tiebreak_7 = choice
+            league.full_clean()
+
+        with self.assertRaises(ValidationError):
+            league.team_tiebreak_5 = "invalid_choice"
+            league.full_clean()
+
     def test_bye_handling(self):
         """Test that byes are handled correctly in score calculations"""
         tournament = (

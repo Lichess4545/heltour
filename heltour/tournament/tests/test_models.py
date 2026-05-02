@@ -13,6 +13,7 @@ from heltour.tournament.models import (
     get_fide_dp,
     get_gameid_from_gamelink,
     League,
+    lichess_variant_for,
     LonePlayerPairing,
     ModRequest,
     normalize_gamelink,
@@ -21,6 +22,7 @@ from heltour.tournament.models import (
     PlayerBye,
     PlayerLateRegistration,
     PlayerPairing,
+    RATING_TYPE_OPTIONS,
     Registration,
     Round,
     ScheduledEvent,
@@ -57,6 +59,40 @@ class HelpersTestCase(SimpleTestCase):
     def test_get_fide_dp(self):
         self.assertEqual(get_fide_dp(0, 12), -800)
         self.assertEqual(get_fide_dp(12, 12), 800)
+
+    def test_lichess_variant_for(self):
+        # Every existing rating_type must map to a known Lichess variant.
+        # Time-control / FIDE rating types default to "standard"; only
+        # rating types that name an actual Lichess board variant are
+        # passed through (currently just chess960). This keeps
+        # game-starting working when a new rating type is added without
+        # requiring touch-ups in tasks.py each time.
+        expected = {
+            "classical": "standard",
+            "rapid": "standard",
+            "blitz": "standard",
+            "chess960": "chess960",
+            "fide_standard": "standard",
+            "fide_rapid": "standard",
+            "fide_blitz": "standard",
+            "fide": "standard",
+        }
+        # Sanity check: keep the test in sync with RATING_TYPE_OPTIONS so
+        # adding a new rating type forces a deliberate decision here.
+        self.assertEqual(
+            set(expected),
+            {key for key, _ in RATING_TYPE_OPTIONS},
+        )
+        for rating_type, variant in expected.items():
+            self.assertEqual(
+                lichess_variant_for(rating_type),
+                variant,
+                msg=f"rating_type={rating_type!r} mapped to wrong variant",
+            )
+
+        # An unknown / not-yet-added rating type should default to standard
+        # rather than leaking through as an invalid Lichess variant.
+        self.assertEqual(lichess_variant_for("totally_new_type"), "standard")
 
     def test_bad_gamelinks(self):
         self.assertEqual(get_gameid_from_gamelink(None), None)

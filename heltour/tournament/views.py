@@ -3122,6 +3122,7 @@ class PlayerProfileView(LeagueView):
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
             'trophies': trophies,
             'slack_id': settings.SLACK_TEAM_ID,
+            'rating_type_label': player.rating_type_display_for(self.league),
         }
         return self.render('tournament/player_profile.html', context)
 

@@ -79,6 +79,27 @@ services:
       update_config:
         order: start-first
 
+  watcher:
+    image: ghcr.io/lichess4545/litour-watcher:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/lichess4545_wucc_prod_db_url_v2
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
+    secrets:
+      - lichess4545_wucc_prod_db_url_v2
+      - litour_prod_lichess_api_token
+      - litour_app_secret_key
+      - email_host_user
+      - email_host_password
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
   migrate:
     image: ghcr.io/lichess4545/litour-migrate:latest
     env_file: "stack.env"

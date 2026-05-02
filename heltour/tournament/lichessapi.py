@@ -5,12 +5,26 @@ import requests
 import time
 import json
 from datetime import datetime, timedelta, timezone as dt_timezone
+from platform import python_version
+
+import django
 from django.core.cache import cache
 from django.utils import timezone
 import logging
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def default_headers() -> dict[str, str]:
+    """Canonical request headers (User-Agent) for outbound calls to Lichess."""
+    version = getattr(settings, "HELTOUR_VERSION", "dev") or "dev"
+    return {
+        "User-Agent": (
+            f"Litour (heltour/{version}; "
+            f"django/{django.get_version()}; python/{python_version()})"
+        ),
+    }
 
 SYSTEM_TOKEN_CHECK_CACHE_KEY = "system_api_token_check"
 SYSTEM_TOKEN_CHECK_TTL_SECONDS = 300

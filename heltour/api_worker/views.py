@@ -1,10 +1,8 @@
 import logging
 import time
-from platform import python_version
 from contextlib import contextmanager
 
 import requests
-from django import __version__ as djangoversion
 from django.conf import settings
 from django.core.cache import cache
 from django.http.response import HttpResponse, JsonResponse
@@ -12,6 +10,7 @@ from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 
 from heltour.api_worker import worker
+from heltour.tournament.lichessapi import default_headers
 
 
 @contextmanager
@@ -57,9 +56,7 @@ def _do_lichess_api_call(
     logger.info("API call: %s" % url)
 
     try:
-        headers = {
-            "User-Agent": f"Lichess4545 (heltour/{settings.HELTOUR_VERSION}; django/{djangoversion}; python/{python_version()})",
-        }
+        headers = default_headers()
         if token:
             headers["Authorization"] = "Bearer %s" % token
         if format:

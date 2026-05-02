@@ -56,6 +56,7 @@ from heltour.tournament.models import (
     get_gameid_from_gamelink,
     get_gamelink_from_gameid,
     is_fide_rating_type,
+    lichess_variant_for,
     logger,
     lone_player_pairing_rank_dict,
 )
@@ -434,6 +435,11 @@ def update_lichess_presence():
 
 @app.task()
 def update_slack_users():
+    if not getattr(settings, "SLACK_API_TOKEN_FILE_PATH", None):
+        logger.info(
+            "Skipping update_slack_users: SLACK_API_TOKEN_FILE_PATH not configured"
+        )
+        return
     slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
@@ -597,11 +603,7 @@ def _init_start_league_games(
     tokenstring = ",".join(tokens)
     clock = league.time_control_initial()
     increment = league.time_control_increment()
-    variant = league.rating_type
-    if variant in ["classical", "rapid", "blitz", "bullet"] or is_fide_rating_type(
-        variant
-    ):
-        variant = "standard"
+    variant = lichess_variant_for(league.rating_type)
     do_clockstart = league.get_leaguesetting().start_clocks
     clockstart_in = league.get_leaguesetting().start_clock_time
     clockstart = round(

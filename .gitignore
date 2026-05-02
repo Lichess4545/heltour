@@ -18,5 +18,4 @@ backups
 .gems/
 /.claude
 backup-wucc.sh
-wucc_backup_20260502_081329.dump
-wucc_backup_20260502_130058.dump
+wucc_backup_*.dump

@@ -27,6 +27,7 @@ jobs:
           - caddy
           - celery
           - migrate
+          - watcher
           - web
     steps:
       - name: Set ${{ inputs.environment }} deploy endpoints
@@ -36,12 +37,14 @@ jobs:
             echo "caddy=${{ secrets.LITOUR_DEPLOY_PRODUCTION_CADDY }}" >> $GITHUB_ENV
             echo "celery=${{ secrets.LITOUR_DEPLOY_PRODUCTION_CELERY }}" >> $GITHUB_ENV
             echo "migrate=${{ secrets.LITOUR_DEPLOY_PRODUCTION_MIGRATE }}" >> $GITHUB_ENV
+            echo "watcher=${{ secrets.LITOUR_DEPLOY_PRODUCTION_WATCHER }}" >> $GITHUB_ENV
             echo "web=${{ secrets.LITOUR_DEPLOY_PRODUCTION_WEB }}" >> $GITHUB_ENV
           else
             echo "apiworker=${{ secrets.LITOUR_DEPLOY_STAGING_APIWORKER }}" >> $GITHUB_ENV
             echo "caddy=${{ secrets.LITOUR_DEPLOY_STAGING_CADDY }}" >> $GITHUB_ENV
             echo "celery=${{ secrets.LITOUR_DEPLOY_STAGING_CELERY }}" >> $GITHUB_ENV
             echo "migrate=${{ secrets.LITOUR_DEPLOY_STAGING_MIGRATE }}" >> $GITHUB_ENV
+            echo "watcher=${{ secrets.LITOUR_DEPLOY_STAGING_WATCHER }}" >> $GITHUB_ENV
             echo "web=${{ secrets.LITOUR_DEPLOY_STAGING_WEB }}" >> $GITHUB_ENV
           fi
       - name: ${{ matrix.service }} ${{ inputs.environment }}

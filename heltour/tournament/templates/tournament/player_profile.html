@@ -16,7 +16,7 @@
                 <div class="well-body">
                     {% if not zen_mode %}
                         <div class="profile-links">
-                            {{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{ league.rating_type }}">{% rating player %}</a>
+                            {{ rating_type_label }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{ league.rating_type }}">{% rating player %}</a>
                         </div>
                     {% endif %}
                     <div class="profile-links">

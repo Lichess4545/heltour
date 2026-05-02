@@ -72,7 +72,22 @@ services:
     deploy:
       update_config:
         order: start-first
-  
+
+  watcher:
+    image: ghcr.io/lichess4545/litour-watcher:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/litour_prod_db_url
+    secrets:
+      - litour_prod_db_url
+      - litour_prod_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
   migrate:
     image: ghcr.io/lichess4545/litour-migrate:latest
     env_file: "stack.env"
