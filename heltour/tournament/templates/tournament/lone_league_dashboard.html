@@ -158,10 +158,14 @@
                             {% if token_validation_status %}
                                 <span class="dashboard-note">
                                     Last: {{ token_validation_status.timestamp }}
-                                    {% if token_validation_status.success %}
-                                        — All OK ({{ token_validation_status.total }} players)
+                                    {% if not token_validation_status.success %}
+                                        — {{ token_validation_status.failed|length }} failed to refresh
+                                    {% elif token_validation_status.total == 0 %}
+                                        — no active season players
+                                    {% elif token_validation_status.refreshed %}
+                                        — {{ token_validation_status.refreshed|length }} of {{ token_validation_status.total }} token{{ token_validation_status.total|pluralize }} refreshed
                                     {% else %}
-                                        — {{ token_validation_status.failed|length }} failed
+                                        — all {{ token_validation_status.total }} token{{ token_validation_status.total|pluralize }} valid
                                     {% endif %}
                                 </span>
                             {% else %}
@@ -315,4 +319,5 @@
             </div>
         </div>
     </div>
+    {% include "tournament/_recent_task_logs.html" %}
 {% endblock %}

@@ -1022,16 +1022,16 @@ def do_start_clocks(sender, round_id: int, **kwargs) -> None:
 def validate_season_tokens(season_id: int) -> None:
     season = Season.objects.get(pk=season_id)
     league = season.league
-    current_rounds = Round.objects.filter(
-        season=season, publish_pairings=True, is_completed=False
+    players = list(
+        Player.objects.filter(
+            seasonplayer__season=season, seasonplayer__is_active=True
+        ).distinct()
     )
-    pairings = _pending_pairings_for_rounds(current_rounds, league)
-    if not pairings:
+    if not players:
         _store_token_validation_result(
             season_id, success=True, total=0, refreshed=[], failed=[]
         )
         return
-    players = _unique_players_from_pairings(pairings)
     tokens_by_username = {
         p.lichess_username: p.get_access_token() for p in players if p.token_valid()
     }
@@ -1082,41 +1082,6 @@ def validate_season_tokens(season_id: int) -> None:
         refreshed=refreshed,
         failed=failed,
     )
-
-
-def _pending_pairings_for_rounds(
-    current_rounds: QuerySet[Round], league: League
-) -> list[PlayerPairing]:
-    if league.is_team_league():
-        return list(
-            TeamPlayerPairing.objects.filter(
-                game_link="",
-                result="",
-                team_pairing__round__in=current_rounds,
-            )
-            .exclude(white=None)
-            .exclude(black=None)
-            .select_related("white", "black")
-        )
-    return list(
-        LonePlayerPairing.objects.filter(
-            game_link="", result="", round__in=current_rounds
-        )
-        .exclude(white=None)
-        .exclude(black=None)
-        .select_related("white", "black")
-    )
-
-
-def _unique_players_from_pairings(pairings: list[PlayerPairing]) -> list[Player]:
-    seen: set[int] = set()
-    players: list[Player] = []
-    for p in pairings:
-        for player in (p.white, p.black):
-            if player.pk not in seen:
-                seen.add(player.pk)
-                players.append(player)
-    return players
 
 
 def _store_token_validation_result(

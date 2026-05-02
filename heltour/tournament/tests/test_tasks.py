@@ -827,20 +827,11 @@ class TestValidateSeasonTokens(TestCase):
 
     def setUp(self):
         self.season = get_season("lone")
-        self.round_ = get_round(league_type="lone", round_number=1)
-        self.round_.publish_pairings = True
-        self.round_.is_completed = False
-        self.round_.save()
         self.p1 = get_player("Player1")
         self.p2 = get_player("Player2")
-        self.lpp = LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=self.p1,
-            black=self.p2,
-            game_link="",
-            result="",
-            pairing_order=1,
-        )
+        SeasonPlayer.objects.filter(season=self.season).exclude(
+            player__in=[self.p1, self.p2]
+        ).update(is_active=False)
         cache.delete(f"token_validation_{self.season.pk}")
 
     @patch("heltour.tournament.lichessapi.get_admin_token")

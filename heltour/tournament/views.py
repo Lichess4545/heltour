@@ -1693,6 +1693,11 @@ class LeagueDashboardView(LeagueView):
         token_validation_status = cache.get(f"token_validation_{self.season.pk}")
         system_api_token_status = lichessapi.check_system_api_token()
 
+        from django_celery_results.models import TaskResult
+        recent_task_results = list(
+            TaskResult.objects.order_by("-date_created")[:25]
+        )
+
         return {
             'current_season_list': current_season_list,
             'completed_season_list': completed_season_list,
@@ -1711,6 +1716,7 @@ class LeagueDashboardView(LeagueView):
             'knockout_advancement_info': knockout_advancement_info,
             'token_validation_status': token_validation_status,
             'system_api_token_status': system_api_token_status,
+            'recent_task_results': recent_task_results,
         }
 
     def team_view(self):

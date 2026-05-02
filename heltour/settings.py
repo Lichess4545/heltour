@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "heltour.comments",
     "heltour.api_worker",
     "django_celery_beat",
+    "django_celery_results",
 ]
 
 # Middleware configuration
@@ -236,6 +237,11 @@ CELERY_BROKER_URL = env(
 )
 CELERY_DEFAULT_QUEUE = env("CELERY_DEFAULT_QUEUE").format(env("HELTOUR_ENV").lower())
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True
+CELERY_TASK_TRACK_STARTED = True
+# How long to keep task results before celery.backend_cleanup deletes them.
+CELERY_RESULT_EXPIRES = timedelta(days=7)
 CELERY_BEAT_SCHEDULE = {
     "update-ratings": {
         "task": "heltour.tournament.tasks.update_player_ratings",
@@ -290,6 +296,11 @@ CELERY_BEAT_SCHEDULE = {
     "update-fide-ratings": {
         "task": "heltour.tournament.tasks.update_fide_ratings",
         "schedule": timedelta(days=1),
+        "args": (),
+    },
+    "celery-backend-cleanup": {
+        "task": "celery.backend_cleanup",
+        "schedule": crontab(hour=4, minute=0),
         "args": (),
     },
 }
