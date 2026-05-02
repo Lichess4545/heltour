@@ -598,8 +598,8 @@ def _init_start_league_games(
     clock = league.time_control_initial()
     increment = league.time_control_increment()
     variant = league.rating_type
-    if variant in ["classical", "rapid", "blitz", "bullet"] or variant.startswith(
-        "fide_"
+    if variant in ["classical", "rapid", "blitz", "bullet"] or is_fide_rating_type(
+        variant
     ):
         variant = "standard"
     do_clockstart = league.get_leaguesetting().start_clocks
@@ -1024,7 +1024,11 @@ def validate_season_tokens(season_id: int) -> None:
     league = season.league
     players = list(
         Player.objects.filter(
-            seasonplayer__season=season, seasonplayer__is_active=True
+            Q(seasonplayer__season=season, seasonplayer__is_active=True)
+            | Q(
+                teammember__team__season=season,
+                teammember__team__is_active=True,
+            )
         ).distinct()
     )
     if not players:

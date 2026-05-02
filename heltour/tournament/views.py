@@ -2720,21 +2720,47 @@ class TeamCompositionView(LeagueView):
         # Check same permissions as dashboard
         if not self.request.user.has_perm('tournament.view_dashboard', self.league):
             raise Http404()
-        
+
         # Only for team leagues
         if not self.league.is_team_league():
             raise Http404()
-        
+
         # Get all teams for the current season with their members
         teams = Team.objects.filter(
-            season=self.season, 
+            season=self.season,
             is_active=True
         ).prefetch_related(
             'teammember_set__player'
         ).order_by('name')
-        
+
+        # Build a real-name lookup from this season's registrations so we can
+        # fall back to a player's real name when FIDE ID is missing.
+        registrations = Registration.objects.filter(
+            season=self.season, player__isnull=False
+        ).only('player_id', 'first_name', 'last_name')
+        real_names_by_player_id = {}
+        for reg in registrations:
+            full_name = f"{reg.first_name} {reg.last_name}".strip()
+            if full_name:
+                real_names_by_player_id.setdefault(reg.player_id, full_name)
+
+        team_rows = []
+        for team in teams:
+            members = []
+            for member in team.teammember_set.all():
+                player = member.player
+                if player.fide_id:
+                    identifier = player.fide_id
+                elif player.id in real_names_by_player_id:
+                    identifier = real_names_by_player_id[player.id]
+                else:
+                    identifier = player.lichess_username
+                members.append({'identifier': identifier})
+            team_rows.append({'name': team.name, 'members': members})
+
         context = {
             'teams': teams,
+            'team_rows': team_rows,
         }
         return self.render('tournament/team_composition.html', context)
 

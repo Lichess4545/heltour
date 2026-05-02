@@ -9,8 +9,9 @@
                     <h3>Team Composition - {{ season.name }}</h3>
                 </div>
                 <div class="well-body">
-                    <p>Team composition for {{ season.name }} in plain text format:</p>
-                    <pre>{% for team in teams %}{% for member in team.teammember_set.all %}{{ team.name }}; {{ member.player.lichess_username }}
+                    <p>Team composition for {{ season.name }} in plain text format
+                    (FIDE ID; falls back to real name, then Lichess username):</p>
+                    <pre>{% for team in team_rows %}{% for member in team.members %}{{ team.name }}; {{ member.identifier }}
 {% endfor %}{% endfor %}</pre>
                 </div>
             </div>
