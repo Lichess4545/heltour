@@ -26,9 +26,6 @@ from heltour.tournament.management.commands.watch_games import (
 from heltour.tournament.models import (
     LonePlayerPairing,
     PlayerPairing,
-    Team,
-    TeamPairing,
-    TeamPlayerPairing,
 )
 from heltour.tournament.tests.testutils import (
     Shush,
@@ -402,102 +399,31 @@ class TestGetActiveUsernames(TestCase):
     def setUpTestData(cls):
         createCommonLeagueData()
 
-    def setUp(self):
-        self.round_ = get_round("lone", 1)
-        self.round_.publish_pairings = True
-        self.round_.end_date = timezone.now() + timezone.timedelta(days=2)
-        self.round_.is_completed = False
-        self.round_.save()
-
-    def test_returns_lowercased_usernames_for_active_pairings(self):
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-        )
-        self.assertEqual(get_active_usernames(), ["player1", "player2"])
-
-    def test_skips_resolved_pairings(self):
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-            result="1-0",
-        )
-        self.assertEqual(get_active_usernames(), [])
-
-    def test_skips_completed_round(self):
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-        )
-        self.round_.is_completed = True
-        self.round_.save()
-        self.assertEqual(get_active_usernames(), [])
-
-    def test_skips_unpublished_round(self):
-        self.round_.publish_pairings = False
-        self.round_.save()
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-        )
-        self.assertEqual(get_active_usernames(), [])
-
-    def test_skips_round_past_end_date(self):
-        self.round_.end_date = timezone.now() - timezone.timedelta(days=1)
-        self.round_.save()
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-        )
-        self.assertEqual(get_active_usernames(), [])
-
-    def test_includes_team_pairings(self):
-        team_round = get_round("team", 1)
-        team_round.publish_pairings = True
-        team_round.end_date = timezone.now() + timezone.timedelta(days=2)
-        team_round.is_completed = False
-        team_round.save()
-
-        team_pairing = TeamPairing.objects.create(
-            round=team_round,
-            white_team=Team.objects.get(season=get_season("team"), number=1),
-            black_team=Team.objects.get(season=get_season("team"), number=2),
-            pairing_order=1,
-        )
-        TeamPlayerPairing.objects.create(
-            team_pairing=team_pairing,
-            board_number=1,
-            white=get_player("Player1"),
-            black=get_player("Player3"),
-        )
+    def test_returns_lowercased_active_season_players(self):
         usernames = get_active_usernames()
-        self.assertIn("player1", usernames)
-        self.assertIn("player3", usernames)
+        self.assertEqual(usernames, [f"player{i}" for i in range(1, 9)])
 
-    def test_deduplicates_usernames(self):
-        # Same player listed in multiple pairings should appear once.
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player2"),
-            pairing_order=1,
-        )
-        LonePlayerPairing.objects.create(
-            round=self.round_,
-            white=get_player("Player1"),
-            black=get_player("Player3"),
-            pairing_order=2,
-        )
+    def test_skips_inactive_season_players(self):
+        from heltour.tournament.models import SeasonPlayer
+        sp = SeasonPlayer.objects.get(player__lichess_username="Player1")
+        sp.is_active = False
+        sp.save()
+        usernames = get_active_usernames()
+        self.assertNotIn("player1", usernames)
+        self.assertIn("player2", usernames)
+
+    def test_skips_completed_season(self):
+        season = get_season("lone")
+        season.is_completed = True
+        season.save()
+        usernames = get_active_usernames()
+        for i in range(1, 9):
+            self.assertNotIn(f"player{i}", usernames)
+
+    def test_includes_multiple_active_seasons(self):
+        from heltour.tournament.models import SeasonPlayer
+        team_season = get_season("team")
+        SeasonPlayer.objects.create(season=team_season, player=get_player("Player1"))
         usernames = get_active_usernames()
         self.assertEqual(usernames.count("player1"), 1)
 
