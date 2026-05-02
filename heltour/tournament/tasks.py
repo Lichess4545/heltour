@@ -55,6 +55,7 @@ from heltour.tournament.models import (
     abs_url,
     get_gameid_from_gamelink,
     get_gamelink_from_gameid,
+    is_fide_rating_type,
     logger,
     lone_player_pairing_rank_dict,
 )
@@ -147,7 +148,7 @@ def populate_historical_ratings():
         p.refresh_from_db()
         round_ = p.get_round()
         league = round_.season.league if round_ else None
-        if league and league.rating_type.startswith("fide_"):
+        if league and is_fide_rating_type(league.rating_type):
             p.white_rating = p.white.rating_for(league)
             p.black_rating = p.black.rating_for(league)
         else:
@@ -229,7 +230,7 @@ def _find_closest_rating(player, date, season):
         return None
     league = season.league
     # For FIDE-rated leagues, we cannot get historical ratings from the Lichess API.
-    if league.rating_type.startswith("fide_"):
+    if is_fide_rating_type(league.rating_type):
         return player.rating_for(league)
     if season.league.competitor_type == "team":
         season_pairings = (
@@ -1368,7 +1369,9 @@ def do_validate_registration(regs: QuerySet[Registration], **kwargs) -> None:
 def _fetch_fide_profiles_for_registrations(regs: QuerySet[Registration]) -> None:
     fide_regs = regs.filter(
         player__fide_id__gt="",
-        season__league__rating_type__startswith="fide_",
+    ).filter(
+        Q(season__league__rating_type__startswith="fide_")
+        | Q(season__league__rating_type="fide"),
     ).select_related("player")
     for reg in fide_regs:
         player = reg.player

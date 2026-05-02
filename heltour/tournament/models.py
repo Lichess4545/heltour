@@ -139,7 +139,18 @@ RATING_TYPE_OPTIONS = (
     ("fide_standard", "FIDE Standard"),
     ("fide_rapid", "FIDE Rapid"),
     ("fide_blitz", "FIDE Blitz"),
+    ("fide", "FIDE (Standard → Rapid → Blitz)"),
 )
+
+# Order in which FIDE rating keys are tried for the "fide" rating type.
+FIDE_RATING_FALLBACK_KEYS = ("standard", "rapid", "blitz")
+FIDE_RATING_DEFAULT = 1400
+
+
+def is_fide_rating_type(rating_type: str) -> bool:
+    return rating_type == "fide" or rating_type.startswith("fide_")
+
+
 COMPETITOR_TYPE_OPTIONS = (
     ("team", "Team"),
     ("individual", "Individual"),
@@ -1555,14 +1566,22 @@ class Player(_BaseModel):
         ).exists()
 
     def _is_fide_rating_type(self, league):
-        return league and league.rating_type.startswith("fide_")
+        return bool(league) and is_fide_rating_type(league.rating_type)
 
     def _fide_rating_key(self, league):
+        if league.rating_type == "fide":
+            profile = self.fide_profile or {}
+            for key in FIDE_RATING_FALLBACK_KEYS:
+                if profile.get(key) is not None:
+                    return key
+            return FIDE_RATING_FALLBACK_KEYS[0]
         return league.rating_type.removeprefix("fide_")
 
     def rating_for(self, league):
         if self._is_fide_rating_type(league):
-            return (self.fide_profile or {}).get(self._fide_rating_key(league), 1400)
+            return (self.fide_profile or {}).get(
+                self._fide_rating_key(league), FIDE_RATING_DEFAULT
+            )
         if league:
             if self.profile is None:
                 return 0

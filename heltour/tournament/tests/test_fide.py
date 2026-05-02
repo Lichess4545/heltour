@@ -95,6 +95,48 @@ class PlayerFideRatingTestCase(TestCase):
         self.assertEqual(player.rating_for(None), 1500)
 
 
+class PlayerFideFallbackRatingTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.fide = _make_fide_league("fide")
+
+    def test_rating_for_fide_uses_standard_when_present(self):
+        player = _make_player("fb1", fide_profile=SAMPLE_FIDE_PROFILE)
+        self.assertEqual(player.rating_for(self.fide), 2830)
+
+    def test_rating_for_fide_falls_back_to_rapid(self):
+        player = _make_player(
+            "fb2", fide_profile={"id": 1, "rapid": 2200, "blitz": 2100}
+        )
+        self.assertEqual(player.rating_for(self.fide), 2200)
+
+    def test_rating_for_fide_falls_back_to_blitz(self):
+        player = _make_player("fb3", fide_profile={"id": 1, "blitz": 2050})
+        self.assertEqual(player.rating_for(self.fide), 2050)
+
+    def test_rating_for_fide_defaults_1400_when_no_keys(self):
+        player = _make_player("fb4", fide_profile={"id": 1, "name": "X"})
+        self.assertEqual(player.rating_for(self.fide), 1400)
+
+    def test_rating_for_fide_defaults_1400_when_no_profile(self):
+        player = _make_player("fb5")
+        self.assertEqual(player.rating_for(self.fide), 1400)
+
+    def test_rating_for_fide_skips_null_standard(self):
+        player = _make_player(
+            "fb6", fide_profile={"id": 1, "standard": None, "rapid": 2100}
+        )
+        self.assertEqual(player.rating_for(self.fide), 2100)
+
+    def test_games_played_fide_always_zero(self):
+        player = _make_player("fb7", fide_profile=SAMPLE_FIDE_PROFILE)
+        self.assertEqual(player.games_played_for(self.fide), 0)
+
+    def test_provisional_fide_always_false(self):
+        player = _make_player("fb8")
+        self.assertFalse(player.provisional_for(self.fide))
+
+
 class PlayerFideGamesPlayedTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
