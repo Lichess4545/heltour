@@ -1691,6 +1691,7 @@ class LeagueDashboardView(LeagueView):
             knockout_advancement_info = self._get_knockout_advancement_info()
 
         token_validation_status = cache.get(f"token_validation_{self.season.pk}")
+        system_api_token_status = lichessapi.check_system_api_token()
 
         return {
             'current_season_list': current_season_list,
@@ -1709,6 +1710,7 @@ class LeagueDashboardView(LeagueView):
             'is_knockout_tournament': is_knockout,
             'knockout_advancement_info': knockout_advancement_info,
             'token_validation_status': token_validation_status,
+            'system_api_token_status': system_api_token_status,
         }
 
     def team_view(self):

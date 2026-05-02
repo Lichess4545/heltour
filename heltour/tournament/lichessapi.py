@@ -4,11 +4,16 @@ from __future__ import annotations
 import requests
 import time
 import json
+from datetime import datetime, timedelta, timezone as dt_timezone
 from django.core.cache import cache
+from django.utils import timezone
 import logging
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+SYSTEM_TOKEN_CHECK_CACHE_KEY = "system_api_token_check"
+SYSTEM_TOKEN_CHECK_TTL_SECONDS = 300
 
 
 def _apicall(
@@ -63,6 +68,68 @@ def test_oauth_token(token):
     )
     result = _apicall_with_error_parsing(url=url, post=True, post_data=token)
     return json.loads(result)
+
+
+def check_system_api_token() -> dict:
+    # Calls lichess.org/api/token/test directly (not via api_worker) so this check
+    # stays useful when api_worker is the thing that's broken. Cached for 5 min.
+    cached = cache.get(SYSTEM_TOKEN_CHECK_CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    now = timezone.now()
+    next_check_at = now + timedelta(seconds=SYSTEM_TOKEN_CHECK_TTL_SECONDS)
+    token = (settings.LICHESS_API_TOKEN or "").strip()
+
+    result: dict = {
+        "checked_at": now,
+        "next_check_at": next_check_at,
+        "valid": False,
+        "user_id": None,
+        "scopes": [],
+        "expires_at": None,
+        "error": None,
+    }
+
+    if not token:
+        result["error"] = "LICHESS_API_TOKEN is not configured"
+        cache.set(SYSTEM_TOKEN_CHECK_CACHE_KEY, result, SYSTEM_TOKEN_CHECK_TTL_SECONDS)
+        return result
+
+    try:
+        response = requests.post(
+            "https://lichess.org/api/token/test",
+            data=token,
+            headers={"Content-Type": "text/plain"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as e:
+        result["error"] = f"Request failed: {e}"
+        cache.set(SYSTEM_TOKEN_CHECK_CACHE_KEY, result, SYSTEM_TOKEN_CHECK_TTL_SECONDS)
+        return result
+    except ValueError as e:
+        result["error"] = f"Invalid response from lichess: {e}"
+        cache.set(SYSTEM_TOKEN_CHECK_CACHE_KEY, result, SYSTEM_TOKEN_CHECK_TTL_SECONDS)
+        return result
+
+    info = data.get(token) if isinstance(data, dict) else None
+    if info is None:
+        result["error"] = "Token rejected by lichess"
+    else:
+        result["valid"] = True
+        result["user_id"] = info.get("userId")
+        scopes_str = info.get("scopes") or ""
+        result["scopes"] = [s for s in scopes_str.split(",") if s]
+        expires_ms = info.get("expires")
+        if expires_ms:
+            result["expires_at"] = datetime.fromtimestamp(
+                expires_ms / 1000, tz=dt_timezone.utc
+            )
+
+    cache.set(SYSTEM_TOKEN_CHECK_CACHE_KEY, result, SYSTEM_TOKEN_CHECK_TTL_SECONDS)
+    return result
 
 
 def test_whoami():

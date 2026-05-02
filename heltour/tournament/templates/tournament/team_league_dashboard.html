@@ -145,6 +145,27 @@
                                 </button>
                             </form>
                         </div>
+                        {% if system_api_token_status %}
+                            <div class="dashboard-season-action">
+                                <span class="btn btn-default disabled" style="cursor: default;">
+                                    {% if system_api_token_status.valid %}
+                                        <i class="fa fa-check-circle" style="color: #3c763d;"></i> Lichess API Token OK
+                                    {% else %}
+                                        <i class="fa fa-times-circle" style="color: #a94442;"></i> Lichess API Token FAILED
+                                    {% endif %}
+                                </span>
+                                <span class="dashboard-note">
+                                    {% if system_api_token_status.valid %}
+                                        {% if system_api_token_status.user_id %}as <strong>{{ system_api_token_status.user_id }}</strong>{% endif %}
+                                        {% if system_api_token_status.expires_at %}· expires {{ system_api_token_status.expires_at|date:"Y-m-d H:i" }} UTC{% else %}· never expires{% endif %}
+                                        {% if system_api_token_status.scopes %}· scopes: {{ system_api_token_status.scopes|join:", " }}{% endif %}
+                                    {% else %}
+                                        {{ system_api_token_status.error|default:"unknown error" }}
+                                    {% endif %}
+                                    <br>Last checked: {{ system_api_token_status.checked_at|date:"Y-m-d H:i:s" }} UTC · Next check: {{ system_api_token_status.next_check_at|date:"H:i:s" }} UTC
+                                </span>
+                            </div>
+                        {% endif %}
                         <div class="dashboard-season-action">
                             <form method="post" style="display: inline;">
                                 {% csrf_token %}
