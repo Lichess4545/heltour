@@ -77,9 +77,3 @@ jobs:
           TAG: ${{ steps.tag.outputs.TAG }}
           REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
           GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
-
-  staging:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: build
-    uses: ./.github/workflows/deploy.yml
-    secrets: inherit
