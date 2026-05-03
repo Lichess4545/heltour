@@ -105,6 +105,12 @@ target "litour-ui" {
   context = "."
   dockerfile = "docker/Dockerfile.ui"
   tags = tag("litour-ui")
+  # `openapi.json` is gitignored — it's generated during the Python
+  # build inside `litour-base`. We pull it from there as a build context
+  # so the UI image doesn't need a host-side pre-step in CI.
+  contexts = {
+    base = "target:base"
+  }
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }

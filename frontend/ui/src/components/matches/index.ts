@@ -1,16 +1,25 @@
-export { BoardRow } from "./BoardRow";
-export { CaptainBadge } from "./CaptainBadge";
-export { ColorDot } from "./ColorDot";
-export { ConnectionBadge, type ConnectionState } from "./ConnectionBadge";
-export { GenderBadge } from "./GenderBadge";
-export { LoneMatchesView } from "./LoneMatchesView";
-export { MatchesSummary } from "./MatchesSummary";
-export { PlayerCell } from "./PlayerCell";
-export { PlayerName } from "./PlayerName";
-export { PresenceLogTrigger } from "./PresenceLogTrigger";
-export { ResultCells } from "./ResultCells";
-export { ResultPopover } from "./ResultPopover";
-export { ScorePill } from "./ScorePill";
-export { TeamMatchCard } from "./TeamMatchCard";
-export { TeamMatchesView } from "./TeamMatchesView";
-export { ViewerBadge } from "./ViewerBadge";
+// Compatibility shim. Components have moved into per-domain folders:
+//   - cross-domain primitives -> @/components/primitives
+//   - round-specific logic    -> @/components/round_management
+// New code should import from those locations directly.
+export {
+  CaptainBadge,
+  ColorDot,
+  ConnectionBadge,
+  GenderBadge,
+  ScorePill,
+} from "@/components/primitives";
+export type { ConnectionState } from "@/components/primitives";
+export {
+  BoardRow,
+  LoneMatchesView,
+  MatchesSummary,
+  PlayerCell,
+  PlayerName,
+  PresenceLogTrigger,
+  ResultCells,
+  ResultPopover,
+  TeamMatchCard,
+  TeamMatchesView,
+  ViewerBadge,
+} from "@/components/round_management";

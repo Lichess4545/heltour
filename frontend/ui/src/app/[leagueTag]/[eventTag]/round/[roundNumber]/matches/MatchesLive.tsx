@@ -3,15 +3,14 @@
 import { type WSMessage, type components, connectMatchStream } from "@litour/api-client";
 import { useEffect, useState } from "react";
 
-import { RoundsNav } from "@/components/event";
+import { ConnectionBadge, type ConnectionState } from "@/components/primitives";
 import {
-  ConnectionBadge,
-  type ConnectionState,
   LoneMatchesView,
   MatchesSummary,
+  RoundsNav,
   TeamMatchesView,
   ViewerBadge,
-} from "@/components/matches";
+} from "@/components/round_management";
 import { ModeToggle } from "@/components/theme/ModeToggle";
 import type { MatchFilter } from "@/lib/match-filter";
 

@@ -1,13 +1,3 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+"""Compatibility shim - moved to ``heltour.api.shared.health``."""
 
-router = APIRouter()
-
-
-class HealthDTO(BaseModel):
-    ok: bool
-
-
-@router.get("/health", response_model=HealthDTO)
-def health() -> HealthDTO:
-    return HealthDTO(ok=True)
+from heltour.api.shared.health import HealthDTO, router  # noqa: F401

@@ -60,7 +60,7 @@ def _publish_team_match_update(team_match_dto, round_id: int) -> None:
 
 
 def _connect():
-    from heltour.api.match_dto import (
+    from heltour.api.round_management.dto_builders import (
         captains_for_team_pairing,
         lone_player_pairing_to_match,
         team_pairing_to_team_match,
