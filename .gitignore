@@ -19,3 +19,9 @@ backups
 /.claude
 backup-wucc.sh
 wucc_backup_*.dump
+
+# devenv
+.devenv/
+.devenv.flake.nix
+devenv.local.nix
+.direnv/

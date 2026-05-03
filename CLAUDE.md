@@ -14,32 +14,29 @@ This is Litour (formerly heltour), a Django-based tournament management web appl
 - **Frontend**: jQuery 3.1.0, Bootstrap 3, SCSS (compiled with Ruby sass)
 - **Dependency Management**: Poetry
 - **Task Runner**: Invoke (replaced Fabric)
-- **Development Environment**: Nix with automatic setup
-- **Services**: Docker Compose for PostgreSQL, Redis, MailHog
+- **Development Environment**: devenv 2.x with automatic setup
+- **Services**: PostgreSQL, Redis, and Mailpit run locally via `devenv up` (no Docker required for dev)
 
 ## Development Setup
 
 ### Getting Started
 
 ```bash
-# Start the required services (PostgreSQL, Redis, MailHog)
-invoke docker-up
-
-# Enter the development environment (automatically sets up virtualenv and installs dependencies)
-nix develop
-
 # Create your local .env file from the development template
 cp .env.dev .env
 
-# Run initial setup
+# Enter the development environment (automatically sets up virtualenv and installs dependencies)
+devenv shell
+
+# Start all services and processes (postgres, redis, mailpit, django, apiworker, celery)
+devenv up
+
+# In another shell (also inside `devenv shell`), run initial setup
 invoke migrate
 invoke createsuperuser
-
-# Start the development server
-invoke runserver
 ```
 
-The nix environment automatically:
+The devenv shell automatically:
 
 - Sets up Python 3.11 virtual environment
 - Installs all Python dependencies via Poetry
@@ -49,24 +46,22 @@ The nix environment automatically:
 ### Common Development Tasks
 
 ```bash
-# Docker services management
-invoke docker-up        # Start PostgreSQL, Redis, MailHog
-invoke docker-down      # Stop all services
-invoke docker-status    # Check service status
+# Process orchestration (postgres, redis, mailpit, django, apiworker, celery, watch-games)
+devenv up
 
 # Database operations
 invoke createdb         # Create new database
 invoke migrate          # Run database migrations
 invoke makemigrations   # Create new migrations
 
-# Running the application
+# Running individual processes (when not using `devenv up`)
 invoke runserver        # Run Django dev server on 0.0.0.0:8000
 invoke runapiworker     # Run API worker on port 8880
 invoke celery           # Run Celery worker for background tasks
 
 # Dependency management
 invoke update           # Update all dependencies to latest versions (alias: up)
-poetry install          # Install dependencies (automatic in nix shell)
+poetry install          # Install dependencies (automatic in devenv shell)
 poetry add <package>    # Add new dependency
 
 # Testing
@@ -135,7 +130,7 @@ Functions to convert Django ORM models to tournament_core structures:
 - Settings are read from environment variables with sensible defaults
 - API keys are read directly from environment variables
 - Key environment files:
-  - `.env.dev` - Development defaults (PostgreSQL, Redis, MailHog pre-configured)
+  - `.env.dev` - Development defaults (PostgreSQL, Redis, Mailpit pre-configured)
   - `.env.example` - Template with all available settings
 
 ### External Service Integrations
@@ -179,7 +174,7 @@ Pure Python tests for tournament calculations are in `heltour/tournament_core/te
 - Celery workers handle background tasks like API syncing and notifications
 - JaVaFo (Java tool) can be used for sophisticated pairing generation (located at `thirdparty/javafo.jar`)
 - Task automation uses Invoke (replaced Fabric) - see `tasks.py` for available commands
-- SCSS compilation requires Ruby sass gem (automatically installed in nix shell)
+- SCSS compilation requires Ruby sass gem (automatically installed in devenv shell)
 - The project was migrated from multiple settings files to a single environment-based configuration
 - Branding has been updated from lichess4545 to lots.lichess.ca
 
@@ -192,7 +187,7 @@ This project was originally called heltour and served lichess4545. It has been r
 ### Command Execution Policy
 
 - **DO NOT** run any commands - the user will run all commands themselves
-- **DO NOT** use `nix develop`, `invoke`, `poetry`, or any other shell commands
+- **DO NOT** use `devenv shell`, `invoke`, `poetry`, or any other shell commands
 - **DO NOT** attempt to start servers, run tests, or execute any development tasks
 - You should only:
   - Read and analyze code

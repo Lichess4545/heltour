@@ -168,24 +168,6 @@ def make_admin(c, username="admin", password="test12345", email="admin@example.c
     c.run(f"python {manage_py} shell -c {shlex.quote(script)}", pty=True)
 
 
-@task
-def docker_up(c):
-    """Start Docker Compose services (PostgreSQL, Redis, MailHog)."""
-    c.run("docker compose up -d", pty=True)
-
-
-@task
-def docker_down(c):
-    """Stop Docker Compose services."""
-    c.run("docker compose down", pty=True)
-
-
-@task
-def docker_status(c):
-    """Show status of Docker Compose services."""
-    c.run("docker compose ps", pty=True)
-
-
 @task(
     help={
         "tag": "Tag for the images (default: latest)",
