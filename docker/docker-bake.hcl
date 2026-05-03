@@ -10,9 +10,41 @@ variable "GITHUB_SHORT_SHA" {
   default = "unknown"
 }
 
+# Toggle for the registry-cache fallback. CI sets this to "1" so the
+# bake reads/writes layer cache through ghcr.io alongside GHA. Local
+# `docker buildx bake` leaves it empty and only uses the GHA scope (or
+# nothing, when GHA isn't reachable).
+variable "REGISTRY_CACHE" {
+  default = ""
+}
+
 function "tag" {
   params = [name]
   result = ["${lower(REGISTRY)}${REGISTRY != "" ? "/" : ""}${name}:${TAG}"]
+}
+
+# Per-target cache sources. We always try the GHA scope (cheap and
+# branch-aware), and additionally fall back to a registry-stored cache
+# when CI is configured for it — this lets a fresh PR runner with no
+# GHA cache still pull layers from whatever master last published.
+function "cache_from" {
+  params = [name]
+  result = concat(
+    ["type=gha,scope=${name}"],
+    REGISTRY_CACHE != "" ? ["type=registry,ref=${lower(REGISTRY)}${REGISTRY != "" ? "/" : ""}${name}:buildcache"] : [],
+  )
+}
+
+# Per-target cache sinks. `mode=max` exports every intermediate layer,
+# not just the final image, so subsequent builds can reuse them even
+# when only late stages change. Registry cache is only written when
+# explicitly enabled to avoid PR runs polluting the shared cache image.
+function "cache_to" {
+  params = [name]
+  result = concat(
+    ["type=gha,mode=max,scope=${name}"],
+    REGISTRY_CACHE == "push" ? ["type=registry,ref=${lower(REGISTRY)}${REGISTRY != "" ? "/" : ""}${name}:buildcache,mode=max"] : [],
+  )
 }
 
 group "verify" {
@@ -31,6 +63,8 @@ target "base" {
   context = "."
   dockerfile = "docker/Dockerfile.base"
   tags = tag("litour-base")
+  cache-from = cache_from("litour-base")
+  cache-to = cache_to("litour-base")
 }
 
 target "web-verify" {
@@ -41,6 +75,8 @@ target "web-verify" {
     base = "target:base"
   }
   cache-only = true
+  cache-from = cache_from("litour-verify")
+  cache-to = cache_to("litour-verify")
 }
 
 target "litour-caddy" {
@@ -51,6 +87,8 @@ target "litour-caddy" {
   contexts = {
     base = "target:base"
   }
+  cache-from = cache_from("litour-caddy")
+  cache-to = cache_to("litour-caddy")
 }
 
 target "litour-web" {
@@ -64,6 +102,8 @@ target "litour-web" {
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
+  cache-from = cache_from("litour-web")
+  cache-to = cache_to("litour-web")
 }
 
 target "javafo-verify" {
@@ -75,6 +115,8 @@ target "javafo-verify" {
     base = "target:base"
   }
   cache-only = true
+  cache-from = cache_from("litour-javafo-verify")
+  cache-to = cache_to("litour-javafo-verify")
 }
 
 target "litour-api-worker" {
@@ -87,6 +129,8 @@ target "litour-api-worker" {
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
+  cache-from = cache_from("litour-api-worker")
+  cache-to = cache_to("litour-api-worker")
 }
 
 target "litour-api" {
@@ -99,6 +143,8 @@ target "litour-api" {
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
+  cache-from = cache_from("litour-api")
+  cache-to = cache_to("litour-api")
 }
 
 target "litour-ui" {
@@ -114,6 +160,8 @@ target "litour-ui" {
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }
+  cache-from = cache_from("litour-ui")
+  cache-to = cache_to("litour-ui")
 }
 
 target "litour-celery" {
@@ -123,6 +171,8 @@ target "litour-celery" {
   contexts = {
     base = "target:base"
   }
+  cache-from = cache_from("litour-celery")
+  cache-to = cache_to("litour-celery")
 }
 
 target "litour-watcher" {
@@ -132,6 +182,8 @@ target "litour-watcher" {
   contexts = {
     base = "target:base"
   }
+  cache-from = cache_from("litour-watcher")
+  cache-to = cache_to("litour-watcher")
 }
 
 target "litour-migrate" {
@@ -141,4 +193,6 @@ target "litour-migrate" {
   contexts = {
     base = "target:base"
   }
+  cache-from = cache_from("litour-migrate")
+  cache-to = cache_to("litour-migrate")
 }

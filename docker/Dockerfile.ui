@@ -29,6 +29,7 @@ RUN cd frontend/api-client && bun run generate && bun run build
 # Build the Next.js app in standalone mode.
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV LITOUR_UI_BASE_PATH=/v2
+ENV NEXT_PUBLIC_LITOUR_API_URL=/v2/api
 RUN cd frontend/ui && bun run build
 
 # ---- runtime --------------------------------------------------------------
@@ -43,6 +44,7 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     LITOUR_UI_BASE_PATH=/v2 \
+    NEXT_PUBLIC_LITOUR_API_URL=/v2/api \
     HELTOUR_VERSION=${GITHUB_SHORT_SHA}
 
 # Next.js standalone output bundles only the runtime files needed.

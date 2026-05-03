@@ -49,16 +49,24 @@ jobs:
       # Build every image on every event so PR CI catches regressions
       # in any image (e.g. `litour-ui`) before they reach master. Only
       # push when we'd actually publish — master pushes, PRs verify.
+      #
+      # Cache config lives in `docker/docker-bake.hcl` so each target
+      # gets its own GHA scope (preventing the 10 GB cache cap from
+      # evicting one image's layers when a sibling builds). Master also
+      # writes a registry-stored cache image (`...:buildcache`) that
+      # PR runs read from, so a cold GHA cache still warm-starts from
+      # the last published cache.
       - name: Build (and push on master)
         uses: docker/bake-action@v5
         with:
           files: docker/docker-bake.hcl
           targets: default
           push: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
         env:
           TAG: ${{ steps.tag.outputs.TAG }}
           REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
           GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
+          # `pull` always reads cache; `push` is set on master/dispatch
+          # so only canonical builds publish into the shared registry
+          # cache image.
+          REGISTRY_CACHE: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')) && 'push' || 'pull' }}
