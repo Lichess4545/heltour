@@ -47,8 +47,15 @@ django-celery-results = "^2.5.1"
 django-phonenumber-field = {extras = ["phonenumbers"], version = "^8.0.0"}
 django-countries = "^7.6.1"
 babel = "^2.17.0"
+fastapi = "==0.115.6"
+uvicorn = {extras = ["standard"], version = "==0.32.1"}
+pydantic = "==2.10.4"
+scalar-fastapi = "==1.0.3"
 
 [tool.poetry.dev-dependencies]
+schemathesis = "==3.39.6"
+hypothesis = "<6.131"
+httpx = "==0.27.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

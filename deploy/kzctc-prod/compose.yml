@@ -58,6 +58,40 @@ services:
       update_config:
         order: start-first
 
+  api:
+    image: ghcr.io/lichess4545/litour-api:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzctc_prod_db_url
+      HELTOUR_ENV: prod
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
+    secrets:
+      - kzctc_prod_db_url
+      - litour_prod_lichess_api_token
+      - litour_app_secret_key
+      - email_host_user
+      - email_host_password
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  ui:
+    image: ghcr.io/lichess4545/litour-ui:latest
+    env_file: "stack.env"
+    environment:
+      LITOUR_API_BASE_URL: http://api:8001
+      LITOUR_UI_BASE_PATH: /v2
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
   celery:
     image: ghcr.io/lichess4545/litour-celery:latest
     env_file: "stack.env"

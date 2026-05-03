@@ -20,11 +20,11 @@ group "verify" {
 }
 
 group "default" {
-  targets = ["base", "verify", "litour-caddy", "litour-web", "litour-api-worker", "litour-celery", "litour-watcher", "litour-migrate"]
+  targets = ["base", "verify", "litour-caddy", "litour-web", "litour-api-worker", "litour-api", "litour-ui", "litour-celery", "litour-watcher", "litour-migrate"]
 }
 
 group "production" {
-  targets = ["litour-caddy", "litour-web", "litour-api-worker", "litour-celery", "litour-watcher", "litour-migrate"]
+  targets = ["litour-caddy", "litour-web", "litour-api-worker", "litour-api", "litour-ui", "litour-celery", "litour-watcher", "litour-migrate"]
 }
 
 target "base" {
@@ -84,6 +84,27 @@ target "litour-api-worker" {
   contexts = {
     base = "target:base"
   }
+  args = {
+    GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
+  }
+}
+
+target "litour-api" {
+  context = "."
+  dockerfile = "docker/Dockerfile.api"
+  tags = tag("litour-api")
+  contexts = {
+    base = "target:base"
+  }
+  args = {
+    GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
+  }
+}
+
+target "litour-ui" {
+  context = "."
+  dockerfile = "docker/Dockerfile.ui"
+  tags = tag("litour-ui")
   args = {
     GITHUB_SHORT_SHA = GITHUB_SHORT_SHA
   }

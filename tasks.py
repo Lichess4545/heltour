@@ -54,6 +54,63 @@ def runapiworker(c):
         c.run(f"python {manage_py} runserver 0.0.0.0:8880")
 
 
+@task
+def runapi(c):
+    """Run the new FastAPI service (heltour.api) on port 8001."""
+    # Bind to :: so both IPv4 (via mapped) and IPv6 work — Firefox prefers ::1
+    # for `localhost` and silently fails with NS_ERROR_CONNECT_REFUSED if we
+    # only bind 0.0.0.0.
+    c.run(
+        "uvicorn heltour.api.main:app --reload --host :: --port 8001",
+        pty=True,
+    )
+
+
+@task
+def openapi(c):
+    """Export the FastAPI OpenAPI schema to ./openapi.json."""
+    script = project_relative("scripts/export_openapi.py")
+    c.run(f"python {script} > openapi.json")
+
+
+@task
+def fuzz(c, base_url="http://localhost:8001"):
+    """Run Schemathesis against a running API service."""
+    c.run(
+        f"schemathesis run --experimental=openapi-3.1 "
+        f"--base-url={base_url} openapi.json",
+        pty=True,
+    )
+
+
+@task(help={"skip_install": "Skip 'bun install' (use existing node_modules)."})
+def build_api_client(c, skip_install=False):
+    """Generate the OpenAPI schema, bundle the TS API client, copy into static."""
+    openapi(c)
+    frontend_dir = project_relative("frontend")
+    api_client_dir = project_relative("frontend/api-client")
+    static_js_dir = project_relative("heltour/tournament/static/tournament/js")
+    os.makedirs(static_js_dir, exist_ok=True)
+    if not skip_install:
+        with c.cd(frontend_dir):
+            c.run("bun install", pty=True)
+    with c.cd(api_client_dir):
+        c.run("bun run generate", pty=True)
+        c.run("bun run bundle", pty=True)
+    for name in ("litour-api-client.iife.js", "litour-api-client.iife.js.map"):
+        src = os.path.join(api_client_dir, "dist", name)
+        if os.path.exists(src):
+            c.run(f"cp {src} {static_js_dir}/")
+
+
+@task
+def run_ui(c):
+    """Run the Next.js UI dev server (frontend/ui) on port 3000."""
+    ui_dir = project_relative("frontend/ui")
+    with c.cd(ui_dir):
+        c.run("bun run dev", pty=True)
+
+
 @task(help={"purge": "Delete all heltour tasks."})
 def celery(c, purge=False):
     """Run Celery worker for background tasks."""
@@ -468,6 +525,57 @@ def seed_lone(
     if clear:
         cmd += " --clear-existing"
     c.run(cmd, pty=True)
+
+
+@task(
+    help={
+        "base_url": "FastAPI base URL for schemathesis (default: http://localhost:8001).",
+    }
+)
+def preflight(c, base_url="http://localhost:8001"):
+    """Run every CI check back-to-back. Assumes `invoke runapi` is running.
+
+    Mirrors `.github/workflows/api-contract.yml` plus the Django test suite.
+    Each step runs even if a previous one fails; a non-zero exit is returned
+    if anything failed, with a summary at the end.
+    """
+    frontend_dir = project_relative("frontend")
+    api_client_dir = project_relative("frontend/api-client")
+    ui_dir = project_relative("frontend/ui")
+
+    steps: list[tuple[str, str, str | None]] = [
+        ("export openapi.json", f"python {project_relative('scripts/export_openapi.py')} > openapi.json", None),
+        ("schemathesis", f"schemathesis run --experimental=openapi-3.1 --base-url={base_url} openapi.json", None),
+        ("frontend install", "bun install --frozen-lockfile", frontend_dir),
+        ("regenerate ts client", "bun run generate", api_client_dir),
+        ("typecheck api-client", "bun run typecheck", api_client_dir),
+        ("build api-client", "bun run build", api_client_dir),
+        ("bundle api-client", "bun run bundle", api_client_dir),
+        ("lint api-client", "bun run lint", api_client_dir),
+        ("typecheck ui", "bun run typecheck", ui_dir),
+        ("lint ui", "bun run lint", ui_dir),
+        ("generated.ts drift check", "git diff --exit-code frontend/api-client/src/generated.ts", None),
+        # Django tests last — slowest step, so fast-failing checks surface first.
+        ("django tests", f"python {project_relative('manage.py')} test --settings=heltour.test_settings", None),
+    ]
+
+    results: list[tuple[str, bool]] = []
+    for name, cmd, cwd in steps:
+        print(f"\n=== {name} ===")
+        if cwd is not None:
+            with c.cd(cwd):
+                result = c.run(cmd, warn=True, pty=True)
+        else:
+            result = c.run(cmd, warn=True, pty=True)
+        results.append((name, result.ok))
+
+    print("\n=== preflight summary ===")
+    for name, ok in results:
+        print(f"  {'OK  ' if ok else 'FAIL'}  {name}")
+
+    if any(not ok for _, ok in results):
+        from invoke.exceptions import Exit
+        raise Exit("preflight: one or more checks failed", code=1)
 
 
 # Shortcuts

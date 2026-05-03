@@ -375,6 +375,10 @@ def update_tv_state():
                     game.tv_state = "hide"
                 if "moves" in meta and " " in meta["moves"]:  # ' ' indicates >= 2 moves
                     game.tv_state = "has_moves"
+                meta_moves = meta.get("moves") or ""
+                game.plies_played = max(
+                    game.plies_played, len(meta_moves.split())
+                )
                 if meta.get("status") in [
                     "draw",
                     "stalemate",

@@ -41,6 +41,11 @@ season_urlpatterns = [
     path("wallchart/", views.WallchartView.as_view(), name="wallchart"),
     path("pairings/", views.PairingsView.as_view(), name="pairings"),
     path(
+        "pairings/block/<int:pairing_id>/",
+        views.TeamPairingBlockView.as_view(),
+        name="pairings_block",
+    ),
+    path(
         "pairings/calendar.ics",
         views.ICalPairingsView.as_view(),
         name="pairings_icalendar",

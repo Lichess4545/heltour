@@ -6,20 +6,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _read_secret(file_path_setting, value_setting):
+    """Read the file at `*_FILE_PATH` if set (re-read on every call),
+    else fall back to the inline setting. Returns "" if neither is
+    configured or the file read fails.
+    """
+    file_path = getattr(settings, file_path_setting, "")
+    if file_path:
+        try:
+            with open(file_path) as fin:
+                return fin.read().strip()
+        except OSError:
+            logger.exception("Failed reading Slack secret from %s", file_path)
+            return ""
+    return getattr(settings, value_setting, "") or ""
+
+
 def _get_slack_token():
-    with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
-        return fin.read().strip()
+    return _read_secret("SLACK_API_TOKEN_FILE_PATH", "SLACK_API_TOKEN")
 
 def _get_slack_channel_builder_token():
-    with open(settings.SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH) as fin:
-        return fin.read().strip()
+    return _read_secret(
+        "SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH", "SLACK_CHANNEL_BUILDER_TOKEN"
+    )
 
 def _get_slack_webhook():
-    try:
-        with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
-            return fin.read().strip()
-    except (IOError, IndexError):
-        return None
+    return _read_secret("SLACK_WEBHOOK_FILE_PATH", "SLACK_WEBHOOK_URL") or None
 
 
 def invite_user(email):

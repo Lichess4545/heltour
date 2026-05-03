@@ -2461,6 +2461,10 @@ class PlayerPairing(_BaseModel):
     tv_state = models.CharField(
         max_length=31, default="default", choices=TV_STATE_OPTIONS
     )
+    # Half-moves played in the linked Lichess game. 0 = both players forfeited
+    # silently, 1 = only white moved, 2+ = both players moved at least once.
+    # Used by arbitrators when deciding forfeit type (1F-0F vs 0F-0F vs 0F-1F).
+    plies_played = models.PositiveIntegerField(default=0)
 
     def __init__(self, *args, **kwargs):
         super(PlayerPairing, self).__init__(*args, **kwargs)
@@ -2608,6 +2612,7 @@ class PlayerPairing(_BaseModel):
         if game_link_changed:
             self.game_link, _ = normalize_gamelink(self.game_link)
             self.tv_state = "default"
+            self.plies_played = 0
         if white_changed or black_changed or game_link_changed:
             self.white_rating = None
             self.black_rating = None
@@ -4354,6 +4359,48 @@ class PlayerPresence(_BaseModel):
 
     def __str__(self):
         return "%s" % (self.player)
+
+
+PRESENCE_EVENT_TYPES = (
+    ("online", "online"),
+    ("offline", "offline"),
+    ("playing_started", "playing started"),
+    ("playing_ended", "playing ended"),
+    ("first_chat_message", "first chat message"),
+)
+
+
+# -------------------------------------------------------------------------------
+class PlayerPresenceEvent(_BaseModel):
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+    event_type = models.CharField(max_length=32, choices=PRESENCE_EVENT_TYPES)
+    pairing = models.ForeignKey(
+        PlayerPairing, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    round = models.ForeignKey(
+        Round, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    game_id = models.CharField(max_length=32, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["player", "timestamp"]),
+            models.Index(fields=["pairing", "timestamp"]),
+            models.Index(fields=["round", "timestamp"]),
+        ]
+        ordering = ("-timestamp",)
+
+    def __str__(self):
+        return "%s %s @ %s" % (self.player, self.event_type, self.timestamp)
+
+    @classmethod
+    def was_online_during_round(cls, player, round_):
+        if player is None or round_ is None:
+            return False
+        return cls.objects.filter(
+            player=player, round=round_, event_type="online"
+        ).exists()
 
 
 PLAYER_WARNING_TYPE_OPTIONS = (

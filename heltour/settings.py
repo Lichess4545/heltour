@@ -39,6 +39,7 @@ env = environ.FileAwareEnv(
     REDIS_URL=(str, "redis://localhost:6379"),
     SLEEP_UNIT=(float, 1.0),
     SECRET_KEY=(str, "this-is-only-for-testing"),
+    LITOUR_API_BASE_URL=(str, ""),
 )
 
 # Read .env file if it exists
@@ -332,8 +333,13 @@ GOOGLE_SERVICE_ACCOUNT_KEY = env("GOOGLE_SERVICE_ACCOUNT_KEY", default="")
 
 # Slack Configuration
 SLACK_API_TOKEN = env("SLACK_API_TOKEN", default="")
+SLACK_API_TOKEN_FILE_PATH = env("SLACK_API_TOKEN_FILE_PATH", default="")
 SLACK_CHANNEL_BUILDER_TOKEN = env("SLACK_CHANNEL_BUILDER_TOKEN", default="")
+SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH = env(
+    "SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH", default=""
+)
 SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", default="")
+SLACK_WEBHOOK_FILE_PATH = env("SLACK_WEBHOOK_FILE_PATH", default="")
 SLACK_APP_TOKEN = env("SLACK_APP_TOKEN", default="")
 SLACK_ANNOUNCE_CHANNEL = env("SLACK_ANNOUNCE_CHANNEL")
 SLACK_TEAM_ID = env("SLACK_TEAM_ID")
@@ -368,6 +374,11 @@ CUSTOM_THEME_LOGO_URL = env(
 
 # Sleep interval for alternates manager (in seconds)
 SLEEP_UNIT = env("SLEEP_UNIT", default=1.0)
+
+# Base URL for the FastAPI service (heltour.api). Empty to disable the live
+# pairings client-side script. Set to e.g. "https://lots.lichess.ca/api" or
+# "http://localhost:8001" for development.
+LITOUR_API_BASE_URL = env("LITOUR_API_BASE_URL")
 
 # Django Auth
 LOGIN_URL = "/login/"

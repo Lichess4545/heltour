@@ -1,9 +1,14 @@
 from django import template
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
-from heltour.tournament.models import Registration, format_score
+from heltour.tournament.models import (
+    PlayerPresenceEvent,
+    Registration,
+    format_score,
+)
 
 register = template.Library()
 
@@ -281,3 +286,36 @@ def get_tiebreak_display(score, tiebreak_name):
     if hasattr(score, 'get_tiebreak_display'):
         return score.get_tiebreak_display(tiebreak_name)
     return ""
+
+
+@register.simple_tag
+def presence_log_trigger(events_map, pairing, player):
+    """Render an inline presence-log popover trigger next to a player name.
+
+    Returns empty when the viewer has no events to show. The viewer-permission
+    gate happens in the view, which leaves `events_map` empty for users who
+    cannot see the log.
+    """
+    if not events_map or pairing is None or player is None:
+        return ""
+    events = events_map.get((pairing.pk, player.pk))
+    if not events:
+        return ""
+    round_ = pairing.get_round() if hasattr(pairing, "get_round") else None
+    return render_to_string(
+        "tournament/_presence_log_trigger.html",
+        {
+            "events": events,
+            "player": player,
+            "pairing": pairing,
+            "was_online": PlayerPresenceEvent.was_online_during_round(
+                player, round_
+            ),
+            "plies_played": getattr(pairing, "plies_played", 0),
+        },
+    )
+
+
+@register.simple_tag
+def was_online_during_round(player, round_):
+    return PlayerPresenceEvent.was_online_during_round(player, round_)

@@ -1,0 +1,11 @@
+{
+  "name": "litour-frontend",
+  "private": true,
+  "type": "module",
+  "workspaces": ["api-client", "ui"],
+  "packageManager": "bun@1.1.38",
+  "scripts": {
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck"
+  }
+}

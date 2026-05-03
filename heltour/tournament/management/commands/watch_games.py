@@ -24,10 +24,15 @@ import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections
+from django.db.models import Q
+from django.utils import timezone
 
+from heltour.tournament import lichessapi
 from heltour.tournament.lichessapi import default_headers
 from heltour.tournament.models import (
+    Player,
     PlayerPairing,
+    PlayerPresenceEvent,
     SeasonPlayer,
     get_gamelink_from_gameid,
     is_fide_rating_type,
@@ -41,6 +46,7 @@ INACTIVITY_TIMEOUT_SECONDS = 10 * 60
 INITIAL_BACKOFF_SECONDS = 1
 MAX_BACKOFF_SECONDS = 300
 RATE_LIMIT_BACKOFF_SECONDS = 60
+PRESENCE_POLL_INTERVAL_SECONDS = 60
 
 DRAW_STATUSES = frozenset({"draw", "stalemate", "insufficientMaterialClaim"})
 LIVE_STATUSES = frozenset({"created", "started"})
@@ -97,6 +103,19 @@ def _perf_matches_rating_type(perf: str, rating_type: str) -> bool:
 def _chunked(seq: list[str], size: int) -> Iterable[list[str]]:
     for i in range(0, len(seq), size):
         yield seq[i : i + size]
+
+
+def _fetch_ply_count(game_id: str) -> int:
+    """Best-effort SAN-based ply count for a finished game. Returns 0 on any
+    failure rather than raising — the caller treats 0 as "unknown" and won't
+    overwrite a previously-stored higher count."""
+    try:
+        meta = lichessapi.get_game_meta(game_id, priority=1, timeout=300)
+    except Exception:
+        logger.exception("watcher: failed to fetch game meta for %s", game_id)
+        return 0
+    moves = meta.get("moves") or ""
+    return len(moves.split())
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +223,7 @@ def apply_event(event: dict) -> bool:
             if existing_link == new_link:
                 pairing.game_link = ""
                 pairing.tv_state = "default"
+                pairing.plies_played = 0
                 logger.info(
                     "watcher: updating pairing %s from game %s (status=%s)",
                     pairing.pk,
@@ -233,13 +253,25 @@ def apply_event(event: dict) -> bool:
             desired_result = result
             desired_tv_state = "hide"
 
+        # The /api/stream/games-by-users payload does not carry a `moves`
+        # field, so use whatever `event["moves"]` happened to give us as a
+        # floor and fetch authoritative SAN from /game/export/{id} once the
+        # game finishes. Without this fetch, plies_played stays at 0 in
+        # production.
+        ply_count = len(moves.split()) if moves else 0
+        if result is not None and ply_count == 0:
+            ply_count = _fetch_ply_count(game_id)
+        desired_plies = max(pairing.plies_played, ply_count)
+
         state_changed = (
             desired_tv_state != pairing.tv_state
             or desired_result != pairing.result
+            or desired_plies != pairing.plies_played
         )
         if state_changed:
             pairing.tv_state = desired_tv_state
             pairing.result = desired_result
+            pairing.plies_played = desired_plies
             pairing.save()
 
         if link_changed or state_changed:
@@ -384,6 +416,171 @@ def stream_games(
 
 
 # ---------------------------------------------------------------------------
+# Presence polling.
+
+
+def _resolve_player_context(uname: str) -> tuple[Player | None, PlayerPairing | None, object | None]:
+    """Resolve the player and best-effort active pairing/round for `uname`.
+
+    Returns (player, pairing, round). Either pairing or round may be None
+    when the player has no pending pairing in an active round.
+    """
+    player = (
+        Player.objects.filter(lichess_username__iexact=uname).nocache().first()
+    )
+    if player is None:
+        return None, None, None
+    pairing = (
+        PlayerPairing.objects.filter(
+            Q(white=player) | Q(black=player), result=""
+        )
+        .filter(
+            Q(
+                loneplayerpairing__round__is_completed=False,
+                loneplayerpairing__round__publish_pairings=True,
+            )
+            | Q(
+                teamplayerpairing__team_pairing__round__is_completed=False,
+                teamplayerpairing__team_pairing__round__publish_pairings=True,
+            )
+        )
+        .order_by("-pk")
+        .nocache()
+        .first()
+    )
+    round_ = pairing.get_round() if pairing else None
+    return player, pairing, round_
+
+
+def log_presence_event(
+    uname: str,
+    event_type: str,
+    *,
+    timestamp,
+    game_id: str | None = None,
+) -> PlayerPresenceEvent | None:
+    """Append a `PlayerPresenceEvent` row. Returns None if the player is unknown."""
+    player, pairing, round_ = _resolve_player_context(uname)
+    if player is None:
+        logger.info(
+            "presence-poller: unknown player %s, skipping %s event",
+            uname,
+            event_type,
+        )
+        return None
+    return PlayerPresenceEvent.objects.create(
+        player=player,
+        timestamp=timestamp,
+        event_type=event_type,
+        pairing=pairing,
+        round=round_,
+        game_id=game_id or "",
+    )
+
+
+class PresencePoller(threading.Thread):
+    """Polls /api/users/status for active players and logs transitions.
+
+    Runs alongside the stream threads inside the watcher process. Compares
+    each tick's response against the previous snapshot and writes a
+    `PlayerPresenceEvent` row for any online/offline or playing-game change.
+    """
+
+    def __init__(
+        self,
+        watcher: "Watcher",
+        stop_event: threading.Event,
+        poll_interval: float = PRESENCE_POLL_INTERVAL_SECONDS,
+    ):
+        super().__init__(name="presence-poller", daemon=True)
+        self._watcher = watcher
+        # `_stop` would shadow threading.Thread._stop(), which Python invokes
+        # during thread teardown — keep our own attribute name.
+        self._stop_event = stop_event
+        self._poll_interval = poll_interval
+        # last observed (online, playing_game_id) per lichess username.
+        self._last: dict[str, tuple[bool, str | None]] = {}
+
+    def run(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                self._poll_once()
+            except Exception:
+                logger.exception("presence-poller: poll failed")
+            finally:
+                close_old_connections()
+            if self._stop_event.wait(self._poll_interval):
+                break
+
+    def _poll_once(self) -> None:
+        usernames = self._watcher.current_usernames()
+        # Drop cache entries we're no longer polling so a future re-add
+        # doesn't synthesize a stale transition.
+        requested = {u.lower() for u in usernames}
+        for stale in [u for u in self._last if u not in requested]:
+            self._last.pop(stale, None)
+        if not usernames:
+            return
+        statuses = list(
+            lichessapi.enumerate_user_statuses_with_games(
+                usernames, priority=1, timeout=60
+            )
+        )
+        observed_at = timezone.now()
+        for status in statuses:
+            self._handle_status(status, observed_at)
+
+    def _handle_status(self, status: dict, observed_at) -> None:
+        uname = (status.get("id") or "").lower()
+        if not uname:
+            return
+        online = bool(status.get("online"))
+        game_id = status.get("playingId") or None
+        prev = self._last.get(uname)
+
+        if prev is None:
+            # First sighting of this user. Only record an "online" event if
+            # they're actually online — recording "offline" for every user
+            # on watcher startup would flood the log.
+            if online:
+                log_presence_event(
+                    uname, "online", timestamp=observed_at, game_id=game_id
+                )
+            if game_id:
+                log_presence_event(
+                    uname,
+                    "playing_started",
+                    timestamp=observed_at,
+                    game_id=game_id,
+                )
+        else:
+            prev_online, prev_game = prev
+            if online != prev_online:
+                log_presence_event(
+                    uname,
+                    "online" if online else "offline",
+                    timestamp=observed_at,
+                    game_id=game_id if online else prev_game,
+                )
+            if game_id != prev_game:
+                if prev_game:
+                    log_presence_event(
+                        uname,
+                        "playing_ended",
+                        timestamp=observed_at,
+                        game_id=prev_game,
+                    )
+                if game_id:
+                    log_presence_event(
+                        uname,
+                        "playing_started",
+                        timestamp=observed_at,
+                        game_id=game_id,
+                    )
+        self._last[uname] = (online, game_id)
+
+
+# ---------------------------------------------------------------------------
 # Orchestration: refresh user list, manage one or more stream threads.
 
 
@@ -396,20 +593,32 @@ class Watcher:
         self._stream_stops: list[threading.Event] = []
         self._stream_threads: list[threading.Thread] = []
         self._current_usernames: list[str] = []
+        self._usernames_lock = threading.Lock()
+        self._presence_poller: PresencePoller | None = None
+        self._presence_stop: threading.Event | None = None
 
     def run(self) -> None:
         try:
+            self._start_presence_poller()
             while not self._stop.is_set():
                 self._tick()
                 if self._stop.wait(self.refresh_interval):
                     break
         finally:
             self._stop_streams()
+            self._stop_presence_poller()
 
     def stop(self) -> None:
         self._stop.set()
         for ev in self._stream_stops:
             ev.set()
+        if self._presence_stop is not None:
+            self._presence_stop.set()
+
+    def current_usernames(self) -> list[str]:
+        """Thread-safe snapshot of the active username list."""
+        with self._usernames_lock:
+            return list(self._current_usernames)
 
     def _tick(self) -> None:
         try:
@@ -420,7 +629,9 @@ class Watcher:
         finally:
             close_old_connections()
 
-        if usernames == self._current_usernames:
+        with self._usernames_lock:
+            unchanged = usernames == self._current_usernames
+        if unchanged:
             return
         logger.info(
             "watcher: usernames changed (%d -> %d), restarting streams",
@@ -431,7 +642,8 @@ class Watcher:
 
     def _restart_streams(self, usernames: list[str]) -> None:
         self._stop_streams()
-        self._current_usernames = usernames
+        with self._usernames_lock:
+            self._current_usernames = list(usernames)
         if not usernames:
             logger.info("watcher: no active players, idling")
             return
@@ -458,6 +670,19 @@ class Watcher:
             t.join(timeout=5)
         self._stream_stops = []
         self._stream_threads = []
+
+    def _start_presence_poller(self) -> None:
+        self._presence_stop = threading.Event()
+        self._presence_poller = PresencePoller(self, self._presence_stop)
+        self._presence_poller.start()
+
+    def _stop_presence_poller(self) -> None:
+        if self._presence_stop is not None:
+            self._presence_stop.set()
+        if self._presence_poller is not None:
+            self._presence_poller.join(timeout=5)
+        self._presence_poller = None
+        self._presence_stop = None
 
 
 # ---------------------------------------------------------------------------

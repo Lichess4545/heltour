@@ -82,6 +82,7 @@ from heltour.tournament.models import (
     PlayerNotificationSetting,
     PlayerPairing,
     PlayerPresence,
+    PlayerPresenceEvent,
     PlayerWarning,
     PlayerWithdrawal,
     PrivateUrlAuth,
@@ -3500,13 +3501,53 @@ class PlayerPresenceInline(admin.TabularInline):
 
 
 # -------------------------------------------------------------------------------
+class PlayerPresenceEventInline(admin.TabularInline):
+    model = PlayerPresenceEvent
+    extra = 0
+    fields = ("timestamp", "player", "event_type", "game_id")
+    readonly_fields = fields
+    can_delete = False
+    max_num = 0
+    ordering = ("-timestamp",)
+    show_change_link = False
+    verbose_name_plural = "Presence event log"
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+# -------------------------------------------------------------------------------
+@admin.register(PlayerPresenceEvent)
+class PlayerPresenceEventAdmin(_BaseAdmin):
+    list_display = ("timestamp", "player", "event_type", "pairing", "round", "game_id")
+    list_filter = ("event_type", "round")
+    search_fields = ("player__lichess_username", "game_id")
+    readonly_fields = (
+        "player",
+        "timestamp",
+        "event_type",
+        "pairing",
+        "round",
+        "game_id",
+    )
+    raw_id_fields = ("player", "pairing", "round")
+    date_hierarchy = "timestamp"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+# -------------------------------------------------------------------------------
 @admin.register(PlayerPairing)
 class PlayerPairingAdmin(_BaseAdmin):
     list_display = ("__str__", "scheduled_time", "game_link_url")
     search_fields = ("white__lichess_username", "black__lichess_username", "game_link")
     raw_id_fields = ("white", "black")
     autocomplete_fields = ("white", "black")
-    inlines = [PlayerPresenceInline]
+    inlines = [PlayerPresenceInline, PlayerPresenceEventInline]
     exclude = ("white_rating", "black_rating", "tv_state")
     actions = ["send_pairing_notification"]
 

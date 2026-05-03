@@ -14,6 +14,7 @@ from heltour.tournament.management.commands.watch_games import (
     MAX_BACKOFF_SECONDS,
     RATE_LIMIT_BACKOFF_SECONDS,
     WATCHER_MAX_USERNAMES,
+    PresencePoller,
     Watcher,
     _chunked,
     _event_matches_league,
@@ -26,6 +27,7 @@ from heltour.tournament.management.commands.watch_games import (
 from heltour.tournament.models import (
     LonePlayerPairing,
     PlayerPairing,
+    PlayerPresenceEvent,
 )
 from heltour.tournament.tests.testutils import (
     Shush,
@@ -197,6 +199,17 @@ class TestApplyEvent(TestCase):
         cls.round_.save()
         cls.p1 = get_player("Player1")
         cls.p2 = get_player("Player2")
+
+    def setUp(self):
+        # apply_event() falls back to fetching meta from the api_worker for
+        # finalization events with empty moves. Tests don't run that worker;
+        # default the fetch to 0 and let individual tests override as needed.
+        patcher = patch(
+            "heltour.tournament.management.commands.watch_games._fetch_ply_count",
+            return_value=0,
+        )
+        self.fetch_ply_count = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _new_pairing(self, white=None, black=None, **kwargs):
         white = white or self.p1
@@ -386,6 +399,79 @@ class TestApplyEvent(TestCase):
         )
         pairing.refresh_from_db()
         self.assertEqual(pairing.result, "0-1")
+
+    def test_plies_played_recorded_from_moves(self):
+        pairing = self._new_pairing()
+        self.assertTrue(
+            apply_event(_build_event(status="mate", winner="white", moves="e4 e5 Nf3"))
+        )
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 3)
+
+    def test_plies_played_zero_when_no_moves(self):
+        pairing = self._new_pairing()
+        self.assertTrue(
+            apply_event(_build_event(status="mate", winner="white", moves=""))
+        )
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 0)
+        self.assertEqual(pairing.result, "1-0")
+
+    def test_plies_played_does_not_decrease(self):
+        pairing = self._new_pairing()
+        apply_event(_build_event(moves="e4 c5 Nf3 d6"))
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 4)
+        # A late event with fewer moves (e.g. a stale snapshot) must not erase
+        # the higher count.
+        apply_event(_build_event(moves="e4"))
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 4)
+
+    def test_finalization_fetches_ply_count_when_event_has_no_moves(self):
+        # The /api/stream/games-by-users payload typically omits `moves`, so
+        # apply_event must fall back to fetching authoritative SAN from
+        # /game/export when the game terminates.
+        self.fetch_ply_count.return_value = 1
+        pairing = self._new_pairing()
+        self.assertTrue(
+            apply_event(
+                _build_event(
+                    game_id="ggg111", status="resign", winner="black", moves=""
+                )
+            )
+        )
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 1)
+        self.assertEqual(pairing.result, "0-1")
+        self.fetch_ply_count.assert_called_with("ggg111")
+
+    def test_finalization_skips_fetch_when_moves_already_present(self):
+        pairing = self._new_pairing()
+        self.assertTrue(
+            apply_event(
+                _build_event(
+                    game_id="hhh222",
+                    status="mate",
+                    winner="white",
+                    moves="e4 e5 Nf3",
+                )
+            )
+        )
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 3)
+        self.fetch_ply_count.assert_not_called()
+
+    def test_aborted_resets_plies_played(self):
+        pairing = self._new_pairing(game_link="https://lichess.org/abc123")
+        # Bypass save() to set a non-zero count without triggering the
+        # game_link-changed reset path.
+        PlayerPairing.objects.filter(pk=pairing.pk).update(plies_played=2)
+        self.assertTrue(
+            apply_event(_build_event(game_id="abc123", status="aborted"))
+        )
+        pairing.refresh_from_db()
+        self.assertEqual(pairing.plies_played, 0)
 
     def test_username_case_insensitive(self):
         pairing = self._new_pairing()
@@ -850,3 +936,170 @@ class TestWatcher(TestCase):
             t.join(timeout=2)
         # First tick triggered one restart; subsequent identical lists did not.
         self.assertEqual(restarts.call_count, 1)
+
+
+class TestPresencePoller(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.league = get_league("lone")
+        cls.league.time_control = "45+45"
+        cls.league.rating_type = "classical"
+        cls.league.save()
+        cls.round_ = get_round("lone", 1)
+        cls.round_.publish_pairings = True
+        cls.round_.is_completed = False
+        cls.round_.end_date = timezone.now() + timezone.timedelta(days=2)
+        cls.round_.save()
+        cls.p1 = get_player("Player1")
+        cls.p2 = get_player("Player2")
+        cls.pairing = LonePlayerPairing.objects.create(
+            round=cls.round_,
+            white=cls.p1,
+            black=cls.p2,
+            pairing_order=1,
+        )
+
+    def _make_poller(self, usernames):
+        watcher = MagicMock()
+        watcher.current_usernames.return_value = list(usernames)
+        return PresencePoller(watcher, threading.Event())
+
+    def _patch_status_response(self, statuses):
+        return patch(
+            "heltour.tournament.management.commands.watch_games.lichessapi"
+            ".enumerate_user_statuses_with_games",
+            return_value=iter(statuses),
+        )
+
+    def test_first_sighting_online_emits_online_event(self):
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response([{"id": "Player1", "online": True}]):
+            poller._poll_once()
+        events = list(PlayerPresenceEvent.objects.filter(player=self.p1))
+        self.assertEqual([e.event_type for e in events], ["online"])
+        self.assertEqual(events[0].pairing_id, self.pairing.pk)
+        self.assertEqual(events[0].round_id, self.round_.pk)
+
+    def test_first_sighting_offline_emits_no_event(self):
+        # Recording offline for every user on startup would flood the log.
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response([{"id": "Player1", "online": False}]):
+            poller._poll_once()
+        self.assertEqual(PlayerPresenceEvent.objects.count(), 0)
+
+    def test_online_to_offline_transition_emits_offline(self):
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response([{"id": "Player1", "online": True}]):
+            poller._poll_once()
+        with self._patch_status_response([{"id": "Player1", "online": False}]):
+            poller._poll_once()
+        types = list(
+            PlayerPresenceEvent.objects.filter(player=self.p1)
+            .order_by("timestamp")
+            .values_list("event_type", flat=True)
+        )
+        self.assertEqual(types, ["online", "offline"])
+
+    def test_unchanged_state_writes_nothing(self):
+        poller = self._make_poller(["player1"])
+        for _ in range(3):
+            with self._patch_status_response(
+                [{"id": "Player1", "online": True}]
+            ):
+                poller._poll_once()
+        self.assertEqual(
+            PlayerPresenceEvent.objects.filter(player=self.p1).count(), 1
+        )
+
+    def test_playing_started_records_game_id(self):
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response(
+            [{"id": "Player1", "online": True, "playingId": "game-aaa"}]
+        ):
+            poller._poll_once()
+        types = list(
+            PlayerPresenceEvent.objects.filter(player=self.p1)
+            .order_by("timestamp")
+            .values_list("event_type", flat=True)
+        )
+        self.assertIn("playing_started", types)
+        started = PlayerPresenceEvent.objects.get(
+            player=self.p1, event_type="playing_started"
+        )
+        self.assertEqual(started.game_id, "game-aaa")
+
+    def test_playing_ended_when_game_id_changes_to_none(self):
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response(
+            [{"id": "Player1", "online": True, "playingId": "game-aaa"}]
+        ):
+            poller._poll_once()
+        with self._patch_status_response(
+            [{"id": "Player1", "online": True}]
+        ):
+            poller._poll_once()
+        ended = PlayerPresenceEvent.objects.filter(
+            player=self.p1, event_type="playing_ended"
+        )
+        self.assertEqual(ended.count(), 1)
+        self.assertEqual(ended.first().game_id, "game-aaa")
+
+    def test_was_online_during_round_classmethod(self):
+        # Empty log: returns False.
+        self.assertFalse(
+            PlayerPresenceEvent.was_online_during_round(self.p1, self.round_)
+        )
+        # Offline event alone is not enough.
+        PlayerPresenceEvent.objects.create(
+            player=self.p1,
+            round=self.round_,
+            event_type="offline",
+            timestamp=timezone.now(),
+        )
+        self.assertFalse(
+            PlayerPresenceEvent.was_online_during_round(self.p1, self.round_)
+        )
+        # An online event flips it true.
+        PlayerPresenceEvent.objects.create(
+            player=self.p1,
+            round=self.round_,
+            event_type="online",
+            timestamp=timezone.now(),
+        )
+        self.assertTrue(
+            PlayerPresenceEvent.was_online_during_round(self.p1, self.round_)
+        )
+        # Different round still reads false.
+        other_round = get_round("lone", 2)
+        self.assertFalse(
+            PlayerPresenceEvent.was_online_during_round(self.p1, other_round)
+        )
+
+    def test_unknown_player_is_skipped(self):
+        poller = self._make_poller(["nobody"])
+        with self._patch_status_response([{"id": "nobody", "online": True}]):
+            poller._poll_once()
+        self.assertEqual(PlayerPresenceEvent.objects.count(), 0)
+
+    def test_dropped_user_clears_cache(self):
+        poller = self._make_poller(["player1"])
+        with self._patch_status_response([{"id": "Player1", "online": True}]):
+            poller._poll_once()
+        # Player no longer in active list — poller is given an empty roster
+        # by the watcher but still receives an empty status response.
+        poller._watcher.current_usernames.return_value = []
+        with self._patch_status_response([]):
+            poller._poll_once()
+        self.assertNotIn("player1", poller._last)
+        # Re-adding them should not synthesize a stale offline transition.
+        poller._watcher.current_usernames.return_value = ["player1"]
+        with self._patch_status_response([{"id": "Player1", "online": True}]):
+            poller._poll_once()
+        # Two "online" events (one initial, one re-add) — no spurious offline.
+        types = list(
+            PlayerPresenceEvent.objects.filter(player=self.p1)
+            .order_by("timestamp")
+            .values_list("event_type", flat=True)
+        )
+        self.assertEqual(types, ["online", "online"])

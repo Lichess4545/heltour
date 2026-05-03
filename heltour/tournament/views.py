@@ -60,6 +60,7 @@ from heltour.tournament.models import (
     PlayerNotificationSetting,
     PlayerPairing,
     PlayerPresence,
+    PlayerPresenceEvent,
     PlayerSetting,
     Registration,
     Round,
@@ -548,6 +549,25 @@ class SeasonLandingView(SeasonView):
         return self.render('tournament/lone_completed_season_landing.html', context)
 
 
+def _build_presence_events_map(round_, can_view):
+    """Group PlayerPresenceEvents for a round by (pairing_id, player_id).
+
+    Returns an empty dict when the viewer lacks permission or the round is
+    missing, so the template never sees protected data.
+    """
+    if not can_view or round_ is None:
+        return {}
+    events_map = {}
+    qs = (
+        PlayerPresenceEvent.objects.filter(round=round_)
+        .select_related("player")
+        .order_by("timestamp")
+    )
+    for ev in qs:
+        events_map.setdefault((ev.pairing_id, ev.player_id), []).append(ev)
+    return events_map
+
+
 class PairingsView(SeasonView):
     def view(self, round_number=None, team_number=None):
         # Check if this is a knockout tournament
@@ -571,6 +591,23 @@ class PairingsView(SeasonView):
             return self.team_view(round_number, team_number)
         else:
             return self.lone_view(round_number, team_number)
+
+    @staticmethod
+    def _summarize_pairings(pairings):
+        finished = started = remaining = 0
+        for p in pairings:
+            if p.result:
+                finished += 1
+            elif p.game_link:
+                started += 1
+            else:
+                remaining += 1
+        return {
+            'total': finished + started + remaining,
+            'finished': finished,
+            'started': started,
+            'remaining': remaining,
+        }
 
     def _player_status(self, player, pairing, presences, in_contact_period, contact_deadline):
         if player is None:
@@ -631,6 +668,7 @@ class PairingsView(SeasonView):
         round_ = Round.objects.filter(number=round_number, season=self.season).first()
         presences = {(pp.player_id, pp.pairing_id): pp for pp in
                      PlayerPresence.objects.filter(round=round_)}
+        presence_events_map = _build_presence_events_map(round_, can_change_pairing)
         if pairing_lists:
             contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
             in_contact_period = timezone.now() < contact_deadline
@@ -665,19 +703,24 @@ class PairingsView(SeasonView):
                                                                       pairing_lists for p in
                                                                       plist})) > 0
 
+        flat_pairings = [p[0] for plist in pairing_lists for p in plist]
         return {
             'round_number': round_number,
+            'round_id': round_.pk if round_ else None,
             'round_number_list': round_number_list,
             'current_team': current_team,
             'team_list': team_list,
             'pairing_lists': pairing_lists,
+            'pairings_summary': self._summarize_pairings(flat_pairings),
             'team_byes': team_byes,
             'captains': captains,
             'unavailable_players': unavailable_players,
             'show_legend': show_legend,
             'specified_round': specified_round,
             'specified_team': team_number is not None,
-            'can_edit': can_change_pairing
+            'can_edit': can_change_pairing,
+            'presence_events_map': presence_events_map,
+            'can_view_presence_log': can_change_pairing,
         }
 
     def team_view(self, round_number=None, team_number=None):
@@ -730,6 +773,7 @@ class PairingsView(SeasonView):
 
         presences = {(pp.player_id, pp.pairing_id): pp for pp in
                      PlayerPresence.objects.filter(round=round_)}
+        presence_events_map = _build_presence_events_map(round_, can_change_pairing)
         if pairings:
             contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
             in_contact_period = timezone.now() < contact_deadline
@@ -780,7 +824,9 @@ class PairingsView(SeasonView):
             'specified_round': specified_round,
             'next_pairing_order': next_pairing_order,
             'duplicate_players': duplicate_players,
-            'can_edit': can_change_pairing
+            'can_edit': can_change_pairing,
+            'presence_events_map': presence_events_map,
+            'can_view_presence_log': can_change_pairing,
         }
 
     def lone_view(self, round_number=None, team_number=None):
@@ -827,6 +873,60 @@ class ICalPairingsView(PairingsView, ICalMixin):
                 continue
             full_pairings_list.append(pairing)
         return self.ical_from_pairings_list(full_pairings_list, calendar_title, uid_component)
+
+
+class TeamPairingBlockView(PairingsView):
+    """Returns the rendered HTML for a single team_pairing block.
+
+    Used by the live pairings JS to swap one block in place when its result or
+    game link changes, without reloading the whole page.
+    """
+
+    def view(self, pairing_id):
+        import logging
+        log = logging.getLogger("heltour.api.block")
+        if not self.league.is_team_league():
+            log.warning("block 404: league %s is not a team league", self.league.tag)
+            raise Http404()
+        try:
+            pp = PlayerPairing.objects.get(pk=pairing_id)
+        except PlayerPairing.DoesNotExist:
+            log.warning("block 404: pairing %s not found", pairing_id)
+            raise Http404()
+        try:
+            tp = pp.teamplayerpairing.team_pairing
+        except (AttributeError, TeamPlayerPairing.DoesNotExist):
+            log.warning("block 404: pairing %s has no team_pairing", pairing_id)
+            raise Http404()
+        if tp.round.season_id != self.season.pk:
+            log.warning(
+                "block 404: pairing %s in season %s, requested season %s",
+                pairing_id, tp.round.season_id, self.season.pk,
+            )
+            raise Http404()
+
+        can_change_pairing = self.request.user.has_perm(
+            'tournament.change_pairing', self.league
+        )
+        context = self.get_team_context(
+            self.league.tag, self.season.tag, tp.round.number, None,
+            can_change_pairing,
+        )
+        matching = next(
+            (pl for pl in context['pairing_lists']
+             if pl and pl[0][0].team_pairing_id == tp.pk),
+            None,
+        )
+        if matching is None:
+            raise Http404(
+                "team_pairing %s not in round %s pairing_lists"
+                % (tp.pk, tp.round.number)
+            )
+
+        return self.render(
+            'tournament/_team_pairing_block.html',
+            {**context, 'pairing_list': matching, 'show_calendar': False, 'flash': True},
+        )
 
 
 class ICalPlayerView(BaseView, ICalMixin):
@@ -5398,7 +5498,8 @@ class KnockoutPairingsView(PairingsView):
         round_ = Round.objects.filter(number=round_number, season=self.season).first()
         presences = {(pp.player_id, pp.pairing_id): pp for pp in
                      PlayerPresence.objects.filter(round=round_)}
-        
+        presence_events_map = _build_presence_events_map(round_, can_change_pairing)
+
         if pairing_lists:
             contact_deadline = round_.start_date + self.league.get_leaguesetting().contact_period
             in_contact_period = timezone.now() < contact_deadline
@@ -5445,6 +5546,8 @@ class KnockoutPairingsView(PairingsView):
             'show_legend': len(unavailable_players) > 0,
             'specified_team': True,
             'can_edit': can_change_pairing,
+            'presence_events_map': presence_events_map,
+            'can_view_presence_log': can_change_pairing,
             'is_multi_match': True,
             'matches_per_stage': bracket.matches_per_stage,
             'opponent_aggregates': opponent_aggregates,  # Add aggregate data for template

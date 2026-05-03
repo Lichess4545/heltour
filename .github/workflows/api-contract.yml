@@ -1,0 +1,131 @@
+name: API contract
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "heltour/api/**"
+      - "heltour/tournament/models.py"
+      - "heltour/tournament/signals_pubsub.py"
+      - "frontend/**"
+      - "scripts/export_openapi.py"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - ".github/workflows/api-contract.yml"
+  pull_request:
+    paths:
+      - "heltour/api/**"
+      - "heltour/tournament/models.py"
+      - "heltour/tournament/signals_pubsub.py"
+      - "frontend/**"
+      - "scripts/export_openapi.py"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - ".github/workflows/api-contract.yml"
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: heltour
+          POSTGRES_USER: heltour
+          POSTGRES_PASSWORD: heltour_dev_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U heltour"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://heltour:heltour_dev_password@localhost:5432/heltour
+      REDIS_URL: redis://localhost:6379
+      SECRET_KEY: ci-only-secret
+      DEBUG: "False"
+      DJANGO_SETTINGS_MODULE: heltour.settings
+      HELTOUR_APP: tournament
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install Python deps
+        run: poetry install --no-interaction --no-root
+
+      - name: Run migrations
+        run: poetry run python manage.py migrate --noinput
+
+      - name: Boot the API
+        run: |
+          poetry run uvicorn heltour.api.main:app --host 127.0.0.1 --port 8001 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8001/health && break || sleep 1
+          done
+
+      - name: Export OpenAPI schema
+        run: poetry run python scripts/export_openapi.py > openapi.json
+
+      - name: Run Schemathesis
+        run: |
+          poetry run schemathesis run \
+            --experimental=openapi-3.1 \
+            --hypothesis-max-examples=25 \
+            --base-url=http://127.0.0.1:8001 \
+            openapi.json
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.1.38"
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Regenerate TS client
+        working-directory: frontend/api-client
+        run: bun run generate
+
+      - name: Typecheck TS client
+        working-directory: frontend/api-client
+        run: bun run typecheck
+
+      - name: Build TS client (ESM)
+        working-directory: frontend/api-client
+        run: bun run build
+
+      - name: Bundle TS client (IIFE for browser)
+        working-directory: frontend/api-client
+        run: bun run bundle
+
+      - name: Lint TS client
+        working-directory: frontend/api-client
+        run: bun run lint
+
+      - name: Typecheck UI
+        working-directory: frontend/ui
+        run: bun run typecheck
+
+      - name: Lint UI
+        working-directory: frontend/ui
+        run: bun run lint
+
+      - name: Fail if generated.ts drifted
+        run: git diff --exit-code frontend/api-client/src/generated.ts

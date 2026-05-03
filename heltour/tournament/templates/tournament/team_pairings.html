@@ -11,14 +11,109 @@
                 location.reload();
             }, sleepBuffer);
         }, refreshInterval - sleepBuffer);
+        $(function () {
+            $('.presence-log-trigger[data-toggle="popover"]').popover({
+                container: 'body',
+                trigger: 'hover focus',
+                html: true,
+                placement: 'top'
+            });
+        });
     </script>
+    {% if LITOUR_API_BASE_URL and round_id %}
+        <script src="{% static 'tournament/js/litour-api-client.iife.js' %}"></script>
+        <script>
+            (function () {
+                if (!window.LitourApi) return;
+                var apiBase = "{{ LITOUR_API_BASE_URL|escapejs }}";
+                var roundId = {{ round_id }};
+                var pending = {};
+                var blockUrlTemplate = "{% leagueurl 'pairings_block' league.tag season.tag 0 %}";
+
+                function blockUrl(pairingId) {
+                    return blockUrlTemplate.replace(/\/0\/$/, '/' + pairingId + '/');
+                }
+
+                function swapBlock(pairingId) {
+                    fetch(blockUrl(pairingId), { credentials: 'same-origin' })
+                        .then(function (res) { return res.ok ? res.text() : null; })
+                        .then(function (html) {
+                            if (!html) return;
+                            var tmpl = document.createElement('template');
+                            tmpl.innerHTML = html.trim();
+                            var fresh = tmpl.content.querySelector('tbody[data-team-pairing-id]');
+                            if (!fresh) return;
+                            var tpId = fresh.getAttribute('data-team-pairing-id');
+                            var existing = document.querySelector(
+                                'tbody[data-team-pairing-id="' + tpId + '"]'
+                            );
+                            if (!existing) return;
+                            existing.replaceWith(fresh);
+                        })
+                        .catch(function (err) {
+                            console.error('[litour] block swap failed', err);
+                        });
+                }
+
+                function refreshSummary() {
+                    var summary = document.querySelector('[data-pairings-summary]');
+                    if (!summary) return;
+                    var s = { total: 0, started: 0, finished: 0, remaining: 0 };
+                    document.querySelectorAll('tbody[data-team-pairing-id] tr[data-pairing-id]')
+                        .forEach(function (row) {
+                            s.total++;
+                            if (row.querySelector('.cell-game-result')) s.finished++;
+                            else if (row.querySelector('.cell-score a')) s.started++;
+                            else s.remaining++;
+                        });
+                    ['total', 'started', 'finished', 'remaining'].forEach(function (k) {
+                        var el = summary.querySelector('[data-stat="' + k + '"]');
+                        if (el) el.textContent = String(s[k]);
+                    });
+                }
+
+                function schedule(pairingId) {
+                    if (pending[pairingId]) return;
+                    pending[pairingId] = setTimeout(function () {
+                        delete pending[pairingId];
+                        swapBlock(pairingId);
+                        // Recompute summary after the swap settles in DOM.
+                        setTimeout(refreshSummary, 100);
+                    }, 250);
+                }
+
+                window.LitourApi.connectMatchStream(apiBase, roundId, function (msg) {
+                    if (msg.type === 'match.update' && msg.match) {
+                        schedule(msg.match.id);
+                    }
+                });
+            })();
+        </script>
+    {% endif %}
 {% endblock %}
 {% block content %}
-    <div class="row row-condensed-xs pairings-row">
+    <div class="row row-condensed-xs pairings-row"
+         data-round-id="{{ round_id|default_if_none:'' }}"
+         data-league-tag="{{ league.tag }}"
+         data-season-tag="{{ season.tag }}">
         <div class="col-md-12">
             <div class="well">
                 <div class="well-head">
                     <h3>Pairings</h3>
+                    {% if pairings_summary %}
+                        <p class="pairings-summary" data-pairings-summary>
+                            <strong data-stat="total">{{ pairings_summary.total }}</strong> games &middot;
+                            <strong data-stat="started">{{ pairings_summary.started }}</strong> in progress &middot;
+                            <strong data-stat="finished">{{ pairings_summary.finished }}</strong> finished &middot;
+                            <strong data-stat="remaining">{{ pairings_summary.remaining }}</strong> unstarted
+                        </p>
+                    {% endif %}
+                    {% if league.tag and season.tag and round_number %}
+                        <p style="margin-top: 4px; font-size: 11px; color: #999;">
+                            <a href="/v2/{{ league.tag }}/{{ season.tag }}/round/{{ round_number }}/matches"
+                               style="color: #999; text-decoration: underline;">try the new pairings page</a>
+                        </p>
+                    {% endif %}
                 </div>
                 <div class="well-body">
                     {% if round_number_list %}
@@ -79,177 +174,8 @@
                     {% if pairing_lists %}
                         <table class="table table-condensed-xs" id="table-team-pairings">
                             {% for pairing_list in pairing_lists %}
-                                {% with pairing_list.0.0.team_pairing as team_pairing %}
-                                    {% if team_pairing.black_team_id %}
-                                        {# Regular team vs team pairing #}
-                                        <tr class="header-row">
-                                            <th>
-                                                <a class="team-link"
-                                                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
-                                                    {{ team_pairing.white_team_name }}
-                                                </a>
-                                            </th>
-                                            <th class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
-                                                {{ team_pairing.white_points_display|formatscore }}
-                                            </th>
-                                            <th class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
-                                                {{ team_pairing.black_points_display|formatscore }}
-                                            </th>
-                                            <th class="text-right">
-                                                <a class="team-link"
-                                                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">
-                                                    {{ team_pairing.black_team_name }}
-                                                </a>
-                                            </th>
-                                        {% else %}
-                                            {# Team bye - show full team row with bye status #}
-                                            <tr class="header-row">
-                                                <th>
-                                                    <a class="team-link"
-                                                       href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
-                                                        {{ team_pairing.white_team_name }}
-                                                    </a>
-                                                </th>
-                                                <th class="cell-score"
-                                                    colspan="2"
-                                                    style="text-align: center;
-                                                           font-style: italic;
-                                                           color: #888">BYE</th>
-                                                <th class="text-right" style="font-style: italic; color: #888;">(Team receives bye)</th>
-                                            {% endif %}
-                                        {% endwith %}
-                                        <th class="cell-time table-menu">
-                                            {% if forloop.counter == 1 %}
-                                                <div class="dropdown">
-                                                    <a class="dropdown-toggle" data-toggle="dropdown">
-                                                        <span class="caret"></span>
-                                                    </a>
-                                                    <ul class="dropdown-menu dropdown-menu-right">
-                                                        <li>
-                                                            {% if current_team %}
-                                                                <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
-                                                            {% else %}
-                                                                <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
-                                                            {% endif %}
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            {% endif %}
-                                        </th>
-                                        {% if can_edit %}<th class="cell-edit">&nbsp;</th>{% endif %}
-                                    </tr>
-                                    {% with pairing_list.0.0.team_pairing as team_pairing %}
-                                        {% if team_pairing.black_team_id %}
-                                            {# Regular team pairing - show individual board pairings #}
-                                            {% for pairing, white_img, white_status, black_img, black_status in pairing_list %}
-                                                <tr>
-                                                    <td class="pairing-player player-{{ pairing.white_team_color }}">
-                                                        {% if pairing.white_team_player %}
-                                                            <a class="download-games hidden-xs"
-                                                               href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}"
-                                                               target="_blank"
-                                                               rel="nofollow">
-                                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
-                                                            </a>
-                                                            <a class="opening-book hidden-xs"
-                                                               href="https://lichess.org/analysis#explorer/{{ pairing.white_team_player.lichess_username }}"
-                                                               target="_blank"
-                                                               rel="nofollow">
-                                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
-                                                            </a>
-                                                            <span class="color-dot left hidden-xs"></span>
-                                                            <a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
-                                                               href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
-                                                                {% player_display_name pairing.white_team_player %}<span class="visible-xs"></span>
-                                                                <span class="color-dot left visible-xs-inline"></span>
-                                                                {% if not zen_mode %}
-                                                                    ({% white_team_rating pairing %})
-                                                                {% endif %}
-                                                                {% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
-                                                            </a>
-                                                            {% if white_img %}
-                                                                <img src="{% static 'tournament/img/icon-'|add:white_img|add:'.svg' %}"
-                                                                     title="{{ white_status }}" />
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    </td>
-                                                    {% if pairing.game_link and not pairing.result %}
-                                                        <td class="cell-score" colspan="2">
-                                                            <a href="{{ pairing.game_link }}">
-                                                                {% if pairing.tv_state != "has_moves" %}
-                                                                    ⏯
-                                                                {% else %}
-                                                                    ⚔️
-                                                                {% endif %}
-                                                            </a>
-                                                        </td>
-                                                    {% else %}
-                                                        <td class="cell-game-result" colspan="2">
-                                                            {% if pairing.game_link %}<a href="{{ pairing.game_link }}">{% endif %}
-                                                                {% spaceless %}
-                                                                    <span>{{ pairing.white_team_score_str }}</span>
-                                                                    <span>{{ pairing.black_team_score_str }}</span>
-                                                                {% endspaceless %}
-                                                                {% if pairing.game_link %}</a>{% endif %}
-                                                        </td>
-                                                    {% endif %}
-                                                    <td class="text-right pairing-player player-{{ pairing.black_team_color }}">
-                                                        {% if pairing.black_team_player %}
-                                                            {% if black_img %}
-                                                                <img src="{% static 'tournament/img/icon-'|add:black_img|add:'.svg' %}"
-                                                                     title="{{ black_status }}" />
-                                                            {% endif %}
-                                                            <a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
-                                                               href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
-                                                                {% player_display_name pairing.black_team_player %} <span class="visible-xs"></span>
-                                                                {% if not zen_mode %}
-                                                                    ({% black_team_rating pairing %})
-                                                                {% endif %}
-                                                                {% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
-                                                            </a>
-                                                            <span class="color-dot right"></span>
-                                                            <a class="opening-book hidden-xs"
-                                                               href="https://lichess.org/analysis#explorer/{{ pairing.black_team_player.lichess_username }}"
-                                                               target="_blank"
-                                                               rel="nofollow">
-                                                                <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
-                                                            </a>
-                                                            <a class="download-games hidden-xs"
-                                                               href="https://lichess.org/api/games/user/{{ pairing.black_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.black_team_color }}"
-                                                               target="_blank"
-                                                               rel="nofollow">
-                                                                <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
-                                                            </a>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td class="text-right cell-time">{{ pairing.scheduled_time | date_el:"m/d H:i" }}</td>
-                                                    {% if can_edit %}
-                                                        <td class="cell-edit">
-                                                            <a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1"
-                                                               id="change-pairing-{{ pairing.pk }}"
-                                                               class="popup-link"
-                                                               title="Change selected pairing">
-                                                                <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
-                                                            </a>
-                                                        </td>
-                                                    {% endif %}
-                                                </tr>
-                                            {% endfor %}
-                                        {% else %}
-                                            {# Team bye - show a simple row explaining the bye #}
-                                            <tr>
-                                                <td colspan="{% if can_edit %}6{% else %}5{% endif %}"
-                                                    style="text-align: center;
-                                                           padding: 20px;
-                                                           font-style: italic;
-                                                           color: #666">
-                                                    {{ team_pairing.white_team_name }} receives a bye this round
-                                                    {% if team_pairing.white_points > 0 %}and scores {{ team_pairing.white_points_display|formatscore }} points{% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endif %}
-                                    {% endwith %}
-                                {% endfor %}
+                                {% include 'tournament/_team_pairing_block.html' with pairing_list=pairing_list show_calendar=forloop.first flash=False %}
+                            {% endfor %}
                                 {# Display team byes #}
                                 {% for team_bye in team_byes %}
                                     <tr class="header-row">

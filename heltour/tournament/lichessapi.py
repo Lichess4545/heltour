@@ -204,6 +204,24 @@ def enumerate_user_statuses(lichess_usernames, priority=0, max_retries=5, timeou
         lichess_usernames = lichess_usernames[40:]
 
 
+def enumerate_user_statuses_with_games(
+    lichess_usernames, priority=0, max_retries=5, timeout=1800
+):
+    url = "%s/lichessapi/api/users/status?withGameIds=true&priority=%s&max_retries=%s" % (
+        settings.API_WORKER_HOST,
+        priority,
+        max_retries,
+    )
+    while len(lichess_usernames) > 0:
+        batch = lichess_usernames[:40]
+        result = _apicall_with_error_parsing(
+            "%s&ids=%s" % (url, ",".join(batch)), timeout
+        )
+        for status in json.loads(result):
+            yield status
+        lichess_usernames = lichess_usernames[40:]
+
+
 def get_pgn_with_cache(gameid, priority=0, max_retries=5, timeout=1800):
     result = cache.get("pgn_%s" % gameid)
     if result is not None:

@@ -7,7 +7,16 @@
         }
     }
 
-    reverse_proxy @notStatic web:8000
+    handle_path /v2/api/* {
+        reverse_proxy api:8001
+    }
 
-    file_server
+    handle /v2/* {
+        reverse_proxy ui:3000
+    }
+
+    handle {
+        reverse_proxy @notStatic web:8000
+        file_server
+    }
 }

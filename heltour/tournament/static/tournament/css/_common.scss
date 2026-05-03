@@ -1073,3 +1073,13 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
         min-width: 25px;
     }
 }
+
+@keyframes pairing-flash {
+    0%   { background-color: rgba(255, 235, 59, 0.55); }
+    100% { background-color: transparent; }
+}
+
+tbody.pairing-flash > tr > td,
+tbody.pairing-flash > tr > th {
+    animation: pairing-flash 1.6s ease-out;
+}
