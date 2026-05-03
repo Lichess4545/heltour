@@ -46,30 +46,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # For non-master branches: only run verification
-      - name: Build and verify
-        if: github.ref != 'refs/heads/master'
-        uses: docker/bake-action@v5
-        with:
-          files: docker/docker-bake.hcl
-          targets: verify
-          push: ${{ github.event_name == 'workflow_dispatch' }}
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
-        env:
-          TAG: ${{ steps.tag.outputs.TAG }}
-          REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
-          GITHUB_SHORT_SHA: ${{ steps.tag.outputs.GITHUB_SHORT_SHA }}
-
-      # For master branch: build all images including verify, then push production images
-      - name: Build and push all images
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+      # Build every image on every event so PR CI catches regressions
+      # in any image (e.g. `litour-ui`) before they reach master. Only
+      # push when we'd actually publish — master pushes, PRs verify.
+      - name: Build (and push on master)
         uses: docker/bake-action@v5
         with:
           files: docker/docker-bake.hcl
           targets: default
-          push: true
+          push: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
