@@ -1691,11 +1691,35 @@ def backfill_fide_data_for_season(season_id: int) -> None:
     refreshed = 0
     fetch_failures = 0
 
-    regs = Registration.objects.filter(season=season).select_related("player")
+    season_player_ids = set(
+        SeasonPlayer.objects.filter(season=season).values_list("player_id", flat=True)
+    )
+    team_member_player_ids = set(
+        TeamMember.objects.filter(team__season=season).values_list("player_id", flat=True)
+    )
+    all_player_ids = season_player_ids | team_member_player_ids
+
+    # Registrations may live in a different season/league than this one
+    # (e.g. a shared "Signup" league feeding multiple qualifier leagues), so
+    # look up each player's registration across all seasons. Prefer the most
+    # recent approved registration; fall back to the most recent of any status.
+    regs = (
+        Registration.objects.filter(player_id__in=all_player_ids)
+        .select_related("player")
+        .order_by("player_id", "-date_created")
+    )
+    reg_by_player: dict[int, Registration] = {}
     for reg in regs:
-        player = reg.player
-        if player is None:
+        if reg.player_id is None:
             continue
+        existing = reg_by_player.get(reg.player_id)
+        if existing is None:
+            reg_by_player[reg.player_id] = reg
+        elif existing.status != "approved" and reg.status == "approved":
+            reg_by_player[reg.player_id] = reg
+
+    for reg in reg_by_player.values():
+        player = reg.player
         changed = False
         if reg.fide_id and not player.fide_id:
             player.fide_id = reg.fide_id
@@ -1707,14 +1731,6 @@ def backfill_fide_data_for_season(season_id: int) -> None:
             changed = True
         if changed:
             player.save()
-
-    season_player_ids = set(
-        SeasonPlayer.objects.filter(season=season).values_list("player_id", flat=True)
-    )
-    team_member_player_ids = set(
-        TeamMember.objects.filter(team__season=season).values_list("player_id", flat=True)
-    )
-    all_player_ids = season_player_ids | team_member_player_ids
     season_players_qs = Player.objects.filter(pk__in=all_player_ids, fide_id__gt="")
     for player in season_players_qs:
         if not player.fide_profile:
