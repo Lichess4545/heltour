@@ -39,8 +39,9 @@ from heltour.tournament.models import (
     logger,
 )
 
-# Lichess accepts up to 1000 usernames per stream connection; keep some margin.
-WATCHER_MAX_USERNAMES = 900
+# Lichess accepts up to 1000 usernames per stream connection; we run several
+# smaller streams in parallel instead of one large one.
+WATCHER_MAX_USERNAMES = 300
 REFRESH_INTERVAL_SECONDS = 60
 INACTIVITY_TIMEOUT_SECONDS = 10 * 60
 INITIAL_BACKOFF_SECONDS = 1
