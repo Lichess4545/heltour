@@ -6,7 +6,7 @@ Guidance for Claude Code working in this repository.
 
 Litour (formerly heltour) is a Django + FastAPI tournament-management
 app for online chess events, branded as **lots.lichess.ca**. Backend:
-Django 4.2 / Python 3.11 / PostgreSQL 15 / Celery+Redis / FastAPI for
+Django 4.2 / Python 3.11 / PostgreSQL 18 / Celery+Redis / FastAPI for
 the new API surface. Frontend: a Next.js + shadcn UI alongside the
 legacy jQuery + Bootstrap templates. Detailed dev setup, services, and
 invoke commands live in [`design/development.md`](design/development.md).

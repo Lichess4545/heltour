@@ -64,7 +64,7 @@ def _generate_team_pairings(round_, overwrite=False):
 
         # Sort by seed rating/score
         teams = (
-            Team.objects.filter(season=round_.season, is_active=True)
+            Team.objects.filter(season=round_.season)
             .select_related("teamscore")
             .nocache()
         )
@@ -335,6 +335,7 @@ class DutchTeamPairingSystem:
                 team,
                 team.teamscore.match_points,
                 list(self._process_pairings(team, previous_pairings)),
+                include=team.is_active,
             )
             for team in teams
         ]

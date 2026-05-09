@@ -36,7 +36,7 @@ The site will be available at <http://localhost:8000>
 
 Services:
 
-- **PostgreSQL 15** on `localhost:5432` (db `heltour`, user `heltour`, password `heltour_dev_password`)
+- **PostgreSQL 18** on `localhost:5432` (db `heltour`, user `heltour`, password `heltour_dev_password`)
 - **Redis** on `localhost:6379`
 - **Mailpit** — SMTP on `1025`, web UI at <http://localhost:8025>
 

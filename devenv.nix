@@ -4,7 +4,7 @@ let
   nativeLibs = [
     pkgs.stdenv.cc.cc.lib
     pkgs.zlib
-    pkgs.postgresql.lib
+    pkgs.postgresql_18.lib
     pkgs.libjpeg
     pkgs.libpng
     pkgs.libtiff
@@ -20,7 +20,7 @@ in
     fish
 
     # Build dependencies for Python packages
-    postgresql # psycopg2 headers
+    postgresql_18 # psycopg2 headers + pg_dump/pg_restore matching the service version
     libffi # cryptography
 
     # Image libraries for Pillow
@@ -107,7 +107,7 @@ in
 
   services.postgres = {
     enable = true;
-    package = pkgs.postgresql_15;
+    package = pkgs.postgresql_18;
     listen_addresses = "127.0.0.1";
     port = 5432;
     initialDatabases = [ { name = "heltour"; } ];
