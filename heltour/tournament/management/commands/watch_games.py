@@ -192,6 +192,7 @@ def apply_event(event: dict) -> bool:
             continue
         league = round_.season.league
         existing_link = pairing.game_link
+        expected_modified = pairing.date_modified
         already_linked = bool(existing_link) and existing_link == new_link
 
         if not already_linked and not _event_matches_league(event, league):
@@ -221,35 +222,43 @@ def apply_event(event: dict) -> bool:
             return False
 
         if status == "aborted":
-            if existing_link == new_link:
-                pairing.game_link = ""
-                pairing.tv_state = "default"
-                pairing.plies_played = 0
+            if existing_link != new_link:
+                return False
+            updated = PlayerPairing.objects.filter(
+                pk=pairing.pk,
+                date_modified=expected_modified,
+            ).update(
+                game_link="",
+                tv_state="default",
+                plies_played=0,
+                date_modified=timezone.now(),
+            )
+            if updated:
                 logger.info(
                     "watcher: updating pairing %s from game %s (status=%s)",
                     pairing.pk,
                     game_id,
                     status,
                 )
-                pairing.save()
                 return True
-            return False
+            logger.info(
+                "watcher: pairing %s changed since fetch, skipping abort",
+                pairing.pk,
+            )
+            continue
 
-        # Two-phase save: PlayerPairing.save() resets tv_state to "default"
-        # whenever game_link changes, so persist the link first and then the
-        # tv_state/result derived from this event.
-        link_changed = False
-        if pairing.game_link != new_link:
-            pairing.game_link = new_link
-            pairing.save()
-            pairing.initial_game_link = pairing.game_link
-            link_changed = True
+        # PlayerPairing.save() resets tv_state -> "default" and plies_played -> 0
+        # whenever game_link changes; we replicate that here since .update()
+        # bypasses save().
+        link_changed = pairing.game_link != new_link
+        base_tv_state = "default" if link_changed else pairing.tv_state
+        base_plies = 0 if link_changed else pairing.plies_played
 
-        desired_tv_state = pairing.tv_state
-        desired_result = pairing.result
+        desired_tv_state = base_tv_state
         if " " in moves:
             desired_tv_state = "has_moves"
         result = _result_for_event(status, winner)
+        desired_result = ""
         if result is not None:
             desired_result = result
             desired_tv_state = "hide"
@@ -262,32 +271,51 @@ def apply_event(event: dict) -> bool:
         ply_count = len(moves.split()) if moves else 0
         if result is not None and ply_count == 0:
             ply_count = _fetch_ply_count(game_id)
-        desired_plies = max(pairing.plies_played, ply_count)
+        desired_plies = max(base_plies, ply_count)
 
-        state_changed = (
-            desired_tv_state != pairing.tv_state
-            or desired_result != pairing.result
-            or desired_plies != pairing.plies_played
-        )
-        if state_changed:
-            pairing.tv_state = desired_tv_state
-            pairing.result = desired_result
-            pairing.plies_played = desired_plies
-            pairing.save()
+        update_fields = {
+            "game_link": new_link,
+            "tv_state": desired_tv_state,
+            "plies_played": desired_plies,
+            "date_modified": timezone.now(),
+        }
+        if desired_result:
+            update_fields["result"] = desired_result
+        if link_changed:
+            # PlayerPairing.save() also clears stored ratings on link change so
+            # the rating-backfill task re-fetches them from the new game.
+            update_fields["white_rating"] = None
+            update_fields["black_rating"] = None
 
-        if link_changed or state_changed:
+        updated = PlayerPairing.objects.filter(
+            pk=pairing.pk,
+            date_modified=expected_modified,
+        ).update(**update_fields)
+        if not updated:
             logger.info(
-                "watcher: updated pairing %s from game %s "
-                "(status=%s result=%s tv_state=%s link=%s)",
+                "watcher: pairing %s changed since fetch, skipping update",
                 pairing.pk,
-                game_id,
-                status,
-                pairing.result or "(unset)",
-                pairing.tv_state,
-                pairing.game_link,
             )
-            return True
-        return False
+            continue
+
+        # PlayerPairing.save() refreshes the parent TeamPairing's match score
+        # whenever a result changes; do it here since .update() bypasses save().
+        if desired_result and hasattr(pairing, "teamplayerpairing"):
+            tp = pairing.teamplayerpairing.team_pairing
+            tp.refresh_points()
+            tp.save()
+
+        logger.info(
+            "watcher: updated pairing %s from game %s "
+            "(status=%s result=%s tv_state=%s link=%s)",
+            pairing.pk,
+            game_id,
+            status,
+            desired_result or "(unset)",
+            desired_tv_state,
+            new_link,
+        )
+        return True
 
     return False
 
