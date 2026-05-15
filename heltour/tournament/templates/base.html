@@ -83,6 +83,11 @@
                                     <li>
                                         <a href="{% leagueurl 'knockout_bracket' league.tag season.tag %}">Bracket</a>
                                     </li>
+                                    {% if league.competitor_type == 'team' %}
+                                        <li>
+                                            <a href="{% leagueurl 'knockout_teams' league.tag season.tag %}">Rosters</a>
+                                        </li>
+                                    {% endif %}
                                 {% else %}
                                     <li>
                                         <a href="{% leagueurl 'pairings' league.tag season.tag %}">Pairings</a>
