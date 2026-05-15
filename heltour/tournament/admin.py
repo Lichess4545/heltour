@@ -4731,7 +4731,7 @@ class AnnouncementAdmin(admin.ModelAdmin):
 class KnockoutSeedingInline(admin.TabularInline):
     model = KnockoutSeeding
     extra = 0
-    fields = ("seed_number", "team", "is_manual_seed")
+    fields = ("seed_number", "team", "seed_label", "is_manual_seed")
     ordering = ("seed_number",)
 
 
@@ -5062,15 +5062,15 @@ class KnockoutBracketAdmin(admin.ModelAdmin):
 
 @admin.register(KnockoutSeeding)
 class KnockoutSeedingAdmin(admin.ModelAdmin):
-    list_display = ["bracket", "seed_number", "team", "is_manual_seed"]
+    list_display = ["bracket", "seed_number", "team", "seed_label", "is_manual_seed"]
     list_filter = ["is_manual_seed", "bracket__season__league"]
-    search_fields = ["team__name", "bracket__season__name"]
+    search_fields = ["team__name", "bracket__season__name", "seed_label"]
     ordering = ("bracket", "seed_number")
 
     fieldsets = (
         (
             "Seeding Details",
-            {"fields": ("bracket", "seed_number", "team", "is_manual_seed")},
+            {"fields": ("bracket", "seed_number", "team", "seed_label", "is_manual_seed")},
         ),
     )
 

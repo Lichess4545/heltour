@@ -4753,6 +4753,14 @@ class KnockoutSeeding(_BaseModel):
     is_manual_seed = models.BooleanField(
         default=False, help_text="True if seeding was set manually vs automatically"
     )
+    seed_label = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text=(
+            "Optional display label that overrides the numeric seed in the "
+            "bracket (e.g. 'OSQ1 #1')"
+        ),
+    )
 
     class Meta:
         unique_together = [("bracket", "team"), ("bracket", "seed_number")]

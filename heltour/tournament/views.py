@@ -4459,6 +4459,16 @@ def _knockout_team_rows(season):
     return rows
 
 
+def _seed_display(seeding):
+    """Human-readable seed label for a KnockoutSeeding.
+
+    Prefers the stored ``seed_label`` override; falls back to ``Seed N``.
+    """
+    if seeding is None:
+        return None
+    return seeding.seed_label or ('Seed %d' % seeding.seed_number)
+
+
 class KnockoutTeamsView(SeasonView):
     """Team list / rosters page for knockout tournaments."""
 
@@ -4615,6 +4625,7 @@ class KnockoutBracketView(SeasonView):
                                     'is_bye': True,
                                     'competitor': pairing.white_team,
                                     'seed': seeding.seed_number if seeding else None,
+                                    'seed_display': _seed_display(seeding),
                                     'pairing_order': pairing.pairing_order,
                                 })
                         
@@ -4713,6 +4724,8 @@ class KnockoutBracketView(SeasonView):
                                 'competitor2': pairing.black_team,
                                 'seed1': white_seeding.seed_number if white_seeding else None,
                                 'seed2': black_seeding.seed_number if black_seeding else None,
+                                'seed1_display': _seed_display(white_seeding),
+                                'seed2_display': _seed_display(black_seeding),
                                 'competitor1_score': competitor1_score,
                                 'competitor2_score': competitor2_score,
                                 'competitor1_won': competitor1_won,
@@ -4740,6 +4753,7 @@ class KnockoutBracketView(SeasonView):
                                         'is_bye': True,
                                         'competitor': pairing.white_team,
                                         'seed': seeding.seed_number if seeding else None,
+                                        'seed_display': _seed_display(seeding),
                                         'pairing_order': pairing.pairing_order,
                                     })
                                 else:
@@ -4770,6 +4784,8 @@ class KnockoutBracketView(SeasonView):
                                         'competitor2': pairing.black_team,
                                         'seed1': white_seeding.seed_number if white_seeding else None,
                                         'seed2': black_seeding.seed_number if black_seeding else None,
+                                        'seed1_display': _seed_display(white_seeding),
+                                        'seed2_display': _seed_display(black_seeding),
                                         'competitor1_score': competitor1_score,
                                         'competitor2_score': competitor2_score,
                                         'competitor1_won': competitor1_won,
@@ -5329,13 +5345,15 @@ class KnockoutSeasonLandingView(SeasonView):
                         'name': pairing.white_team.name,
                         'number': pairing.white_team.number,
                         'seed': seeding.seed_number if seeding else None,
+                        'seed_display': _seed_display(seeding),
                     })
                 if pairing.black_team:
                     seeding = pairing.black_team.knockoutseeding_set.first()
                     competitors.append({
-                        'name': pairing.black_team.name, 
+                        'name': pairing.black_team.name,
                         'number': pairing.black_team.number,
                         'seed': seeding.seed_number if seeding else None,
+                        'seed_display': _seed_display(seeding),
                     })
         else:
             pairings = LonePlayerPairing.objects.filter(round=current_round).select_related(

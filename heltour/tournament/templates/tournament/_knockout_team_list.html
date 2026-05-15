@@ -24,10 +24,8 @@
                         {% for member in row.boards %}
                             <td>
                                 {% if member %}
-                                    {{ member.player.lichess_username }}
-                                    {% if member.player.rating %}
-                                        <small class="text-muted">({{ member.player.rating }})</small>
-                                    {% endif %}
+                                    {% player_display_name member.player %}
+                                    <small class="text-muted">({% rating member.player %})</small>
                                     {% if member.is_captain %}
                                         <span class="label label-primary" title="Captain">C</span>
                                     {% elif member.is_vice_captain %}

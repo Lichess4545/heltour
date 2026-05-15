@@ -20,6 +20,11 @@ while rosters are still trickling in. Round-1 ``TeamPairing`` rows are only
 created when ``--create-pairings`` is passed (and then every team must have a
 roster).
 
+When the bracket layout labels each slot with the qualifier placement that
+earned it (e.g. "1st place finisher of OSQ1"), those become per-team seed
+labels (``KnockoutSeeding.seed_label``) and override the numeric seed in the
+bracket view.
+
 Because captains hand-edit these files, the importer is defensive: it parses
 and validates everything, normalises messy values (usernames pasted as
 ``@name`` or profile URLs, FIDE ids with stray spaces, free-text roles, team
@@ -57,6 +62,12 @@ DUEL_RE = re.compile(r"duel\s*(\d+)", re.IGNORECASE)
 # Team names in the bracket layout carry a trailing kick-off time, e.g.
 # "Saint Louis University 10:00" or "Monash Univercity 10:00 +1".
 TIME_TAIL_RE = re.compile(r"\s+\d{1,2}:\d{2}(?:\s*\+\d+)?\s*$")
+# The bracket layout labels each slot with the qualifier placement that earned
+# it, e.g. "16th place finisher of OSQ2" or "1st place finisher of OQ1".
+PLACEMENT_RE = re.compile(
+    r"(\d+)\s*(?:st|nd|rd|th)\s+place\s+finisher\s+of\s+(O\s*S?\s*Q\s*\d+)",
+    re.IGNORECASE,
+)
 
 CAPTAIN_ROLES = {"captain", "c", "(c)", "capt", "cap"}
 VICE_CAPTAIN_ROLES = {
@@ -173,7 +184,7 @@ class Command(BaseCommand):
         errors += perr
         warnings += pwarn
 
-        ordered_pairs, pair_err = self._parse_pairings(pairings_path)
+        ordered_pairs, seed_labels, pair_err = self._parse_pairings(pairings_path)
         errors += pair_err
 
         cross_err, cross_warn, ordered_pairs, rosters, all_teams = self._cross_validate(
@@ -210,7 +221,8 @@ class Command(BaseCommand):
                 f"Validation passed: {len(all_teams)} teams "
                 f"({teams_with_rosters} with rosters, {teams_empty} empty), "
                 f"{len(plan)} players ({reused} reused, {new} new), "
-                f"{len(ordered_pairs)} bracket matches, {len(warnings)} warning(s)"
+                f"{len(ordered_pairs)} bracket matches, "
+                f"{len(seed_labels)} seed labels, {len(warnings)} warning(s)"
             )
         )
         if validate_only:
@@ -233,7 +245,7 @@ class Command(BaseCommand):
             bracket = self._create_bracket(
                 season, len(all_teams), options["match_generation"]
             )
-            self._create_seedings(bracket, all_teams, teams_by_name)
+            self._create_seedings(bracket, all_teams, teams_by_name, seed_labels)
 
             from heltour.tournament_core.knockout import get_knockout_stage_name
 
@@ -244,10 +256,12 @@ class Command(BaseCommand):
             if options["create_pairings"]:
                 empty = [n for n in all_teams if not rosters.get(n)]
                 if empty:
-                    raise CommandError(
-                        "--create-pairings needs every team to have a roster; "
-                        "still empty: " + ", ".join(empty)
-                    )
+                    self.stdout.write(self.style.WARNING(
+                        f"--create-pairings: {len(empty)} team(s) have no roster; "
+                        "their round-1 board games are created with no players "
+                        "(fill them in once the rosters arrive): "
+                        + ", ".join(empty)
+                    ))
                 created_pairings = self._create_round1_pairings(
                     round1, ordered_pairs, teams_by_name, bracket
                 )
@@ -514,15 +528,17 @@ class Command(BaseCommand):
     def _parse_pairings(self, path):
         """Parse the pairings workbook, auto-detecting the layout.
 
-        Returns (ordered_pairs, errors) with ordered_pairs sorted by match
-        number: [(match_number, team_a, team_b), ...].
+        Returns (ordered_pairs, seed_labels, errors) with ordered_pairs sorted
+        by match number: [(match_number, team_a, team_b), ...]. ``seed_labels``
+        maps team_name -> a qualifier placement label (e.g. 'OSQ1 #1') for the
+        teams the bracket file labels; teams without a label are absent.
         """
         from openpyxl import load_workbook
 
         try:
             wb = load_workbook(path, read_only=True, data_only=True)
         except Exception as exc:
-            return [], [f"{path}: could not open ({exc})"]
+            return [], {}, [f"{path}: could not open ({exc})"]
         try:
             ws = wb["Pairings"] if "Pairings" in wb.sheetnames else wb.active
             rows = list(ws.iter_rows(values_only=True)) if ws is not None else None
@@ -530,9 +546,9 @@ class Command(BaseCommand):
             wb.close()
 
         if rows is None:
-            return [], [f"{path}: workbook has no active sheet"]
+            return [], {}, [f"{path}: workbook has no active sheet"]
         if not rows:
-            return [], [f"{path}: the sheet is empty"]
+            return [], {}, [f"{path}: the sheet is empty"]
 
         header = [str(c).strip().lower() if c is not None else "" for c in rows[0]]
         if {"match_number", "team_a", "team_b"} <= set(header):
@@ -572,12 +588,18 @@ class Command(BaseCommand):
         if not pairs and not errors:
             errors.append(f"{path}: no pairing rows found")
         pairs.sort(key=lambda p: p[0])
-        return pairs, errors
+        return pairs, {}, errors
 
     def _parse_pairings_bracket(self, path, rows):
         """Parse the human bracket layout: ``Duel N`` label rows, with the two
-        team names (carrying trailing kick-off times) on the row below."""
+        team names (carrying trailing kick-off times) on the row below.
+
+        The ``Duel N`` row itself carries, in the two team columns, the
+        qualifier placement that earned each slot (e.g. "1st place finisher of
+        OSQ1"); those become per-team ``seed_labels``.
+        """
         errors = []
+        seed_labels = {}
 
         # The two team columns are marked by a 'TEAM' header cell.
         team_cols = []
@@ -591,7 +613,7 @@ class Command(BaseCommand):
                 team_cols = cols
                 break
         if len(team_cols) != 2:
-            return [], [
+            return [], {}, [
                 f"{path}: could not find the two 'TEAM' columns in the bracket layout"
             ]
 
@@ -613,10 +635,10 @@ class Command(BaseCommand):
                 continue
             team_row = rows[idx + 1]
 
-            def at(i):
-                return team_row[i] if i < len(team_row) else None
+            def cell(source_row, i):
+                return source_row[i] if i < len(source_row) else None
 
-            a_raw, b_raw = at(team_cols[0]), at(team_cols[1])
+            a_raw, b_raw = cell(team_row, team_cols[0]), cell(team_row, team_cols[1])
             if not a_raw or not str(a_raw).strip():
                 errors.append(f"{path}: Duel {label} has a blank team A")
                 continue
@@ -627,14 +649,22 @@ class Command(BaseCommand):
                 errors.append(f"{path}: duplicate Duel {label}")
                 continue
             seen.add(label)
-            pairs.append(
-                (label, self._strip_time(str(a_raw)), self._strip_time(str(b_raw)))
-            )
+            team_a = self._strip_time(str(a_raw))
+            team_b = self._strip_time(str(b_raw))
+            pairs.append((label, team_a, team_b))
+
+            # The Duel row's team columns hold the qualifier placement labels.
+            a_label = self._seed_label_from_placement(cell(row, team_cols[0]))
+            b_label = self._seed_label_from_placement(cell(row, team_cols[1]))
+            if a_label:
+                seed_labels[team_a] = a_label
+            if b_label:
+                seed_labels[team_b] = b_label
 
         if not pairs and not errors:
             errors.append(f"{path}: no 'Duel N' rows found")
         pairs.sort(key=lambda p: p[0])
-        return pairs, errors
+        return pairs, seed_labels, errors
 
     def _cross_validate(self, rosters, ordered_pairs):
         """Reconcile lineups against the bracket.
@@ -964,26 +994,35 @@ class Command(BaseCommand):
             season=season,
             defaults={
                 "bracket_size": bracket_size,
-                "seeding_style": "traditional",
+                "seeding_style": "adjacent",
                 "games_per_match": 1,
                 "matches_per_stage": 2,
             },
         )
-        # These are authoritative even on a re-run.
+        # These are authoritative even on a re-run. seeding_style is 'adjacent'
+        # because the seedings are stored in pairings-file order (team A then
+        # team B of match 1, then match 2, ...) - so adjacent seeding (1v2,
+        # 3v4, ...) reproduces the explicit bracket, which is what the
+        # dashboard's "Create Missing Matches" button relies on.
         bracket.match_generation = match_generation
         bracket.bracket_size = bracket_size
         bracket.matches_per_stage = 2
+        bracket.seeding_style = "adjacent"
         bracket.save()
         return bracket
 
-    def _create_seedings(self, bracket, all_teams, teams_by_name):
+    def _create_seedings(self, bracket, all_teams, teams_by_name, seed_labels):
         from heltour.tournament.models import KnockoutSeeding
 
         for seed_number, team_name in enumerate(all_teams, start=1):
             KnockoutSeeding.objects.get_or_create(
                 bracket=bracket,
                 team=teams_by_name[team_name],
-                defaults={"seed_number": seed_number, "is_manual_seed": True},
+                defaults={
+                    "seed_number": seed_number,
+                    "is_manual_seed": True,
+                    "seed_label": seed_labels.get(team_name, ""),
+                },
             )
 
     def _create_round1_pairings(self, round1, ordered_pairs, teams_by_name, bracket):
@@ -1068,6 +1107,28 @@ class Command(BaseCommand):
     def _strip_time(name):
         """Drop a trailing kick-off time from a bracket team name."""
         return TIME_TAIL_RE.sub("", str(name).strip()).strip()
+
+    @staticmethod
+    def _seed_label_from_placement(raw):
+        """Turn a placement phrase into a short seed label.
+
+        "16th place finisher of OSQ2" -> "OSQ2 #16"; "1st place finisher of
+        OQ1" -> "OSQ1 #1". Anything that does not match is returned trimmed as
+        a free-text label; blank/None yields ''.
+        """
+        if raw is None:
+            return ""
+        text = str(raw).strip()
+        if not text:
+            return ""
+        m = PLACEMENT_RE.search(text)
+        if not m:
+            return text
+        number = m.group(1)
+        qualifier = re.sub(r"\s+", "", m.group(2)).upper()
+        if qualifier.startswith("OQ"):
+            qualifier = "OSQ" + qualifier[2:]
+        return f"{qualifier} #{number}"
 
     @staticmethod
     def _normalize_username(raw):

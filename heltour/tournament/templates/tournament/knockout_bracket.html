@@ -68,7 +68,10 @@
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    min-height: 120px; /* Ensure consistent height for spacing calculations */
+    /* Fixed width + height so every box in the bracket is the same size,
+       regardless of how long the team names are. */
+    width: 100%;
+    height: 160px;
     display: flex;
     flex-direction: column;
 }
@@ -112,10 +115,12 @@
 
 .competitor-name {
     flex-grow: 1;
-    white-space: nowrap; /* Prevent team names from wrapping */
+    /* min-width:0 lets this flex child shrink below its content width, so the
+       ellipsis actually engages instead of the whole box growing. */
+    min-width: 0;
+    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Add ellipsis for very long names */
-    min-width: 140px; /* Ensure consistent width regardless of content */
+    text-overflow: ellipsis;
 }
 
 .competitor-score {
@@ -126,6 +131,8 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    flex-shrink: 0; /* keep the score at full size; the name truncates instead */
+    white-space: nowrap;
 }
 
 .tiebreak-indicator {
@@ -300,7 +307,7 @@
                                     {% if match.is_bye %}
                                         <div class="bracket-match bye-match">
                                             <div class="match-competitor">
-                                                <span class="competitor-name">
+                                                <span class="competitor-name" title="{% if league.competitor_type == 'team' %}{{ match.competitor.name }}{% else %}{{ match.competitor.lichess_username }}{% endif %}">
                                                     {% if league.competitor_type == "team" and match.competitor.number and match.competitor.number > 0 %}
                                                         <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag match.competitor.number %}">
                                                             {{ match.competitor.name }}
@@ -312,7 +319,7 @@
                                                             {{ match.competitor.lichess_username }}
                                                         </a>
                                                     {% endif %}
-                                                    <span class="seeding-info">(Seed {{ match.seed }})</span>
+                                                    {% if match.seed_display %}<span class="seeding-info">({{ match.seed_display }})</span>{% endif %}
                                                 </span>
                                                 <span class="competitor-score">BYE</span>
                                             </div>
@@ -320,7 +327,7 @@
                                     {% elif match.is_winner_slot %}
                                         <div class="bracket-match winner-slot {% if match.is_placeholder %}placeholder-match{% endif %}">
                                             <div class="match-competitor">
-                                                <span class="competitor-name">
+                                                <span class="competitor-name" title="{% if match.competitor1 %}{% if league.competitor_type == 'team' %}{{ match.competitor1.name }}{% else %}{{ match.competitor1.lichess_username }}{% endif %}{% else %}Winner #{{ match.winner_position }}{% endif %}">
                                                     {% if match.competitor1 %}
                                                         <!-- Actual winner -->
                                                         {% if league.competitor_type == "team" and match.competitor1.number and match.competitor1.number > 0 %}
@@ -348,7 +355,7 @@
                                         <div class="bracket-match {% if not match.completed %}pending-match{% endif %} {% if match.is_placeholder %}placeholder-match{% endif %}">
                                             <div class="match-competitors">
                                                 <div class="match-competitor {% if match.completed or match.has_partial_results %}{% if match.competitor1_won %}winner{% elif match.competitor2_won %}loser{% elif match.is_tie %}tie{% endif %}{% endif %} {% if match.manual_tiebreak %}manual-tiebreak{% endif %}">
-                                                <span class="competitor-name">
+                                                <span class="competitor-name" title="{% if match.competitor1 %}{% if league.competitor_type == 'team' %}{{ match.competitor1.name }}{% else %}{{ match.competitor1.lichess_username }}{% endif %}{% else %}TBD{% endif %}">
                                                     {% if match.competitor1 %}
                                                         {% if league.competitor_type == "team" and match.competitor1.number and match.competitor1.number > 0 %}
                                                             <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag match.competitor1.number %}">
@@ -361,7 +368,7 @@
                                                                 {{ match.competitor1.lichess_username }}
                                                             </a>
                                                         {% endif %}
-                                                        {% if match.seed1 %}<span class="seeding-info">(Seed {{ match.seed1 }})</span>{% endif %}
+                                                        {% if match.seed1_display %}<span class="seeding-info">({{ match.seed1_display }})</span>{% endif %}
                                                     {% else %}
                                                         <em style="color: #999;">TBD</em>
                                                     {% endif %}
@@ -406,7 +413,7 @@
                                             </div>
                                             
                                             <div class="match-competitor {% if match.completed or match.has_partial_results %}{% if match.competitor2_won %}winner{% elif match.competitor1_won %}loser{% elif match.is_tie %}tie{% endif %}{% endif %} {% if match.manual_tiebreak %}manual-tiebreak{% endif %}">
-                                                <span class="competitor-name">
+                                                <span class="competitor-name" title="{% if match.competitor2 %}{% if league.competitor_type == 'team' %}{{ match.competitor2.name }}{% else %}{{ match.competitor2.lichess_username }}{% endif %}{% else %}TBD{% endif %}">
                                                     {% if match.competitor2 %}
                                                         {% if league.competitor_type == "team" and match.competitor2.number and match.competitor2.number > 0 %}
                                                             <a class="team-link" href="{% leagueurl 'team_profile' league.tag season.tag match.competitor2.number %}">
@@ -419,7 +426,7 @@
                                                                 {{ match.competitor2.lichess_username }}
                                                             </a>
                                                         {% endif %}
-                                                        {% if match.seed2 %}<span class="seeding-info">(Seed {{ match.seed2 }})</span>{% endif %}
+                                                        {% if match.seed2_display %}<span class="seeding-info">({{ match.seed2_display }})</span>{% endif %}
                                                     {% else %}
                                                         <em style="color: #999;">TBD</em>
                                                     {% endif %}

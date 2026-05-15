@@ -125,9 +125,11 @@
                                     
                                     <tr class="competitor-row">
                                         <td class="competitor-seed">
-                                            {% if team_pairing.white_team.knockoutseeding_set.first %}
-                                                Seed {{ team_pairing.white_team.knockoutseeding_set.first.seed_number }}
-                                            {% endif %}
+                                            {% with white_seeding=team_pairing.white_team.knockoutseeding_set.first %}
+                                                {% if white_seeding %}
+                                                    {% if white_seeding.seed_label %}{{ white_seeding.seed_label }}{% else %}Seed {{ white_seeding.seed_number }}{% endif %}
+                                                {% endif %}
+                                            {% endwith %}
                                         </td>
                                         <td class="competitor-name">
                                             {% if team_pairing.white_team.number %}
@@ -166,8 +168,12 @@
                                             {% endif %}
                                         </td>
                                         <td class="competitor-seed text-right">
-                                            {% if team_pairing.black_team_id and team_pairing.black_team.knockoutseeding_set.first %}
-                                                Seed {{ team_pairing.black_team.knockoutseeding_set.first.seed_number }}
+                                            {% if team_pairing.black_team_id %}
+                                                {% with black_seeding=team_pairing.black_team.knockoutseeding_set.first %}
+                                                    {% if black_seeding %}
+                                                        {% if black_seeding.seed_label %}{{ black_seeding.seed_label }}{% else %}Seed {{ black_seeding.seed_number }}{% endif %}
+                                                    {% endif %}
+                                                {% endwith %}
                                             {% endif %}
                                         </td>
                                         {% if can_edit %}

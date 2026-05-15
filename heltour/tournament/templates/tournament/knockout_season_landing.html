@@ -132,7 +132,7 @@
                                                 {{ competitor.lichess_username }}
                                             </a>
                                         {% endif %}
-                                        <span class="text-muted">(Seed {{ competitor.seed }})</span>
+                                        {% if competitor.seed_display %}<span class="text-muted">({{ competitor.seed_display }})</span>{% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}
