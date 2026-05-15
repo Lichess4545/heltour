@@ -485,6 +485,9 @@ class League(_BaseModel):
     def is_team_league(self):
         return self.competitor_type == "team"
 
+    def is_fide_rated(self):
+        return is_fide_rating_type(self.rating_type)
+
     def is_player_scheduled_league(self) -> bool:
         return self.get_leaguesetting().schedule_type == 2
 
