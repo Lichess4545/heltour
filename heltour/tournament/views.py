@@ -3022,12 +3022,15 @@ class PairingsExportView(LeagueView):
             }
             total_pairs = len(unique_pairs) or 1
 
+            # Build the per-match dicts in pairing_order, then regroup by
+            # duel (the unordered pair of teams) so the template can render
+            # match 1 and match 2 of the same duel side by side.
             matches = []
             for index, pairing in enumerate(team_pairings):
                 if not pairing.black_team:
                     continue  # bye - no games to export
 
-                board_pairings = (
+                board_pairings = list(
                     TeamPlayerPairing.objects.filter(team_pairing=pairing)
                     .select_related('white', 'black')
                     .order_by('board_number')
@@ -3039,20 +3042,55 @@ class PairingsExportView(LeagueView):
                     black_username = bp.black.lichess_username if bp.black else ''
                     lines.append(f"{white_username}\t{black_username}")
 
+                all_have_results = bool(board_pairings) and all(
+                    (bp.result or '').strip() for bp in board_pairings
+                )
+
                 matches.append({
                     'pairing_id': pairing.id,
                     'pairing_order': pairing.pairing_order,
                     'match_number': (index // total_pairs) + 1,
+                    'duel_key': tuple(sorted(
+                        [pairing.white_team_id, pairing.black_team_id]
+                    )),
                     'white_team': pairing.white_team.name,
                     'black_team': pairing.black_team.name,
                     'content': "\n".join(lines),
                     'line_count': max(len(lines), 1),
+                    'completed': all_have_results,
                 })
+
+            duels_by_key = {}
+            duel_order = []
+            for m in matches:
+                key = m['duel_key']
+                if key not in duels_by_key:
+                    duels_by_key[key] = {
+                        'label': f"{m['white_team']} vs {m['black_team']}",
+                        'matches': [],
+                    }
+                    duel_order.append(key)
+                duels_by_key[key]['matches'].append(m)
+            for d in duels_by_key.values():
+                d['matches'].sort(key=lambda x: x['match_number'])
+            duels = []
+            for i, k in enumerate(duel_order, start=1):
+                d = duels_by_key[k]
+                d['duel_number'] = i
+                d['all_completed'] = bool(d['matches']) and all(
+                    m['completed'] for m in d['matches']
+                )
+                duels.append(d)
+            match_count = max((len(d['matches']) for d in duels), default=1)
+            # Bootstrap 12-col grid: width per match cell.
+            col_width = max(1, 12 // max(match_count, 1))
 
             rounds_data.append({
                 'round_number': round_obj.number,
                 'knockout_stage': round_obj.knockout_stage,
                 'matches': matches,
+                'duels': duels,
+                'col_width': col_width,
             })
 
         context = {
