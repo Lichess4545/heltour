@@ -1152,22 +1152,42 @@ def _generate_next_knockout_round(round_, bracket):
     round_.knockout_stage = stage_name
     round_.save()
 
-    # Create team pairings for next round
-    for i, (team1_id, team2_id) in enumerate(next_pairings):
-        team1 = Team.objects.get(id=team1_id)
-        team2 = Team.objects.get(id=team2_id)
+    # Create team pairings for next round. In 'lockstep' mode only the first
+    # match of the stage is created; later matches are created once every
+    # bracket finishes the current one. In 'upfront' mode every match of the
+    # stage is created now, so each bracket can play its matches back-to-back
+    # without waiting on the rest of the round. pairing_order is laid out
+    # match-by-match (match 1 for every pair, then match 2, ...) to match the
+    # modular arithmetic used elsewhere for multi-match knockouts.
+    matches_per_stage = bracket.matches_per_stage or 1
+    matches_to_create = matches_per_stage if bracket.match_generation == "upfront" else 1
+    total_pairs = len(next_pairings)
 
-        with reversion.create_revision():
-            reversion.set_comment("Advanced to next knockout round.")
-            team_pairing = TeamPairing.objects.create(
-                white_team=team1,
-                black_team=team2,
-                round=round_,
-                pairing_order=i + 1,
-            )
+    for match_number in range(1, matches_to_create + 1):
+        for i, (team1_id, team2_id) in enumerate(next_pairings):
+            team1 = Team.objects.get(id=team1_id)
+            team2 = Team.objects.get(id=team2_id)
 
-        # Create board pairings for team matches
-        _create_board_pairings_for_knockout(team_pairing, round_.season.boards)
+            # Odd matches keep the bracket colors; even matches swap them so
+            # each bracket plays both colors across the stage.
+            if match_number % 2 == 1:
+                white_team, black_team = team1, team2
+            else:
+                white_team, black_team = team2, team1
+
+            pairing_order = (match_number - 1) * total_pairs + i + 1
+
+            with reversion.create_revision():
+                reversion.set_comment("Advanced to next knockout round.")
+                team_pairing = TeamPairing.objects.create(
+                    white_team=white_team,
+                    black_team=black_team,
+                    round=round_,
+                    pairing_order=pairing_order,
+                )
+
+            # Create board pairings for team matches
+            _create_board_pairings_for_knockout(team_pairing, round_.season.boards)
 
 
 def _generate_next_knockout_round_lone(round_, bracket):

@@ -1,0 +1,50 @@
+{% load tournament_extras %}
+{# Expects: team_rows, board_numbers, board_count #}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th class="text-center">#</th>
+                <th>Team</th>
+                {% for n in board_numbers %}
+                    <th>Board {{ n }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in team_rows %}
+                <tr>
+                    <td class="text-center">{{ row.team.number }}</td>
+                    <td>
+                        <a href="{% leagueurl 'team_profile' league.tag season.tag row.team.number %}">
+                            {{ row.team.name }}
+                        </a>
+                    </td>
+                    {% if row.has_roster %}
+                        {% for member in row.boards %}
+                            <td>
+                                {% if member %}
+                                    {{ member.player.lichess_username }}
+                                    {% if member.player.rating %}
+                                        <small class="text-muted">({{ member.player.rating }})</small>
+                                    {% endif %}
+                                    {% if member.is_captain %}
+                                        <span class="label label-primary" title="Captain">C</span>
+                                    {% elif member.is_vice_captain %}
+                                        <span class="label label-default" title="Vice-captain">V</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">&mdash;</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    {% else %}
+                        <td colspan="{{ board_count }}" class="text-muted">
+                            <em>Roster not yet submitted</em>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

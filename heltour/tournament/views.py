@@ -297,6 +297,13 @@ class LeagueHomeView(LeagueView):
             TeamScore.objects.filter(team__season=self.season).select_related('team').nocache(),
             reverse=True)[:5], 1))
 
+        # Knockout leagues have no Swiss-style standings; show the team list
+        # (with a link to the bracket) on the otherwise-empty home page.
+        is_knockout = self.league.pairing_type.startswith('knockout')
+        knockout_team_rows = []
+        if is_knockout:
+            knockout_team_rows = _knockout_team_rows(self.season)
+
         context = {
             'team_scores': team_scores,
             'completed_seasons': completed_seasons,
@@ -305,6 +312,12 @@ class LeagueHomeView(LeagueView):
             'can_edit_document': self.request.user.has_perm('tournament.change_document',
                                                             self.league),
             'other_leagues': other_leagues,
+            'is_knockout': is_knockout,
+            'knockout_team_rows': knockout_team_rows,
+            'knockout_board_numbers': list(range(1, (self.season.boards or 0) + 1)),
+            'knockout_board_count': self.season.boards or 0,
+            'knockout_team_count': len(knockout_team_rows),
+            'knockout_rostered_count': sum(1 for r in knockout_team_rows if r['has_roster']),
         }
         return self.render('tournament/team_league_home.html', context)
 
@@ -1092,9 +1105,9 @@ class ModRequestSuccessView(SeasonView):
 
 class RostersView(SeasonView):
     def view(self):
-        # Check if this is a knockout tournament
+        # Knockout tournaments have a dedicated team list page.
         if self.season.league.pairing_type.startswith('knockout'):
-            return redirect('by_league:by_season:knockout_bracket', 
+            return redirect('by_league:by_season:knockout_teams',
                           league_tag=self.league.tag, season_tag=self.season.tag)
         
         @cached_as(TeamMember, SeasonPlayer, Alternate, AlternateAssignment, AlternateBucket,
@@ -2675,32 +2688,49 @@ class LeagueDashboardView(LeagueView):
             team1 = next(team for team in seeded_teams if team.id == team1_id)
             team2 = next(team for team in seeded_teams if team.id == team2_id)
             team_pairs.append((team1, team2))
-        
-        # Create pairings - only first match of each stage for multi-match
+
+        # In 'lockstep' mode only the first match of the stage is created here;
+        # later matches are created once every bracket finishes the current one.
+        # In 'upfront' mode every match of the stage is created now, so each
+        # bracket can play its matches back-to-back without waiting on the rest
+        # of the round. pairing_order is laid out match-by-match (match 1 for
+        # every pair, then match 2, ...) to match the modular arithmetic used
+        # elsewhere for multi-match knockouts.
+        matches_per_stage = bracket.matches_per_stage or 1
+        matches_to_create = matches_per_stage if bracket.match_generation == "upfront" else 1
+        total_pairs = len(team_pairs)
         created_count = 0
-        pairing_order = 1
-        
-        for team1, team2 in team_pairs:
-            with reversion.create_revision():
-                reversion.set_comment("Created initial knockout pairing from seedings.")
-                team_pairing = TeamPairing.objects.create(
-                    white_team=team1,
-                    black_team=team2,
-                    round=round_obj,
-                    pairing_order=pairing_order,
-                )
-                
-                # Create board pairings immediately
-                self._create_board_pairings_for_knockout_pairing(team_pairing, round_obj.season.boards)
-                
-                # Verify board pairings were created
-                board_count = team_pairing.teamplayerpairing_set.count()
-                
-                if board_count == 0:
-                    raise ValueError(f"Failed to create board pairings for {team1.name} vs {team2.name}")
-                
-                created_count += 1
-                pairing_order += 1
+
+        for match_number in range(1, matches_to_create + 1):
+            for pair_index, (team1, team2) in enumerate(team_pairs):
+                # Odd matches keep the seed-based colors; even matches swap them
+                # so each bracket plays both colors across the stage.
+                if match_number % 2 == 1:
+                    white_team, black_team = team1, team2
+                else:
+                    white_team, black_team = team2, team1
+
+                pairing_order = (match_number - 1) * total_pairs + pair_index + 1
+
+                with reversion.create_revision():
+                    reversion.set_comment("Created initial knockout pairing from seedings.")
+                    team_pairing = TeamPairing.objects.create(
+                        white_team=white_team,
+                        black_team=black_team,
+                        round=round_obj,
+                        pairing_order=pairing_order,
+                    )
+
+                    # Create board pairings immediately
+                    self._create_board_pairings_for_knockout_pairing(team_pairing, round_obj.season.boards)
+
+                    # Verify board pairings were created
+                    board_count = team_pairing.teamplayerpairing_set.count()
+
+                    if board_count == 0:
+                        raise ValueError(f"Failed to create board pairings for {white_team.name} vs {black_team.name}")
+
+                    created_count += 1
         return created_count
 
 
@@ -2956,6 +2986,79 @@ class GameIdsView(LeagueView):
             'is_team_league': self.league.is_team_league(),
         }
         return self.render('tournament/game_ids.html', context)
+
+
+class PairingsExportView(LeagueView):
+    """Copy/paste-friendly export of round pairings for external pairing software.
+
+    Each match is rendered as its own text box; every line is one board game
+    formatted as ``white_lichess_username<TAB>black_lichess_username``.
+    """
+
+    def view(self):
+        if not self.request.user.has_perm('tournament.view_dashboard', self.league):
+            raise Http404()
+
+        if not self.league.is_team_league():
+            raise Http404()
+
+        rounds = Round.objects.filter(season=self.season).order_by('number')
+
+        rounds_data = []
+        for round_obj in rounds:
+            team_pairings = list(
+                TeamPairing.objects.filter(round=round_obj)
+                .select_related('white_team', 'black_team')
+                .order_by('pairing_order')
+            )
+
+            # Match number within a multi-match stage: pairings are laid out
+            # match-by-match, so the first `total_pairs` pairings are match 1,
+            # the next `total_pairs` are match 2, etc.
+            unique_pairs = {
+                tuple(sorted([p.white_team_id, p.black_team_id]))
+                for p in team_pairings
+                if p.black_team_id
+            }
+            total_pairs = len(unique_pairs) or 1
+
+            matches = []
+            for index, pairing in enumerate(team_pairings):
+                if not pairing.black_team:
+                    continue  # bye - no games to export
+
+                board_pairings = (
+                    TeamPlayerPairing.objects.filter(team_pairing=pairing)
+                    .select_related('white', 'black')
+                    .order_by('board_number')
+                )
+
+                lines = []
+                for bp in board_pairings:
+                    white_username = bp.white.lichess_username if bp.white else ''
+                    black_username = bp.black.lichess_username if bp.black else ''
+                    lines.append(f"{white_username}\t{black_username}")
+
+                matches.append({
+                    'pairing_id': pairing.id,
+                    'pairing_order': pairing.pairing_order,
+                    'match_number': (index // total_pairs) + 1,
+                    'white_team': pairing.white_team.name,
+                    'black_team': pairing.black_team.name,
+                    'content': "\n".join(lines),
+                    'line_count': max(len(lines), 1),
+                })
+
+            rounds_data.append({
+                'round_number': round_obj.number,
+                'knockout_stage': round_obj.knockout_stage,
+                'matches': matches,
+            })
+
+        context = {
+            'rounds_data': rounds_data,
+        }
+        return self.render('tournament/pairings_export.html', context)
 
 
 class BroadcastPlayersView(LeagueView):
@@ -4328,6 +4431,51 @@ def _get_nav_tree(league_tag, season_tag):
 
 # -------------------------------------------------------------------------------
 # Knockout Tournament Views
+
+def _knockout_team_rows(season):
+    """Build the team list for a knockout season.
+
+    Returns one row per team (ordered by team number / seed): the team, a
+    ``boards`` list of length ``season.boards`` holding the TeamMember on each
+    board (or None where a board is unfilled), and a ``has_roster`` flag.
+    """
+    board_count = season.boards or 0
+    teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
+        Prefetch(
+            'teammember_set',
+            queryset=TeamMember.objects.select_related('player').order_by('board_number'),
+        )
+    )
+    rows = []
+    for team in teams:
+        members = list(team.teammember_set.all())
+        by_board = {m.board_number: m for m in members}
+        rows.append({
+            'team': team,
+            'boards': [by_board.get(n) for n in range(1, board_count + 1)],
+            'has_roster': bool(members),
+            'member_count': len(members),
+        })
+    return rows
+
+
+class KnockoutTeamsView(SeasonView):
+    """Team list / rosters page for knockout tournaments."""
+
+    def view(self):
+        if not self.season.league.pairing_type.startswith('knockout'):
+            raise Http404("This season is not a knockout tournament")
+        team_rows = _knockout_team_rows(self.season)
+        board_count = self.season.boards or 0
+        context = {
+            'team_rows': team_rows,
+            'board_numbers': list(range(1, board_count + 1)),
+            'board_count': board_count,
+            'team_count': len(team_rows),
+            'rostered_count': sum(1 for r in team_rows if r['has_roster']),
+        }
+        return self.render('tournament/knockout_teams.html', context)
+
 
 class KnockoutBracketView(SeasonView):
     """View for displaying knockout tournament brackets."""

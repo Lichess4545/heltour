@@ -195,6 +195,16 @@ KNOCKOUT_SEEDING_OPTIONS = (
     ("traditional", "Traditional (1 vs 32, 2 vs 31, etc.)"),
     ("adjacent", "Adjacent (1 vs 2, 3 vs 4, etc.)"),
 )
+KNOCKOUT_MATCH_GENERATION_OPTIONS = (
+    (
+        "lockstep",
+        "Lockstep (next match created only after every bracket finishes the current one)",
+    ),
+    (
+        "upfront",
+        "Up-front (all matches of a stage created at once, so each bracket can play back-to-back)",
+    ),
+)
 KNOCKOUT_STAGE_OPTIONS = (
     ("round-of-128", "Round of 128"),
     ("round-of-64", "Round of 64"),
@@ -4707,6 +4717,18 @@ class KnockoutBracket(_BaseModel):
     matches_per_stage = models.PositiveIntegerField(
         default=1,
         help_text="Number of matches each team pair plays per stage (1=single elimination, 2=return matches, etc.)",
+    )
+    match_generation = models.CharField(
+        max_length=16,
+        choices=KNOCKOUT_MATCH_GENERATION_OPTIONS,
+        default="lockstep",
+        help_text=(
+            "How multi-match stages are generated. 'lockstep' creates the next "
+            "match only once every bracket has finished the current one (use "
+            "when litour runs the whole event). 'upfront' creates all of a "
+            "stage's matches at once so each bracket can play its matches "
+            "back-to-back independently (use when an external tool runs games)."
+        ),
     )
     is_completed = models.BooleanField(default=False)
 

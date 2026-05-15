@@ -46,6 +46,26 @@ class Command(BaseCommand):
             action="store_true",
             help="Overwrite existing results (default: skip games with results)",
         )
+        parser.add_argument(
+            "--pairing-id",
+            type=int,
+            help=(
+                "Only generate results for a single pairing (one match). For "
+                "team leagues this is a TeamPairing id; for individual leagues "
+                "a LonePlayerPairing id. Auto-advancement is skipped so you can "
+                "progress one match at a time."
+            ),
+        )
+        parser.add_argument(
+            "--match-number",
+            type=int,
+            help=(
+                "Only generate results for one match of a multi-match knockout "
+                "stage, across every bracket (1 = all of match 1, 2 = all of "
+                "match 2, ...). This is the match number within the stage, not "
+                "the round number. Auto-advancement is skipped."
+            ),
+        )
 
     def handle(self, *args, **options):
         season_id = options["season_id"]
@@ -53,6 +73,11 @@ class Command(BaseCommand):
         forfeit_rate = options["forfeit_rate"]
         dry_run = options["dry_run"]
         overwrite = options["overwrite"]
+        pairing_id = options.get("pairing_id")
+        match_number = options.get("match_number")
+        if pairing_id is not None and match_number is not None:
+            raise CommandError("Use either --pairing-id or --match-number, not both")
+        targeted = pairing_id is not None or match_number is not None
 
         try:
             season = Season.objects.get(id=season_id)
@@ -79,17 +104,44 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Target round: {target_round.number}")
 
+        # Validate targeting options, if given
+        if pairing_id is not None:
+            if season.league.competitor_type == "team":
+                from heltour.tournament.models import TeamPairing
+
+                exists = TeamPairing.objects.filter(
+                    id=pairing_id, round=target_round
+                ).exists()
+            else:
+                exists = LonePlayerPairing.objects.filter(
+                    id=pairing_id, round=target_round
+                ).exists()
+            if not exists:
+                raise CommandError(
+                    f"Pairing {pairing_id} is not in round {target_round.number} "
+                    f"of season {season_id}"
+                )
+            self.stdout.write(f"Targeting single pairing: {pairing_id}")
+        elif match_number is not None:
+            if match_number < 1:
+                raise CommandError("--match-number must be >= 1")
+            self.stdout.write(
+                f"Targeting match {match_number} of the stage (all brackets)"
+            )
+
         # Check if this is a knockout tournament
         is_knockout = season.league.pairing_type.startswith("knockout")
 
         # Generate results based on league type and tournament format
         if season.league.competitor_type == "team":
             results_generated = self._generate_team_results(
-                target_round, forfeit_rate, dry_run, overwrite, is_knockout
+                target_round, forfeit_rate, dry_run, overwrite, is_knockout,
+                pairing_id, match_number,
             )
         else:
             results_generated = self._generate_lone_results(
-                target_round, forfeit_rate, dry_run, overwrite, is_knockout
+                target_round, forfeit_rate, dry_run, overwrite, is_knockout,
+                pairing_id, match_number,
             )
 
         if dry_run:
@@ -118,17 +170,49 @@ class Command(BaseCommand):
 
                 # For knockout tournaments, try to advance to next round
                 if is_knockout:
-                    # Force refresh of all team pairing data before advancement check
-                    from django.db import transaction
-                    transaction.commit()  # Ensure all changes are committed
-                    self._try_advance_knockout(target_round, season, dry_run)
+                    if targeted:
+                        self.stdout.write(
+                            "Skipping auto-advancement (--pairing-id / "
+                            "--match-number targets only part of the round). "
+                            "Advance via the dashboard, or rerun without a "
+                            "targeting option once the round is complete."
+                        )
+                    else:
+                        # Force refresh of all team pairing data before advancement check
+                        from django.db import transaction
+                        transaction.commit()  # Ensure all changes are committed
+                        self._try_advance_knockout(target_round, season, dry_run)
             else:
                 self.stdout.write(
                     "No results generated (all games already have results)"
                 )
 
+    def _filter_to_match_number(self, pairings, match_number, get_pair_key):
+        """Return the subset of `pairings` that are match `match_number` of the stage.
+
+        Match number within a multi-match stage is derived from pairing_order:
+        pairings are laid out match-by-match, so with N unique competitor pairs
+        the first N pairings are match 1, the next N are match 2, and so on.
+        """
+        from heltour.tournament_core.multi_match import (
+            get_match_number_from_pairing_order,
+        )
+
+        pairings = list(pairings)
+        unique_pairs = {
+            key for key in (get_pair_key(p) for p in pairings) if key is not None
+        }
+        total_pairs = len(unique_pairs) or 1
+        return [
+            p
+            for p in pairings
+            if get_match_number_from_pairing_order(p.pairing_order, total_pairs)
+            == match_number
+        ]
+
     def _generate_team_results(
-        self, round_obj, forfeit_rate, dry_run, overwrite, is_knockout=False
+        self, round_obj, forfeit_rate, dry_run, overwrite, is_knockout=False,
+        pairing_id=None, match_number=None
     ):
         """Generate results for team tournament board pairings."""
         from heltour.tournament.models import TeamPairing
@@ -138,6 +222,22 @@ class Command(BaseCommand):
         team_pairings = TeamPairing.objects.filter(round=round_obj).prefetch_related(
             "teamplayerpairing_set__white", "teamplayerpairing_set__black"
         )
+        if pairing_id is not None:
+            team_pairings = team_pairings.filter(id=pairing_id)
+        elif match_number is not None:
+            target_ids = [
+                p.id
+                for p in self._filter_to_match_number(
+                    TeamPairing.objects.filter(round=round_obj),
+                    match_number,
+                    lambda p: (
+                        tuple(sorted([p.white_team_id, p.black_team_id]))
+                        if p.black_team_id
+                        else None
+                    ),
+                )
+            ]
+            team_pairings = team_pairings.filter(id__in=target_ids)
 
         self.stdout.write(f"Found {team_pairings.count()} team pairings")
 
@@ -390,7 +490,8 @@ class Command(BaseCommand):
                 pairing.save()
 
     def _generate_lone_results(
-        self, round_obj, forfeit_rate, dry_run, overwrite, is_knockout=False
+        self, round_obj, forfeit_rate, dry_run, overwrite, is_knockout=False,
+        pairing_id=None, match_number=None
     ):
         """Generate results for individual tournament pairings."""
         results_generated = 0
@@ -398,6 +499,22 @@ class Command(BaseCommand):
         lone_pairings = LonePlayerPairing.objects.filter(
             round=round_obj
         ).select_related("white", "black")
+        if pairing_id is not None:
+            lone_pairings = lone_pairings.filter(id=pairing_id)
+        elif match_number is not None:
+            target_ids = [
+                p.id
+                for p in self._filter_to_match_number(
+                    LonePlayerPairing.objects.filter(round=round_obj),
+                    match_number,
+                    lambda p: (
+                        tuple(sorted([p.white_id, p.black_id]))
+                        if p.black_id
+                        else None
+                    ),
+                )
+            ]
+            lone_pairings = lone_pairings.filter(id__in=target_ids)
 
         self.stdout.write(f"Found {lone_pairings.count()} individual pairings")
 

@@ -4743,6 +4743,7 @@ class KnockoutBracketAdmin(admin.ModelAdmin):
         "seeding_style",
         "games_per_match",
         "matches_per_stage",
+        "match_generation",
         "tournament_type",
         "is_completed",
     ]
@@ -4750,6 +4751,7 @@ class KnockoutBracketAdmin(admin.ModelAdmin):
         "seeding_style",
         "games_per_match",
         "matches_per_stage",
+        "match_generation",
         "is_completed",
     ]
     search_fields = ["season__name", "season__league__name"]
@@ -4770,6 +4772,7 @@ class KnockoutBracketAdmin(admin.ModelAdmin):
                     "seeding_style",
                     "games_per_match",
                     "matches_per_stage",
+                    "match_generation",
                 )
             },
         ),

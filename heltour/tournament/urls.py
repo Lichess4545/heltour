@@ -51,6 +51,7 @@ season_urlpatterns = [
         name="pairings_icalendar",
     ),
     path("bracket/", views.KnockoutBracketView.as_view(), name="knockout_bracket"),
+    path("teams/", views.KnockoutTeamsView.as_view(), name="knockout_teams"),
     path(
         "pairings/team/<int:team_number>/",
         views.PairingsView.as_view(),
@@ -96,6 +97,11 @@ season_urlpatterns = [
         "dashboard/export-trf16/",
         staff_member_required(views.TRF16ExportView.as_view()),
         name="export_trf16",
+    ),
+    path(
+        "dashboard/pairings-export/",
+        staff_member_required(views.PairingsExportView.as_view()),
+        name="pairings_export",
     ),
     path("player/", views.UserDashboardView.as_view(), name="user_dashboard"),
     path(

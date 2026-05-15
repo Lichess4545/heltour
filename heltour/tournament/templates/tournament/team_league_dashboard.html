@@ -125,6 +125,9 @@
                         <div class="dashboard-season-action">
                             <a href="{% leagueurl 'game_ids' league.tag season.tag %}" class="btn btn-default">Game IDs</a>
                         </div>
+                        <div class="dashboard-season-action">
+                            <a href="{% leagueurl 'pairings_export' league.tag season.tag %}" class="btn btn-default">Pairings Export</a>
+                        </div>
                         {% if league.show_fide_names %}
                         <div class="dashboard-season-action">
                             <a href="{% leagueurl 'broadcast_players' league.tag season.tag %}" class="btn btn-default">Broadcast Players</a>
