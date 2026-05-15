@@ -41,7 +41,7 @@
                                class="btn btn-default btn-sm">View Bracket</a>
                         </p>
                         {% if knockout_team_rows %}
-                            {% include 'tournament/_knockout_team_list.html' with team_rows=knockout_team_rows board_numbers=knockout_board_numbers board_count=knockout_board_count %}
+                            {% include 'tournament/_knockout_team_list.html' with team_rows=knockout_team_rows board_numbers=knockout_board_numbers board_count=knockout_board_count main_board_count=knockout_main_board_count %}
                         {% else %}
                             <p class="text-muted">No teams have been added to this season yet.</p>
                         {% endif %}

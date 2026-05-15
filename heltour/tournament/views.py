@@ -301,8 +301,12 @@ class LeagueHomeView(LeagueView):
         # (with a link to the bracket) on the otherwise-empty home page.
         is_knockout = self.league.pairing_type.startswith('knockout')
         knockout_team_rows = []
+        knockout_board_numbers = []
+        knockout_main_board_count = 0
         if is_knockout:
-            knockout_team_rows = _knockout_team_rows(self.season)
+            knockout_team_rows, knockout_board_numbers, knockout_main_board_count = (
+                _knockout_team_rows(self.season)
+            )
 
         context = {
             'team_scores': team_scores,
@@ -314,8 +318,9 @@ class LeagueHomeView(LeagueView):
             'other_leagues': other_leagues,
             'is_knockout': is_knockout,
             'knockout_team_rows': knockout_team_rows,
-            'knockout_board_numbers': list(range(1, (self.season.boards or 0) + 1)),
-            'knockout_board_count': self.season.boards or 0,
+            'knockout_board_numbers': knockout_board_numbers,
+            'knockout_board_count': len(knockout_board_numbers),
+            'knockout_main_board_count': knockout_main_board_count,
             'knockout_team_count': len(knockout_team_rows),
             'knockout_rostered_count': sum(1 for r in knockout_team_rows if r['has_roster']),
         }
@@ -4473,28 +4478,41 @@ def _get_nav_tree(league_tag, season_tag):
 def _knockout_team_rows(season):
     """Build the team list for a knockout season.
 
-    Returns one row per team (ordered by team number / seed): the team, a
-    ``boards`` list of length ``season.boards`` holding the TeamMember on each
-    board (or None where a board is unfilled), and a ``has_roster`` flag.
+    Returns ``(rows, board_numbers, main_board_count)``:
+        * ``rows`` - one row per team (ordered by team number / seed): the
+          team, a ``boards`` list aligned to ``board_numbers`` (entries are
+          ``TeamMember`` or ``None``), and a ``has_roster`` flag.
+        * ``board_numbers`` - 1..N where N is the highest board number any
+          team has filled, but at least ``season.boards`` so empty slots
+          render. Boards above ``season.boards`` are reserves.
+        * ``main_board_count`` - ``season.boards`` (the cut-off between
+          regular boards and reserves).
     """
-    board_count = season.boards or 0
+    main_board_count = season.boards or 0
     teams = Team.objects.filter(season=season).order_by('number').prefetch_related(
         Prefetch(
             'teammember_set',
             queryset=TeamMember.objects.select_related('player').order_by('board_number'),
         )
     )
+    teams = list(teams)
+    max_board = main_board_count
+    for team in teams:
+        for m in team.teammember_set.all():
+            if m.board_number > max_board:
+                max_board = m.board_number
+    board_numbers = list(range(1, max_board + 1))
     rows = []
     for team in teams:
         members = list(team.teammember_set.all())
         by_board = {m.board_number: m for m in members}
         rows.append({
             'team': team,
-            'boards': [by_board.get(n) for n in range(1, board_count + 1)],
+            'boards': [by_board.get(n) for n in board_numbers],
             'has_roster': bool(members),
             'member_count': len(members),
         })
-    return rows
+    return rows, board_numbers, main_board_count
 
 
 def _seed_display(seeding):
@@ -4513,12 +4531,12 @@ class KnockoutTeamsView(SeasonView):
     def view(self):
         if not self.season.league.pairing_type.startswith('knockout'):
             raise Http404("This season is not a knockout tournament")
-        team_rows = _knockout_team_rows(self.season)
-        board_count = self.season.boards or 0
+        team_rows, board_numbers, main_board_count = _knockout_team_rows(self.season)
         context = {
             'team_rows': team_rows,
-            'board_numbers': list(range(1, board_count + 1)),
-            'board_count': board_count,
+            'board_numbers': board_numbers,
+            'board_count': len(board_numbers),
+            'main_board_count': main_board_count,
             'team_count': len(team_rows),
             'rostered_count': sum(1 for r in team_rows if r['has_roster']),
         }

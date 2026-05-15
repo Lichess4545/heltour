@@ -66,7 +66,6 @@ from django.db import transaction
 from django.utils import timezone
 
 ROSTER_HEADER_KEY = "lichess_username"
-MAX_BOARD_NUMBER = 12  # heltour BOARD_NUMBER_OPTIONS tops out at 12
 USERNAME_RE = re.compile(r"^[\w-]{2,30}$")
 DUEL_RE = re.compile(r"duel\s*(\d+)", re.IGNORECASE)
 # Team names in the bracket layout carry a trailing kick-off time, e.g.
@@ -578,10 +577,9 @@ class Command(BaseCommand):
                 f"{where}: board_number {get('board_number')!r} is not a number"
             )
             return None
-        if board_number < 1 or board_number > MAX_BOARD_NUMBER:
+        if board_number < 1:
             errors.append(
-                f"{where}: board_number {board_number} is out of range "
-                f"(1-{MAX_BOARD_NUMBER})"
+                f"{where}: board_number {board_number} must be >= 1"
             )
             return None
 
