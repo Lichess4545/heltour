@@ -46,6 +46,16 @@ Examples:
     python manage.py import_knockout_rosters \\
         --league-tag WUCCKNOCKOUT --season-tag 2026 \\
         --lineups knockout-r1-lineups.xlsx --pairings ko-pairing.xlsx
+
+    # Update mode: drop in late-arriving rosters for specific teams without
+    # touching the bracket, seedings, other teams, or other teams' pairings.
+    # Each --roster file is a per-team workbook. The target team's board
+    # pairings get rebuilt in place (refused if any board game already has a
+    # result or game_link).
+    python manage.py import_knockout_rosters --update-rosters \\
+        --league-tag WUCCKNOCKOUT --season-tag 2026 \\
+        --roster monash-university.xlsx \\
+        --roster universidad-de-el-salvador.xlsx
 """
 
 import os
@@ -105,9 +115,40 @@ class Command(BaseCommand):
             help="Directory of per-team roster .xlsx files",
         )
         parser.add_argument(
+            "--roster",
+            dest="rosters",
+            action="append",
+            default=[],
+            help=(
+                "Path to a single per-team roster .xlsx file. Repeatable. "
+                "Use this with --update-rosters to patch specific teams "
+                "without rescanning a whole directory."
+            ),
+        )
+        parser.add_argument(
             "--pairings",
-            required=True,
-            help="Pairings .xlsx (clean table or the 'Duel N' bracket layout)",
+            help=(
+                "Pairings .xlsx (clean table or the 'Duel N' bracket layout). "
+                "Required for a fresh import; ignored with --update-rosters."
+            ),
+        )
+        parser.add_argument(
+            "--update-rosters",
+            action="store_true",
+            help=(
+                "Update mode: patch rosters for teams that already exist in "
+                "the season, without touching other teams, the bracket, or "
+                "seedings. The team's board pairings are rebuilt in place "
+                "(refused if any board game already has a result or game link)."
+            ),
+        )
+        parser.add_argument(
+            "--replace-members",
+            action="store_true",
+            help=(
+                "With --update-rosters: allow replacing a team that already "
+                "has members (otherwise the team is skipped with a warning)."
+            ),
         )
         parser.add_argument(
             "--rounds",
@@ -156,22 +197,37 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         lineups_path = options["lineups"]
         rosters_dir = options["rosters_dir"]
+        roster_files = list(options.get("rosters") or [])
         pairings_path = options["pairings"]
+        update_mode = options["update_rosters"]
 
-        if bool(lineups_path) == bool(rosters_dir):
-            raise CommandError("Pass exactly one of --lineups or --rosters-dir")
+        sources = sum(1 for v in (lineups_path, rosters_dir, roster_files) if v)
+        if sources != 1:
+            raise CommandError(
+                "Pass exactly one of --lineups, --rosters-dir, or --roster"
+            )
         if lineups_path and not os.path.isfile(lineups_path):
             raise CommandError(f"Lineups file not found: {lineups_path}")
         if rosters_dir and not os.path.isdir(rosters_dir):
             raise CommandError(f"Rosters directory not found: {rosters_dir}")
-        if not os.path.isfile(pairings_path):
-            raise CommandError(f"Pairings file not found: {pairings_path}")
+        for r in roster_files:
+            if not os.path.isfile(r):
+                raise CommandError(f"Roster file not found: {r}")
+        if not update_mode:
+            if not pairings_path:
+                raise CommandError("--pairings is required (omit only with --update-rosters)")
+            if not os.path.isfile(pairings_path):
+                raise CommandError(f"Pairings file not found: {pairings_path}")
 
         validate_only = options["validate_only"]
         if not validate_only and (not options["league_tag"] or not options["season_tag"]):
             raise CommandError(
                 "--league-tag and --season-tag are required unless --validate-only"
             )
+        if update_mode and validate_only:
+            # Update mode validates against the live DB, not against a pairings
+            # file - allow it (the writes are still skipped by --dry-run).
+            pass
 
         errors = []
         warnings = []
@@ -179,19 +235,26 @@ class Command(BaseCommand):
         # --- Phase 1: parse + format-validate the spreadsheets (no DB) --------
         if lineups_path:
             rosters, perr, pwarn = self._parse_lineups_file(lineups_path)
-        else:
+        elif rosters_dir:
             rosters, perr, pwarn = self._parse_rosters(rosters_dir)
+        else:
+            rosters, perr, pwarn = self._parse_roster_files(roster_files)
         errors += perr
         warnings += pwarn
 
-        ordered_pairs, seed_labels, pair_err = self._parse_pairings(pairings_path)
-        errors += pair_err
+        if update_mode:
+            ordered_pairs = []
+            seed_labels = {}
+            all_teams = list(rosters.keys())
+        else:
+            ordered_pairs, seed_labels, pair_err = self._parse_pairings(pairings_path)
+            errors += pair_err
 
-        cross_err, cross_warn, ordered_pairs, rosters, all_teams = self._cross_validate(
-            rosters, ordered_pairs
-        )
-        errors += cross_err
-        warnings += cross_warn
+            cross_err, cross_warn, ordered_pairs, rosters, all_teams = self._cross_validate(
+                rosters, ordered_pairs
+            )
+            errors += cross_err
+            warnings += cross_warn
 
         boards = options["boards"] or self._infer_boards(rosters)
         if boards:
@@ -216,15 +279,24 @@ class Command(BaseCommand):
         teams_empty = len(all_teams) - teams_with_rosters
         reused = sum(1 for p in plan.values() if p["action"] == "reuse")
         new = sum(1 for p in plan.values() if p["action"] == "create")
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Validation passed: {len(all_teams)} teams "
-                f"({teams_with_rosters} with rosters, {teams_empty} empty), "
-                f"{len(plan)} players ({reused} reused, {new} new), "
-                f"{len(ordered_pairs)} bracket matches, "
-                f"{len(seed_labels)} seed labels, {len(warnings)} warning(s)"
+        if update_mode:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Validation passed: {len(rosters)} team(s) to update, "
+                    f"{len(plan)} players ({reused} reused, {new} new), "
+                    f"{len(warnings)} warning(s)"
+                )
             )
-        )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Validation passed: {len(all_teams)} teams "
+                    f"({teams_with_rosters} with rosters, {teams_empty} empty), "
+                    f"{len(plan)} players ({reused} reused, {new} new), "
+                    f"{len(ordered_pairs)} bracket matches, "
+                    f"{len(seed_labels)} seed labels, {len(warnings)} warning(s)"
+                )
+            )
         if validate_only:
             return
 
@@ -232,6 +304,26 @@ class Command(BaseCommand):
         with transaction.atomic():
             league = self._resolve_league(options)
             season = self._resolve_season(league, options, boards)
+
+            if update_mode:
+                summary = self._update_team_rosters(
+                    season, rosters, plan, options["replace_members"]
+                )
+                season.calculate_scores()
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Updated {summary['updated']} team(s), "
+                        f"skipped {summary['skipped']}, "
+                        f"rebuilt {summary['rebuilt_pairings']} board game(s) "
+                        f"in {league.tag}/{season.tag}"
+                    )
+                )
+                if options["dry_run"]:
+                    transaction.set_rollback(True)
+                    self.stdout.write(self.style.WARNING(
+                        "DRY RUN: rolled back, nothing saved"
+                    ))
+                return
 
             if options["clear_existing"]:
                 self._clear_season(season)
@@ -362,22 +454,25 @@ class Command(BaseCommand):
 
     def _parse_rosters(self, rosters_dir):
         """Parse a directory of per-team roster .xlsx files."""
+        files = sorted(
+            os.path.join(rosters_dir, f)
+            for f in os.listdir(rosters_dir)
+            if f.lower().endswith(".xlsx") and not f.startswith("~$")
+        )
+        if not files:
+            return {}, [f"No .xlsx roster files found in {rosters_dir}"], []
+        return self._parse_roster_files(files)
+
+    def _parse_roster_files(self, paths):
+        """Parse a list of per-team roster .xlsx file paths."""
         from openpyxl import load_workbook
 
         rosters = {}
         errors = []
         warnings = []
 
-        files = sorted(
-            f for f in os.listdir(rosters_dir)
-            if f.lower().endswith(".xlsx") and not f.startswith("~$")
-        )
-        if not files:
-            errors.append(f"No .xlsx roster files found in {rosters_dir}")
-            return rosters, errors, warnings
-
-        for filename in files:
-            path = os.path.join(rosters_dir, filename)
+        for path in paths:
+            filename = os.path.basename(path)
             try:
                 wb = load_workbook(path, read_only=True, data_only=True)
             except Exception as exc:
@@ -962,6 +1057,137 @@ class Command(BaseCommand):
 
             teams_by_name[team_name] = team
         return teams_by_name
+
+    def _update_team_rosters(self, season, rosters, plan, replace_members):
+        """Update rosters for existing teams in ``season`` in place.
+
+        For each parsed roster:
+          * resolves the team by canonical (case/whitespace-folded) name;
+          * if the team already has members, skips it unless
+            ``replace_members`` is set (then deletes the existing members);
+          * adds the new ``TeamMember`` + ``SeasonPlayer`` rows;
+          * for every ``TeamPairing`` this team is part of, refuses if any
+            board game has a result or game_link already, otherwise wipes
+            the existing ``TeamPlayerPairing`` rows and rebuilds them via
+            the regular knockout board-pairing generator.
+
+        Returns a summary dict with ``updated``, ``skipped``, and
+        ``rebuilt_pairings`` counts.
+        """
+        import reversion
+        from django.db.models import Q
+
+        from heltour.tournament.models import (
+            Player,
+            SeasonPlayer,
+            TeamMember,
+            TeamPairing,
+            TeamPlayerPairing,
+        )
+        from heltour.tournament.pairinggen import (
+            _create_board_pairings_for_knockout,
+        )
+
+        # The whole codebase runs behind django-cacheops, so stale querysets
+        # can mask a freshly renamed team or a freshly cleared roster. Always
+        # read uncached in this code path - the writes are surgical anyway.
+        existing_by_fold = {
+            self._fold(t.name): t for t in season.team_set.nocache()
+        }
+        board_count = season.boards or 0
+        updated = 0
+        skipped = 0
+        rebuilt_pairings = 0
+
+        for team_name, roster_rows in rosters.items():
+            team = existing_by_fold.get(self._fold(team_name))
+            if team is None:
+                raise CommandError(
+                    f"Team {team_name!r} is not in season {season.tag!r}; "
+                    "use a fresh import (without --update-rosters) to add it"
+                )
+
+            existing_members = list(team.teammember_set.nocache())
+            if existing_members and not replace_members:
+                self.stdout.write(self.style.WARNING(
+                    f"{team.name!r}: already has {len(existing_members)} "
+                    "member(s); skipping (pass --replace-members to overwrite)"
+                ))
+                skipped += 1
+                continue
+
+            team_pairings = list(
+                TeamPairing.objects.filter(round__season=season).filter(
+                    Q(white_team=team) | Q(black_team=team)
+                ).select_related('round').nocache()
+            )
+            board_pairings = list(
+                TeamPlayerPairing.objects.filter(
+                    team_pairing__in=team_pairings
+                ).nocache()
+            )
+            blocking = [
+                bp for bp in board_pairings
+                if (bp.result or "").strip() or (bp.game_link or "").strip()
+            ]
+            if blocking:
+                raise CommandError(
+                    f"{team.name!r}: {len(blocking)} board game(s) already "
+                    "have a result or game_link; refusing to rebuild pairings"
+                )
+
+            with reversion.create_revision():
+                reversion.set_comment("Updated knockout team roster.")
+
+                if existing_members:
+                    team.teammember_set.all().delete()
+
+                ratings = []
+                for row in roster_rows:
+                    entry = plan[(team_name, row["board_number"])]
+                    player = self._materialise_player(Player, entry)
+                    if player.rating is not None:
+                        ratings.append(player.rating)
+                    SeasonPlayer.objects.get_or_create(
+                        season=season,
+                        player=player,
+                        defaults={"is_active": True},
+                    )
+                    TeamMember.objects.create(
+                        team=team,
+                        player=player,
+                        board_number=row["board_number"],
+                        is_captain=row["role"] == "captain",
+                        is_vice_captain=row["role"] == "vice_captain",
+                    )
+
+                if ratings:
+                    team.seed_rating = round(sum(ratings) / len(ratings))
+                    team.save()
+
+                # Rebuild this team's board pairings so the new players
+                # populate any TeamPlayerPairing slots that were created
+                # empty (e.g. by the original --create-pairings run).
+                for tp in team_pairings:
+                    if tp.black_team_id is None:
+                        continue  # bye - no board games to rebuild
+                    TeamPlayerPairing.objects.filter(team_pairing=tp).delete()
+                    _create_board_pairings_for_knockout(tp, board_count)
+                    rebuilt_pairings += board_count
+                    # Recompute aggregate team scores on the TeamPairing.
+                    tp.refresh_points()
+
+            self.stdout.write(self.style.SUCCESS(
+                f"  {team.name!r}: {len(roster_rows)} member(s), "
+                f"rebuilt {len(team_pairings)} match(es)"
+            ))
+            updated += 1
+
+        return {
+            "updated": updated,
+            "skipped": skipped,
+            "rebuilt_pairings": rebuilt_pairings,
+        }
 
     def _materialise_player(self, Player, entry):
         """Create (or fetch) the Player for a plan entry and backfill blanks."""

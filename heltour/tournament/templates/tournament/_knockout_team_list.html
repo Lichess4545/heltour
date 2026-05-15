@@ -24,7 +24,7 @@
                         {% for member in row.boards %}
                             <td>
                                 {% if member %}
-                                    {% player_display_name member.player %}
+                                    {% player_display_name member.player %}{% gender_badge member.player %}
                                     <small class="text-muted">({% rating member.player %})</small>
                                     {% if member.is_captain %}
                                         <span class="label label-primary" title="Captain">C</span>

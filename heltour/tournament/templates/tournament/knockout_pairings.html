@@ -199,7 +199,7 @@
                                                             <span class="color-dot left"></span>
                                                             <a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
                                                                href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
-                                                                {% player_display_name pairing.white_team_player %}
+                                                                {% player_display_name pairing.white_team_player %}{% gender_badge pairing.white_team_player %}
                                                                 {% if not zen_mode %}
                                                                     ({% white_team_rating pairing %})
                                                                 {% endif %}
@@ -240,7 +240,7 @@
                                                             {% endif %}
                                                             <a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
                                                                href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
-                                                                {% player_display_name pairing.black_team_player %}
+                                                                {% player_display_name pairing.black_team_player %}{% gender_badge pairing.black_team_player %}
                                                                 {% if not zen_mode %}
                                                                     ({% black_team_rating pairing %})
                                                                 {% endif %}
