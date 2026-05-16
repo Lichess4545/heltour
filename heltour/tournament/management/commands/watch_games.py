@@ -33,15 +33,15 @@ from heltour.tournament.models import (
     Player,
     PlayerPairing,
     PlayerPresenceEvent,
-    SeasonPlayer,
     get_gamelink_from_gameid,
     is_fide_rating_type,
     logger,
 )
 
-# Lichess accepts up to 1000 usernames per stream connection; we run several
-# smaller streams in parallel instead of one large one.
-WATCHER_MAX_USERNAMES = 300
+# Lichess accepts up to 500 usernames per /api/stream/games-by-users
+# connection. Chunk a little under so we have headroom; multiple chunks
+# spawn parallel stream threads.
+WATCHER_MAX_USERNAMES = 500
 REFRESH_INTERVAL_SECONDS = 60
 INACTIVITY_TIMEOUT_SECONDS = 10 * 60
 INITIAL_BACKOFF_SECONDS = 1
@@ -101,7 +101,7 @@ def _perf_matches_rating_type(perf: str, rating_type: str) -> bool:
     return False
 
 
-def _chunked(seq: list[str], size: int) -> Iterable[list[str]]:
+def _chunked(seq: list, size: int) -> Iterable[list]:
     for i in range(0, len(seq), size):
         yield seq[i : i + size]
 
@@ -123,18 +123,80 @@ def _fetch_ply_count(game_id: str) -> int:
 # Database side-effects.
 
 
-def get_active_usernames() -> list[str]:
-    """Lower-cased lichess usernames of active players in not-yet-completed seasons."""
-    season_players = (
-        SeasonPlayer.objects.filter(is_active=True, season__is_completed=False)
-        .select_related("player")
+PAIRINGS_PER_CHUNK = WATCHER_MAX_USERNAMES // 2
+
+
+def get_watch_chunks(
+    pairings_per_chunk: int = PAIRINGS_PER_CHUNK,
+) -> list[list[str]]:
+    """Username chunks to feed into `/api/stream/games-by-users`.
+
+    Finds rounds that still have at least one pairing with no result,
+    then takes *all* pairings in those rounds (resolved or not) and
+    slices them into groups of `pairings_per_chunk`. Each chunk's
+    usernames are the union of its pairings' two players, lowercased
+    and sorted.
+
+    Why slice by pairing: lichess only delivers a game event to a
+    stream connection that has *both* sides subscribed. Slicing by
+    pairing keeps both sides of every pairing in the same chunk by
+    construction. Ordering by primary key keeps chunk membership stable
+    while a round is open — a single pairing finishing doesn't reshuffle
+    the chunks, so we don't restart streams unnecessarily.
+
+    Default chunk size is `WATCHER_MAX_USERNAMES // 2` (250 pairings →
+    at most 500 usernames), staying under lichess's per-connection cap.
+    """
+    lone_round_ids = set(
+        PlayerPairing.objects.filter(
+            loneplayerpairing__round__is_completed=False,
+            loneplayerpairing__round__publish_pairings=True,
+            loneplayerpairing__round__season__is_completed=False,
+            result="",
+        )
+        .values_list("loneplayerpairing__round_id", flat=True)
+        .distinct()
         .nocache()
     )
-    usernames: set[str] = set()
-    for sp in season_players:
-        if sp.player:
-            usernames.add(sp.player.lichess_username.lower())
-    return sorted(usernames)
+    lone_round_ids.discard(None)
+
+    team_round_ids = set(
+        PlayerPairing.objects.filter(
+            teamplayerpairing__team_pairing__round__is_completed=False,
+            teamplayerpairing__team_pairing__round__publish_pairings=True,
+            teamplayerpairing__team_pairing__round__season__is_completed=False,
+            result="",
+        )
+        .values_list("teamplayerpairing__team_pairing__round_id", flat=True)
+        .distinct()
+        .nocache()
+    )
+    team_round_ids.discard(None)
+
+    if not lone_round_ids and not team_round_ids:
+        return []
+
+    pairings = list(
+        PlayerPairing.objects.filter(
+            Q(loneplayerpairing__round_id__in=lone_round_ids)
+            | Q(teamplayerpairing__team_pairing__round_id__in=team_round_ids)
+        )
+        .select_related("white", "black")
+        .order_by("pk")
+        .nocache()
+    )
+
+    chunks: list[list[str]] = []
+    for slice_ in _chunked(pairings, pairings_per_chunk):
+        names: set[str] = set()
+        for p in slice_:
+            if p.white:
+                names.add(p.white.lichess_username.lower())
+            if p.black:
+                names.add(p.black.lichess_username.lower())
+        if names:
+            chunks.append(sorted(names))
+    return chunks
 
 
 def apply_event(event: dict) -> bool:
@@ -614,17 +676,29 @@ class PresencePoller(threading.Thread):
 
 
 class Watcher:
-    """Periodically refreshes the active username list and manages streams."""
+    """Periodically refreshes the watch chunks and manages stream threads.
+
+    One stream thread per chunk. Each tick recomputes chunks from the
+    DB; chunks whose membership is unchanged keep their existing thread,
+    chunks that disappear are stopped, and new chunks start a fresh
+    thread. Adding or finishing a single pairing doesn't restart all
+    streams — only the chunks whose membership actually changed.
+    """
 
     def __init__(self, refresh_interval: float = REFRESH_INTERVAL_SECONDS):
         self.refresh_interval = refresh_interval
         self._stop = threading.Event()
-        self._stream_stops: list[threading.Event] = []
-        self._stream_threads: list[threading.Thread] = []
+        # Membership (frozenset of usernames) -> (stop_event, thread).
+        self._streams: dict[
+            frozenset[str], tuple[threading.Event, threading.Thread]
+        ] = {}
         self._current_usernames: list[str] = []
         self._usernames_lock = threading.Lock()
         self._presence_poller: PresencePoller | None = None
         self._presence_stop: threading.Event | None = None
+        # Monotonic; new threads get a unique id so log lines stay
+        # distinguishable across reconciliations.
+        self._next_request_id = 0
 
     def run(self) -> None:
         try:
@@ -634,71 +708,88 @@ class Watcher:
                 if self._stop.wait(self.refresh_interval):
                     break
         finally:
-            self._stop_streams()
+            self._stop_all_streams()
             self._stop_presence_poller()
 
     def stop(self) -> None:
         self._stop.set()
-        for ev in self._stream_stops:
-            ev.set()
+        for stop_event, _t in self._streams.values():
+            stop_event.set()
         if self._presence_stop is not None:
             self._presence_stop.set()
 
     def current_usernames(self) -> list[str]:
-        """Thread-safe snapshot of the active username list."""
+        """Thread-safe snapshot of the union of all current chunks."""
         with self._usernames_lock:
             return list(self._current_usernames)
 
     def _tick(self) -> None:
         try:
-            usernames = get_active_usernames()
+            chunks = get_watch_chunks()
         except Exception:
-            logger.exception("watcher: failed to refresh usernames")
+            logger.exception("watcher: failed to refresh watch chunks")
             return
         finally:
             close_old_connections()
+        self._reconcile(chunks)
 
-        with self._usernames_lock:
-            unchanged = usernames == self._current_usernames
-        if unchanged:
-            return
-        logger.info(
-            "watcher: usernames changed (%d -> %d), restarting streams",
-            len(self._current_usernames),
-            len(usernames),
-        )
-        self._restart_streams(usernames)
+    def _reconcile(self, chunks: list[list[str]]) -> None:
+        desired = {frozenset(c) for c in chunks if c}
+        current = set(self._streams.keys())
+        to_stop = current - desired
+        to_start = desired - current
 
-    def _restart_streams(self, usernames: list[str]) -> None:
-        self._stop_streams()
+        usernames = sorted({u for c in chunks for u in c})
         with self._usernames_lock:
-            self._current_usernames = list(usernames)
-        if not usernames:
-            logger.info("watcher: no active players, idling")
-            return
-        for i, chunk in enumerate(_chunked(usernames, WATCHER_MAX_USERNAMES)):
+            self._current_usernames = usernames
+
+        if to_stop:
+            self._stop_chunks(to_stop)
+
+        if to_start or to_stop:
+            logger.info(
+                "watcher: reconciled chunks (kept=%d started=%d stopped=%d users=%d)",
+                len(current & desired),
+                len(to_start),
+                len(to_stop),
+                len(usernames),
+            )
+
+        for key in to_start:
+            chunk = sorted(key)
             stop_event = threading.Event()
+            request_id = self._next_request_id
+            self._next_request_id += 1
             t = threading.Thread(
                 target=stream_games,
                 kwargs={
                     "usernames": chunk,
                     "stop_event": stop_event,
-                    "request_id": i,
+                    "request_id": request_id,
                 },
-                name=f"watcher-{i}",
+                name=f"watcher-{request_id}",
                 daemon=True,
             )
             t.start()
-            self._stream_stops.append(stop_event)
-            self._stream_threads.append(t)
+            self._streams[key] = (stop_event, t)
 
-    def _stop_streams(self) -> None:
-        for ev in self._stream_stops:
-            ev.set()
-        for t in self._stream_threads:
+        if not desired and not current:
+            logger.info("watcher: no active players, idling")
+
+    def _stop_chunks(self, keys: Iterable[frozenset[str]]) -> None:
+        threads: list[threading.Thread] = []
+        for key in list(keys):
+            entry = self._streams.pop(key, None)
+            if entry is None:
+                continue
+            stop_event, t = entry
+            stop_event.set()
+            threads.append(t)
+        for t in threads:
             t.join(timeout=5)
-        self._stream_stops = []
-        self._stream_threads = []
+
+    def _stop_all_streams(self) -> None:
+        self._stop_chunks(list(self._streams.keys()))
 
     def _start_presence_poller(self) -> None:
         self._presence_stop = threading.Event()

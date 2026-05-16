@@ -12,6 +12,7 @@ from django.utils import timezone
 from heltour.tournament.management.commands.watch_games import (
     INITIAL_BACKOFF_SECONDS,
     MAX_BACKOFF_SECONDS,
+    PAIRINGS_PER_CHUNK,
     RATE_LIMIT_BACKOFF_SECONDS,
     WATCHER_MAX_USERNAMES,
     PresencePoller,
@@ -21,7 +22,7 @@ from heltour.tournament.management.commands.watch_games import (
     _iter_events,
     _result_for_event,
     apply_event,
-    get_active_usernames,
+    get_watch_chunks,
     stream_games,
 )
 from heltour.tournament.models import (
@@ -480,38 +481,67 @@ class TestApplyEvent(TestCase):
         self.assertNotEqual(pairing.game_link, "")
 
 
-class TestGetActiveUsernames(TestCase):
+class TestGetWatchChunks(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
+        cls.round_ = get_round("lone", 1)
+        cls.round_.publish_pairings = True
+        cls.round_.is_completed = False
+        cls.round_.save()
 
-    def test_returns_lowercased_active_season_players(self):
-        usernames = get_active_usernames()
-        self.assertEqual(usernames, [f"player{i}" for i in range(1, 9)])
+    def _pair(self, white, black, order, result=""):
+        return LonePlayerPairing.objects.create(
+            round=self.round_,
+            white=get_player(white),
+            black=get_player(black),
+            pairing_order=order,
+            result=result,
+        )
 
-    def test_skips_inactive_season_players(self):
-        from heltour.tournament.models import SeasonPlayer
-        sp = SeasonPlayer.objects.get(player__lichess_username="Player1")
-        sp.is_active = False
-        sp.save()
-        usernames = get_active_usernames()
-        self.assertNotIn("player1", usernames)
-        self.assertIn("player2", usernames)
+    def test_empty_when_no_open_pairings(self):
+        # No pairings exist yet → no chunks.
+        self.assertEqual(get_watch_chunks(), [])
 
-    def test_skips_completed_season(self):
+    def test_chunk_includes_all_pairings_for_round_with_open_pairing(self):
+        # One open + one finished pairing in the same round; both show up.
+        self._pair("Player1", "Player2", 1)
+        self._pair("Player3", "Player4", 2, result="1-0")
+        chunks = get_watch_chunks()
+        self.assertEqual(chunks, [["player1", "player2", "player3", "player4"]])
+
+    def test_skips_completed_rounds(self):
+        # Pairing exists but round is completed → no chunks.
+        self.round_.is_completed = True
+        self.round_.save()
+        self._pair("Player1", "Player2", 1)
+        self.assertEqual(get_watch_chunks(), [])
+
+    def test_skips_unpublished_rounds(self):
+        self.round_.publish_pairings = False
+        self.round_.save()
+        self._pair("Player1", "Player2", 1)
+        self.assertEqual(get_watch_chunks(), [])
+
+    def test_skips_completed_seasons(self):
         season = get_season("lone")
         season.is_completed = True
         season.save()
-        usernames = get_active_usernames()
-        for i in range(1, 9):
-            self.assertNotIn(f"player{i}", usernames)
+        self._pair("Player1", "Player2", 1)
+        self.assertEqual(get_watch_chunks(), [])
 
-    def test_includes_multiple_active_seasons(self):
-        from heltour.tournament.models import SeasonPlayer
-        team_season = get_season("team")
-        SeasonPlayer.objects.create(season=team_season, player=get_player("Player1"))
-        usernames = get_active_usernames()
-        self.assertEqual(usernames.count("player1"), 1)
+    def test_splits_per_pairing(self):
+        # 3 pairings, chunk size = 2 pairings → 2 chunks (2 pairings then 1).
+        self._pair("Player1", "Player2", 1)
+        self._pair("Player3", "Player4", 2)
+        self._pair("Player5", "Player6", 3)
+        chunks = get_watch_chunks(pairings_per_chunk=2)
+        self.assertEqual(len(chunks), 2)
+        self.assertEqual(chunks[0], ["player1", "player2", "player3", "player4"])
+        self.assertEqual(chunks[1], ["player5", "player6"])
+
+    def test_default_chunk_size_under_lichess_cap(self):
+        self.assertLessEqual(PAIRINGS_PER_CHUNK * 2, WATCHER_MAX_USERNAMES)
 
 
 class TestIterEvents(TestCase):
@@ -833,52 +863,84 @@ class TestWatcher(TestCase):
     def setUpTestData(cls):
         createCommonLeagueData()
 
-    def test_restart_chunks_usernames(self):
+    def test_reconcile_starts_one_thread_per_chunk(self):
         watcher = Watcher()
-        usernames = [f"player{i}" for i in range(WATCHER_MAX_USERNAMES * 2 + 5)]
+        chunks = [["a", "b"], ["c", "d"], ["e"]]
 
         with patch(
             "heltour.tournament.management.commands.watch_games.stream_games",
             lambda **kwargs: None,
         ):
-            watcher._restart_streams(usernames)
+            watcher._reconcile(chunks)
         try:
-            self.assertEqual(len(watcher._stream_threads), 3)
-            self.assertEqual(len(watcher._stream_stops), 3)
+            self.assertEqual(len(watcher._streams), 3)
+            self.assertEqual(
+                set(watcher._streams.keys()),
+                {frozenset(c) for c in chunks},
+            )
         finally:
             watcher.stop()
 
-    def test_restart_with_empty_list_creates_no_streams(self):
+    def test_reconcile_with_empty_list_creates_no_streams(self):
         watcher = Watcher()
-        watcher._restart_streams([])
-        self.assertEqual(watcher._stream_threads, [])
-        self.assertEqual(watcher._stream_stops, [])
+        watcher._reconcile([])
+        self.assertEqual(watcher._streams, {})
 
-    def test_restart_replaces_previous_streams(self):
+    def test_reconcile_keeps_unchanged_chunks(self):
         watcher = Watcher(refresh_interval=0.01)
 
         with patch(
             "heltour.tournament.management.commands.watch_games.stream_games",
             lambda **kwargs: kwargs["stop_event"].wait(),
         ):
-            watcher._restart_streams(["a", "b"])
-            first_stops = list(watcher._stream_stops)
-            watcher._restart_streams(["c", "d"])
+            watcher._reconcile([["a", "b"], ["c", "d"]])
+            first_streams = dict(watcher._streams)
+
+            # Reconciling with the same chunks must not restart anything:
+            # same stop_event/thread objects, none signalled.
+            watcher._reconcile([["a", "b"], ["c", "d"]])
             try:
-                # Old stops were signalled.
-                for ev in first_stops:
-                    self.assertTrue(ev.is_set())
-                self.assertEqual(len(watcher._stream_stops), 1)
+                self.assertEqual(watcher._streams, first_streams)
+                for stop_event, _t in first_streams.values():
+                    self.assertFalse(stop_event.is_set())
             finally:
                 watcher.stop()
 
-    def test_run_refreshes_usernames_and_stops(self):
+    def test_reconcile_only_restarts_changed_chunks(self):
         watcher = Watcher(refresh_interval=0.01)
-        get_users = MagicMock(return_value=[])
 
         with patch(
-            "heltour.tournament.management.commands.watch_games.get_active_usernames",
-            get_users,
+            "heltour.tournament.management.commands.watch_games.stream_games",
+            lambda **kwargs: kwargs["stop_event"].wait(),
+        ):
+            watcher._reconcile([["a", "b"], ["c", "d"]])
+            kept_key = frozenset(["a", "b"])
+            kept_stop, kept_thread = watcher._streams[kept_key]
+            removed_stop = watcher._streams[frozenset(["c", "d"])][0]
+
+            # Replace ["c", "d"] with ["e", "f"]; ["a", "b"] should be kept.
+            watcher._reconcile([["a", "b"], ["e", "f"]])
+            try:
+                self.assertEqual(
+                    set(watcher._streams.keys()),
+                    {frozenset(["a", "b"]), frozenset(["e", "f"])},
+                )
+                # Kept chunk's stream is the same object as before.
+                self.assertIs(watcher._streams[kept_key][0], kept_stop)
+                self.assertIs(watcher._streams[kept_key][1], kept_thread)
+                self.assertFalse(kept_stop.is_set())
+                # Removed chunk's stream was signalled.
+                self.assertTrue(removed_stop.is_set())
+            finally:
+                watcher.stop()
+
+    def test_run_refreshes_chunks_and_stops(self):
+        watcher = Watcher(refresh_interval=0.01)
+        get_chunks = MagicMock(return_value=[])
+
+        with patch(
+            "heltour.tournament.management.commands.watch_games.get_watch_chunks",
+            get_chunks,
         ), patch(
             "heltour.tournament.management.commands.watch_games.stream_games",
             lambda **kwargs: None,
@@ -888,43 +950,32 @@ class TestWatcher(TestCase):
             time.sleep(0.05)
             watcher.stop()
             t.join(timeout=2)
-        self.assertGreaterEqual(get_users.call_count, 1)
+        self.assertGreaterEqual(get_chunks.call_count, 1)
         self.assertFalse(t.is_alive())
 
-    def test_run_handles_get_usernames_exception(self):
+    def test_run_handles_get_chunks_exception(self):
         watcher = Watcher(refresh_interval=0.01)
-        get_users = MagicMock(side_effect=RuntimeError("db down"))
+        get_chunks = MagicMock(side_effect=RuntimeError("db down"))
 
         with Shush(), patch(
-            "heltour.tournament.management.commands.watch_games.get_active_usernames",
-            get_users,
+            "heltour.tournament.management.commands.watch_games.get_watch_chunks",
+            get_chunks,
         ):
             t = threading.Thread(target=watcher.run, daemon=True)
             t.start()
             time.sleep(0.05)
             watcher.stop()
             t.join(timeout=2)
-        # Multiple ticks should have happened — the loop kept running.
-        self.assertGreater(get_users.call_count, 1)
+        self.assertGreater(get_chunks.call_count, 1)
         self.assertFalse(t.is_alive())
 
-    def test_run_only_restarts_streams_when_usernames_change(self):
+    def test_run_does_not_churn_streams_when_chunks_unchanged(self):
         watcher = Watcher(refresh_interval=0.01)
-        get_users = MagicMock(return_value=["alice", "bob"])
-        restarts = MagicMock()
-
-        # Patch _restart_streams so we can count how often it runs.
-        original_restart = watcher._restart_streams
-
-        def counting_restart(usernames):
-            restarts(usernames)
-            original_restart(usernames)
-
-        watcher._restart_streams = counting_restart  # type: ignore[assignment]
+        get_chunks = MagicMock(return_value=[["alice", "bob"]])
 
         with patch(
-            "heltour.tournament.management.commands.watch_games.get_active_usernames",
-            get_users,
+            "heltour.tournament.management.commands.watch_games.get_watch_chunks",
+            get_chunks,
         ), patch(
             "heltour.tournament.management.commands.watch_games.stream_games",
             lambda **kwargs: kwargs["stop_event"].wait(),
@@ -932,10 +983,18 @@ class TestWatcher(TestCase):
             t = threading.Thread(target=watcher.run, daemon=True)
             t.start()
             time.sleep(0.05)
+            # Capture before signalling shutdown.
+            streams_during_run = dict(watcher._streams)
+            stop_events = [stop for stop, _t in streams_during_run.values()]
+            self.assertEqual(len(streams_during_run), 1)
             watcher.stop()
             t.join(timeout=2)
-        # First tick triggered one restart; subsequent identical lists did not.
-        self.assertEqual(restarts.call_count, 1)
+
+        # Multiple ticks must have happened with identical chunks, but the
+        # original stream stayed alive throughout — its stop_event only
+        # fires on shutdown.
+        self.assertGreater(get_chunks.call_count, 1)
+        self.assertTrue(all(ev.is_set() for ev in stop_events))
 
 
 class TestPresencePoller(TestCase):
