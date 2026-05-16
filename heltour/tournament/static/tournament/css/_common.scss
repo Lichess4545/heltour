@@ -411,25 +411,32 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     color: #337ab7;
 }
 
-#table-team-pairings .color-dot, #table-team-pairings .captain {
+#table-team-pairings .color-dot,
+#table-team-pairings .captain,
+#table-knockout-pairings .color-dot,
+#table-knockout-pairings .captain {
     color: rgb(51, 51, 51);
 }
 
-#table-team-pairings .color-dot.left {
+#table-team-pairings .color-dot.left,
+#table-knockout-pairings .color-dot.left {
     margin-right: 4px;
 }
 
-#table-team-pairings .color-dot.right {
+#table-team-pairings .color-dot.right,
+#table-knockout-pairings .color-dot.right {
     margin-left: 4px;
 }
 
-#table-team-pairings .player-white .color-dot:after {
+#table-team-pairings .player-white .color-dot:after,
+#table-knockout-pairings .player-white .color-dot:after {
     content: '\25CB';
     font-size: 18px;
     line-height: 14px;
 }
 
-#table-team-pairings .player-black .color-dot:after {
+#table-team-pairings .player-black .color-dot:after,
+#table-knockout-pairings .player-black .color-dot:after {
     content: '\25CF';
     font-size: 18px;
     line-height: 14px;

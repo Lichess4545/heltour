@@ -72,6 +72,12 @@ season_urlpatterns = [
         views.PairingsView.as_view(),
         name="pairings_by_round_team",
     ),
+    path(
+        "round/<int:round_number>/pairings/team/<int:team_number>/"
+        "regenerate-boards/<int:team_pairing_id>/",
+        views.KnockoutRegenerateBoardsView.as_view(),
+        name="knockout_regenerate_boards",
+    ),
     path("stats/", views.StatsView.as_view(), name="stats"),
     path(
         "dashboard/",

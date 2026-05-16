@@ -5545,6 +5545,109 @@ class KnockoutSeasonLandingView(SeasonView):
         return all(board_pairing.result != '' for board_pairing in board_pairings)
 
 
+class KnockoutRegenerateBoardsView(SeasonView):
+    """Admin-only POST: rebuild a TeamPairing's board pairings from the
+    current TeamMember rosters, skipping any boards that already have a
+    ``result`` or ``game_link`` set so finished/live games are preserved.
+    """
+
+    def view_post(self, round_number, team_number, team_pairing_id):
+        from django.contrib import messages
+        from cacheops import invalidate_model
+
+        from heltour.tournament.pairinggen import _get_player_list
+
+        if not self.request.user.has_perm(
+            'tournament.change_pairing', self.league
+        ):
+            raise Http404()
+
+        tp = get_object_or_404(
+            TeamPairing,
+            pk=team_pairing_id,
+            round__season=self.season,
+            round__number=round_number,
+        )
+        if tp.white_team.number != team_number and (
+            tp.black_team is None or tp.black_team.number != team_number
+        ):
+            raise Http404()
+        if tp.black_team_id is None:
+            messages.warning(
+                self.request, "This is a bye - nothing to rebuild."
+            )
+            return redirect(
+                self.request.META.get('HTTP_REFERER') or 'league_home'
+            )
+
+        board_count = self.season.boards or 0
+        existing = list(
+            TeamPlayerPairing.objects.filter(team_pairing=tp).nocache()
+        )
+        locked_boards = {
+            bp.board_number for bp in existing
+            if (bp.result or '').strip() or (bp.game_link or '').strip()
+        }
+        TeamPlayerPairing.objects.filter(team_pairing=tp).exclude(
+            board_number__in=locked_boards
+        ).delete()
+
+        white_player_list = _get_player_list(
+            tp.white_team, tp.round, board_count
+        )
+        black_player_list = _get_player_list(
+            tp.black_team, tp.round, board_count
+        )
+        rebuilt = 0
+        with reversion.create_revision():
+            reversion.set_comment(
+                "Regenerated knockout board pairings from current roster."
+            )
+            for board_number in range(1, board_count + 1):
+                if board_number in locked_boards:
+                    continue
+                white_player = white_player_list[board_number - 1]
+                black_player = black_player_list[board_number - 1]
+                if board_number % 2 == 0:
+                    white_player, black_player = black_player, white_player
+                TeamPlayerPairing.objects.create(
+                    team_pairing=tp,
+                    board_number=board_number,
+                    white=white_player,
+                    black=black_player,
+                )
+                rebuilt += 1
+
+        tp.refresh_points()
+        tp.save()
+        invalidate_model(TeamPlayerPairing)
+        invalidate_model(TeamPairing)
+
+        if locked_boards:
+            messages.success(
+                self.request,
+                f"Rebuilt {rebuilt} board pairing(s); kept "
+                f"{len(locked_boards)} with existing results/links "
+                f"(board(s) {sorted(locked_boards)}).",
+            )
+        else:
+            messages.success(
+                self.request, f"Rebuilt {rebuilt} board pairing(s)."
+            )
+        return redirect(
+            self.request.META.get('HTTP_REFERER')
+            or reverse(
+                'by_league:by_season:pairings_by_round_team',
+                kwargs={
+                    'league_tag': self.league.tag,
+                    'season_tag': self.season.tag,
+                    'round_number': round_number,
+                    'team_number': team_number,
+                },
+            )
+        )
+
+
 class KnockoutPairingsView(PairingsView):
     """Modified pairings view for knockout tournaments."""
     

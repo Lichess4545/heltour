@@ -120,7 +120,26 @@
                                                 {% endif %}
                                             {% endif %}
                                         </th>
-                                        {% if can_edit %}<th class="cell-edit">&nbsp;</th>{% endif %}
+                                        {% if can_edit %}
+                                            <th class="cell-edit">
+                                                {% if team_pairing.black_team_id and current_team %}
+                                                    <form method="post"
+                                                          action="{% leagueurl 'knockout_regenerate_boards' league.tag season.tag round_number current_team.number team_pairing.id %}"
+                                                          style="display:inline"
+                                                          onsubmit="return confirm('Rebuild this match\'s board pairings from the current rosters? Board games that already have a result or game_link will be kept; the rest will be replaced.');">
+                                                        {% csrf_token %}
+                                                        <button type="submit"
+                                                                class="btn btn-default btn-xs"
+                                                                title="Rebuild board pairings from current roster (keeps boards with results/links)">
+                                                            <span class="glyphicon glyphicon-refresh"></span>
+                                                            Rebuild
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    &nbsp;
+                                                {% endif %}
+                                            </th>
+                                        {% endif %}
                                     </tr>
                                     
                                     <tr class="competitor-row">
