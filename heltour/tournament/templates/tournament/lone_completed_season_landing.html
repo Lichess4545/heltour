@@ -20,7 +20,7 @@
                                     <div class="winners-name">
                                         <a class="player-link"
                                            href="{% leagueurl 'player_profile' league.tag season.tag first_player.season_player.player.lichess_username %}">
-                                            {{ first_player.season_player.player.lichess_username }}
+                                            {% player_display_name first_player.season_player.player %}
                                         </a>
                                     </div>
                                 {% endif %}
@@ -33,7 +33,7 @@
                                     <div class="winners-name">
                                         <a class="player-link"
                                            href="{% leagueurl 'player_profile' league.tag season.tag second_player.season_player.player.lichess_username %}">
-                                            {{ second_player.season_player.player.lichess_username }}
+                                            {% player_display_name second_player.season_player.player %}
                                         </a>
                                     </div>
                                 {% endif %}
@@ -46,7 +46,7 @@
                                     <div class="winners-name">
                                         <a class="player-link"
                                            href="{% leagueurl 'player_profile' league.tag season.tag third_player.season_player.player.lichess_username %}">
-                                            {{ third_player.season_player.player.lichess_username }}
+                                            {% player_display_name third_player.season_player.player %}
                                         </a>
                                     </div>
                                 {% endif %}
@@ -61,7 +61,7 @@
                                         <br />
                                         <a class="player-link"
                                            href="{% leagueurl 'player_profile' league.tag season.tag ribbon.player.lichess_username %}">
-                                            {{ ribbon.player.lichess_username }}
+                                            {% player_display_name ribbon.player %}
                                         </a>
                                     </div>
                                 </div>
@@ -103,10 +103,9 @@
                                         {% if not zen_mode %}<th class="text-center sort">Rtng</th>{% endif %}
                                         {% for round_number in round_numbers %}<th class="text-left">Rd {{ round_number }}</th>{% endfor %}
                                         <th class="text-center sort">Tot</th>
-                                        <th title="Modified Median" class="text-right sort">TBrk[M]</th>
-                                        <th title="Solkoff" class="text-right sort">TBrk[S]</th>
-                                        <th title="Cumulative" class="text-right sort">TBrk[C]</th>
-                                        <th title="Cumulative Opponent" class="text-right sort">TBrk[O]</th>
+                                        {% for tb_name, tb_display in tiebreaks %}
+                                        <th title="{{ tb_display }}" class="text-right sort">{{ tb_display }}</th>
+                                        {% endfor %}
                                         <th class="text-center sort">Perf</th>
                                     </tr>
                                 </thead>
@@ -117,7 +116,7 @@
                                                 <td class="text-center rank-value">{{ number }}</td>
                                                 <td class="{% highlightclass player_highlights player %}">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag player.lichess_username %}">
-                                                        {{ player.lichess_username }}
+                                                        {% player_display_name player %}
                                                     </a>
                                                 </td>
                                                 {% if not zen_mode %}
@@ -134,10 +133,9 @@
                                                     </td>
                                                                                                 {% endfor %}
                                                                                                 <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
-                                                                                            <td class="text-right rank-value">{{ player_score.tiebreak1_display }}</td>
-                                                                                        <td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
-                                                                                    <td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
-                                                                                <td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
+                                                                                            {% for tb_name, tb_display in tiebreaks %}
+                                                                                            <td class="text-right rank-value">{{ player_score|get_tiebreak_display:tb_name }}</td>
+                                                                                            {% endfor %}
                                                                             <td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
                         </tr>
                     {% endwith %}

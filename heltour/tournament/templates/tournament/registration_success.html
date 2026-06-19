@@ -14,11 +14,31 @@
                 </div>
                 <div class="well-body">
                     <p>Successfully registered.</p>
-                    {% if email %}
+                    {% if assigned_team %}
                         <p>
-                            A confirmation email will be sent to <strong>{{ email }}</strong> once a moderator approves
-                            your registration.
+                            <strong>Your registration has been approved!</strong><br>
+                            You have been assigned to team <strong>{{ assigned_team.name }}</strong>.
+                            <br><br>
+                            <a href="{% leagueurl 'team_profile' league.tag assigned_team.season.tag assigned_team.number %}" class="btn btn-primary">View Your Team</a>
                         </p>
+                    {% elif is_captain and needs_team_setup %}
+                        <p>
+                            <strong>Your registration has been approved!</strong><br>
+                            You have been registered as a team captain. Please complete your team setup to continue.
+                            <br><br>
+                            <a href="{% leagueurl 'team_create' league.tag registration.season.tag %}" class="btn btn-primary">Create Your Team</a>
+                        </p>
+                    {% else %}
+                        {% if email %}
+                            <p>
+                                A confirmation email will be sent to <strong>{{ email }}</strong> once a moderator approves
+                                your registration.
+                            </p>
+                        {% else %}
+                            <p>
+                                Your registration has been received and will be reviewed by a moderator.
+                            </p>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static tournament_extras %}
 {% block title %}
-    {{ player.lichess_username }}
+    {% player_display_name player %}
     {% if season %}- {{ season.name }}{% endif %}
     -
     {{ league.name }}
@@ -11,12 +11,12 @@
         <div class="col-md-5 col-xs-12">
             <div class="well">
                 <div class="well-head">
-                    <h3>{{ player.lichess_username }}</h3>
+                    <h3>{% player_display_name player %}</h3>
                 </div>
                 <div class="well-body">
                     {% if not zen_mode %}
                         <div class="profile-links">
-                            {{ league.get_rating_type_display }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{ league.rating_type }}">{% rating player %}</a>
+                            {{ rating_type_label }} rating: <a href="https://lichess.org/@/{{ player.lichess_username }}/perf/{{ league.rating_type }}">{% rating player %}</a>
                         </div>
                     {% endif %}
                     <div class="profile-links">
@@ -136,13 +136,13 @@
                                                 {% if pairing %}
                                                     <td>
                                                         {% if pairing.white == player %}
-                                                            {{ pairing.white.lichess_username }}
+                                                            {% player_display_name pairing.white %}
                                                             {% if not zen_mode %}
                                                                 <span class="hidden-xs">({% white_rating pairing %})</span>
                                                             {% endif %}
                                                             -
                                                             {% if pairing.black %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
+                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{% player_display_name pairing.black %}
                                                                     {% if not zen_mode %}
                                                                         ({% black_rating pairing %})
                                                                     {% endif %}
@@ -152,7 +152,7 @@
                                                             {% endif %}
                                                         {% else %}
                                                             {% if pairing.white %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
+                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{% player_display_name pairing.white %}
                                                                     {% if not zen_mode %}
                                                                         ({% white_rating pairing %})
                                                                     {% endif %}
@@ -160,7 +160,7 @@
                                                             {% else %}
                                                                 ?
                                                             {% endif %}
-                                                            - {{ pairing.black.lichess_username }}
+                                                            - {% player_display_name pairing.black %}
                                                             <span class="hidden-xs">
                                                                 {% if not zen_mode %}
                                                                     ({% black_rating pairing %})
@@ -211,23 +211,23 @@
                                                 {% if pairing %}
                                                     <td>
                                                         {% if pairing.white == player %}
-                                                            {{ pairing.white.lichess_username }}
+                                                            {% player_display_name pairing.white %}
                                                             <span class="hidden-xs">({% white_rating pairing %})</span>
                                                             -
                                                             {% if pairing.black %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{{ pairing.black.lichess_username }}
+                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">{% player_display_name pairing.black %}
                                                                 ({% black_rating pairing %})</a>
                                                             {% else %}
                                                                 ?
                                                             {% endif %}
                                                         {% else %}
                                                             {% if pairing.white %}
-                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{{ pairing.white.lichess_username }}
+                                                                <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">{% player_display_name pairing.white %}
                                                                 ({% white_rating pairing %})</a>
                                                             {% else %}
                                                                 ?
                                                             {% endif %}
-                                                            - {{ pairing.black.lichess_username }}
+                                                            - {% player_display_name pairing.black %}
                                                             <span class="hidden-xs">({% black_rating pairing %})</span>
                                                         {% endif %}
                                                     </td>

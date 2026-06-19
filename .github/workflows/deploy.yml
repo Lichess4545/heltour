@@ -1,0 +1,51 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apiworker
+          - caddy
+          - celery
+          - migrate
+          - watcher
+          - web
+    steps:
+      - name: Set ${{ inputs.environment }} deploy endpoints
+        run: |
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            echo "apiworker=${{ secrets.LITOUR_DEPLOY_PRODUCTION_APIWORKER }}" >> $GITHUB_ENV
+            echo "caddy=${{ secrets.LITOUR_DEPLOY_PRODUCTION_CADDY }}" >> $GITHUB_ENV
+            echo "celery=${{ secrets.LITOUR_DEPLOY_PRODUCTION_CELERY }}" >> $GITHUB_ENV
+            echo "migrate=${{ secrets.LITOUR_DEPLOY_PRODUCTION_MIGRATE }}" >> $GITHUB_ENV
+            echo "watcher=${{ secrets.LITOUR_DEPLOY_PRODUCTION_WATCHER }}" >> $GITHUB_ENV
+            echo "web=${{ secrets.LITOUR_DEPLOY_PRODUCTION_WEB }}" >> $GITHUB_ENV
+          else
+            echo "apiworker=${{ secrets.LITOUR_DEPLOY_STAGING_APIWORKER }}" >> $GITHUB_ENV
+            echo "caddy=${{ secrets.LITOUR_DEPLOY_STAGING_CADDY }}" >> $GITHUB_ENV
+            echo "celery=${{ secrets.LITOUR_DEPLOY_STAGING_CELERY }}" >> $GITHUB_ENV
+            echo "migrate=${{ secrets.LITOUR_DEPLOY_STAGING_MIGRATE }}" >> $GITHUB_ENV
+            echo "watcher=${{ secrets.LITOUR_DEPLOY_STAGING_WATCHER }}" >> $GITHUB_ENV
+            echo "web=${{ secrets.LITOUR_DEPLOY_STAGING_WEB }}" >> $GITHUB_ENV
+          fi
+      - name: ${{ matrix.service }} ${{ inputs.environment }}
+        run: curl --fail -X POST ${{ env[matrix.service] }}

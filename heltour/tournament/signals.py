@@ -11,6 +11,9 @@ do_update_broadcast_round = Signal()
 do_create_broadcast_round = Signal()
 do_update_broadcast = Signal()
 do_create_broadcast = Signal()
+do_start_unscheduled_games = Signal()
+do_start_clocks = Signal()
+do_validate_season_tokens = Signal()
 
 # Signals that send notifications
 pairing_forfeit_changed = Signal()

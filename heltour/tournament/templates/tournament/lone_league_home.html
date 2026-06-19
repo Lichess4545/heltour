@@ -35,15 +35,25 @@
                         <h3>Registration is open!</h3>
                     </div>
                     <div class="well-body">
+                        {% if registration_season.welcome_message %}
+                            <div class="registration-welcome-message">
+                                {{ registration_season.welcome_message|safe }}
+                            </div>
+                        {% endif %}
                         {% if registration_season.is_started %}
                             <p>
                                 {{ registration_season.section_group_name }} ends
-                                on {{ registration_season.end_date|date_or_q }}.
+                                on {{ registration_season.end_date|date:"M d, Y" }} at {{ registration_season.end_date|date:"H:i" }} UTC.
                             </p>
                         {% else %}
                             <p>
                                 {{ registration_season.section_group_name }} starts
-                                on {{ registration_season.start_date|date_or_q }}.
+                                on {{ registration_season.start_date|date:"M d, Y" }} at {{ registration_season.start_date|date:"H:i" }} UTC.
+                            </p>
+                        {% endif %}
+                        {% if league.is_invite_only %}
+                            <p>
+                                <strong>Note:</strong> This is an invite-only league. You will need an invite code to register.
                             </p>
                         {% endif %}
                         <a href="{% leagueurl 'register' league.tag None %}"
@@ -109,7 +119,7 @@
                                         <th>Name</th>
                                         {% if not zen_mode %}<th class="text-center">Rtng</th>{% endif %}
                                         <th class="text-center">Total</th>
-                                        <th class="text-center">TBrk[M]</th>
+                                        {% if first_tiebreak %}<th class="text-center">{{ first_tiebreak.1 }}</th>{% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -125,7 +135,7 @@
                                                 <td class="text-center">{% player_rating player_score.season_player %}</td>
                                             {% endif %}
                                             <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
-                                            <td class="text-center rank-value">{{ player_score.tiebreak1_display }}</td>
+                                            {% if first_tiebreak %}<td class="text-center rank-value">{{ player_score|get_tiebreak_display:first_tiebreak.0 }}</td>{% endif %}
                                         </tr>
                                     {% endfor %}
                                 </tbody>

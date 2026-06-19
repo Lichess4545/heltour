@@ -1,0 +1,163 @@
+{% load static tournament_extras %}
+{% with pairing_list.0.0.team_pairing as team_pairing %}
+<tbody data-team-pairing-id="{{ team_pairing.pk }}"{% if flash %} class="pairing-flash"{% endif %}>
+    {% if team_pairing.black_team_id %}
+        {# Regular team vs team pairing #}
+        <tr class="header-row">
+            <th>
+                <a class="team-link"
+                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
+                    {{ team_pairing.white_team_name }}
+                </a>
+            </th>
+            <th class="cell-score {% resultclass team_pairing.white_points team_pairing.black_points %}">
+                {{ team_pairing.white_points_display|formatscore }}
+            </th>
+            <th class="cell-score {% resultclass team_pairing.black_points team_pairing.white_points %}">
+                {{ team_pairing.black_points_display|formatscore }}
+            </th>
+            <th class="text-right">
+                <a class="team-link"
+                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">
+                    {{ team_pairing.black_team_name }}
+                </a>
+            </th>
+    {% else %}
+        {# Team bye - show full team row with bye status #}
+        <tr class="header-row">
+            <th>
+                <a class="team-link"
+                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
+                    {{ team_pairing.white_team_name }}
+                </a>
+            </th>
+            <th class="cell-score"
+                colspan="2"
+                style="text-align: center; font-style: italic; color: #888">BYE</th>
+            <th class="text-right" style="font-style: italic; color: #888;">(Team receives bye)</th>
+    {% endif %}
+            <th class="cell-time table-menu">
+                {% if show_calendar %}
+                    <div class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown">
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li>
+                                {% if current_team %}
+                                    <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_by_team_icalendar' league.tag season.tag current_team.number %}">Calendar</a>
+                                {% else %}
+                                    <a href="webcal://{{ request.get_host }}{% leagueurl 'pairings_icalendar' league.tag season.tag %}">Calendar</a>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </th>
+            {% if can_edit %}<th class="cell-edit">&nbsp;</th>{% endif %}
+        </tr>
+    {% if team_pairing.black_team_id %}
+        {% for pairing, white_img, white_status, black_img, black_status in pairing_list %}
+            <tr data-pairing-id="{{ pairing.pk }}">
+                <td class="pairing-player player-{{ pairing.white_team_color }}">
+                    {% if pairing.white_team_player %}
+                        <a class="download-games hidden-xs"
+                           href="https://lichess.org/api/games/user/{{ pairing.white_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.white_team_color }}"
+                           target="_blank"
+                           rel="nofollow">
+                            <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
+                        </a>
+                        <a class="opening-book hidden-xs"
+                           href="https://lichess.org/analysis#explorer/{{ pairing.white_team_player.lichess_username }}"
+                           target="_blank"
+                           rel="nofollow">
+                            <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.white_team_color }} ({{ pairing.white_team_player.lichess_username }})">
+                        </a>
+                        <span class="color-dot left hidden-xs"></span>
+                        <a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
+                           href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
+                            {% player_display_name pairing.white_team_player %}<span class="visible-xs"></span>
+                            <span class="color-dot left visible-xs-inline"></span>
+                            {% if not zen_mode %}
+                                ({% white_team_rating pairing %})
+                            {% endif %}
+                            {% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
+                        </a>
+                        {% if white_img %}
+                            <img src="{% static 'tournament/img/icon-'|add:white_img|add:'.svg' %}"
+                                 title="{{ white_status }}" />
+                        {% endif %}
+                        {% if can_view_presence_log %}{% presence_log_trigger presence_events_map pairing pairing.white_team_player %}{% endif %}
+                    {% endif %}
+                </td>
+                {% if pairing.game_link and not pairing.result %}
+                    <td class="cell-score" colspan="2">
+                        <a href="{{ pairing.game_link }}">
+                            {% if pairing.tv_state != "has_moves" %}⏯{% else %}⚔️{% endif %}
+                        </a>
+                    </td>
+                {% else %}
+                    <td class="cell-game-result" colspan="2">
+                        {% if pairing.game_link %}<a href="{{ pairing.game_link }}">{% endif %}
+                            {% spaceless %}
+                                <span>{{ pairing.white_team_score_str }}</span>
+                                <span>{{ pairing.black_team_score_str }}</span>
+                            {% endspaceless %}
+                            {% if pairing.game_link %}</a>{% endif %}
+                    </td>
+                {% endif %}
+                <td class="text-right pairing-player player-{{ pairing.black_team_color }}">
+                    {% if pairing.black_team_player %}
+                        {% if can_view_presence_log %}{% presence_log_trigger presence_events_map pairing pairing.black_team_player %}{% endif %}
+                        {% if black_img %}
+                            <img src="{% static 'tournament/img/icon-'|add:black_img|add:'.svg' %}"
+                                 title="{{ black_status }}" />
+                        {% endif %}
+                        <a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
+                           href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
+                            {% player_display_name pairing.black_team_player %} <span class="visible-xs"></span>
+                            {% if not zen_mode %}
+                                ({% black_team_rating pairing %})
+                            {% endif %}
+                            {% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
+                        </a>
+                        <span class="color-dot right"></span>
+                        <a class="opening-book hidden-xs"
+                           href="https://lichess.org/analysis#explorer/{{ pairing.black_team_player.lichess_username }}"
+                           target="_blank"
+                           rel="nofollow">
+                            <img src="{% static "tournament/img/opening-book-icon.svg" %}" alt="Opening book icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
+                        </a>
+                        <a class="download-games hidden-xs"
+                           href="https://lichess.org/api/games/user/{{ pairing.black_team_player.lichess_username }}?perfType={{ league.rating_type }}&color={{ pairing.black_team_color }}"
+                           target="_blank"
+                           rel="nofollow">
+                            <img src="{% static "tournament/img/download-icon.svg" %}" alt="Download games icon for {{ pairing.black_team_color }} ({{ pairing.black_team_player.lichess_username }})">
+                        </a>
+                    {% endif %}
+                </td>
+                <td class="text-right cell-time">{{ pairing.scheduled_time | date_el:"m/d H:i" }}</td>
+                {% if can_edit %}
+                    <td class="cell-edit">
+                        <a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1"
+                           id="change-pairing-{{ pairing.pk }}"
+                           class="popup-link"
+                           title="Change selected pairing">
+                            <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                        </a>
+                    </td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    {% else %}
+        {# Team bye - show a simple row explaining the bye #}
+        <tr>
+            <td colspan="{% if can_edit %}6{% else %}5{% endif %}"
+                style="text-align: center; padding: 20px; font-style: italic; color: #666">
+                {{ team_pairing.white_team_name }} receives a bye this round
+                {% if team_pairing.white_points > 0 %}and scores {{ team_pairing.white_points_display|formatscore }} points{% endif %}
+            </td>
+        </tr>
+    {% endif %}
+</tbody>
+{% endwith %}

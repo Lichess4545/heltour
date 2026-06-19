@@ -1,5 +1,7 @@
 *.pyc
 env
+.venv
+/.env
 .project
 .pydevproject
 /static
@@ -12,5 +14,21 @@ data
 .sass-cache
 /heltour/tournament/static/tournament/css/*.css
 /heltour/tournament/static/tournament/css/*.css.map
+/heltour/tournament/static/tournament/js/litour-api-client.iife.js
+/heltour/tournament/static/tournament/js/litour-api-client.iife.js.map
+/openapi.json
+/frontend/node_modules
+/frontend/api-client/dist
+/frontend/ui/.next
+/frontend/ui/out
 backups
+.gems/
+/.claude
+backup-wucc.sh
+wucc_backup_*.dump
 
+# devenv
+.devenv/
+.devenv.flake.nix
+devenv.local.nix
+.direnv/

@@ -1,13 +1,40 @@
 from django import template
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone, formats
 from datetime import timedelta
-from heltour import settings
-from heltour.tournament.models import Player, Registration, format_score
-from static_precompiler.utils import compile_static
+from heltour.tournament.models import (
+    PlayerPresenceEvent,
+    Registration,
+    format_score,
+)
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def player_display_name(context, player):
+    league = context.get('league')
+    if league and league.show_fide_names:
+        fide_name = (player.fide_profile or {}).get('name', '')
+        if fide_name:
+            return f'{fide_name} ({player.lichess_username})'
+    return player.lichess_username
+
+
+@register.simple_tag
+def gender_badge(player):
+    """Render a 1-letter gender badge for a player. Returns empty safe-string
+    when the player has no gender set."""
+    gender = getattr(player, "gender", "")
+    if not gender:
+        return ""
+    title = player.get_gender_display()
+    letter = gender[:1].upper()
+    return mark_safe(
+        f'<span class="gender-badge gender-badge-{gender}" title="{title}">{letter}</span>'
+    )
 
 
 @register.simple_tag
@@ -142,18 +169,6 @@ def date_el(datetime, arg=None):
     return mark_safe('<time datetime="%s">%s</time>' % (
         datetime.isoformat(), formats.date_format(datetime, arg)))
 
-
-@register.filter
-def compile_if_debug(path):
-    # This is a bit of hackery to make static precompilation work with manifest storage
-    if settings.DEBUG:
-        try:
-            compile_static(path)
-        except FileExistsError:
-            compile_static(path)
-    return path.replace('.scss', '.css')
-
-
 @register.filter
 def mean(lst):
     if len(lst) == 0:
@@ -195,5 +210,112 @@ def is_registered(user, season):
     return Registration.is_registered(user, season)
 
 
+@register.filter
+def get_team_status(user, season):
+    """Get the team status for a user in a season.
+    
+    Returns a dict with:
+    - has_team: bool
+    - is_captain: bool
+    - team: Team object or None
+    - needs_setup: bool (captain without team)
+    """
+    from heltour.tournament.models import Player, TeamMember, Registration
+    
+    if not user.is_authenticated or not season:
+        return None
+    
+    try:
+        player = Player.objects.get(lichess_username__iexact=user.username)
+    except Player.DoesNotExist:
+        return None
+    
+    # Check if user is on a team
+    team_member = TeamMember.objects.filter(
+        player=player,
+        team__season=season
+    ).select_related('team').first()
+    
+    if team_member:
+        return {
+            'has_team': True,
+            'is_captain': team_member.is_captain,
+            'team': team_member.team,
+            'needs_setup': False
+        }
+    
+    # Check if user is a captain who needs to set up team (team leagues only)
+    if season.league.is_team_league():
+        registration = Registration.objects.filter(
+            player=player,
+            season=season,
+            status='approved',
+            invite_code_used__code_type='captain'
+        ).first()
+
+        if registration:
+            return {
+                'has_team': False,
+                'is_captain': True,
+                'team': None,
+                'needs_setup': True
+            }
+    
+    return {
+        'has_team': False,
+        'is_captain': False,
+        'team': None,
+        'needs_setup': False
+    }
+
+
+@register.filter
+def is_invite_only_league(league):
+    """Check if a league is invite-only."""
+    from heltour.tournament.models import RegistrationMode
+    return league and league.registration_mode == RegistrationMode.INVITE_ONLY
+
+
 def concat(str1, str2):
     return str(str1) + str(str2)
+
+
+@register.filter
+def get_tiebreak_display(score, tiebreak_name):
+    """Get the display value for a specific tiebreak from a TeamScore or LonePlayerScore."""
+    if hasattr(score, 'get_tiebreak_display'):
+        return score.get_tiebreak_display(tiebreak_name)
+    return ""
+
+
+@register.simple_tag
+def presence_log_trigger(events_map, pairing, player):
+    """Render an inline presence-log popover trigger next to a player name.
+
+    Returns empty when the viewer has no events to show. The viewer-permission
+    gate happens in the view, which leaves `events_map` empty for users who
+    cannot see the log.
+    """
+    if not events_map or pairing is None or player is None:
+        return ""
+    events = events_map.get((pairing.pk, player.pk))
+    if not events:
+        return ""
+    round_ = pairing.get_round() if hasattr(pairing, "get_round") else None
+    return render_to_string(
+        "tournament/_presence_log_trigger.html",
+        {
+            "events": events,
+            "player": player,
+            "pairing": pairing,
+            "was_online": PlayerPresenceEvent.was_online_during_round(
+                player, round_
+            ),
+            "plies_played": getattr(pairing, "plies_played", 0),
+        },
+    )
+
+
+@register.simple_tag
+def was_online_during_round(player, round_):
+    return PlayerPresenceEvent.was_online_during_round(player, round_)

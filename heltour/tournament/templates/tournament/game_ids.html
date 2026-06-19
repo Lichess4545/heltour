@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static tournament_extras %}
+{% block title %}Game IDs - {{ league.name }}{% endblock %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    <h3>Game IDs - {{ season.name }}</h3>
+                </div>
+                <div class="well-body">
+                    <p>All game IDs for {{ season.name }}, organized by round{% if is_team_league %} and match{% endif %}:</p>
+                    {% for round_data in rounds_data %}
+                        <h4>Round {{ round_data.round_number }}</h4>
+                        {% if round_data.debug_info %}
+                            <p><strong>Debug Info:</strong></p>
+                            <ul>
+                            {% for debug_line in round_data.debug_info %}
+                                <li>{{ debug_line }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% for match_number, game_ids in round_data.matches.items %}
+                            {% if is_team_league %}
+                                <h5>Match {{ match_number }}</h5>
+                            {% endif %}
+                            <pre>{{ game_ids|join:" " }}</pre>
+                        {% endfor %}
+                        {% if not forloop.last %}<br>{% endif %}
+                    {% empty %}
+                        <p>No rounds found for this season.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,15 @@
+FROM base
+
+ARG GITHUB_SHORT_SHA=unknown
+
+EXPOSE 8001
+
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=heltour.settings \
+    HELTOUR_VERSION=${GITHUB_SHORT_SHA}
+
+CMD ["uvicorn", "heltour.api.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8001", \
+     "--proxy-headers", \
+     "--no-access-log"]

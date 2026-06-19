@@ -193,12 +193,12 @@
                             <a href="{% leagueurl 'player_profile' original.league.tag original.tag lichess_username %}">{{ lichess_username }}</a>
                         </td>
                         <td>
-                            {% if reg.validation_warning == True %}
-                                <img src="{% static 'admin/img/icon-alert.svg' %}" />
-                            {% elif reg.validation_ok == True %}
-                                <img src="{% static 'admin/img/icon-yes.svg' %}" />
-                            {% elif reg.validation_ok == False %}
+                            {% if reg.validation_status == "error" %}
                                 <img src="{% static 'admin/img/icon-no.svg' %}" />
+                            {% elif reg.validation_status == "warning" %}
+                                <img src="{% static 'admin/img/icon-alert.svg' %}" />
+                            {% else %}
+                                <img src="{% static 'admin/img/icon-yes.svg' %}" />
                             {% endif %}
                         </td>
                         <td>

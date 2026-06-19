@@ -1,0 +1,99 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">Home</a>
+        &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst|escape }}</a>
+        &rsaquo; <a href="{% url 'admin:tournament_team_changelist' %}">Teams</a>
+        &rsaquo; Copy Teams to New Season
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1>Copy Teams to New Season</h1>
+    
+    <div class="module">
+        <h2>Teams to be Copied</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    <th>Current Season</th>
+                    <th>League</th>
+                    <th>Members</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.season }}</td>
+                        <td>{{ team.season.league }}</td>
+                        <td>{{ team.teammember_set.count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="module">
+            <h2>Select Target Season</h2>
+            <fieldset class="module aligned">
+                <div class="form-row">
+                    <label for="id_target_season">Target Season:</label>
+                    <select name="target_season" id="id_target_season" required>
+                        <option value="">Select a season...</option>
+                        {% regroup available_seasons by league as leagues %}
+                        {% for league in leagues %}
+                            <optgroup label="{{ league.grouper }}">
+                                {% for season in league.list %}
+                                    <option value="{{ season.id }}">
+                                        {{ season }} 
+                                        {% if season.is_active %}(Active){% endif %}
+                                        {% if season.is_completed %}(Completed){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                    <p class="help">Select a compatible team season (same number of boards) where the teams should be copied to</p>
+                </div>
+            </fieldset>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Copy Teams" class="default">
+            <a href="{% url 'admin:tournament_team_changelist' %}" class="button cancel-link">Cancel</a>
+        </div>
+    </form>
+
+    <div class="module">
+        <h2>What will be copied:</h2>
+        <ul>
+            <li>Team name and company information</li>
+            <li>Company address and contact details</li>
+            <li>Team seed ratings</li>
+            <li>All team members with their board assignments</li>
+            <li>Captain and vice-captain designations</li>
+            <li>Players will be automatically registered for the target season if not already registered</li>
+        </ul>
+        
+        <h2>What will NOT be copied:</h2>
+        <ul>
+            <li>Slack channels (will be blank)</li>
+            <li>Team scores and match history</li>
+            <li>Team pairings and results</li>
+        </ul>
+        
+        <h2>Notes:</h2>
+        <ul>
+            <li>Only compatible seasons are shown (team leagues with the same number of boards)</li>
+            <li>Team numbers will be automatically assigned (max existing number + 1)</li>
+            <li>If a team name already exists in the target season, a number will be appended (e.g., "Team Name (2)")</li>
+            <li>Player ratings will be recalculated based on their current ratings for the target season's league</li>
+        </ul>
+    </div>
+{% endblock %}

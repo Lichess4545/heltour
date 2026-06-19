@@ -1,0 +1,77 @@
+{% if can_view_dashboard %}
+    <div class="row row-condensed-xs home-row">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    <h3>Recent Background Tasks</h3>
+                </div>
+                <div class="well-body">
+                    {% if recent_task_results %}
+                        <table class="table table-condensed table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Status</th>
+                                    <th>Started (UTC)</th>
+                                    <th>Finished (UTC)</th>
+                                    <th>Worker</th>
+                                    <th>Args</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recent_task_results %}
+                                    <tr>
+                                        <td>
+                                            <code>{{ r.task_name|default:"(unknown)"|cut:"heltour.tournament.tasks." }}</code>
+                                        </td>
+                                        <td>
+                                            {% if r.status == 'SUCCESS' %}
+                                                <span style="color: #3c763d;"><i class="fa fa-check-circle"></i> Success</span>
+                                            {% elif r.status == 'FAILURE' %}
+                                                <span style="color: #a94442;"><i class="fa fa-times-circle"></i> Failure</span>
+                                            {% elif r.status == 'STARTED' %}
+                                                <span style="color: #8a6d3b;"><i class="fa fa-spinner fa-spin"></i> Started</span>
+                                            {% elif r.status == 'RETRY' %}
+                                                <span style="color: #8a6d3b;"><i class="fa fa-refresh"></i> Retry</span>
+                                            {% elif r.status == 'REVOKED' %}
+                                                <span style="color: #777;"><i class="fa fa-ban"></i> Revoked</span>
+                                            {% else %}
+                                                <span style="color: #777;">{{ r.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ r.date_created|date:"Y-m-d H:i:s" }}</td>
+                                        <td>
+                                            {% if r.date_done %}
+                                                {{ r.date_done|date:"Y-m-d H:i:s" }}
+                                            {% else %}
+                                                &mdash;
+                                            {% endif %}
+                                        </td>
+                                        <td><small>{{ r.worker|default:"&mdash;" }}</small></td>
+                                        <td>
+                                            {% if r.task_args and r.task_args != '()' and r.task_args != '[]' %}
+                                                <code style="font-size: 0.85em;">{{ r.task_args|truncatechars:80 }}</code>
+                                            {% endif %}
+                                            {% if r.task_kwargs and r.task_kwargs != '{}' %}
+                                                <code style="font-size: 0.85em;">{{ r.task_kwargs|truncatechars:80 }}</code>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% if r.status == 'FAILURE' and r.traceback %}
+                                        <tr>
+                                            <td colspan="6">
+                                                <pre style="margin: 0; font-size: 0.85em; color: #a94442;">{{ r.traceback|truncatechars:800 }}</pre>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No task executions recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}

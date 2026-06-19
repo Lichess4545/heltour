@@ -1,0 +1,166 @@
+services:
+  caddy:
+    image: ghcr.io/lichess4545/litour-caddy:latest
+    # ports:
+    #   - 8000:80
+    volumes:
+      - ./conf:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - caddy
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  web:
+    image: ghcr.io/lichess4545/litour-web:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_staging_lichess_api_token
+    secrets:
+      - litour_staging_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  apiworker:
+    image: ghcr.io/lichess4545/litour-api-worker:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_staging_lichess_api_token
+      HELTOUR_ENV: stage
+      HELTOUR_APP: api_worker
+    secrets:
+      - litour_staging_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  api:
+    image: ghcr.io/lichess4545/litour-api:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_staging_lichess_api_token
+      HELTOUR_ENV: stage
+    secrets:
+      - litour_staging_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  ui:
+    image: ghcr.io/lichess4545/litour-ui:latest
+    env_file: "stack.env"
+    environment:
+      LITOUR_API_BASE_URL: http://api:8001
+      LITOUR_UI_BASE_PATH: /v2
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  celery:
+    image: ghcr.io/lichess4545/litour-celery:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_staging_lichess_api_token
+    secrets:
+      - litour_staging_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  watcher:
+    image: ghcr.io/lichess4545/litour-watcher:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_staging_lichess_api_token
+    secrets:
+      - litour_staging_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  migrate:
+    image: ghcr.io/lichess4545/litour-migrate:latest
+    env_file: "stack.env"
+    networks:
+      - litour
+    deploy:
+      restart_policy:
+        condition: none
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: heltour
+      POSTGRES_USER: heltour
+      POSTGRES_PASSWORD: heltour_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heltour"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: stop-first # always stop first to avoid multiple instances sharing same docker volume
+      placement:
+        max_replicas_per_node: 1
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: stop-first
+
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    restart: unless-stopped
+    networks:
+      - litour
+
+volumes:
+  postgres_data:
+    name: litour_postgres_data
+  redis_data:
+    name: litour_redis_data
+  caddy_data:
+  caddy_config:
+
+networks:
+  caddy:
+    external: true
+  litour:
+    driver: overlay
+    # driver: bridge
+
+secrets:
+  litour_staging_lichess_api_token:
+    external: true

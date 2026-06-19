@@ -41,6 +41,30 @@
                                class="vCheckboxLabel">{{ form.generate_pairings.label }}</label>
                     </div>
                 </div>
+                {% if form.auto_assign_forfeits %}
+                    <div class="form-row">
+                        <div class="checkbox-row">
+                            {{ form.auto_assign_forfeits }}
+                            <label for="{{ form.auto_assign_forfeits.id_for_label }}"
+                                   class="vCheckboxLabel">{{ form.auto_assign_forfeits.label }}</label>
+                            {% if form.auto_assign_forfeits.help_text %}
+                                <div class="help">{{ form.auto_assign_forfeits.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if form.publish_immediately %}
+                    <div class="form-row">
+                        <div class="checkbox-row">
+                            {{ form.publish_immediately }}
+                            <label for="{{ form.publish_immediately.id_for_label }}"
+                                   class="vCheckboxLabel">{{ form.publish_immediately.label }}</label>
+                            {% if form.publish_immediately.help_text %}
+                                <div class="help">{{ form.publish_immediately.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
             {% endif %}
         </div>
         <div class="submit-row">

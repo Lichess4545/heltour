@@ -11,6 +11,14 @@
                 location.reload();
             }, sleepBuffer);
         }, refreshInterval - sleepBuffer);
+        $(function () {
+            $('.presence-log-trigger[data-toggle="popover"]').popover({
+                container: 'body',
+                trigger: 'hover focus',
+                html: true,
+                placement: 'top'
+            });
+        });
     </script>
 {% endblock %}
 {% block content %}
@@ -19,6 +27,12 @@
             <div class="well">
                 <div class="well-head">
                     <h3>Pairings</h3>
+                    {% if league.tag and season.tag and round_.number %}
+                        <p style="margin-top: 4px; font-size: 11px; color: #999;">
+                            <a href="/v2/{{ league.tag }}/{{ season.tag }}/round/{{ round_.number }}/matches"
+                               style="color: #999; text-decoration: underline;">try the new pairings page</a>
+                        </p>
+                    {% endif %}
                 </div>
                 <div class="well-body">
                     {% include 'tournament/section_switcher.html' with url_name='pairings' %}
@@ -106,7 +120,7 @@
                                             {% if pairing.white %}
                                                 <div class="pairing-player">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.white.lichess_username %}">
-                                                        {{ pairing.white.lichess_username }}
+                                                        {% player_display_name pairing.white %}
                                                         {% if not zen_mode %}
                                                             <span class="visible-xs"></span> ({% white_rating pairing %})
                                                         {% endif %}
@@ -115,6 +129,7 @@
                                                         <img src="{% static 'tournament/img/icon-'|add:white_img|add:'.svg' %}"
                                                              title="{{ white_status }}" />
                                                     {% endif %}
+                                                    {% if can_view_presence_log %}{% presence_log_trigger presence_events_map pairing pairing.white %}{% endif %}
                                                 </div>
                                             {% endif %}
                                         </td>
@@ -143,7 +158,7 @@
                                             {% if pairing.black %}
                                                 <div class="pairing-player">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag pairing.black.lichess_username %}">
-                                                        {{ pairing.black.lichess_username }}
+                                                        {% player_display_name pairing.black %}
                                                         {% if not zen_mode %}
                                                             <span class="visible-xs"></span> ({% black_rating pairing %})
                                                         {% endif %}
@@ -152,6 +167,7 @@
                                                         <img src="{% static 'tournament/img/icon-'|add:black_img|add:'.svg' %}"
                                                              title="{{ black_status }}" />
                                                     {% endif %}
+                                                    {% if can_view_presence_log %}{% presence_log_trigger presence_events_map pairing pairing.black %}{% endif %}
                                                 </div>
                                             {% endif %}
                                         </td>
@@ -160,8 +176,10 @@
                                                 <a href="{{ pairing.game_link }}">
                                                     {% if pairing.result %}
                                                         {{ pairing.result_display }}
+                                                    {% elif pairing.tv_state != "has_moves" %}
+                                                        ⏯
                                                     {% else %}
-                                                        &#x2694;
+                                                        ⚔️
                                                     {% endif %}
                                                 </a>
                                             {% else %}
@@ -212,7 +230,7 @@
                                         <td>
                                             <div class="pairing-player">
                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag bye.player.lichess_username %}">
-                                                    {{ bye.player.lichess_username }} <span class="visible-xs"></span>
+                                                    {% player_display_name bye.player %} <span class="visible-xs"></span>
                                                     ({% player_rating bye %})
                                                 </a>
                                             </div>

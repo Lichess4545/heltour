@@ -1,0 +1,8 @@
+FROM base
+
+# Set environment
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=heltour.settings
+
+# Stream lichess games and update pairings in real time.
+CMD ["python", "manage.py", "watch_games"]

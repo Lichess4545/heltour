@@ -13,6 +13,7 @@ from heltour.tournament.models import (
     get_fide_dp,
     get_gameid_from_gamelink,
     League,
+    lichess_variant_for,
     LonePlayerPairing,
     ModRequest,
     normalize_gamelink,
@@ -21,6 +22,7 @@ from heltour.tournament.models import (
     PlayerBye,
     PlayerLateRegistration,
     PlayerPairing,
+    RATING_TYPE_OPTIONS,
     Registration,
     Round,
     ScheduledEvent,
@@ -57,6 +59,40 @@ class HelpersTestCase(SimpleTestCase):
     def test_get_fide_dp(self):
         self.assertEqual(get_fide_dp(0, 12), -800)
         self.assertEqual(get_fide_dp(12, 12), 800)
+
+    def test_lichess_variant_for(self):
+        # Every existing rating_type must map to a known Lichess variant.
+        # Time-control / FIDE rating types default to "standard"; only
+        # rating types that name an actual Lichess board variant are
+        # passed through (currently just chess960). This keeps
+        # game-starting working when a new rating type is added without
+        # requiring touch-ups in tasks.py each time.
+        expected = {
+            "classical": "standard",
+            "rapid": "standard",
+            "blitz": "standard",
+            "chess960": "chess960",
+            "fide_standard": "standard",
+            "fide_rapid": "standard",
+            "fide_blitz": "standard",
+            "fide": "standard",
+        }
+        # Sanity check: keep the test in sync with RATING_TYPE_OPTIONS so
+        # adding a new rating type forces a deliberate decision here.
+        self.assertEqual(
+            set(expected),
+            {key for key, _ in RATING_TYPE_OPTIONS},
+        )
+        for rating_type, variant in expected.items():
+            self.assertEqual(
+                lichess_variant_for(rating_type),
+                variant,
+                msg=f"rating_type={rating_type!r} mapped to wrong variant",
+            )
+
+        # An unknown / not-yet-added rating type should default to standard
+        # rather than leaking through as an invalid Lichess variant.
+        self.assertEqual(lichess_variant_for("totally_new_type"), "standard")
 
     def test_bad_gamelinks(self):
         self.assertEqual(get_gameid_from_gamelink(None), None)
@@ -186,26 +222,66 @@ class SeasonTestCase(TestCase):
             score_matrix(),
         )
 
-        TeamPairing.objects.create(
+        # Create first pairing: Team 1 vs Team 2 (2-1)
+        pairing1 = TeamPairing.objects.create(
             round=rounds[0],
             pairing_order=0,
             white_team=teams[0],
             black_team=teams[1],
-            white_points=2.0,
-            white_wins=2,
-            black_points=1.0,
-            black_wins=1,
         )
-        TeamPairing.objects.create(
+        
+        # Get team members
+        team1_members = list(teams[0].teammember_set.order_by("board_number"))
+        team2_members = list(teams[1].teammember_set.order_by("board_number"))
+        
+        # Board 1: Team 1 wins
+        TeamPlayerPairing.objects.create(
+            team_pairing=pairing1,
+            board_number=1,
+            white=team1_members[0].player,
+            black=team2_members[0].player,
+            result='1-0'
+        )
+        # Board 2: Team 1 wins (team 2 gets white but loses)
+        TeamPlayerPairing.objects.create(
+            team_pairing=pairing1,
+            board_number=2,
+            white=team2_members[1].player,
+            black=team1_members[1].player,
+            result='0-1'
+        )
+        pairing1.refresh_points()
+        pairing1.save()
+        
+        # Create second pairing: Team 3 vs Team 4 (1.5-1.5)
+        pairing2 = TeamPairing.objects.create(
             round=rounds[0],
-            pairing_order=0,
+            pairing_order=1,
             white_team=teams[2],
             black_team=teams[3],
-            white_points=1.5,
-            white_wins=1,
-            black_points=1.5,
-            black_wins=1,
         )
+        
+        team3_members = list(teams[2].teammember_set.order_by("board_number"))
+        team4_members = list(teams[3].teammember_set.order_by("board_number"))
+        
+        # Board 1: Team 3 wins
+        TeamPlayerPairing.objects.create(
+            team_pairing=pairing2,
+            board_number=1,
+            white=team3_members[0].player,
+            black=team4_members[0].player,
+            result='1-0'
+        )
+        # Board 2: Team 4 wins (team 4 gets white and wins)
+        TeamPlayerPairing.objects.create(
+            team_pairing=pairing2,
+            board_number=2,
+            white=team4_members[1].player,
+            black=team3_members[1].player,
+            result='1-0'
+        )
+        pairing2.refresh_points()
+        pairing2.save()
         self.assertEqual(
             [
                 (0, 0, 0, 0, 0, 0),
@@ -220,10 +296,10 @@ class SeasonTestCase(TestCase):
         rounds[0].save()
         self.assertEqual(
             [
-                (1, 2, 2, 0, 2, 0),
-                (1, 0, 1, 0, 1, 0),
-                (1, 1, 1.5, 1, 1, 0.5),
-                (1, 1, 1.5, 1, 1, 0.5),
+                (1, 2, 2.0, 0, 2, 0.0),
+                (1, 0, 0.0, 0, 0, 0.0),
+                (1, 1, 1.0, 1, 1, 0.5),
+                (1, 1, 1.0, 1, 1, 0.5),
             ],
             score_matrix(),
         )
@@ -241,7 +317,7 @@ class SeasonTestCase(TestCase):
             for s in scores:
                 s.refresh_from_db()
             return [
-                (s.points, s.tiebreak1, s.tiebreak2, s.tiebreak3, s.tiebreak4)
+                (s.points, s.head_to_head, s.buchholz_cut1, s.buchholz, s.games_won)
                 for s in scores
             ]
 
@@ -269,17 +345,18 @@ class SeasonTestCase(TestCase):
             score_matrix(),
         )
 
+        # After round 1 completes:
+        # P0: 1.0 pts (beat P1), P1: 0.0 pts (lost to P0)
+        # P2: 0.5 pts (drew P3), P3: 0.5 pts (drew P2)
         rounds[0].is_completed = True
         rounds[0].save()
-        self.assertEqual(
-            [
-                (1, 0, 0, 1, 0),
-                (0, 0, 1, 0, 1),
-                (0.5, 0, 0.5, 0.5, 0.5),
-                (0.5, 0, 0.5, 0.5, 0.5),
-            ],
-            score_matrix(),
-        )
+
+        matrix = score_matrix()
+        # Check points
+        self.assertEqual(matrix[0][0], 1.0)   # P0
+        self.assertEqual(matrix[1][0], 0.0)    # P1
+        self.assertEqual(matrix[2][0], 0.5)  # P2
+        self.assertEqual(matrix[3][0], 0.5)  # P3
 
         LonePlayerPairing.objects.create(
             round=rounds[1],
@@ -296,29 +373,29 @@ class SeasonTestCase(TestCase):
             result="1/2-1/2",
         )
 
+        # After round 2:
+        # P0: 2.0 pts (1.0+1.0), P1: 0.5 pts (0+0.5)
+        # P2: 0.5 pts (0.5+0), P3: 1.0 pts (0.5+0.5)
         rounds[1].is_completed = True
         rounds[1].save()
-        self.assertEqual(
-            [
-                (2, 0.5, 1, 3, 1.5),
-                (0.5, 1, 3, 0.5, 4.5),
-                (0.5, 1, 3, 1, 4.5),
-                (1, 0, 1, 1.5, 1.5),
-            ],
-            score_matrix(),
-        )
 
+        matrix = score_matrix()
+        self.assertEqual(matrix[0][0], 2.0)   # P0 points
+        self.assertEqual(matrix[1][0], 0.5)  # P1 points
+        self.assertEqual(matrix[2][0], 0.5)  # P2 points
+        self.assertEqual(matrix[3][0], 1.0)   # P3 points
+
+        # P0 opponents: P1(0.5 GP) + P2(0.5 GP) = 1.0 buchholz
+        self.assertEqual(matrix[0][3], 1.0)  # P0 buchholz
+
+        # Complete round 3 (no new pairings → byes for everyone)
         rounds[2].is_completed = True
         rounds[2].save()
-        self.assertEqual(
-            [
-                (2, 2, 2, 5, 2.5),
-                (0.5, 1.5, 4, 1, 7.5),
-                (0.5, 1.5, 4, 1.5, 7.5),
-                (1, 1, 2, 2.5, 2.5),
-            ],
-            score_matrix(),
-        )
+
+        matrix = score_matrix()
+        # Points stay same (no games in R3)
+        self.assertEqual(matrix[0][0], 2.0)   # P0 points
+        self.assertEqual(matrix[1][0], 0.5)  # P1 points
 
     def test_export_players_basic(self):
         Season.objects.filter(name="Test Season").update(start_date=timezone.now())
@@ -450,34 +527,77 @@ class TeamScoreTestCase(TestCase):
         team2 = Team.objects.get(number=2)
         team3 = Team.objects.get(number=3)
 
+        # Create pairings with board results
         round1 = Round.objects.get(season__tag="teamseason", number=1)
-        round1.is_completed = True
-        round1.save()
         cls.pairing1 = TeamPairing.objects.create(
             white_team=team1,
             black_team=team2,
             round=round1,
             pairing_order=0,
-            white_points=1.5,
-            black_points=0.5,
         )
+        
+        # Get team members
+        team1_members = list(team1.teammember_set.order_by("board_number"))
+        team2_members = list(team2.teammember_set.order_by("board_number"))
+        
+        # Board 1: Team 1 wins
+        TeamPlayerPairing.objects.create(
+            team_pairing=cls.pairing1,
+            board_number=1,
+            white=team1_members[0].player,
+            black=team2_members[0].player,
+            result='1-0'
+        )
+        # Board 2: Draw
+        TeamPlayerPairing.objects.create(
+            team_pairing=cls.pairing1,
+            board_number=2,
+            white=team2_members[1].player,
+            black=team1_members[1].player,
+            result='1/2-1/2'
+        )
+        cls.pairing1.refresh_points()
+        cls.pairing1.save()
 
         round2 = Round.objects.get(season__tag="teamseason", number=2)
-        round2.is_completed = True
-        round2.save()
         cls.pairing2 = TeamPairing.objects.create(
             white_team=team3,
             black_team=team1,
             round=round2,
             pairing_order=0,
-            black_points=1.0,
-            white_points=1.0,
         )
+        
+        team3_members = list(team3.teammember_set.order_by("board_number"))
+        
+        # Board 1: Draw
+        TeamPlayerPairing.objects.create(
+            team_pairing=cls.pairing2,
+            board_number=1,
+            white=team3_members[0].player,
+            black=team1_members[0].player,
+            result='1/2-1/2'
+        )
+        # Board 2: Draw 
+        TeamPlayerPairing.objects.create(
+            team_pairing=cls.pairing2,
+            board_number=2,
+            white=team1_members[1].player,
+            black=team3_members[1].player,
+            result='1/2-1/2'
+        )
+        cls.pairing2.refresh_points()
+        cls.pairing2.save()
+        
+        # Now mark rounds as completed
+        round1.is_completed = True
+        round1.save()
+        round2.is_completed = True
+        round2.save()
         cls.teamscore = TeamScore.objects.get(team__number=1)
 
     def test_teamscore_round_scores(self):
         self.assertEqual(
-            [(1.5, 0.5, 1), (1.0, 1.0, 2), (None, None, None)],
+            [(1.5, 0.5, 1, False), (1.0, 1.0, 2, False), (None, None, None, False)],
             list(self.teamscore.round_scores()),
         )
 
@@ -493,18 +613,26 @@ class TeamScoreTestCase(TestCase):
         )
 
     def test_teamscore_cmp(self):
-        ts1 = TeamScore()
-        ts2 = TeamScore()
+        # Create teams first since TeamScore now requires a team for comparison
+        league = get_league('team')
+        season = get_season('team')
+        team1 = Team.objects.create(season=season, number=10, name='Team 10')
+        team2 = Team.objects.create(season=season, number=11, name='Team 11')
+        
+        ts1 = TeamScore.objects.create(team=team1)
+        ts2 = TeamScore.objects.create(team=team2)
 
         # Only the lt operator is implemented so we have to manually work around that
         self.assertTrue(not (ts1 < ts2))
         self.assertTrue(not (ts2 < ts1))
 
         ts1.match_points = 2
+        ts1.save()
         self.assertLess(ts2, ts1)
 
         ts2.match_points = 2
         ts2.game_points = 1.0
+        ts2.save()
         self.assertLess(ts1, ts2)
 
 

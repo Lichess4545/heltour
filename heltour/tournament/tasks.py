@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 # ^ for annotating unions with | syntax, can be removed once we upgrade to python 3.10+
 import json
-import re
+import random
 import sys
 import textwrap
 import time
@@ -12,6 +13,7 @@ from typing import Dict
 
 import reversion
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
@@ -20,7 +22,7 @@ from django.utils import timezone
 from django_stubs_ext import ValuesQuerySet
 from more_itertools import divide, first
 
-from heltour import settings
+from django.conf import settings
 from heltour.celery import app
 from heltour.tournament import (
     alternates_manager,
@@ -34,8 +36,10 @@ from heltour.tournament.models import (
     Alternate,
     Broadcast,
     BroadcastRound,
+    League,
     LeagueChannel,
     LonePlayerPairing,
+    OauthToken,
     Player,
     PlayerBye,
     PlayerPairing,
@@ -51,6 +55,8 @@ from heltour.tournament.models import (
     abs_url,
     get_gameid_from_gamelink,
     get_gamelink_from_gameid,
+    is_fide_rating_type,
+    lichess_variant_for,
     logger,
     lone_player_pairing_rank_dict,
 )
@@ -67,10 +73,7 @@ def to_usernames(users: UsernamesQuerySet) -> list[str]:
 
 
 def just_username(qs: QuerySet[Player]) -> UsernamesQuerySet:
-    return qs \
-        .order_by('lichess_username') \
-        .values('lichess_username') \
-        .distinct()
+    return qs.order_by("lichess_username").values("lichess_username").distinct()
 
 
 def active_player_usernames() -> list[str]:
@@ -125,15 +128,13 @@ def update_player_ratings(usernames: list[str] = []) -> None:
 
 
 def pairings_that_need_ratings() -> QuerySet[PlayerPairing]:
-    return PlayerPairing.objects.exclude(
-            game_link='',
-            result=''
-        ).exclude(
-            white=None,
-            black=None
-        ).filter(
-            Q(white_rating=None) | Q(black_rating=None)
-        ).nocache()
+    return (
+        PlayerPairing.objects.exclude(game_link="", result="")
+        .exclude(white=None, black=None)
+        .filter(Q(white_rating=None) | Q(black_rating=None))
+        .nocache()
+    )
+
 
 @app.task()
 def populate_historical_ratings():
@@ -141,21 +142,27 @@ def populate_historical_ratings():
 
     api_poll_count = 0
 
-    for p in pairings_qs.exclude(game_link=''):
+    for p in pairings_qs.exclude(game_link=""):
         # Poll ratings for the game from the lichess API
         if p.game_id() is None:
             continue
         p.refresh_from_db()
-        game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
-        p.white_rating = game_meta['players']['white']['rating']
-        p.black_rating = game_meta['players']['black']['rating']
-        p.save(update_fields=['white_rating', 'black_rating'])
+        round_ = p.get_round()
+        league = round_.season.league if round_ else None
+        if league and is_fide_rating_type(league.rating_type):
+            p.white_rating = p.white.rating_for(league)
+            p.black_rating = p.black.rating_for(league)
+        else:
+            game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
+            p.white_rating = game_meta["players"]["white"]["rating"]
+            p.black_rating = game_meta["players"]["black"]["rating"]
+        p.save(update_fields=["white_rating", "black_rating"])
         api_poll_count += 1
         if api_poll_count >= 100:
             # Limit the processing per task execution
             return
 
-    for p in pairings_qs.filter(game_link=''):
+    for p in pairings_qs.filter(game_link=""):
         round_ = p.get_round()
         if round_ is None:
             continue
@@ -169,65 +176,81 @@ def populate_historical_ratings():
             # Look for ratings from a close time period
             p.white_rating = _find_closest_rating(p.white, round_.end_date, season)
             p.black_rating = _find_closest_rating(p.black, round_.end_date, season)
-        p.save(update_fields=['white_rating', 'black_rating'])
+        p.save(update_fields=["white_rating", "black_rating"])
 
     for b in PlayerBye.objects.filter(
         player_rating=None,
         round__publish_pairings=True,
-        player__account_status='normal'
+        player__account_status="normal",
     ).nocache():
         b.refresh_from_db()
         if not b.round.is_completed:
             b.player_rating = b.player.rating_for(b.round.season.league)
         else:
-            b.player_rating = _find_closest_rating(b.player, b.round.end_date, b.round.season)
-        b.save(update_fields=['player_rating'])
+            b.player_rating = _find_closest_rating(
+                b.player, b.round.end_date, b.round.season
+            )
+        b.save(update_fields=["player_rating"])
 
     for tm in TeamMember.objects.filter(
         player_rating=None,
         team__season__is_completed=True,
-        player__account_status='normal'
+        player__account_status="normal",
     ).nocache():
         tm.refresh_from_db()
-        tm.player_rating = _find_closest_rating(tm.player, tm.team.season.end_date(),
-                                                tm.team.season)
-        tm.save(update_fields=['player_rating'])
+        tm.player_rating = _find_closest_rating(
+            tm.player, tm.team.season.end_date(), tm.team.season
+        )
+        tm.save(update_fields=["player_rating"])
 
     for alt in Alternate.objects.filter(
         player_rating=None,
         season_player__season__is_completed=True,
-        season_player__player__account_status='normal'
+        season_player__player__account_status="normal",
     ).nocache():
         alt.refresh_from_db()
-        alt.player_rating = _find_closest_rating(alt.season_player.player,
-                                                 alt.season_player.season.end_date(),
-                                                 alt.season_player.season)
-        alt.save(update_fields=['player_rating'])
+        alt.player_rating = _find_closest_rating(
+            alt.season_player.player,
+            alt.season_player.season.end_date(),
+            alt.season_player.season,
+        )
+        alt.save(update_fields=["player_rating"])
 
     for sp in SeasonPlayer.objects.filter(
-        final_rating=None,
-        season__is_completed=True,
-        player__account_status='normal'
+        final_rating=None, season__is_completed=True, player__account_status="normal"
     ).nocache():
         sp.refresh_from_db()
-        sp.final_rating = _find_closest_rating(sp.player, sp.season.end_date(), sp.season)
-        sp.save(update_fields=['final_rating'])
+        sp.final_rating = _find_closest_rating(
+            sp.player, sp.season.end_date(), sp.season
+        )
+        sp.save(update_fields=["final_rating"])
 
 
 def _find_closest_rating(player, date, season):
     if player is None:
         return None
-    if season.league.competitor_type == 'team':
-        season_pairings = TeamPlayerPairing.objects.filter(
-            team_pairing__round__season=season).exclude(white_rating=None,
-                                                        black_rating=None).nocache()
+    league = season.league
+    # For FIDE-rated leagues, we cannot get historical ratings from the Lichess API.
+    if is_fide_rating_type(league.rating_type):
+        return player.rating_for(league)
+    if season.league.competitor_type == "team":
+        season_pairings = (
+            TeamPlayerPairing.objects.filter(team_pairing__round__season=season)
+            .exclude(white_rating=None, black_rating=None)
+            .nocache()
+        )
     else:
-        season_pairings = LonePlayerPairing.objects.filter(round__season=season).exclude(
-            white_rating=None, black_rating=None).nocache()
-    pairings = season_pairings.filter(white=player) | season_pairings.filter(black=player)
+        season_pairings = (
+            LonePlayerPairing.objects.filter(round__season=season)
+            .exclude(white_rating=None, black_rating=None)
+            .nocache()
+        )
+    pairings = season_pairings.filter(white=player) | season_pairings.filter(
+        black=player
+    )
 
     def pairing_date(p):
-        if season.league.competitor_type == 'team':
+        if season.league.competitor_type == "team":
             return p.team_pairing.round.end_date
         else:
             return p.round.end_date
@@ -238,7 +261,9 @@ def _find_closest_rating(player, date, season):
         else:
             return p.black_rating
 
-    pairings_by_date = sorted([(pairing_date(p), p) for p in pairings], key=lambda p: p[0])
+    pairings_by_date = sorted(
+        [(pairing_date(p), p) for p in pairings], key=lambda p: p[0]
+    )
     if len(pairings_by_date) == 0:
         # Try to find the seed rating
         sp = SeasonPlayer.objects.filter(season=season, player=player).first()
@@ -253,21 +278,32 @@ def _find_closest_rating(player, date, season):
         p = pairings_by_date_lt[-1][1]
         if p.game_id() is not None:
             try:
-                game_meta = lichessapi.get_game_meta(p.game_id(), priority=0, timeout=300)
-                player_meta = game_meta['players']['white'] if p.white == player else \
-                    game_meta['players']['black']
-                if 'ratingDiff' in player_meta:
-                    return player_meta['rating'] + player_meta['ratingDiff']
+                game_meta = lichessapi.get_game_meta(
+                    p.game_id(), priority=0, timeout=300
+                )
+                player_meta = (
+                    game_meta["players"]["white"]
+                    if p.white == player
+                    else game_meta["players"]["black"]
+                )
+                if "ratingDiff" in player_meta:
+                    return player_meta["rating"] + player_meta["ratingDiff"]
             except lichessapi.ApiClientError:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                logger.error(f'[ERROR] ApiClient: Error fetching game {p.game_id()}')
-                stacktrace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                logger.error(f"[ERROR] ApiClient: Error fetching game {p.game_id()}")
+                stacktrace = traceback.format_exception(
+                    exc_type, exc_value, exc_traceback
+                )
                 logger.error(stacktrace)
                 return None
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                logger.error("[ERROR] General Exception: This should really be an ApiClientError.")
-                stacktrace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                logger.error(
+                    "[ERROR] General Exception: This should really be an ApiClientError."
+                )
+                stacktrace = traceback.format_exception(
+                    exc_type, exc_value, exc_traceback
+                )
                 logger.error(stacktrace)
                 return None
         return rating(p)
@@ -277,50 +313,72 @@ def _find_closest_rating(player, date, season):
 
 @app.task()
 def update_tv_state():
-    games_starting = PlayerPairing.objects.filter(result='', game_link='',
-                                                  scheduled_time__lt=timezone.now()).nocache()
-    games_starting = games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) | \
-                     games_starting.filter(
-                         teamplayerpairing__team_pairing__round__end_date__gt=timezone.now())
-    games_in_progress = PlayerPairing.objects.filter(Q(result='') & (Q(tv_state='default') | Q(tv_state='has_moves'))).exclude(
-        game_link='').nocache()
+    games_starting = PlayerPairing.objects.filter(
+        result="", game_link="", scheduled_time__lt=timezone.now()
+    ).nocache()
+    games_starting = games_starting.filter(
+        loneplayerpairing__round__end_date__gt=timezone.now()
+    ) | games_starting.filter(
+        teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()
+    )
+    games_in_progress = (
+        PlayerPairing.objects.filter(
+            Q(result="") & (Q(tv_state="default") | Q(tv_state="has_moves"))
+        )
+        .exclude(game_link="")
+        .nocache()
+    )
 
     for game in games_starting:
         try:
             league = game.get_round().season.league
-            roundstart = round(game.get_round().start_date.timestamp()*1000) # round start in miliseconds
-            for meta in lichessapi.get_latest_game_metas(lichess_username=game.white.lichess_username,
-                                                         variant=league.rating_type, since=roundstart,
-                                                         number=5, opponent=game.black.lichess_username, priority=1,
-                                                         timeout=300):
+            roundstart = round(
+                game.get_round().start_date.timestamp() * 1000
+            )  # round start in miliseconds
+            for meta in lichessapi.get_latest_game_metas(
+                lichess_username=game.white.lichess_username,
+                variant=league.rating_type,
+                since=roundstart,
+                number=5,
+                opponent=game.black.lichess_username,
+                priority=1,
+                timeout=300,
+            ):
                 try:
-                    if (meta['players']['white']['user'][
-                        'id'].lower() == game.white.lichess_username.lower() and
-                        meta['players']['black']['user'][
-                            'id'].lower() == game.black.lichess_username.lower() and
-                        meta['clock']['initial'] == league.time_control_initial() and
-                        meta['clock']['increment'] == league.time_control_increment() and
-                        meta['perf'] == league.rating_type and
-                        meta['rated'] is True and
-                        meta['status'] != 'aborted'):
-                        game.game_link = get_gamelink_from_gameid(meta['id'])
-                        if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
-                            game.tv_state = 'has_moves'
+                    if (
+                        meta["players"]["white"]["user"]["id"].lower()
+                        == game.white.lichess_username.lower()
+                        and meta["players"]["black"]["user"]["id"].lower()
+                        == game.black.lichess_username.lower()
+                        and meta["clock"]["initial"] == league.time_control_initial()
+                        and meta["clock"]["increment"]
+                        == league.time_control_increment()
+                        and meta["perf"] == league.rating_type
+                        and meta["rated"] is True
+                        and meta["status"] != "aborted"
+                    ):
+                        game.game_link = get_gamelink_from_gameid(meta["id"])
+                        if " " in meta.get("moves"):  # ' ' indicates >= 2 moves
+                            game.tv_state = "has_moves"
                         game.save()
                 except KeyError:
                     pass
         except Exception as e:
-            logger.warning('Error updating tv state for %s: %s' % (game, e))
+            logger.warning("Error updating tv state for %s: %s" % (game, e))
 
     for game in games_in_progress:
         gameid = get_gameid_from_gamelink(game.game_link)
         if gameid is not None:
             try:
                 meta = lichessapi.get_game_meta(gameid, priority=1, timeout=300)
-                if 'status' not in meta or meta['status'] != 'started':
-                    game.tv_state = 'hide'
-                if 'moves' in meta and ' ' in meta['moves']: # ' ' indicates >= 2 moves
-                    game.tv_state = 'has_moves'
+                if "status" not in meta or meta["status"] != "started":
+                    game.tv_state = "hide"
+                if "moves" in meta and " " in meta["moves"]:  # ' ' indicates >= 2 moves
+                    game.tv_state = "has_moves"
+                meta_moves = meta.get("moves") or ""
+                game.plies_played = max(
+                    game.plies_played, len(meta_moves.split())
+                )
                 if meta.get("status") in [
                     "draw",
                     "stalemate",
@@ -329,35 +387,49 @@ def update_tv_state():
                     game.result = "1/2-1/2"
                 if meta.get("status") == "aborted":
                     game.game_link = ""
-                elif 'winner' in meta and meta[
-                    'status'] != 'timeout':  # timeout = claim victory (which isn't allowed)
-                    if meta['winner'] == 'white':
-                        game.result = '1-0'
-                    elif meta['winner'] == 'black':
-                        game.result = '0-1'
+                elif (
+                    "winner" in meta and meta["status"] != "timeout"
+                ):  # timeout = claim victory (which isn't allowed)
+                    if meta["winner"] == "white":
+                        game.result = "1-0"
+                    elif meta["winner"] == "black":
+                        game.result = "0-1"
                 game.save()
             except Exception as e:
-                logger.warning('Error updating tv state for %s: %s' % (game.game_link, e))
+                logger.warning(
+                    "Error updating tv state for %s: %s" % (game.game_link, e)
+                )
 
 
 @app.task()
 def update_lichess_presence():
-    games_starting = PlayerPairing.objects.filter(
-        result='', tv_state='default',
-        scheduled_time__lt=timezone.now() + timedelta(minutes=5),
-        scheduled_time__gt=timezone.now() - timedelta(minutes=22)
-        ).exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
-    games_starting = (games_starting.filter(loneplayerpairing__round__end_date__gt=timezone.now()) |
-                      games_starting.filter(
-                         teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()))
+    games_starting = (
+        PlayerPairing.objects.filter(
+            result="",
+            tv_state="default",
+            scheduled_time__lt=timezone.now() + timedelta(minutes=5),
+            scheduled_time__gt=timezone.now() - timedelta(minutes=22),
+        )
+        .exclude(white=None)
+        .exclude(black=None)
+        .select_related("white", "black")
+        .nocache()
+    )
+    games_starting = games_starting.filter(
+        loneplayerpairing__round__end_date__gt=timezone.now()
+    ) | games_starting.filter(
+        teamplayerpairing__team_pairing__round__end_date__gt=timezone.now()
+    )
 
     users = {}
     for game in games_starting:
         users[game.white.lichess_username.lower()] = game.white
         users[game.black.lichess_username.lower()] = game.black
-    for status in lichessapi.enumerate_user_statuses(list(users.keys()), priority=1, timeout=60):
-        if status.get('online'):
-            user = users[status.get('id').lower()]
+    for status in lichessapi.enumerate_user_statuses(
+        list(users.keys()), priority=1, timeout=60
+    ):
+        if status.get("online"):
+            user = users[status.get("id").lower()]
             for g in games_starting:
                 if user in (g.white, g.black):
                     presence = g.get_player_presence(user)
@@ -367,11 +439,20 @@ def update_lichess_presence():
 
 @app.task()
 def update_slack_users():
+    if not getattr(settings, "SLACK_API_TOKEN_FILE_PATH", None):
+        logger.info(
+            "Skipping update_slack_users: SLACK_API_TOKEN_FILE_PATH not configured"
+        )
+        return
     slack_users = {u.id: u for u in slackapi.get_user_list()}
     for p in Player.objects.all():
         u = slack_users.get(p.slack_user_id)
-        if u is not None and u.tz_offset != (p.timezone_offset and p.timezone_offset.total_seconds()):
-            p.timezone_offset = None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
+        if u is not None and u.tz_offset != (
+            p.timezone_offset and p.timezone_offset.total_seconds()
+        ):
+            p.timezone_offset = (
+                None if u.tz_offset is None else timedelta(seconds=u.tz_offset)
+            )
             p.save()
 
 
@@ -379,123 +460,196 @@ def _expire_bad_tokens(*, league_games, bad_token):
     # set expiration of rejected token to yesterday, so we know to not use it anymore.
     for game in league_games:
         for token in [game.get_white_oauth_token(), game.get_black_oauth_token()]:
-            if token.access_token==bad_token:
+            if token.access_token == bad_token:
                 token.expire()
-                return None # only one oauth_token can be the bad token, so we do not need to proceed the function
+                return None  # only one oauth_token can be the bad token, so we do not need to proceed the function
 
 
-def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
+def _start_league_games(
+    *,
+    tokens,
+    clock,
+    increment,
+    do_clockstart,
+    clockstart,
+    clockstart_in,
+    variant,
+    leaguename,
+    league_games,
+):
     result = None
     try:
-        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
+        result = lichessapi.bulk_start_games(
+            tokens=tokens,
+            clock=clock,
+            increment=increment,
+            do_clockstart=do_clockstart,
+            clockstart=clockstart,
+            clockstart_in=clockstart_in,
+            variant=variant,
+            leaguename=leaguename,
+        )
     except lichessapi.ApiClientError as err:
-        logger.info(f"Received error from lichess api: {err}")
-        logger.info("Attempting to recover by removing rejected tokens.")
-        # try to handle errors due to rjected tokens
-        e = str(err).replace('API failure: CLIENT-ERROR: [400] ', '') # get json part from error
+        logger.error(
+            f"[ERROR] bulk_start_games failed for {leaguename}: {err}. "
+            "NOT retrying — some games may have been created on Lichess. "
+            "The TV state poller will pick them up. Expire any bad tokens and "
+            "re-trigger game creation manually after verifying state."
+        )
+        # Still expire bad tokens so they aren't reused on the next manual attempt
+        e = str(err).replace("API failure: CLIENT-ERROR: [400] ", "")
         try:
-            result = json.loads(e)
-            new_tokens = None
-            for bad_token in result["tokens"]:
+            parsed = json.loads(e)
+            for bad_token in parsed.get("tokens", []):
                 _expire_bad_tokens(league_games=league_games, bad_token=bad_token)
-                # remove bad token from our token string + the good token paired with it, remove potential superfluous comma
-                # the token string is structured as such: white_token_game1:black_token_game1,white_token_game2:black_token_game2 and so on.
-                optional_white_token = "([A-z0-9_]*:)?"
-                optional_black_token = "(:[A-z0-9_]*)?"
-                # either the pairing with the bad token is the first in the string, or there is a comma in front of it
-                start_or_comma = "(^|,)"
-                removed_token = re.sub(
-                    f"{start_or_comma}{optional_white_token}{bad_token}{optional_black_token}",
-                    "",
-                    tokens,
-                )
-                # if it was the last token, then we end up with a useless comma in the end, remove that
-                new_tokens = re.sub("^,", "", removed_token)
-            if new_tokens:
-                try:
-                    # if there are still tokens to be paired, retry, and give up afterwards.
-                    result = lichessapi.bulk_start_games(
-                        tokens=new_tokens,
-                        clock=clock,
-                        increment=increment,
-                        do_clockstart=do_clockstart,
-                        clockstart=clockstart,
-                        clockstart_in=clockstart_in,
-                        variant=variant,
-                        leaguename=leaguename,
-                    )
-                except lichessapi.ApiClientError as err:
-                    # give up.
-                    logger.exception(
-                        f"[ERROR] Failed to bulk start games for league {leaguename} after removing rejected tokens."
-                    )
-        except KeyError:
-            logger.exception(f'[ERROR] could not parse error as json for {leaguename}:\n{e}')
-    if result is None: # starting games failed, or all tokens rejected
+        except (KeyError, json.JSONDecodeError):
+            logger.error(
+                f"[ERROR] Could not parse rejected tokens from error for {leaguename}: {e}"
+            )
+        return None
+    if result is None:  # starting games failed, or all tokens rejected
         return
-    gamechannel = LeagueChannel.objects.filter(league__name=leaguename, type='games').first()
-    # use lichess reply to set game ids
-    for game in league_games:
-        try:
-            for gameids in result['games']:
+    # Build {pairing_pk: (game_link, game_id)} from API response — idempotent save phase
+    pairing_game_map: dict[int, tuple[str, str]] = {}
+    try:
+        if result.get("games") is None:
+            return result
+        for game in league_games:
+            for gameids in result["games"]:
                 if (
                     gameids["white"] == game.white.lichess_username.lower()
                     and gameids["black"] == game.black.lichess_username.lower()
                 ):
-                    game.game_link = get_gamelink_from_gameid(gameids["id"])
-                    game.save()
-                    signals.notify_players_game_started.send(
-                        sender=_start_league_games,
-                        pairing=game,
-                        do_clockstart=do_clockstart,
-                        clockstart_in=clockstart_in,
-                        gameid=gameids["id"],
-                    )
-                    if gamechannel is not None:
-                        slackapi.send_message(
-                            channel=gamechannel.slack_channel,
-                            text=(
-                                f"<@{game.white.lichess_username}> vs "
-                                f"<@{game.black.lichess_username}>: "
-                                f"{game.game_link}"
-                            ),
-                        )
-                    if game.get_league().is_team_league():
-                        message = (
-                            f"Board {game.teamplayerpairing.board_number} game "
-                            f"<@{game.white.lichess_username}> vs "
-                            f"<@{game.black.lichess_username}> has started: "
-                            f"{game.game_link}"
-                        )
-                        if game.teamplayerpairing.white_team().slack_channel:
-                            slackapi.send_message(
-                                channel=game.teamplayerpairing.white_team().slack_channel,
-                                text=message,
-                            )
-                            time.sleep(settings.SLEEP_UNIT)
-                        if game.teamplayerpairing.black_team().slack_channel:
-                            slackapi.send_message(
-                                channel=game.teamplayerpairing.black_team().slack_channel,
-                                text=message,
-                            )
-                            time.sleep(settings.SLEEP_UNIT)
-        except slackapi.SlackError:
-            logger.info(f'[ERROR] sending slack game message to {gamechannel.slack_channel}.')
-        except KeyError as e:
-            logger.info(f'[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}')
-        except TypeError: # if all tokens are rejected by lichess, result['games'] is None, resulting in a TypeError.
-            pass
+                    link = get_gamelink_from_gameid(gameids["id"])
+                    pairing_game_map[game.pk] = (link, gameids["id"])
+    except (KeyError, TypeError) as e:
+        logger.info(
+            f"[ERROR] For league {leaguename}, unexpected bulk pairing json response with error {e}"
+        )
+        return result
+    # Idempotent update: only sets game_link on rows where it's still blank
+    for pk, (link, _game_id) in pairing_game_map.items():
+        PlayerPairing.objects.filter(pk=pk, game_link="").update(game_link=link)
+    # Notifications — best-effort, won't block persistence
+    gamechannel = LeagueChannel.objects.filter(
+        league__name=leaguename, type="games"
+    ).first()
+    for game in league_games:
+        if game.pk not in pairing_game_map:
+            continue
+        link, game_id = pairing_game_map[game.pk]
+        game.game_link = link
+        _notify_game_started(
+            game=game,
+            game_id=game_id,
+            do_clockstart=do_clockstart,
+            clockstart_in=clockstart_in,
+            gamechannel=gamechannel,
+        )
+    return result
+
+
+def _notify_game_started(
+    *,
+    game: PlayerPairing,
+    game_id: str,
+    do_clockstart: bool,
+    clockstart_in: int,
+    gamechannel: LeagueChannel | None,
+) -> None:
+    try:
+        signals.notify_players_game_started.send(
+            sender=_start_league_games,
+            pairing=game,
+            do_clockstart=do_clockstart,
+            clockstart_in=clockstart_in,
+            gameid=game_id,
+        )
+        if gamechannel is not None:
+            slackapi.send_message(
+                channel=gamechannel.slack_channel,
+                text=(
+                    f"<@{game.white.lichess_username}> vs "
+                    f"<@{game.black.lichess_username}>: "
+                    f"{game.game_link}"
+                ),
+            )
+        if game.get_league().is_team_league():
+            message = (
+                f"Board {game.teamplayerpairing.board_number} game "
+                f"<@{game.white.lichess_username}> vs "
+                f"<@{game.black.lichess_username}> has started: "
+                f"{game.game_link}"
+            )
+            if game.teamplayerpairing.white_team().slack_channel:
+                slackapi.send_message(
+                    channel=game.teamplayerpairing.white_team().slack_channel,
+                    text=message,
+                )
+                time.sleep(settings.SLEEP_UNIT)
+            if game.teamplayerpairing.black_team().slack_channel:
+                slackapi.send_message(
+                    channel=game.teamplayerpairing.black_team().slack_channel,
+                    text=message,
+                )
+                time.sleep(settings.SLEEP_UNIT)
+    except slackapi.SlackError:
+        logger.info(f"[ERROR] sending slack game notification for game {game_id}.")
+
+
+def _init_start_league_games(
+    *,
+    league: League,
+    tokens: list[str],
+    league_games: QuerySet[LonePlayerPairing | TeamPlayerPairing]
+    | list[LonePlayerPairing | TeamPlayerPairing],
+) -> dict | None:
+    tokenstring = ",".join(tokens)
+    clock = league.time_control_initial()
+    increment = league.time_control_increment()
+    variant = lichess_variant_for(league.rating_type)
+    do_clockstart = league.get_leaguesetting().start_clocks
+    clockstart_in = league.get_leaguesetting().start_clock_time
+    clockstart = round(
+        (datetime.utcnow().timestamp() + clockstart_in * 60) * 1000
+    )  # now + 6 minutes in milliseconds
+    leaguename = league.name
+    result = _start_league_games(
+        tokens=tokenstring,
+        clock=clock,
+        increment=increment,
+        do_clockstart=do_clockstart,
+        clockstart=clockstart,
+        clockstart_in=clockstart_in,
+        variant=variant,
+        leaguename=leaguename,
+        league_games=league_games,
+    )
+    round_ = Round.objects.filter(
+        season__league=league, is_completed=False, publish_pairings=True
+    ).first()
+    if round_:
+        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
+    return result
 
 
 @app.task()
 def start_games():
-    logger.info('[START] Checking for games to start.')
-    games_to_start = PlayerPairing.objects.filter(
-            result='', game_link='',
+    logger.info("[START] Checking for games to start.")
+    games_to_start = (
+        PlayerPairing.objects.filter(
+            result="",
+            game_link="",
             scheduled_time__lt=timezone.now() + timedelta(minutes=5, seconds=30),
             scheduled_time__gt=timezone.now() + timedelta(seconds=30),
-            white_confirmed=True, black_confirmed=True
-            ).exclude(white=None).exclude(black=None).select_related('white', 'black').nocache()
+            white_confirmed=True,
+            black_confirmed=True,
+        )
+        .exclude(white=None)
+        .exclude(black=None)
+        .select_related("white", "black")
+        .nocache()
+    )
     leagues = {}
     token_dict = {}
     for game in games_to_start:
@@ -508,30 +662,25 @@ def start_games():
                     token_dict[gameleague.name] = []
                 if gameleague.name not in leagues:
                     leagues[gameleague.name] = gameleague
-                token_dict[gameleague.name].append(f'{white_token}:{black_token}')
+                token_dict[gameleague.name].append(f"{white_token}:{black_token}")
     for leaguename, league in leagues.items():
-        clock = league.time_control_initial()
-        increment = league.time_control_increment()
-        variant = league.rating_type
-        if variant in ['classical', 'rapid', 'blitz', 'bullet']:
-            variant = 'standard'
-        # filter games_to_start to the current league
-        league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
-        # get tokens per game
-        tokens = ','.join(token_dict[leaguename])
-        do_clockstart = league.get_leaguesetting().start_clocks
-        clockstart_in = league.get_leaguesetting().start_clock_time
-        clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
-        _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
-        round_ = Round.objects.filter(season__league=league, is_completed=False, publish_pairings=True).first()
-        signals.do_update_broadcast_round.send(sender="start_games", round_id=round_.pk)
-    logger.info('[FINISHED] Done trying to start games.')
+        _init_start_league_games(
+            league=league,
+            tokens=token_dict[leaguename],
+            league_games=games_to_start.filter(
+                loneplayerpairing__round__season__league=league
+            )
+            | games_to_start.filter(
+                teamplayerpairing__team_pairing__round__season__league=league
+            ),
+        )
+    logger.info("[FINISHED] Done trying to start games.")
 
 
 def _create_team_string(season: Season) -> str:
     if not season.league.is_team_league():
         return ""
-    teams = Team.objects.filter(season=season)
+    teams = Team.objects.filter(season=season).order_by("number")
     lines = []
     for team in teams:
         for teamplayer in TeamMember.objects.filter(team=team).order_by(
@@ -768,7 +917,9 @@ def create_broadcast(season_id: int, first_board: int = 1) -> None:
 
 @receiver(signals.do_create_broadcast, dispatch_uid="heltour.tournament.tasks")
 def do_create_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
-    create_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
+    create_broadcast.apply_async(
+        kwargs={"season_id": season_id, "first_board": first_board}
+    )
 
 
 @app.task()
@@ -782,9 +933,208 @@ def update_broadcast(season_id: int, first_board: int = 1) -> None:
     )
 
 
+@app.task()
+def _start_unscheduled_games(round_id: int) -> None:
+    lock = cache.lock(f"start_games_round_{round_id}", timeout=120)
+    if not lock.acquire(blocking=False):
+        logger.warning(
+            f"[SKIP] start_games_round_{round_id} already running, skipping."
+        )
+        return
+    try:
+        _start_unscheduled_games_inner(round_id)
+    finally:
+        try:
+            lock.release()
+        except Exception:
+            pass
+
+
+def _start_unscheduled_games_inner(round_id: int) -> None:
+    result = None
+    logger.info("[START] Trying to start games.")
+    round_ = Round.objects.get(pk=round_id)
+    league = round_.season.league
+    if league.is_player_scheduled_league():
+        logger.error("[ERROR] Tried to start unscheduled games in a scheduling league.")
+        return
+    with transaction.atomic():
+        if league.is_team_league():
+            games_to_start = list(
+                TeamPlayerPairing.objects.select_for_update()
+                .filter(result="", game_link="", team_pairing__round=round_)
+                .exclude(white=None)
+                .exclude(black=None)
+                .select_related("white", "black")
+                .nocache()
+            )
+        else:
+            games_to_start = list(
+                LonePlayerPairing.objects.select_for_update()
+                .filter(result="", game_link="", round=round_)
+                .exclude(white=None)
+                .exclude(black=None)
+                .select_related("white", "black")
+                .nocache()
+            )
+        if not games_to_start:
+            logger.info("[FINISHED] No games to start.")
+            return
+        playerpks = [
+            pk for game in games_to_start for pk in (game.white_id, game.black_id)
+        ]
+        playerslist = list(Player.objects.filter(pk__in=playerpks))
+        token_dict = _get_or_set_token(
+            players=playerslist, tournament=round_.season.league.name
+        )
+        tokens = []
+        for game in games_to_start:
+            tokens.append(
+                f"{token_dict[game.white.lichess_username]}:"
+                f"{token_dict[game.black.lichess_username]}"
+            )
+        result = _init_start_league_games(
+            league=league, tokens=tokens, league_games=games_to_start
+        )
+    if result is None:
+        logger.warning("[FINISHED] Failed starting games.")
+    else:
+        round_.bulk_id = result["id"]
+        logger.info(f"[FINISHED] Started games with bulk_id: {round_.bulk_id}.")
+        round_.save()
+    logger.info("[FINISHED] Done trying to start games.")
+
+
+@receiver(signals.do_start_unscheduled_games, dispatch_uid="heltour.tournament.tasks")
+def do_start_unscheduled_games(sender, round_id: int, **kwargs) -> None:
+    _start_unscheduled_games.apply_async(args=[round_id])
+
+
+@app.task()
+def _start_clocks(round_id: int) -> None:
+    round_ = Round.objects.get(pk=round_id)
+    if round_.is_player_scheduled_league():
+        logger.error("[ERROR] Tried to start clocks in a scheduling league.")
+        return
+    lichessapi.bulk_start_clocks(bulkid=round_.bulk_id)
+
+
+@receiver(signals.do_start_clocks, dispatch_uid="heltour.tournament.tasks")
+def do_start_clocks(sender, round_id: int, **kwargs) -> None:
+    _start_clocks.apply_async(args=[round_id])
+
+
+@app.task()
+def validate_season_tokens(season_id: int) -> None:
+    season = Season.objects.get(pk=season_id)
+    league = season.league
+    players = list(
+        Player.objects.filter(
+            Q(seasonplayer__season=season, seasonplayer__is_active=True)
+            | Q(
+                teammember__team__season=season,
+                teammember__team__is_active=True,
+            )
+        ).distinct()
+    )
+    if not players:
+        _store_token_validation_result(
+            season_id, success=True, total=0, refreshed=[], failed=[]
+        )
+        return
+    tokens_by_username = {
+        p.lichess_username: p.get_access_token() for p in players if p.token_valid()
+    }
+    missing_token_players = [p for p in players if not p.token_valid()]
+    invalid_usernames: list[str] = []
+    if tokens_by_username:
+        comma_tokens = ",".join(tokens_by_username.values())
+        valid_map = lichessapi.test_oauth_token(comma_tokens)
+        token_to_username = {v: k for k, v in tokens_by_username.items()}
+        for token, username in token_to_username.items():
+            if token not in valid_map:
+                invalid_usernames.append(username)
+    needs_refresh = [
+        p.lichess_username for p in missing_token_players
+    ] + invalid_usernames
+    refreshed: list[str] = []
+    failed: list[str] = []
+    if needs_refresh:
+        try:
+            new_tokens = lichessapi.get_admin_token(
+                lichess_usernames=needs_refresh,
+                description=league.name,
+            )
+            for username in needs_refresh:
+                if username in new_tokens:
+                    token_obj = OauthToken(
+                        access_token=new_tokens[username],
+                        token_type="admin challenge token",
+                        expires=timezone.now() + timedelta(days=28),
+                        account_username=username,
+                        scope="challenge:write",
+                    )
+                    token_obj.save()
+                    Player.objects.filter(lichess_username=username).update(
+                        oauth_token=token_obj
+                    )
+                    refreshed.append(username)
+                else:
+                    failed.append(username)
+        except (lichessapi.ApiWorkerError, lichessapi.ApiClientError):
+            logger.exception(f"[ERROR] Failed to refresh tokens for season {season_id}")
+            failed = needs_refresh
+    success = len(failed) == 0
+    _store_token_validation_result(
+        season_id,
+        success=success,
+        total=len(players),
+        refreshed=refreshed,
+        failed=failed,
+    )
+
+
+def _store_token_validation_result(
+    season_id: int,
+    *,
+    success: bool,
+    total: int,
+    refreshed: list[str],
+    failed: list[str],
+) -> None:
+    cache.set(
+        f"token_validation_{season_id}",
+        {
+            "timestamp": timezone.now().isoformat(),
+            "success": success,
+            "total": total,
+            "refreshed": refreshed,
+            "failed": failed,
+        },
+        timeout=86400 * 7,
+    )
+
+
+@receiver(
+    signals.do_validate_season_tokens,
+    dispatch_uid="heltour.tournament.tasks.validate_tokens",
+)
+def do_validate_season_tokens_handler(sender, season_id: int, **kwargs):
+    validate_season_tokens.apply_async(args=[season_id])
+
+
 @receiver(signals.do_update_broadcast, dispatch_uid="heltour.tournament.tasks")
 def do_update_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
-    update_broadcast.apply_async(kwargs={"season_id": season_id, "first_board": first_board})
+    update_broadcast.apply_async(
+        kwargs={"season_id": season_id, "first_board": first_board}
+    )
+
+
+@receiver(signals.do_update_broadcast, dispatch_uid="heltour.tournament.tasks")
+def do_update_broadcast(season_id: int, first_board: int = 1, **kwargs) -> None:
+    update_broadcast.apply_async(
+        kwargs={"season_id": season_id, "first_board": first_board}
+    )
 
 
 # How late an event is allowed to run before it's discarded instead
@@ -794,20 +1144,24 @@ _max_lateness = timedelta(hours=1)
 @app.task()
 def run_scheduled_events():
     now = timezone.now()
-    with cache.lock('run_scheduled_events'):
+    with cache.lock("run_scheduled_events"):
         future_event_time = None
         for event in ScheduledEvent.objects.all():
             # Determine a range of times to search
             # If the comparison point (e.g. round start) is in the range, we run the event
             upper_bound = now - event.offset
-            lower_bound = max(event.last_run or event.date_created,
-                              now - _max_lateness) - event.offset
+            lower_bound = (
+                max(event.last_run or event.date_created, now - _max_lateness)
+                - event.offset
+            )
 
             # Determine an upper bound for events that should be run before the next task execution
             # The idea is that we want events to be run as close to their scheduled time as possible,
             # not just at whatever interval this task happens to be run
-            future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events'][
-                'schedule']
+            future_bound = (
+                upper_bound
+                + settings.CELERY_BEAT_SCHEDULE["run_scheduled_events"]["schedule"]
+            )
 
             def matching_rounds(**kwargs):
                 result = Round.objects.filter(**kwargs).filter(season__is_active=True)
@@ -819,56 +1173,88 @@ def run_scheduled_events():
 
             def matching_pairings(**kwargs):
                 team_result = PlayerPairing.objects.filter(**kwargs).filter(
-                    teamplayerpairing__team_pairing__round__season__is_active=True)
+                    teamplayerpairing__team_pairing__round__season__is_active=True
+                )
                 lone_result = PlayerPairing.objects.filter(**kwargs).filter(
-                    loneplayerpairing__round__season__is_active=True)
+                    loneplayerpairing__round__season__is_active=True
+                )
                 if event.league is not None:
                     team_result = team_result.filter(
-                        teamplayerpairing__team_pairing__round__season__league=event.league)
+                        teamplayerpairing__team_pairing__round__season__league=event.league
+                    )
                     lone_result = lone_result.filter(
-                        loneplayerpairing__round__season__league=event.league)
+                        loneplayerpairing__round__season__league=event.league
+                    )
                 if event.season is not None:
                     team_result = team_result.filter(
-                        teamplayerpairing__team_pairing__round__season=event.season)
-                    lone_result = lone_result.filter(loneplayerpairing__round__season=event.season)
+                        teamplayerpairing__team_pairing__round__season=event.season
+                    )
+                    lone_result = lone_result.filter(
+                        loneplayerpairing__round__season=event.season
+                    )
                 return team_result | lone_result
 
-            if event.relative_to == 'round_start':
-                for obj in matching_rounds(start_date__gt=lower_bound, start_date__lte=upper_bound):
+            if event.relative_to == "round_start":
+                for obj in matching_rounds(
+                    start_date__gt=lower_bound, start_date__lte=upper_bound
+                ):
                     event.run(obj)
-                for obj in matching_rounds(start_date__gt=upper_bound,
-                                           start_date__lte=future_bound):
-                    future_event_time = obj.start_date + event.offset if future_event_time is None else min(
-                        future_event_time, obj.start_date + event.offset)
-            elif event.relative_to == 'round_end':
-                for obj in matching_rounds(end_date__gt=lower_bound, end_date__lte=upper_bound):
+                for obj in matching_rounds(
+                    start_date__gt=upper_bound, start_date__lte=future_bound
+                ):
+                    future_event_time = (
+                        obj.start_date + event.offset
+                        if future_event_time is None
+                        else min(future_event_time, obj.start_date + event.offset)
+                    )
+            elif event.relative_to == "round_end":
+                for obj in matching_rounds(
+                    end_date__gt=lower_bound, end_date__lte=upper_bound
+                ):
                     event.run(obj)
-                for obj in matching_rounds(end_date__gt=upper_bound, end_date__lte=future_bound):
-                    future_event_time = obj.end_date + event.offset if future_event_time is None else min(
-                        future_event_time, obj.end_date + event.offset)
-            elif event.relative_to == 'game_scheduled_time':
-                for obj in matching_pairings(scheduled_time__gt=lower_bound,
-                                             scheduled_time__lte=upper_bound):
+                for obj in matching_rounds(
+                    end_date__gt=upper_bound, end_date__lte=future_bound
+                ):
+                    future_event_time = (
+                        obj.end_date + event.offset
+                        if future_event_time is None
+                        else min(future_event_time, obj.end_date + event.offset)
+                    )
+            elif event.relative_to == "game_scheduled_time":
+                for obj in matching_pairings(
+                    scheduled_time__gt=lower_bound, scheduled_time__lte=upper_bound
+                ):
                     event.run(obj)
-                for obj in matching_pairings(scheduled_time__gt=upper_bound,
-                                             scheduled_time__lte=future_bound):
-                    future_event_time = obj.scheduled_time + event.offset if future_event_time is None else min(
-                        future_event_time, obj.scheduled_time + event.offset)
+                for obj in matching_pairings(
+                    scheduled_time__gt=upper_bound, scheduled_time__lte=future_bound
+                ):
+                    future_event_time = (
+                        obj.scheduled_time + event.offset
+                        if future_event_time is None
+                        else min(future_event_time, obj.scheduled_time + event.offset)
+                    )
 
         # Run ScheduledNotifications now
         upper_bound = now
         lower_bound = now - _max_lateness
 
-        future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events'][
-            'schedule']
+        future_bound = (
+            upper_bound
+            + settings.CELERY_BEAT_SCHEDULE["run_scheduled_events"]["schedule"]
+        )
 
-        for n in ScheduledNotification.objects.filter(notification_time__gt=lower_bound,
-                                                      notification_time__lte=upper_bound):
+        for n in ScheduledNotification.objects.filter(
+            notification_time__gt=lower_bound, notification_time__lte=upper_bound
+        ):
             n.run()
-        for n in ScheduledNotification.objects.filter(notification_time__gt=upper_bound,
-                                                      notification_time__lte=future_bound):
-            future_event_time = n.notification_time if future_event_time is None else min(
-                future_event_time, n.notification_time)
+        for n in ScheduledNotification.objects.filter(
+            notification_time__gt=upper_bound, notification_time__lte=future_bound
+        ):
+            future_event_time = (
+                n.notification_time
+                if future_event_time is None
+                else min(future_event_time, n.notification_time)
+            )
 
         # Schedule this task to be run again at the next event's scheduled time
         # Note: This could potentially lead to multiple tasks running at the same time. That's why we have a lock
@@ -882,33 +1268,66 @@ def round_transition(round_id):
     workflow = RoundTransitionWorkflow(season)
     warnings = workflow.warnings
     if len(warnings) > 0:
-        signals.no_round_transition.send(sender=round_transition, season=season, warnings=warnings)
+        signals.no_round_transition.send(
+            sender=round_transition, season=season, warnings=warnings
+        )
     else:
-        msg_list = workflow.run(complete_round=True, complete_season=True, update_board_order=True,
-                                generate_pairings=True, background=True)
-        signals.starting_round_transition.send(sender=round_transition, season=season,
-                                               msg_list=msg_list)
+        msg_list = workflow.run(
+            complete_round=True,
+            complete_season=True,
+            update_board_order=True,
+            generate_pairings=True,
+            background=True,
+        )
+        signals.starting_round_transition.send(
+            sender=round_transition, season=season, msg_list=msg_list
+        )
 
 
-@receiver(signals.do_round_transition, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.do_round_transition, dispatch_uid="heltour.tournament.tasks")
 def do_round_transition(sender, round_id, **kwargs):
     round_transition.apply_async(args=[round_id])
 
 
 @app.task()
-def generate_pairings(round_id, overwrite=False):
+def generate_pairings(
+    round_id, overwrite=False, auto_assign_forfeits=False, publish_immediately=False
+):
     round_ = Round.objects.get(pk=round_id)
     pairinggen.generate_pairings(round_, overwrite)
-    round_.publish_pairings = False
+
+    # Handle automatic forfeit assignment
+    forfeit_count = 0
+    if auto_assign_forfeits:
+        forfeit_count = pairinggen.assign_automatic_forfeits(round_)
+
+    # Set publish status based on option
+    round_.publish_pairings = publish_immediately
+
     with reversion.create_revision():
-        reversion.set_comment('Generated pairings.')
+        comment = "Generated pairings."
+        if forfeit_count > 0:
+            comment += f" Assigned {forfeit_count} automatic forfeits."
+        if publish_immediately:
+            comment += " Published immediately."
+        reversion.set_comment(comment)
         round_.save()
     signals.pairings_generated.send(sender=generate_pairings, round_=round_)
 
 
-@receiver(signals.do_generate_pairings, dispatch_uid='heltour.tournament.tasks')
-def do_generate_pairings(sender, round_id, overwrite=False, **kwargs):
-    generate_pairings.apply_async(args=[round_id, overwrite], countdown=1)
+@receiver(signals.do_generate_pairings, dispatch_uid="heltour.tournament.tasks")
+def do_generate_pairings(
+    sender,
+    round_id,
+    overwrite=False,
+    auto_assign_forfeits=False,
+    publish_immediately=False,
+    **kwargs,
+):
+    generate_pairings.apply_async(
+        args=[round_id, overwrite, auto_assign_forfeits, publish_immediately],
+        countdown=1,
+    )
 
 
 @receiver(signals.do_validate_registration, dispatch_uid="heltour.tournament.tasks")
@@ -916,6 +1335,49 @@ def do_validate_registration(regs: QuerySet[Registration], **kwargs) -> None:
     update_player_ratings(
         usernames=list(regs.values_list("player__lichess_username", flat=True))
     )
+    _fetch_fide_profiles_for_registrations(regs)
+    for reg in regs.select_related("season__league", "player"):
+        reg.refresh_from_db()
+        reg.refresh_validation()
+
+
+def _fetch_fide_profiles_for_registrations(regs: QuerySet[Registration]) -> None:
+    fide_regs = regs.filter(
+        player__fide_id__gt="",
+    ).filter(
+        Q(season__league__rating_type__startswith="fide_")
+        | Q(season__league__rating_type="fide"),
+    ).select_related("player")
+    for reg in fide_regs:
+        player = reg.player
+        try:
+            fide_meta = lichessapi.get_fide_player(player.fide_id, priority=1)
+            player.update_fide_profile(fide_meta)
+        except lichessapi.ApiWorkerError:
+            logger.warning(
+                f"Failed to fetch FIDE profile for {player.lichess_username}"
+            )
+
+
+@app.task()
+def validate_pending_registrations():
+    recently_checked = timezone.now() - timedelta(hours=24)
+    regs = (
+        Registration.objects.filter(
+            season__registration_open=True,
+            status__exact="pending",
+        )
+        .exclude(
+            player__date_modified__gt=recently_checked,
+        )
+        .order_by("player__date_modified")[:5]
+    )
+    if regs:
+        reg = random.choice(list(regs))
+        signals.do_validate_registration.send(
+            sender=validate_pending_registrations,
+            regs=Registration.objects.filter(pk=reg.pk),
+        )
 
 
 @app.task()
@@ -924,30 +1386,44 @@ def pairings_published(round_id, overwrite=False):
     season = round_.season
     league = season.league
 
-    if round_.number == season.rounds and season.registration_open and league.get_leaguesetting().close_registration_at_last_round:
+    if (
+        round_.number == season.rounds
+        and season.registration_open
+        and league.get_leaguesetting().close_registration_at_last_round
+    ):
         with reversion.create_revision():
-            reversion.set_comment('Close registration')
+            reversion.set_comment("Close registration")
             season.registration_open = False
             season.save()
 
-    slackapi.send_control_message('refresh pairings %s' % league.tag)
+    slackapi.send_control_message("refresh pairings %s" % league.tag)
     alternates_manager.round_pairings_published(round_)
-    signals.notify_mods_pairings_published.send(sender=pairings_published, round_=round_)
+    signals.notify_mods_pairings_published.send(
+        sender=pairings_published, round_=round_
+    )
     signals.notify_players_round_start.send(sender=pairings_published, round_=round_)
     signals.notify_mods_round_start_done.send(sender=pairings_published, round_=round_)
 
     if season.create_broadcast:
-        signals.do_create_broadcast_round.send(sender=pairings_published, round_id=round_.pk)
+        signals.do_create_broadcast_round.send(
+            sender=pairings_published, round_id=round_.pk
+        )
+
+    if not league.is_player_scheduled_league():
+        signals.do_start_unscheduled_games.send(
+            sender=pairings_published,
+            round_id=round_id,
+        )
 
 
-@receiver(signals.do_pairings_published, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.do_pairings_published, dispatch_uid="heltour.tournament.tasks")
 def do_pairings_published(sender, round_id, **kwargs):
     pairings_published.apply_async(args=[round_id], countdown=1)
 
 
 @app.task()
 def schedule_publish(round_id):
-    with cache.lock('schedule_publish'):
+    with cache.lock("schedule_publish"):
         round_ = Round.objects.get(pk=round_id)
         if round_.publish_pairings:
             # Already published
@@ -959,31 +1435,36 @@ def schedule_publish(round_id):
     for lpp in round_.loneplayerpairing_set.all().nocache():
         lpp.refresh_ranks(rank_dict)
         with reversion.create_revision():
-            reversion.set_comment('Published pairings.')
+            reversion.set_comment("Published pairings.")
             lpp.save()
     for bye in round_.playerbye_set.all():
         bye.refresh_rank(rank_dict)
         with reversion.create_revision():
-            reversion.set_comment('Published pairings.')
+            reversion.set_comment("Published pairings.")
             bye.save()
 
 
-@receiver(signals.do_schedule_publish, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.do_schedule_publish, dispatch_uid="heltour.tournament.tasks")
 def do_schedule_publish(sender, round_id, eta, **kwargs):
     schedule_publish.apply_async(args=[round_id], eta=eta)
     if eta > timezone.now():
-        signals.publish_scheduled.send(sender=do_schedule_publish, round_id=round_id, eta=eta)
+        signals.publish_scheduled.send(
+            sender=do_schedule_publish, round_id=round_id, eta=eta
+        )
 
 
 @app.task()
 def notify_slack_link(lichess_username):
     player = Player.get_or_create(lichess_username)
     email = slackapi.get_user(player.slack_user_id).email
-    msg = 'Your lichess account has been successfully linked with the Slack account "%s".' % email
-    lichessapi.send_mail(lichess_username, 'Slack Account Linked', msg)
+    msg = (
+        'Your lichess account has been successfully linked with the Slack account "%s".'
+        % email
+    )
+    lichessapi.send_mail(lichess_username, "Slack Account Linked", msg)
 
 
-@receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.slack_account_linked, dispatch_uid="heltour.tournament.tasks")
 def do_notify_slack_link(lichess_username, **kwargs):
     notify_slack_link.apply_async(args=[lichess_username], countdown=1)
 
@@ -999,69 +1480,86 @@ def create_team_channel(team_ids):
             - <{pairings_url}|View your team pairings>
             - <{calendar_url}|Import your team pairings to your calendar>""")
 
-    for team in Team.objects.filter(id__in=team_ids).select_related('season__league').nocache():
-        pairings_url = abs_url(reverse('by_league:by_season:pairings_by_team',
-                                       args=[team.season.league.tag, team.season.tag, team.number]))
-        calendar_url = abs_url(reverse('by_league:by_season:pairings_by_team_icalendar',
-                                       args=[team.season.league.tag, team.season.tag,
-                                             team.number])).replace('https:', 'webcal:')
+    for team in (
+        Team.objects.filter(id__in=team_ids).select_related("season__league").nocache()
+    ):
+        pairings_url = abs_url(
+            reverse(
+                "by_league:by_season:pairings_by_team",
+                args=[team.season.league.tag, team.season.tag, team.number],
+            )
+        )
+        calendar_url = abs_url(
+            reverse(
+                "by_league:by_season:pairings_by_team_icalendar",
+                args=[team.season.league.tag, team.season.tag, team.number],
+            )
+        ).replace("https:", "webcal:")
         mods = team.season.league.leaguemoderator_set.filter(is_active=True)
-        mods_str = ' '.join(('<@%s>' % lm.player.lichess_username.lower() for lm in mods))
-        season_start = '?' if team.season.start_date is None else team.season.start_date.strftime(
-            '%b %-d')
-        intro_message_formatted = intro_message.format(mods=mods_str, season_start=season_start,
-                                                       pairings_url=pairings_url,
-                                                       calendar_url=calendar_url)
-        team_members = team.teammember_set.select_related('player').nocache()
+        mods_str = " ".join(
+            ("<@%s>" % lm.player.lichess_username.lower() for lm in mods)
+        )
+        season_start = (
+            "?"
+            if team.season.start_date is None
+            else team.season.start_date.strftime("%b %-d")
+        )
+        intro_message_formatted = intro_message.format(
+            mods=mods_str,
+            season_start=season_start,
+            pairings_url=pairings_url,
+            calendar_url=calendar_url,
+        )
+        team_members = team.teammember_set.select_related("player").nocache()
         user_ids = [tm.player.slack_user_id for tm in team_members]
-        channel_name = 'team-%d-s%s' % (team.number, team.season.tag)
+        channel_name = "team-%d-s%s" % (team.number, team.season.tag)
         topic = "Team Pairings: %s | Team Calendar: %s" % (pairings_url, calendar_url)
 
         try:
             group = slackapi.create_group(channel_name)
             time.sleep(settings.SLEEP_UNIT)
         except slackapi.NameTaken:
-            logger.error('Could not create slack team, name taken: %s' % channel_name)
+            logger.error("Could not create slack team, name taken: %s" % channel_name)
             continue
-        channel_ref = '#%s' % group.name
+        channel_ref = "#%s" % group.name
         try:
             slackapi.invite_to_group(group.id, user_ids)
         except slackapi.SlackError:
-            logger.exception('Could not invite %s to channel' % ",".join(user_ids))
+            logger.exception("Could not invite %s to channel" % ",".join(user_ids))
             time.sleep(settings.SLEEP_UNIT)
         try:
             slackapi.invite_to_group(group.id, [settings.CHESSTER_USER_ID])
         except slackapi.SlackError:
-             logger.exception('Could not invite chesster to channel')
-             time.sleep(settings.SLEEP_UNIT)
+            logger.exception("Could not invite chesster to channel")
+            time.sleep(settings.SLEEP_UNIT)
         time.sleep(settings.SLEEP_UNIT)
         with reversion.create_revision():
-            reversion.set_comment('Creating slack channel')
+            reversion.set_comment("Creating slack channel")
             team.slack_channel = group.id
             team.save()
 
         try:
             slackapi.set_group_topic(group.id, topic)
         except slackapi.SlackError:
-            logger.exception('Could not set channel topic for channel %s' % channel_ref)
+            logger.exception("Could not set channel topic for channel %s" % channel_ref)
         time.sleep(settings.SLEEP_UNIT)
         try:
             slackapi.leave_group(group.id)
         except slackapi.SlackError:
-            logger.exception('Could not leave channel %s' % channel_ref)
+            logger.exception("Could not leave channel %s" % channel_ref)
         time.sleep(settings.SLEEP_UNIT)
         slackapi.send_message(channel_ref, intro_message_formatted)
         time.sleep(settings.SLEEP_UNIT)
 
 
-@receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.do_create_team_channel, dispatch_uid="heltour.tournament.tasks")
 def do_create_team_channel(sender, team_ids, **kwargs):
     create_team_channel.apply_async(args=[team_ids], countdown=1)
 
 
 @app.task()
 def alternates_manager_tick():
-    with cache.lock('alternates_tick'):
+    with cache.lock("alternates_tick"):
         for season in Season.objects.filter(is_active=True, is_completed=False):
             if season.alternates_manager_enabled():
                 alternates_manager.tick(season)
@@ -1069,12 +1567,187 @@ def alternates_manager_tick():
 
 @app.task()
 def celery_is_up():
+    logger.info("Setting uptime.celery.is_up")
     uptime.celery.is_up = True
 
 
-@receiver(post_save, sender=PlayerPairing, dispatch_uid='heltour.tournament.tasks')
+@receiver(post_save, sender=PlayerPairing, dispatch_uid="heltour.tournament.tasks")
 def pairing_changed(instance, created, **kwargs):
-    if instance.game_link != '' and instance.result == '':
+    if instance.game_link != "" and instance.result == "":
         game_id = get_gameid_from_gamelink(instance.game_link)
         if game_id:
             lichessapi.add_watch(game_id)
+
+
+def _get_or_set_token(
+    players: list[Player], tournament: str = "Lichess Tournament Pairings"
+) -> dict[str, str]:
+    result = dict()
+    players_needing_tokens = list()
+    for player in players:
+        if not player.token_valid():
+            players_needing_tokens.append(player.lichess_username)
+        else:
+            token = player.get_access_token()
+            result[player.lichess_username] = token
+    if len(players_needing_tokens) > 0:
+        new_tokens = lichessapi.get_admin_token(
+            lichess_usernames=players_needing_tokens, description=tournament
+        )
+        result.update(new_tokens)
+    for player in players:
+        if player.lichess_username in players_needing_tokens:
+            token = OauthToken(
+                access_token=result[player.lichess_username],
+                token_type="admin challenge token",
+                expires=timezone.now() + timedelta(days=28),
+                account_username=player.lichess_username,
+                scope="challenge:write",
+            )
+            token.save()
+            Player.objects.filter(pk=player.id).update(oauth_token=token)
+    return result
+
+
+def _players_needing_fide_update(force_all: bool = False) -> QuerySet[Player]:
+    base = Player.objects.filter(
+        fide_id__gt="",
+        seasonplayer__season__is_completed=False,
+    ).distinct()
+    if force_all:
+        return base
+    one_week_ago = timezone.now() - timedelta(days=7)
+    return base.filter(
+        Q(fide_profile__isnull=True) | Q(date_modified__lte=one_week_ago)
+    )
+
+
+@app.task()
+def update_fide_ratings() -> None:
+    players = _players_needing_fide_update(force_all=False)
+    logger.info(f"[START] Updating FIDE ratings for {players.count()} players")
+    updated = 0
+    for player in players:
+        try:
+            fide_meta = lichessapi.get_fide_player(player.fide_id, priority=1)
+            player.update_fide_profile(fide_meta)
+            updated += 1
+        except lichessapi.ApiWorkerError:
+            logger.warning(
+                f"Failed to fetch FIDE profile for {player.lichess_username} (FIDE ID: {player.fide_id})"
+            )
+    logger.info(f"[FINISHED] Updated {updated}/{players.count()} FIDE ratings")
+
+
+@app.task()
+def force_update_all_fide_ratings() -> None:
+    players = _players_needing_fide_update(force_all=True)
+    logger.info(f"[START] Force updating FIDE ratings for {players.count()} players")
+    updated = 0
+    for player in players:
+        try:
+            fide_meta = lichessapi.get_fide_player(player.fide_id, priority=1)
+            player.update_fide_profile(fide_meta)
+            updated += 1
+        except lichessapi.ApiWorkerError:
+            logger.warning(
+                f"Failed to fetch FIDE profile for {player.lichess_username} (FIDE ID: {player.fide_id})"
+            )
+    logger.info(f"[FINISHED] Force updated {updated}/{players.count()} FIDE ratings")
+
+
+def _derive_gender_from_fide_profile(player: Player) -> bool:
+    """If player has a cached FIDE profile and no gender, set gender from
+    profile['gender']. Returns True if a change was saved."""
+    if player.gender or not player.fide_profile:
+        return False
+    fide_gender = player.fide_profile.get("gender")
+    if fide_gender == "M":
+        player.gender = "male"
+    elif fide_gender == "F":
+        player.gender = "female"
+    else:
+        return False
+    player.save()
+    return True
+
+
+@app.task()
+def backfill_fide_data_for_season(season_id: int) -> None:
+    """Backfill FIDE IDs and gender for everyone in this season.
+
+      Pass 1 — Registrations: copy reg.fide_id → player.fide_id and
+      reg.gender → player.gender when the Player fields are empty.
+
+      Pass 2 — SeasonPlayers: for every player in the season, if they have a
+      fide_id but no fide_profile cached, fetch the FIDE profile (which also
+      populates gender via Player.update_fide_profile). If they already have a
+      cached profile but no gender, derive gender from the cached
+      profile['gender'] without re-fetching.
+    """
+    season = Season.objects.select_related("league").get(pk=season_id)
+    fide_id_updates = 0
+    gender_updates = 0
+    refreshed = 0
+    fetch_failures = 0
+
+    season_player_ids = set(
+        SeasonPlayer.objects.filter(season=season).values_list("player_id", flat=True)
+    )
+    team_member_player_ids = set(
+        TeamMember.objects.filter(team__season=season).values_list("player_id", flat=True)
+    )
+    all_player_ids = season_player_ids | team_member_player_ids
+
+    # Registrations may live in a different season/league than this one
+    # (e.g. a shared "Signup" league feeding multiple qualifier leagues), so
+    # look up each player's registration across all seasons. Prefer the most
+    # recent approved registration; fall back to the most recent of any status.
+    regs = (
+        Registration.objects.filter(player_id__in=all_player_ids)
+        .select_related("player")
+        .order_by("player_id", "-date_created")
+    )
+    reg_by_player: dict[int, Registration] = {}
+    for reg in regs:
+        if reg.player_id is None:
+            continue
+        existing = reg_by_player.get(reg.player_id)
+        if existing is None:
+            reg_by_player[reg.player_id] = reg
+        elif existing.status != "approved" and reg.status == "approved":
+            reg_by_player[reg.player_id] = reg
+
+    for reg in reg_by_player.values():
+        player = reg.player
+        changed = False
+        if reg.fide_id and not player.fide_id:
+            player.fide_id = reg.fide_id
+            fide_id_updates += 1
+            changed = True
+        if reg.gender and not player.gender:
+            player.gender = reg.gender
+            gender_updates += 1
+            changed = True
+        if changed:
+            player.save()
+    season_players_qs = Player.objects.filter(pk__in=all_player_ids, fide_id__gt="")
+    for player in season_players_qs:
+        if not player.fide_profile:
+            try:
+                fide_meta = lichessapi.get_fide_player(player.fide_id, priority=1)
+                player.update_fide_profile(fide_meta)
+                refreshed += 1
+            except lichessapi.ApiWorkerError:
+                fetch_failures += 1
+                logger.warning(
+                    f"Failed to fetch FIDE profile for {player.lichess_username} (FIDE ID: {player.fide_id})"
+                )
+        elif _derive_gender_from_fide_profile(player):
+            gender_updates += 1
+
+    logger.info(
+        f"[FINISHED] Backfill for season {season.tag}: "
+        f"{fide_id_updates} fide_ids, {gender_updates} genders copied; "
+        f"{refreshed} FIDE profiles fetched ({fetch_failures} failures)"
+    )

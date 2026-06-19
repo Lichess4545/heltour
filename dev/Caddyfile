@@ -1,0 +1,16 @@
+:8080 {
+    # API first (more specific). Strip the /v2/api prefix so FastAPI sees /v1/..., /ws/..., /health, /docs.
+    handle_path /v2/api/* {
+        reverse_proxy localhost:8001
+    }
+
+    # Next.js UI. Keep the /v2 prefix because next.config.ts has basePath: '/v2'.
+    handle /v2/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Everything else falls through to Django.
+    handle {
+        reverse_proxy localhost:8000
+    }
+}

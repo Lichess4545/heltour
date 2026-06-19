@@ -22,6 +22,7 @@ from heltour.tournament.models import (
     LonePlayerPairing,
     Player,
     PlayerAvailability,
+    PlayerPresenceEvent,
     Round,
     Season,
     SeasonPlayer,
@@ -614,11 +615,17 @@ def player_contact(request):
             black__lichess_username__iexact=sender,
         )
         for p in pairings:
-            presence = p.get_player_presence(
-                Player.objects.get(lichess_username__iexact=sender)
-            )
+            sender_player = Player.objects.get(lichess_username__iexact=sender)
+            presence = p.get_player_presence(sender_player)
             if not presence.first_msg_time:
                 presence.first_msg_time = time
+                PlayerPresenceEvent.objects.create(
+                    player=sender_player,
+                    timestamp=time,
+                    event_type="first_chat_message",
+                    pairing=p,
+                    round=p.get_round(),
+                )
             presence.last_msg_time = time
             presence.save()
             updated += 1

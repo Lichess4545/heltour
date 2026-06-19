@@ -10,3 +10,4 @@ class TournamentConfig(AppConfig):
         from . import notify  # @UnusedImport
         from . import automod  # @UnusedImport
         from . import tasks  # @UnusedImport
+        from . import signals_pubsub  # @UnusedImport

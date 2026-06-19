@@ -22,6 +22,7 @@ from django.urls import include, path
 from django.views.decorators.cache import cache_control
 
 season_urlpatterns = [
+    path("", views.SeasonLandingView.as_view(), name="season_root"),
     path("summary/", views.SeasonLandingView.as_view(), name="season_landing"),
     path("register/", views.RegisterView.as_view(), name="register"),
     path(
@@ -40,10 +41,17 @@ season_urlpatterns = [
     path("wallchart/", views.WallchartView.as_view(), name="wallchart"),
     path("pairings/", views.PairingsView.as_view(), name="pairings"),
     path(
+        "pairings/block/<int:pairing_id>/",
+        views.TeamPairingBlockView.as_view(),
+        name="pairings_block",
+    ),
+    path(
         "pairings/calendar.ics",
         views.ICalPairingsView.as_view(),
         name="pairings_icalendar",
     ),
+    path("bracket/", views.KnockoutBracketView.as_view(), name="knockout_bracket"),
+    path("teams/", views.KnockoutTeamsView.as_view(), name="knockout_teams"),
     path(
         "pairings/team/<int:team_number>/",
         views.PairingsView.as_view(),
@@ -64,11 +72,42 @@ season_urlpatterns = [
         views.PairingsView.as_view(),
         name="pairings_by_round_team",
     ),
+    path(
+        "round/<int:round_number>/pairings/team/<int:team_number>/"
+        "regenerate-boards/<int:team_pairing_id>/",
+        views.KnockoutRegenerateBoardsView.as_view(),
+        name="knockout_regenerate_boards",
+    ),
     path("stats/", views.StatsView.as_view(), name="stats"),
     path(
         "dashboard/",
         staff_member_required(views.LeagueDashboardView.as_view()),
         name="league_dashboard",
+    ),
+    path(
+        "dashboard/team_composition/",
+        staff_member_required(views.TeamCompositionView.as_view()),
+        name="team_composition",
+    ),
+    path(
+        "dashboard/game_ids/",
+        staff_member_required(views.GameIdsView.as_view()),
+        name="game_ids",
+    ),
+    path(
+        "dashboard/broadcast-players/",
+        staff_member_required(views.BroadcastPlayersView.as_view()),
+        name="broadcast_players",
+    ),
+    path(
+        "dashboard/export-trf16/",
+        staff_member_required(views.TRF16ExportView.as_view()),
+        name="export_trf16",
+    ),
+    path(
+        "dashboard/pairings-export/",
+        staff_member_required(views.PairingsExportView.as_view()),
+        name="pairings_export",
     ),
     path("player/", views.UserDashboardView.as_view(), name="user_dashboard"),
     path(
@@ -77,7 +116,17 @@ season_urlpatterns = [
         name="player_profile",
     ),
     path(
+        "team/create/",
+        views.TeamCreateView.as_view(),
+        name="team_create"
+    ),
+    path(
         "team/<int:team_number>/", views.TeamProfileView.as_view(), name="team_profile"
+    ),
+    path(
+        "team/<int:team_number>/manage/",
+        views.TeamManageView.as_view(),
+        name="team_manage",
     ),
     path("tv/", cache_control(no_cache=True)(views.TvView.as_view()), name="tv"),
     path(
@@ -191,6 +240,7 @@ urlpatterns = [
         name="player_icalendar",
     ),
     path("api/", include((api_urlpatterns, "tournament"), "api")),
+    path("login/", views.SiteLoginView.as_view(), name="site_login"),
     path("auth/slack/", auth.SlackAuth.as_view(), name="slack_auth"),
     path("auth/lichess/", views.OAuthCallbackView.as_view(), name="lichess_auth"),
     path(

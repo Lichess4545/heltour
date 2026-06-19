@@ -62,6 +62,13 @@
     background-color: #fffcab;
 }
 
+.slack-warning::after {
+    content: " \26A0";
+    color: #c4820e;
+    font-size: 0.85em;
+    cursor: help;
+}
+
 .inline {
     display: inline-block;
     vertical-align: top;

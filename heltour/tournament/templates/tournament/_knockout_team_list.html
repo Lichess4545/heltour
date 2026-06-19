@@ -1,0 +1,71 @@
+{% load tournament_extras %}
+{# Expects: team_rows, board_numbers, board_count, main_board_count #}
+<style>
+    .knockout-team-list th.is-reserve,
+    .knockout-team-list td.is-reserve {
+        background: #f4f4ea;
+        border-left: 1px dashed #ccc;
+    }
+    .knockout-team-list th.first-reserve,
+    .knockout-team-list td.first-reserve {
+        border-left: 2px solid #b4ad7a;
+    }
+    .knockout-team-list th.is-reserve {
+        color: #6a6a44;
+        font-style: italic;
+    }
+</style>
+<div class="table-responsive knockout-team-list">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th class="text-center">#</th>
+                <th>Team</th>
+                {% for n in board_numbers %}
+                    {% if n == main_board_count|add:1 %}
+                        <th class="is-reserve first-reserve">Reserve {{ n|add:"-"|add:main_board_count }}</th>
+                    {% elif n > main_board_count %}
+                        <th class="is-reserve">Reserve {{ n|add:"-"|add:main_board_count }}</th>
+                    {% else %}
+                        <th>Board {{ n }}</th>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in team_rows %}
+                <tr>
+                    <td class="text-center">{{ row.team.number }}</td>
+                    <td>
+                        <a href="{% leagueurl 'team_profile' league.tag season.tag row.team.number %}">
+                            {{ row.team.name }}
+                        </a>
+                    </td>
+                    {% if row.has_roster %}
+                        {% for member in row.boards %}
+                            {% with n=forloop.counter %}
+                                <td class="{% if n > main_board_count %}is-reserve{% endif %}{% if n == main_board_count|add:1 %} first-reserve{% endif %}">
+                                    {% if member %}
+                                        {% player_display_name member.player %}{% gender_badge member.player %}
+                                        <small class="text-muted">({% rating member.player %})</small>
+                                        {% if member.is_captain %}
+                                            <span class="label label-primary" title="Captain">C</span>
+                                        {% elif member.is_vice_captain %}
+                                            <span class="label label-default" title="Vice-captain">V</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    {% else %}
+                        <td colspan="{{ board_count }}" class="text-muted">
+                            <em>Roster not yet submitted</em>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

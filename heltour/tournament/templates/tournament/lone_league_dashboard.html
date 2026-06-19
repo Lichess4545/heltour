@@ -2,6 +2,20 @@
 {% load static tournament_extras %}
 {% block title %}Dashboard - {{ league.name }}{% endblock %}
 {% block content %}
+    {% if messages %}
+        <div class="row">
+            <div class="col-md-12">
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} alert-dismissible" role="alert">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-6 col-xs-12">
             <div class="well">
@@ -90,6 +104,162 @@
                                class="btn btn-default">Manage
                             Players</a>
                         </div>
+                        <div class="dashboard-season-action">
+                            <a href="{% leagueurl 'game_ids' league.tag season.tag %}" class="btn btn-default">Game IDs</a>
+                        </div>
+                        {% if league.show_fide_names %}
+                        <div class="dashboard-season-action">
+                            <a href="{% leagueurl 'broadcast_players' league.tag season.tag %}" class="btn btn-default">Broadcast Players</a>
+                        </div>
+                        {% endif %}
+                        <div class="dashboard-season-action">
+                            <a href="{% leagueurl 'export_trf16' league.tag season.tag %}" class="btn btn-default">
+                                <i class="fa fa-download"></i> Export TRF16
+                            </a>
+                        </div>
+                        <div class="dashboard-season-action">
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" name="clear_cache" value="1"
+                                        class="btn btn-warning"
+                                        onclick="return confirm('Are you sure you want to clear all caches? This may temporarily slow down the site.')">
+                                    <i class="fa fa-refresh"></i> Clear All Caches
+                                </button>
+                            </form>
+                        </div>
+                        {% if system_api_token_status %}
+                            <div class="dashboard-season-action">
+                                <span class="btn btn-default disabled" style="cursor: default;">
+                                    {% if system_api_token_status.valid %}
+                                        <i class="fa fa-check-circle" style="color: #3c763d;"></i> Lichess API Token OK
+                                    {% else %}
+                                        <i class="fa fa-times-circle" style="color: #a94442;"></i> Lichess API Token FAILED
+                                    {% endif %}
+                                </span>
+                                <span class="dashboard-note">
+                                    {% if system_api_token_status.valid %}
+                                        {% if system_api_token_status.user_id %}as <strong>{{ system_api_token_status.user_id }}</strong>{% endif %}
+                                        {% if system_api_token_status.expires_at %}· expires {{ system_api_token_status.expires_at|date:"Y-m-d H:i" }} UTC{% else %}· never expires{% endif %}
+                                        {% if system_api_token_status.scopes %}· scopes: {{ system_api_token_status.scopes|join:", " }}{% endif %}
+                                    {% else %}
+                                        {{ system_api_token_status.error|default:"unknown error" }}
+                                    {% endif %}
+                                    <br>Last checked: {{ system_api_token_status.checked_at|date:"Y-m-d H:i:s" }} UTC · Next check: {{ system_api_token_status.next_check_at|date:"H:i:s" }} UTC
+                                </span>
+                            </div>
+                        {% endif %}
+                        <div class="dashboard-season-action">
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" name="validate_tokens" value="1" class="btn btn-default">
+                                    Validate Tokens
+                                </button>
+                            </form>
+                            {% if token_validation_status %}
+                                <span class="dashboard-note">
+                                    Last: {{ token_validation_status.timestamp }}
+                                    {% if not token_validation_status.success %}
+                                        — {{ token_validation_status.failed|length }} failed to refresh
+                                    {% elif token_validation_status.total == 0 %}
+                                        — no active season players
+                                    {% elif token_validation_status.refreshed %}
+                                        — {{ token_validation_status.refreshed|length }} of {{ token_validation_status.total }} token{{ token_validation_status.total|pluralize }} refreshed
+                                    {% else %}
+                                        — all {{ token_validation_status.total }} token{{ token_validation_status.total|pluralize }} valid
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="dashboard-note">Never validated</span>
+                            {% endif %}
+                        </div>
+                        {% if league.require_fide_id or league.is_fide_rated %}
+                            <div class="dashboard-season-action">
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" name="update_fide_ratings" value="1" class="btn btn-default">
+                                        Update FIDE Ratings
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="dashboard-season-action">
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" name="backfill_fide_data" value="1" class="btn btn-default"
+                                            title="Copy FIDE IDs and gender from registrations to players, then refresh FIDE profiles (which also fills gender from FIDE sex when available).">
+                                        Backfill FIDE IDs &amp; Gender
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                        {% if is_knockout_tournament %}
+                            {% if knockout_advancement_info %}
+                                <div class="dashboard-season-action">
+                                    <a href="{% leagueurl 'knockout_bracket' league.tag season.tag %}"
+                                       class="btn btn-primary">View Knockout Bracket</a>
+                                </div>
+                                {% if knockout_advancement_info.can_advance %}
+                                    <div class="dashboard-season-action">
+                                        <form method="post" style="display: inline;">
+                                            {% csrf_token %}
+                                            {% if knockout_advancement_info.is_final_round %}
+                                                <button type="submit" name="advance_tournament" value="1" 
+                                                        class="btn btn-warning"
+                                                        onclick="return confirm('Are you sure you want to finalize the tournament standings? This will complete the tournament.')">
+                                                    <i class="fa fa-trophy"></i> Finalize Tournament Standings
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" name="advance_tournament" value="1" 
+                                                        class="btn btn-success"
+                                                        onclick="return confirm('Are you sure you want to advance the tournament to the next round?')">
+                                                    <i class="fa fa-forward"></i> Advance to Next Round
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                        {% if knockout_advancement_info.is_final_round %}
+                                            <span class="dashboard-note">Final Round {{ knockout_advancement_info.round_to_advance.number }} complete - Ready to finalize</span>
+                                        {% else %}
+                                            <span class="dashboard-note">Round {{ knockout_advancement_info.round_to_advance.number }} complete</span>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="dashboard-season-action">
+                                        <div class="alert alert-warning" style="margin: 10px 0;">
+                                            <strong>Cannot Advance:</strong> {{ knockout_advancement_info.reason }}
+                                            {% if knockout_advancement_info.tied_matches %}
+                                                <br><strong>Tied matches requiring resolution:</strong>
+                                                <ul style="margin-top: 5px;">
+                                                    {% for match in knockout_advancement_info.tied_matches %}
+                                                        <li>
+                                                            {{ match.competitor1 }} vs {{ match.competitor2 }} ({{ match.score }}-{{ match.score }})
+                                                            <a href="{% url 'admin:tournament_loneplayerpairing_change' match.id %}" class="btn btn-warning btn-xs">Resolve</a>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                            {% if knockout_advancement_info.multi_match_info %}
+                                                <br><strong>Multi-Match Status:</strong>
+                                                {% with mmi=knockout_advancement_info.multi_match_info %}
+                                                    <div style="margin-top: 5px;">
+                                                        <p><strong>Expected:</strong> {{ mmi.total_matches_expected }} matches ({{ mmi.expected_team_pairs }} player pairs × {{ mmi.matches_per_stage }} matches each)</p>
+                                                        <p><strong>Actual:</strong> {{ mmi.total_matches_actual }} matches created, {{ mmi.total_matches_completed }} completed</p>
+                                                        {% if mmi.total_matches_actual < mmi.total_matches_expected %}
+                                                            <form method="post" style="display: inline; margin-top: 10px;">
+                                                                {% csrf_token %}
+                                                                <button type="submit" name="create_missing_matches" value="1" 
+                                                                        class="btn btn-primary btn-sm"
+                                                                        onclick="return confirm('Create missing matches to reach the expected {{ mmi.total_matches_expected }} total matches?')">
+                                                                    <i class="fa fa-plus"></i> Create Missing Matches
+                                                                </button>
+                                                            </form>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endwith %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
                         {% if next_round %}
                             <div class="dashboard-season-action">
                                 <a href="{% url 'admin:pre_round_report' season.pk %}"
@@ -122,6 +292,7 @@
                                 Nominations</a>
                             </div>
                         {% endif %}
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
@@ -148,4 +319,5 @@
             </div>
         </div>
     </div>
+    {% include "tournament/_recent_task_logs.html" %}
 {% endblock %}

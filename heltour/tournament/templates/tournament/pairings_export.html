@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load static tournament_extras %}
+{% block title %}Pairings Export - {{ league.name }}{% endblock %}
+{% block css %}
+    <style>
+        .pairings-export-page .duel-jumper-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #fff;
+            padding: 14px 16px;
+            margin: 0 -16px 22px;
+            border: 1px solid #c8d0d8;
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12),
+                        0 1px 0 rgba(0, 0, 0, 0.04);
+        }
+        .pairings-export-page .duel-jumper-wrap label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6a7480;
+        }
+        .pairings-export-page .round-heading {
+            margin-top: 32px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #ccc;
+        }
+        .pairings-export-page .round-heading:first-of-type {
+            margin-top: 10px;
+        }
+        .pairings-export-page .duel-panel {
+            margin-bottom: 22px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            scroll-margin-top: 110px;
+            overflow: hidden;
+        }
+        .pairings-export-page .duel-panel.duel-completed {
+            background: #f3f6f3;
+            border-color: #c7d7c7;
+        }
+        .pairings-export-page .duel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #eef1f5;
+            border-bottom: 1px solid #ddd;
+            font-weight: 600;
+        }
+        .pairings-export-page .duel-panel.duel-completed .duel-header {
+            background: #dfe8df;
+            border-bottom-color: #c7d7c7;
+        }
+        .pairings-export-page .duel-number {
+            display: inline-block;
+            background: #5a6878;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-right: 8px;
+            text-transform: uppercase;
+        }
+        .pairings-export-page .duel-body {
+            padding: 14px;
+        }
+        .pairings-export-page .match-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .pairings-export-page .match-card.match-completed {
+            background: #f7fbf7;
+            border-color: #cfe0cf;
+        }
+        .pairings-export-page .match-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .pairings-export-page .match-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        .pairings-export-page .match-pairing-id {
+            font-size: 11px;
+            color: #888;
+            font-weight: normal;
+        }
+        .pairings-export-page .match-card textarea {
+            width: 100%;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            background: #fff;
+            resize: vertical;
+        }
+        .pairings-export-page .match-card.match-completed textarea {
+            background: #f5f5f5;
+            color: #888;
+        }
+        .pairings-export-page .copy-pairing-btn .fa {
+            margin-right: 4px;
+        }
+    </style>
+{% endblock %}
+{% block js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.copy-pairing-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var ta = document.getElementById(btn.dataset.target);
+                    if (!ta) return;
+                    var label = btn.querySelector('.copy-label');
+                    var done = function () {
+                        if (!label) return;
+                        var original = label.textContent;
+                        label.textContent = 'Copied!';
+                        setTimeout(function () { label.textContent = original; }, 1500);
+                    };
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(ta.value).then(done, function () {
+                            ta.select();
+                            document.execCommand('copy');
+                            done();
+                        });
+                    } else {
+                        ta.select();
+                        document.execCommand('copy');
+                        done();
+                    }
+                });
+            });
+
+            var jumper = document.getElementById('duel-jumper');
+            if (jumper) {
+                jumper.addEventListener('change', function () {
+                    if (!this.value) return;
+                    var el = document.getElementById(this.value);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (history.replaceState) {
+                            history.replaceState(null, '', '#' + this.value);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}
+{% block content %}
+    <div class="row pairings-export-page">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    <h3>Pairings Export - {{ season.name }}</h3>
+                </div>
+                <div class="well-body">
+                    <p>
+                        Copy/paste-friendly pairings for external pairing software. There is
+                        one text box per match. Each line is a single board's game, formatted
+                        as the player with the white pieces, a tab, then the player with the
+                        black pieces:
+                    </p>
+                    <p><code>white_lichess_username&lt;TAB&gt;black_lichess_username</code></p>
+                    <div class="duel-jumper-wrap">
+                        <div class="form-group" style="max-width: 560px; margin-bottom: 0;">
+                            <label for="duel-jumper">Jump to duel</label>
+                            <select id="duel-jumper" class="form-control">
+                                <option value="">— Select a duel —</option>
+                                {% for round in rounds_data %}
+                                    {% if round.duels %}
+                                        <optgroup label="Round {{ round.round_number }}{% if round.knockout_stage %} ({{ round.knockout_stage }}){% endif %}">
+                                            {% for duel in round.duels %}
+                                                <option value="duel-r{{ round.round_number }}-{{ duel.matches.0.pairing_id }}">
+                                                    Duel {{ duel.duel_number }} — {{ duel.label }}{% if duel.all_completed %} ✓{% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% for round in rounds_data %}
+                        <h4 class="round-heading">
+                            Round {{ round.round_number }}
+                            {% if round.knockout_stage %}
+                                <small class="text-muted">({{ round.knockout_stage }})</small>
+                            {% endif %}
+                        </h4>
+                        {% if round.duels %}
+                            {% for duel in round.duels %}
+                                <div class="duel-panel{% if duel.all_completed %} duel-completed{% endif %}"
+                                     id="duel-r{{ round.round_number }}-{{ duel.matches.0.pairing_id }}">
+                                    <div class="duel-header">
+                                        <div>
+                                            <span class="duel-number">Duel {{ duel.duel_number }}</span>
+                                            {{ duel.label }}
+                                        </div>
+                                        {% if duel.all_completed %}
+                                            <span class="label label-success"
+                                                  title="All matches in this duel have results">
+                                                &#x2713; Completed
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="duel-body">
+                                        <div class="row">
+                                            {% for match in duel.matches %}
+                                                <div class="col-md-{{ round.col_width }}">
+                                                    <div class="match-card{% if match.completed %} match-completed{% endif %}">
+                                                        <div class="match-header">
+                                                            <div>
+                                                                <span class="match-title">
+                                                                    Match {{ match.match_number }}
+                                                                </span>
+                                                                {% if match.completed %}
+                                                                    <span class="label label-success"
+                                                                          title="All board games have a result recorded"
+                                                                          style="margin-left: 4px;">
+                                                                        &#x2713;
+                                                                    </span>
+                                                                {% endif %}
+                                                                <div class="match-pairing-id">
+                                                                    {{ match.white_team }} (white) vs {{ match.black_team }} (black)
+                                                                    · pairing #{{ match.pairing_id }}
+                                                                </div>
+                                                            </div>
+                                                            <button type="button"
+                                                                    class="btn btn-default btn-sm copy-pairing-btn"
+                                                                    data-target="pairing-ta-{{ match.pairing_id }}"
+                                                                    title="Copy pairings to clipboard">
+                                                                <i class="fa fa-clipboard" aria-hidden="true"></i><span class="copy-label">Copy</span>
+                                                            </button>
+                                                        </div>
+                                                        <textarea readonly rows="{{ match.line_count }}"
+                                                                  id="pairing-ta-{{ match.pairing_id }}"
+                                                                  onclick="this.select()">{{ match.content }}</textarea>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No pairings created for this round yet.</p>
+                        {% endif %}
+                    {% empty %}
+                        <p class="text-muted">No rounds in this season.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -4,6 +4,14 @@
 {% block body %}
     <div id="home-container">
         <div class="container" id="home-league-list">
+            {% if display_fwcc_banner %}
+                {% include 'tournament/fwcc_banner.html' %}
+            {% endif %}
+
+            {% if fwutcc_banner_enabled %}
+                {% include 'tournament/fwutcc_banner.html' %}
+            {% endif %}
+
             <div class="row">
                 {% if leagues %}
                     {% for l in leagues %}
@@ -13,6 +21,46 @@
                                 <div class="league-homelink league-homelink-{{ l.theme }}">{{ l.name }}</div>
                                 <div class="league-home-details">
                                     <p class="league-home-desc">{{ l.description }}</p>
+
+                                    {% with l.registration_season as registration_season %}
+                                        {% if registration_season %}
+                                            {% if registration_season.welcome_message %}
+                                                <div class="registration-welcome-message">
+                                                    {{ registration_season.welcome_message|safe }}
+                                                </div>
+                                            {% endif %}
+                                            <p>
+                                                {% if not registration_season.is_started %}
+                                                    Starts on {{ registration_season.start_date|date:"M d, Y" }}
+                                                    at {{ registration_season.start_date|date:"H:i" }} UTC.
+                                                {% elif registration_season.is_completed %}
+                                                    Ends on {{ registration_season.end_date|date:"M d, Y" }}
+                                                    at {{ registration_season.end_date|date:"H:i" }} UTC.
+                                                {% else %}
+                                                    Started on {{ registration_season.start_date|date:"M d, Y" }}
+                                                    at {{ registration_season.start_date|date:"H:i" }} UTC.
+                                                {% endif %}
+                                            </p>
+                                        {% else %}
+                                            {% with l.most_recent_season as recent_season %}
+                                                {% if recent_season %}
+                                                    <p>
+                                                        {% if recent_season.is_completed %}
+                                                            Most recent tournament ended on {{ recent_season.end_date|date:"M d, Y" }}
+                                                            at {{ recent_season.end_date|date:"H:i" }} UTC.
+                                                        {% elif recent_season.is_started %}
+                                                            Tournament in progress since {{ recent_season.start_date|date:"M d, Y" }}.
+                                                        {% else %}
+                                                            Next tournament starts {{ recent_season.start_date|date:"M d, Y" }}
+                                                            at {{ recent_season.start_date|date:"H:i" }} UTC.
+                                                        {% endif %}
+                                                    </p>
+                                                {% else %}
+                                                    <p>No tournaments scheduled.</p>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    {% endwith %}
                                 </div>
                             </a>
                         </div>

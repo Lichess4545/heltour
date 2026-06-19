@@ -2,6 +2,14 @@
 {% load static tournament_extras %}
 {% block title %}Standings - {{ season.name }} - {{ league.name }}{% endblock %}
 {% block nav_standings %}active{% endblock %}
+{% block css %}
+<style>
+.cell-bye {
+    background-color: #f9f9f9 !important;
+    border: 1px solid #e0e0e0 !important;
+}
+</style>
+{% endblock %}
 {% block content %}
     <div class="row row-condensed-xs">
         <div class="col-md-12">
@@ -25,10 +33,14 @@
                                             <span class="visible-sm visible-xs">Match Pts</span>
                                             <span class="hidden-sm hidden-xs">Match Points</span>
                                         </th>
+                                        {% for tb_name, tb_display in tiebreaks %}
+                                        {% if tb_name != "match_points" %}
                                         <th class="text-center sort">
-                                            <span class="visible-sm visible-xs">Game Pts</span>
-                                            <span class="hidden-sm hidden-xs">Game Points (Tbk 1)</span>
+                                            <span class="visible-sm visible-xs">{{ tb_display|truncatechars:8 }}</span>
+                                            <span class="hidden-sm hidden-xs">{{ tb_display }} (Tbk {{ forloop.counter }})</span>
                                         </th>
+                                        {% endif %}
+                                        {% endfor %}
                                         {% for round_number in round_numbers %}<th class="text-center sort">Round {{ round_number }}</th>{% endfor %}
                                     </tr>
                                 </thead>
@@ -44,13 +56,33 @@
                                                 <td class="text-center hidden-sm hidden-xs">{{ team_score.team.average_rating|floatformat:2 }}</td>
                                             {% endif %}
                                             <td class="text-center">{{ team_score.match_points_display }}</td>
-                                            <td class="text-center">{{ team_score.game_points_display }}</td>
-                                            {% for score, opp_score, round_num in team_score.round_scores %}
-                                                <td class="text-center cell-score {% resultclass score opp_score %}">
-                                                    {% if score != None %}
-                                                        <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
-                                                    {% endif %}
-                                                </td>
+                                            {% for tb_name, tb_display in tiebreaks %}
+                                            {% if tb_name != "match_points" %}
+                                            <td class="text-center">{{ team_score|get_tiebreak_display:tb_name }}</td>
+                                            {% endif %}
+                                            {% endfor %}
+                                            {% for round_score_data in team_score.round_scores %}
+                                                {% if round_score_data|length == 4 %}
+                                                    {% with round_score_data as score_opp_round_bye %}
+                                                        <td class="text-center cell-score {% if score_opp_round_bye.3 %}cell-bye{% else %}{% resultclass score_opp_round_bye.0 score_opp_round_bye.1 %}{% endif %}">
+                                                            {% if score_opp_round_bye.0 != None %}
+                                                                {% if score_opp_round_bye.3 %}
+                                                                    <span style="font-style: italic; color: #888;">BYE</span>
+                                                                {% else %}
+                                                                    <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag score_opp_round_bye.2 team_score.team.number %}">{{ score_opp_round_bye.0|floatformat }}</a>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {% with round_score_data as score_opp_round %}
+                                                        <td class="text-center cell-score {% resultclass score_opp_round.0 score_opp_round.1 %}">
+                                                            {% if score_opp_round.0 != None %}
+                                                                <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag score_opp_round.2 team_score.team.number %}">{{ score_opp_round.0|floatformat }}</a>
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endwith %}
+                                                {% endif %}
                                             {% endfor %}
                                         </tr>
                                     {% endfor %}
@@ -70,16 +102,16 @@
                     <table class="table table-condensed-sm">
                         <tbody>
                             <tr>
-                                <td class="text-center cell-score cell-win">6</td>
-                                <td>Win with 6 game points</td>
+                                <td class="text-center cell-score cell-win">4</td>
+                                <td>Win with 4 game points</td>
                             </tr>
                             <tr>
-                                <td class="text-center cell-score cell-loss">2.5</td>
-                                <td>Loss with 2.5 points</td>
+                                <td class="text-center cell-score cell-loss">1.5</td>
+                                <td>Loss with 1.5 points</td>
                             </tr>
                             <tr>
-                                <td class="text-center cell-score cell-tie">4</td>
-                                <td>Draw with 4 points</td>
+                                <td class="text-center cell-score cell-tie">2</td>
+                                <td>Draw with 2 points</td>
                             </tr>
                         </tbody>
                     </table>

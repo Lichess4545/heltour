@@ -144,6 +144,31 @@ table .team-link {
 .player-profile-row .well-body {
     overflow: auto;
 }
+
+// Team profile well-head alignment
+.player-profile-row .well-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 40px;
+    
+    h3 {
+        margin: 0;
+        line-height: 1;
+        font-size: 18px;
+    }
+    
+    .btn {
+        margin: 0;
+        white-space: nowrap;
+    }
+    
+    // Handle pull-right class for flexbox
+    .pull-right {
+        margin-left: auto;
+    }
+}
 .player-profile-row .profile-links {
     margin: 3px 0px;
 }
@@ -386,25 +411,32 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     color: #337ab7;
 }
 
-#table-team-pairings .color-dot, #table-team-pairings .captain {
+#table-team-pairings .color-dot,
+#table-team-pairings .captain,
+#table-knockout-pairings .color-dot,
+#table-knockout-pairings .captain {
     color: rgb(51, 51, 51);
 }
 
-#table-team-pairings .color-dot.left {
+#table-team-pairings .color-dot.left,
+#table-knockout-pairings .color-dot.left {
     margin-right: 4px;
 }
 
-#table-team-pairings .color-dot.right {
+#table-team-pairings .color-dot.right,
+#table-knockout-pairings .color-dot.right {
     margin-left: 4px;
 }
 
-#table-team-pairings .player-white .color-dot:after {
+#table-team-pairings .player-white .color-dot:after,
+#table-knockout-pairings .player-white .color-dot:after {
     content: '\25CB';
     font-size: 18px;
     line-height: 14px;
 }
 
-#table-team-pairings .player-black .color-dot:after {
+#table-team-pairings .player-black .color-dot:after,
+#table-knockout-pairings .player-black .color-dot:after {
     content: '\25CF';
     font-size: 18px;
     line-height: 14px;
@@ -457,6 +489,28 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
 .player-profile-section .captain:after,
 .pairings-row .captain:after {
     content: '(C)';
+}
+
+.gender-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+    background-color: #777;
+}
+
+.gender-badge-male {
+    background-color: #2c5e8e;
+}
+
+.gender-badge-female {
+    background-color: #7ea3c8;
 }
 
 #table-alternates > tbody > tr > td {
@@ -1025,4 +1079,14 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
         width: auto;
         min-width: 25px;
     }
+}
+
+@keyframes pairing-flash {
+    0%   { background-color: rgba(255, 235, 59, 0.55); }
+    100% { background-color: transparent; }
+}
+
+tbody.pairing-flash > tr > td,
+tbody.pairing-flash > tr > th {
+    animation: pairing-flash 1.6s ease-out;
 }

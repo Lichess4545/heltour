@@ -4,6 +4,8 @@
 {% block content %}
     <div class="row row-condensed-xs home-row">
         <div class="col-md-6 col-xs-12">
+            {% comment %}
+            <!-- Slack linking is only needed for some leagues, commenting out for now -->
             {% if not slack_linked and approved %}
                 <div class="well">
                     <div class="well-head">
@@ -27,6 +29,7 @@
                     </div>
                 </div>
             {% endif %}
+            {% endcomment %}
             <div class="well">
                 <div class="well-head">
                     <h3>{{ user.username }}</h3>
@@ -110,6 +113,25 @@
                                     </a>
                                 {% endif %}
                             </p>
+                            
+                            {% with team_info=team_membership_by_season|get_item:active_season %}
+                                {% if team_info %}
+                                    <hr>
+                                    <p><strong>Team: {{ team_info.team.name }}</strong></p>
+                                    <p>
+                                        <a class="btn btn-default"
+                                           href="{% leagueurl 'team_profile' league.tag active_season.tag team_info.team.number %}">
+                                            View Team
+                                        </a>
+                                        {% if team_info.can_manage %}
+                                            <a class="btn btn-primary"
+                                               href="{% leagueurl 'team_manage' league.tag active_season.tag team_info.team.number %}">
+                                                Manage Team
+                                            </a>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                            {% endwith %}
                             {% if active_sp.games_missed %}
                                 <p>
                                     {% if active_sp.games_missed > 1 %}
@@ -126,6 +148,15 @@
                             {% else %}
                                 <p>Registration is closed.</p>
                             {% endif %}
+                        {% endif %}
+                        
+                        {% if active_season in captain_without_team_seasons %}
+                            <hr>
+                            <p><strong>You are registered as a captain but haven't created a team yet.</strong></p>
+                            <a class="btn btn-primary" 
+                               href="{% leagueurl 'team_create' league.tag active_season.tag %}">
+                                Create Your Team
+                            </a>
                         {% endif %}
                     </div>
                 </div>

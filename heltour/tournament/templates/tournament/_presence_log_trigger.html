@@ -1,0 +1,14 @@
+{% spaceless %}
+<span class="presence-log-trigger"
+      tabindex="0"
+      role="button"
+      data-toggle="popover"
+      data-placement="top"
+      data-html="true"
+      data-trigger="hover focus"
+      title="Presence log — {{ player.lichess_username }}"
+      data-content="<div class='presence-log-summary'><strong>Online during round:</strong> {% if was_online %}yes{% else %}no{% endif %} &middot; <strong>Plies played:</strong> {{ plies_played }}</div><ul class='presence-log-list'>{% for ev in events %}<li><time datetime='{{ ev.timestamp|date:'c' }}'>{{ ev.timestamp|date:'Y-m-d H:i:s' }}</time> &middot; {{ ev.get_event_type_display }}{% if ev.game_id %} ({{ ev.game_id }}){% endif %}</li>{% endfor %}</ul>">
+    <span class="presence-log-icon" aria-hidden="true">&#128276;</span>
+    <span class="sr-only">Presence log for {{ player.lichess_username }}</span>
+</span>
+{% endspaceless %}

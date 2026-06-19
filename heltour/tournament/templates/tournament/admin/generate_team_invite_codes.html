@@ -1,0 +1,82 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">Home</a>
+        &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst|escape }}</a>
+        &rsaquo; <a href="{% url 'admin:tournament_team_changelist' %}">Teams</a>
+        &rsaquo; {{ team }}
+        &rsaquo; Generate Team Member Invite Codes
+    </div>
+{% endblock %}
+{% block content %}
+    <h1>Generate Team Member Invite Codes for {{ team.name }}</h1>
+    <div class="module">
+        <h2>Current Team Member Invite Code Statistics</h2>
+        <table>
+            <tr>
+                <th>Total Codes Generated</th>
+                <td>{{ stats.total }}</td>
+            </tr>
+            <tr>
+                <th>Used Codes</th>
+                <td>{{ stats.used }}</td>
+            </tr>
+            <tr>
+                <th>Available Codes</th>
+                <td>{{ stats.available }}</td>
+            </tr>
+            <tr>
+                <th>Maximum Allowed Codes</th>
+                <td>{{ max_codes }} (2x {{ team.season.boards }} boards)</td>
+            </tr>
+            <tr>
+                <th>Remaining Codes You Can Generate</th>
+                <td>{{ remaining_allowed }}</td>
+            </tr>
+        </table>
+    </div>
+    {% if remaining_allowed > 0 %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="module">
+                <h2>Generate New Team Member Codes</h2>
+                <fieldset class="module aligned">
+                    <div class="form-row">
+                        <label for="id_count">Number of codes:</label>
+                        <input type="number"
+                               name="count"
+                               id="id_count"
+                               min="1"
+                               max="{{ remaining_allowed }}"
+                               value="{{ remaining_allowed|default:1 }}"
+                               required>
+                        <p class="help">Enter the number of team member invite codes to generate (1-{{ remaining_allowed }})</p>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="Generate Codes" class="default">
+            </div>
+        </form>
+    {% else %}
+        <div class="module">
+            <p>
+                <strong>You have reached the maximum number of team member invite codes allowed for this team.</strong>
+            </p>
+            <p>If you need more codes, please contact the league administrator.</p>
+        </div>
+    {% endif %}
+    <div class="module">
+        <h2>Notes</h2>
+        <ul>
+            <li>Generated codes will be in the format: WORD1-WORD2-XXXXXXXX (e.g., CHESS-KNIGHT-ABC12345)</li>
+            <li>Each code can only be used once</li>
+            <li>Players who register with these codes will automatically be added to your team</li>
+            <li>You can generate up to {{ max_codes }} codes total (2x the number of boards)</li>
+            <li>
+                After generation, you can view all codes in the <a href="{% url 'admin:tournament_invitecode_changelist' %}?team__id__exact={{ team.id }}">Invite Codes admin</a>
+            </li>
+        </ul>
+    </div>
+{% endblock %}

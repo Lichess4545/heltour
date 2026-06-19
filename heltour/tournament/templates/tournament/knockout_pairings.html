@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% load static tournament_extras %}
+{% block title %}{{ current_stage|title }} Pairings - {{ season.name }} - {{ league.name }}{% endblock %}
+{% block nav_pairings %}active{% endblock %}
+{% block js %}
+    <script>
+        var refreshInterval = 5 * 60 * 1000; // 5 minutes
+        var sleepBuffer = 5 * 1000; // 5 seconds
+        setTimeout(function () {
+            setTimeout(function () {
+                location.reload();
+            }, sleepBuffer);
+        }, refreshInterval - sleepBuffer);
+    </script>
+{% endblock %}
+{% block content %}
+    <div class="row row-condensed-xs pairings-row">
+        <div class="col-md-12">
+            <div class="well">
+                <div class="well-head">
+                    <h3>
+                        {% if current_stage %}{{ current_stage|title }}{% else %}Knockout{% endif %} Pairings
+                        {% if round_number %}- Round {{ round_number }}{% endif %}
+                    </h3>
+                </div>
+                <div class="well-body">
+                    <div class="row" style="margin-bottom: 15px;">
+                        <div class="col-md-6">
+                            {% if round_number_list %}
+                                <div class="dropdown inline round-switcher">
+                                    <button class="btn btn-default dropdown-toggle"
+                                            type="button"
+                                            data-toggle="dropdown">
+                                        {% if current_stage %}{{ current_stage|title }}{% else %}Round {{ round_number }}{% endif %}
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% for stage_info in round_number_list %}
+                                            <li>
+                                                <a href="{% leagueurl 'pairings_by_round' league.tag season.tag stage_info.round_number %}">
+                                                    {{ stage_info.stage_name|title }} (Round {{ stage_info.round_number }})
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <a href="{% leagueurl 'knockout_bracket' league.tag season.tag %}" class="btn btn-primary">
+                                View Full Bracket
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if stage_info %}
+                        <div class="alert alert-info">
+                            <strong>{{ stage_info.stage_name|title }}:</strong> 
+                            {{ stage_info.total_matches }} match{{ stage_info.total_matches|pluralize:"es" }} between {{ stage_info.total_competitors }} {{ league.competitor_type }}{{ stage_info.total_competitors|pluralize }}
+                            {% if stage_info.games_per_match > 1 %}
+                                ({{ stage_info.games_per_match }} games per match)
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if opponent_aggregates and is_multi_match %}
+                        {# Show aggregate totals for multi-match tournaments #}
+                        <div class="alert alert-info multi-match-summary">
+                            <h4>Match Totals ({{ matches_per_stage }} matches per stage)</h4>
+                            {% for opponent_id, aggregate in opponent_aggregates.items %}
+                                <div class="aggregate-row">
+                                    <strong>{{ current_team.name }}</strong> vs <strong>{{ aggregate.opponent_team.name }}</strong>:
+                                    <span class="aggregate-score">
+                                        {{ aggregate.current_team_total|floatformat }} - {{ aggregate.opponent_total|floatformat }}
+                                    </span>
+                                    {% if aggregate.all_completed %}
+                                        {% if aggregate.current_team_total > aggregate.opponent_total %}
+                                            <span class="badge badge-success">{{ current_team.name }} Wins</span>
+                                        {% elif aggregate.opponent_total > aggregate.current_team_total %}
+                                            <span class="badge badge-danger">{{ aggregate.opponent_team.name }} Wins</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">Tied</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge badge-secondary">In Progress</span>
+                                    {% endif %}
+                                    <small>({{ aggregate.match_count }} match{{ aggregate.match_count|pluralize:"es" }})</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if pairing_lists %}
+                        <table class="table table-condensed-xs knockout-pairings-table" id="table-knockout-pairings">
+                            {% for pairing_list in pairing_lists %}
+                                {% with pairing_list.0.0.team_pairing as team_pairing %}
+                                    <tr class="header-row knockout-match-header">
+                                        <th colspan="2" class="match-info">
+                                            {% if team_pairing.black_team_id %}
+                                                <div class="match-title">
+                                                    <span class="match-number">Match {{ team_pairing.pairing_order }}</span>
+                                                    {% if is_multi_match %}
+                                                        <span class="match-subtitle">(Individual Match)</span>
+                                                    {% endif %}
+                                                    {% if team_pairing.manual_tiebreak_value is not None %}
+                                                        <span class="badge badge-warning">Manual Tiebreak</span>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <span class="bye-indicator">BYE</span>
+                                            {% endif %}
+                                        </th>
+                                        <th class="text-center match-score-header" colspan="2">Score</th>
+                                        <th colspan="2" class="match-status">
+                                            {% if team_pairing.black_team_id %}
+                                                {% if team_pairing.result %}
+                                                    <span class="badge badge-success">Complete</span>
+                                                {% else %}
+                                                    <span class="badge badge-primary">In Progress</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </th>
+                                        {% if can_edit %}
+                                            <th class="cell-edit">
+                                                {% if team_pairing.black_team_id and current_team %}
+                                                    <form method="post"
+                                                          action="{% leagueurl 'knockout_regenerate_boards' league.tag season.tag round_number current_team.number team_pairing.id %}"
+                                                          style="display:inline"
+                                                          onsubmit="return confirm('Rebuild this match\'s board pairings from the current rosters? Board games that already have a result or game_link will be kept; the rest will be replaced.');">
+                                                        {% csrf_token %}
+                                                        <button type="submit"
+                                                                class="btn btn-default btn-xs"
+                                                                title="Rebuild board pairings from current roster (keeps boards with results/links)">
+                                                            <span class="glyphicon glyphicon-refresh"></span>
+                                                            Rebuild
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    &nbsp;
+                                                {% endif %}
+                                            </th>
+                                        {% endif %}
+                                    </tr>
+                                    
+                                    <tr class="competitor-row">
+                                        <td class="competitor-seed">
+                                            {% with white_seeding=team_pairing.white_team.knockoutseeding_set.first %}
+                                                {% if white_seeding %}
+                                                    {% if white_seeding.seed_label %}{{ white_seeding.seed_label }}{% else %}Seed {{ white_seeding.seed_number }}{% endif %}
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                        <td class="competitor-name">
+                                            {% if team_pairing.white_team.number %}
+                                                <a class="team-link"
+                                                   href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.white_team.number %}">
+                                                    {{ team_pairing.white_team_name }}
+                                                </a>
+                                            {% else %}
+                                                {{ team_pairing.white_team_name }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center cell-score {% if team_pairing.black_team_id %}{% resultclass team_pairing.white_points team_pairing.black_points %}{% endif %}">
+                                            {% if team_pairing.black_team_id %}
+                                                {{ team_pairing.white_points_display|formatscore }}
+                                            {% else %}
+                                                <span class="bye-score">{{ team_pairing.white_points_display|formatscore }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center cell-score {% if team_pairing.black_team_id %}{% resultclass team_pairing.black_points team_pairing.white_points %}{% endif %}">
+                                            {% if team_pairing.black_team_id %}
+                                                {{ team_pairing.black_points_display|formatscore }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="competitor-name text-right">
+                                            {% if team_pairing.black_team_id %}
+                                                {% if team_pairing.black_team.number %}
+                                                    <a class="team-link"
+                                                       href="{% leagueurl 'team_profile' league.tag season.tag team_pairing.black_team.number %}">
+                                                        {{ team_pairing.black_team_name }}
+                                                    </a>
+                                                {% else %}
+                                                    {{ team_pairing.black_team_name }}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="bye-text">receives bye</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="competitor-seed text-right">
+                                            {% if team_pairing.black_team_id %}
+                                                {% with black_seeding=team_pairing.black_team.knockoutseeding_set.first %}
+                                                    {% if black_seeding %}
+                                                        {% if black_seeding.seed_label %}{{ black_seeding.seed_label }}{% else %}Seed {{ black_seeding.seed_number }}{% endif %}
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        </td>
+                                        {% if can_edit %}
+                                            <td class="cell-edit">
+                                                <a href="{% url 'admin:tournament_teampairing_change' team_pairing.pk %}?_popup=1"
+                                                   id="change-pairing-{{ team_pairing.pk }}"
+                                                   class="popup-link"
+                                                   title="Change selected pairing">
+                                                    <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                                                </a>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                    
+                                    {% if team_pairing.black_team_id %}
+                                        {# Show individual board results for team matches #}
+                                        {% if league.competitor_type == "team" %}
+                                            {% for pairing, white_img, white_status, black_img, black_status in pairing_list %}
+                                                <tr class="board-pairing">
+                                                    <td class="board-number">Board {{ pairing.board_number }}</td>
+                                                    <td class="pairing-player player-{{ pairing.white_team_color }}">
+                                                        {% if pairing.white_team_player %}
+                                                            <span class="color-dot left"></span>
+                                                            <a class="{% if pairing.white_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
+                                                               href="{% leagueurl 'player_profile' league.tag season.tag pairing.white_team_player.lichess_username %}">
+                                                                {% player_display_name pairing.white_team_player %}{% gender_badge pairing.white_team_player %}
+                                                                {% if not zen_mode %}
+                                                                    ({% white_team_rating pairing %})
+                                                                {% endif %}
+                                                            </a>
+                                                            {% if white_img %}
+                                                                <img src="{% static 'tournament/img/icon-'|add:white_img|add:'.svg' %}"
+                                                                     title="{{ white_status }}" />
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </td>
+                                                    {% if pairing.game_link and not pairing.result %}
+                                                        <td class="cell-score text-center" colspan="2">
+                                                            <a href="{{ pairing.game_link }}">
+                                                                {% if pairing.tv_state != "has_moves" %}
+                                                                    ⏯
+                                                                {% else %}
+                                                                    ⚔️
+                                                                {% endif %}
+                                                            </a>
+                                                        </td>
+                                                    {% else %}
+                                                        <td class="cell-game-result text-center {% resultclass pairing.white_team_score pairing.black_team_score %}">
+                                                            {% if pairing.game_link %}<a href="{{ pairing.game_link }}">{% endif %}
+                                                                {{ pairing.white_team_score_str }}
+                                                                {% if pairing.game_link %}</a>{% endif %}
+                                                        </td>
+                                                        <td class="cell-game-result text-center {% resultclass pairing.black_team_score pairing.white_team_score %}">
+                                                            {% if pairing.game_link %}<a href="{{ pairing.game_link }}">{% endif %}
+                                                                {{ pairing.black_team_score_str }}
+                                                                {% if pairing.game_link %}</a>{% endif %}
+                                                        </td>
+                                                    {% endif %}
+                                                    <td class="text-right pairing-player player-{{ pairing.black_team_color }}">
+                                                        {% if pairing.black_team_player %}
+                                                            {% if black_img %}
+                                                                <img src="{% static 'tournament/img/icon-'|add:black_img|add:'.svg' %}"
+                                                                     title="{{ black_status }}" />
+                                                            {% endif %}
+                                                            <a class="{% if pairing.black_team_player in unavailable_players %}player-unavailable" title="unavailable{% endif %}"
+                                                               href="{% leagueurl 'player_profile' league.tag season.tag pairing.black_team_player.lichess_username %}">
+                                                                {% player_display_name pairing.black_team_player %}{% gender_badge pairing.black_team_player %}
+                                                                {% if not zen_mode %}
+                                                                    ({% black_team_rating pairing %})
+                                                                {% endif %}
+                                                            </a>
+                                                            <span class="color-dot right"></span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-right"></td>
+                                                    {% if can_edit %}
+                                                        <td class="cell-edit">
+                                                            <a href="{% url 'admin:tournament_playerpairing_change' pairing.pk %}?_popup=1"
+                                                               id="change-pairing-{{ pairing.pk }}"
+                                                               class="popup-link"
+                                                               title="Change selected pairing">
+                                                                <img src="{% static 'admin/img/icon-changelink.svg' %}" alt="Change">
+                                                            </a>
+                                                        </td>
+                                                    {% endif %}
+                                                </tr>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {# Spacing between matches #}
+                                    <tr class="match-spacer">
+                                        <td colspan="{% if can_edit %}7{% else %}6{% endif %}">&nbsp;</td>
+                                    </tr>
+                                {% endwith %}
+                            {% endfor %}
+                        </table>
+                    {% else %}
+                        <p>No pairings available for this stage.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .knockout-match-header th {
+            background-color: #f8f9fa;
+            border-top: 2px solid #dee2e6;
+        }
+        
+        .match-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .match-number {
+            font-weight: bold;
+        }
+        
+        .match-subtitle {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .competitor-row {
+            font-weight: bold;
+            background-color: #fff;
+        }
+        
+        .competitor-seed {
+            font-size: 0.9em;
+            color: #666;
+            width: 80px;
+        }
+        
+        .board-pairing {
+            background-color: #f9f9f9;
+            font-size: 0.9em;
+        }
+        
+        .board-number {
+            font-weight: bold;
+            color: #666;
+            width: 80px;
+        }
+        
+        .match-spacer {
+            height: 20px;
+        }
+        
+        .bye-indicator {
+            font-style: italic;
+            color: #888;
+        }
+        
+        .bye-score, .bye-text {
+            font-style: italic;
+            color: #666;
+        }
+        
+        .multi-match-summary {
+            margin-bottom: 25px;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .multi-match-summary h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #0c5460;
+        }
+        
+        .aggregate-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .aggregate-score {
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 2px 8px;
+            background-color: #fff;
+            border-radius: 4px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+            padding: 0.25em 0.6em;
+            border-radius: 0.25rem;
+        }
+        
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .badge-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .badge-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+    </style>
+{% endblock %}

@@ -52,10 +52,9 @@
                                         {% if has_ljp %}<th class="text-center sort">LjP+Tot</th>{% endif %}
                                         <th class="text-center sort">Tot</th>
                                         {% if has_ljp %}<th class="text-center sort">LjP</th>{% endif %}
-                                        <th title="Modified Median" class="text-right sort">TBrk[M]</th>
-                                        <th title="Solkoff" class="text-right sort">TBrk[S]</th>
-                                        <th title="Cumulative" class="text-right sort">TBrk[C]</th>
-                                        <th title="Cumulative Opponent" class="text-right sort">TBrk[O]</th>
+                                        {% for tb_name, tb_display in tiebreaks %}
+                                        <th title="{{ tb_display }}" class="text-right sort">{{ tb_display }}</th>
+                                        {% endfor %}
                                         {% if not zen_mode %}<th class="text-center sort">Perf</th>{% endif %}
                                     </tr>
                                 </thead>
@@ -66,7 +65,7 @@
                                                 <td class="text-center rank-value">{{ number }}</td>
                                                 <td class="{% highlightclass player_highlights sp.player %} {% if sp.games_missed > 1 %}with-red-card{% elif sp.games_missed > 0 %}with-yellow-card{% endif %}">
                                                     <a href="{% leagueurl 'player_profile' league.tag season.tag sp.player.lichess_username %}">
-                                                        {{ sp.player.lichess_username }}
+                                                        {% player_display_name sp.player %}
                                                     </a>
                                                 </td>
                                                 {% if not zen_mode %}
@@ -81,31 +80,30 @@
                                                             ---
                                                         {% endif %}
                                                     </td>
-                                                                                                {% endfor %}
-                                                                                                {% if has_ljp %}<td class="text-center rank-value">{{ player_score.pairing_points_display }}</td>{% endif %}
-                                                                                            <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
-                                                                                        {% if has_ljp %}<td class="text-center rank-value">{{ player_score.late_join_points_display }}</td>{% endif %}
-                                                                                    <td class="text-right rank-value">{{ player_score.tiebreak1_display }}</td>
-                                                                                <td class="text-right rank-value">{{ player_score.tiebreak2_display }}</td>
-                                                                            <td class="text-right rank-value">{{ player_score.tiebreak3_display }}</td>
-                                                                        <td class="text-right rank-value">{{ player_score.tiebreak4_display }}</td>
-                                                                    {% if not zen_mode %}
-                        <td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
+                                                {% endfor %}
+                                                {% if has_ljp %}<td class="text-center rank-value">{{ player_score.pairing_points_display }}</td>{% endif %}
+                                                <td class="text-center rank-value">{{ player_score.final_standings_points_display }}</td>
+                                                {% if has_ljp %}<td class="text-center rank-value">{{ player_score.late_join_points_display }}</td>{% endif %}
+                                                {% for tb_name, tb_display in tiebreaks %}
+                                                <td class="text-right rank-value">{{ player_score|get_tiebreak_display:tb_name }}</td>
+                                                {% endfor %}
+                                                {% if not zen_mode %}
+                                                    <td class="text-center rank-value">{{ player_score.perf_rating|default_if_none:'---' }}</td>
+                                                {% endif %}
+                                            </tr>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="row">
+                            <div class="col-md-12">No standings available.</div>
+                        </div>
                     {% endif %}
-                </tr>
-            {% endwith %}
-        {% endfor %}
-    </tbody>
-</table>
-</div>
-{% else %}
-<div class="row">
-    <div class="col-md-12">No standings available.</div>
-</div>
-{% endif %}
-</div>
-</div>
-</div>
-</div>
-<script type="text/javascript" src="{% static 'lib/js/sort-tables.js' %}"></script>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="{% static 'lib/js/sort-tables.js' %}"></script>
 {% endblock %}

@@ -26,21 +26,21 @@ class Command(BaseCommand):
         Group.objects.all().delete()
         for p in Player.objects.all():
             p.email = "email-{}@example.com".format(p.id)
-            p.slack_user_id = ''
+            p.slack_user_id = ""
             p.timezone_offset = None
             p.save()
         for t in Team.objects.all():
-            t.slack_channel = ''
+            t.slack_channel = ""
             t.save()
-        Registration.objects.filter(status='rejected').delete()
-        Registration.objects.filter(status='pending').delete()
+        Registration.objects.filter(status="rejected").delete()
+        Registration.objects.filter(status="pending").delete()
         for r in Registration.objects.all():
             r.email = "email-{}@example.com".format(r.id)
-            r.status = 'approved'
-            r.validation_ok = True
-            r.validation_warning = False
-            r.friends = ''
-            r.avoid = ''
+            r.status = "approved"
+            r.friends = ""
+            r.avoid = ""
+            r.validation_status = "ok"
+            r.validation_issues = []
             r.save()
         LeagueModerator.objects.all().delete()
         Comment.objects.all().delete()

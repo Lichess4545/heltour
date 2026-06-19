@@ -1,0 +1,132 @@
+// Team Management Page Styles
+
+// Board ordering
+.board-number-input {
+    width: 60px !important;
+    text-align: center;
+}
+
+.board-display {
+    display: inline-block;
+    width: 30px;
+    text-align: center;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+// Drag and drop
+.drag-handle {
+    cursor: move;
+    color: #999;
+    font-size: 18px;
+    padding: 5px;
+    
+    &:hover {
+        color: #333;
+        background-color: #f5f5f5;
+        border-radius: 3px;
+    }
+}
+
+#sortable-boards {
+    tr {
+        cursor: move;
+        
+        &:hover {
+            background-color: #f9f9f9;
+        }
+        
+        &.ui-sortable-helper {
+            background-color: #fff;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
+        }
+    }
+}
+
+// Well styling improvements for team manage
+.team-manage-page {
+    .well-head {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 40px;
+        
+        // Override theme base to add more padding
+        padding: 10px 15px !important;
+        
+        h3 {
+            margin: 0;
+            line-height: 1;
+            font-size: 18px;
+        }
+        
+        .btn {
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        // Handle pull-right class for flexbox
+        .pull-right {
+            margin-left: auto;
+        }
+    }
+    
+    .well {
+        overflow: visible;
+    }
+    
+    .well-body {
+        position: relative;
+    }
+}
+
+// Invite codes
+.invite-code {
+    font-family: monospace;
+    font-size: 14px;
+    background-color: #f5f5f5;
+    padding: 2px 4px;
+    border-radius: 3px;
+    
+    &.available-code {
+        background-color: #d4edda;
+        color: #155724;
+    }
+}
+
+// Mobile board reordering buttons
+.move-up, .move-down {
+    padding: 1px 6px;
+    margin: 0 2px;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .team-manage-page {
+        .well-head {
+            h3 {
+                font-size: 16px;
+            }
+            
+            .btn {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+    }
+    
+    #board-order-table {
+        th, td {
+            padding: 4px;
+        }
+        
+        .board-display {
+            font-size: 14px;
+        }
+    }
+}

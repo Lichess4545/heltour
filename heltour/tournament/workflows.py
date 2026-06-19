@@ -8,7 +8,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from heltour import settings
+from django.conf import settings
 from heltour.tournament import alternates_manager, pairinggen, signals, slackapi
 from heltour.tournament.models import (
     Alternate,
@@ -22,10 +22,33 @@ from heltour.tournament.models import (
     PlayerPairing,
     Round,
     SeasonPlayer,
+    Team,
     TeamMember,
     find,
     logger,
 )
+
+
+def create_team_with_captain(player, season):
+    """Mark player as captain but don't create team yet - team creation happens in team setup view."""
+    # Just return None - the team will be created when captain completes setup
+    return None
+
+
+def add_player_to_team(player, team):
+    """Add a player to an existing team."""
+    existing_members = TeamMember.objects.filter(team=team).order_by("-board_number")
+    next_board = 1
+    if existing_members.exists():
+        next_board = existing_members.first().board_number + 1
+
+    return TeamMember.objects.create(
+        team=team,
+        player=player,
+        board_number=next_board,
+        is_captain=False,
+        is_vice_captain=False,
+    )
 
 
 class RoundTransitionWorkflow():
@@ -51,7 +74,8 @@ class RoundTransitionWorkflow():
             round_to_close is None or round_to_close.number == self.season.rounds) else None
 
     def run(self, complete_round=False, complete_season=False, update_board_order=False,
-            generate_pairings=False, background=False, user=None):
+            generate_pairings=False, auto_assign_forfeits=False, publish_immediately=False, 
+            background=False, user=None):
         msg_list = []
         round_to_close = self.round_to_close
         round_to_open = self.round_to_open
@@ -83,18 +107,41 @@ class RoundTransitionWorkflow():
                     return msg_list
             if generate_pairings and round_to_open is not None:
                 if background:
-                    signals.do_generate_pairings.send(sender=self.__class__,
-                                                      round_id=round_to_open.pk)
+                    signals.do_generate_pairings.send(
+                        sender=self.__class__,
+                        round_id=round_to_open.pk,
+                        auto_assign_forfeits=auto_assign_forfeits,
+                        publish_immediately=publish_immediately
+                    )
                     msg_list.append(('Generating pairings in background.', messages.INFO))
                 else:
                     try:
                         pairinggen.generate_pairings(round_to_open, overwrite=False)
+                        
+                        # Handle automatic forfeit assignment
+                        forfeit_count = 0
+                        if auto_assign_forfeits:
+                            forfeit_count = pairinggen.assign_automatic_forfeits(round_to_open)
+                            if forfeit_count > 0:
+                                msg_list.append(
+                                    (f'Assigned {forfeit_count} automatic forfeit results.', messages.INFO)
+                                )
+                        
                         with reversion.create_revision():
                             reversion.set_user(user)
-                            reversion.set_comment('Generated pairings.')
-                            round_to_open.publish_pairings = False
+                            comment = 'Generated pairings.'
+                            if forfeit_count > 0:
+                                comment += f' Assigned {forfeit_count} automatic forfeits.'
+                            if publish_immediately:
+                                comment += ' Published immediately.'
+                            reversion.set_comment(comment)
+                            round_to_open.publish_pairings = publish_immediately
                             round_to_open.save()
-                        msg_list.append(('Pairings generated.', messages.INFO))
+                        
+                        if publish_immediately:
+                            msg_list.append(('Pairings generated and published.', messages.INFO))
+                        else:
+                            msg_list.append(('Pairings generated.', messages.INFO))
                     except pairinggen.PairingsExistException:
                         msg_list.append(('Unpublished pairings already exist.', messages.WARNING))
                     except pairinggen.PairingHasResultException:
@@ -171,7 +218,8 @@ class UpdateBoardOrderWorkflow():
                 'season_player__player').nocache()
 
             boundaries = self.calc_alternate_boundaries(ratings_by_board)
-            flex = self.season.alternates_manager_setting().rating_flex
+            alternates_setting = self.season.alternates_manager_setting()
+            flex = alternates_setting.rating_flex if alternates_setting else 0
             self.smooth_alternate_boundaries(boundaries, alternates, ratings_by_board, flex)
             self.update_alternate_buckets(boundaries)
             self.assign_alternates_to_buckets()
@@ -349,6 +397,8 @@ class ApproveRegistrationWorkflow():
 
     @property
     def default_invite_to_slack(self):
+        if self.reg.season.league.skip_slack_invites:
+            return False
         return not self.player.slack_user_id
 
     @property
@@ -452,10 +502,15 @@ class ApproveRegistrationWorkflow():
             reversion.set_user(request.user)
             reversion.set_comment('Approved registration.')
 
+            player_defaults = {'lichess_username': reg.lichess_username, 'email': reg.email,
+                              'is_active': True}
+            if reg.fide_id:
+                player_defaults['fide_id'] = reg.fide_id
+            if reg.gender:
+                player_defaults['gender'] = reg.gender
             player, _ = Player.objects.update_or_create(
                 lichess_username__iexact=reg.lichess_username,
-                defaults={'lichess_username': reg.lichess_username, 'email': reg.email,
-                          'is_active': True}
+                defaults=player_defaults
             )
             if player.rating is None:
                 # In the very rare case that we do not have a rating, use 0.
@@ -492,6 +547,21 @@ class ApproveRegistrationWorkflow():
                 if last_sp is not None and last_sp.games_missed >= 2 and self.league.get_leaguesetting().carry_over_red_cards_as_yellow:
                     sp.games_missed = 1
                     sp.save()
+                
+                # Handle team creation/assignment for invite-only leagues
+                if (
+                    season.league.is_invite_only()
+                    and season.league.competitor_type == "team"
+                    and reg.invite_code_used
+                ):
+                    invite_code = reg.invite_code_used
+
+                    if invite_code.code_type == "captain":
+                        self._handle_captain_invite(player, season, modeladmin, request)
+                    elif invite_code.code_type == "team_member" and invite_code.team:
+                        self._handle_team_member_invite(
+                            player, invite_code.team, modeladmin, request
+                        )
 
         # Set availability
         ''' weeks that are set unavailable already will not be switched back to available here. 
@@ -590,6 +660,23 @@ class ApproveRegistrationWorkflow():
             modeladmin.message_user(request,
                                     'Registration for "%s" approved.' % reg.lichess_username,
                                     messages.INFO)
+
+    def _handle_captain_invite(self, player, season, modeladmin, request):
+        """Handle creation of a new team when a captain invite code is used."""
+        team = create_team_with_captain(player, season)
+        if modeladmin:
+            modeladmin.message_user(
+                request,
+                f'Created new team "{team.name}" with {player.lichess_username} as captain',
+            )
+
+    def _handle_team_member_invite(self, player, team, modeladmin, request):
+        """Handle adding a player to an existing team when a team member invite code is used."""
+        add_player_to_team(player, team)
+        if modeladmin:
+            modeladmin.message_user(
+                request, f'Added {player.lichess_username} to team "{team.name}"'
+            )
 
 
 class MoveLateRegWorkflow():

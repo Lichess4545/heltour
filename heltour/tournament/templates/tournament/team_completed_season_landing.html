@@ -116,6 +116,14 @@
                                             <span class="visible-sm visible-xs">Game Pts</span>
                                             <span class="hidden-sm hidden-xs">Game Points</span>
                                         </th>
+                                        {% for tb_name, tb_display in tiebreaks %}
+                                            {% if tb_name != 'match_points' and tb_name != 'game_points' %}
+                                            <th class="text-center sort">
+                                                <span class="visible-sm visible-xs">{{ tb_display|truncatechars:8 }}</span>
+                                                <span class="hidden-sm hidden-xs">{{ tb_display }}</span>
+                                            </th>
+                                            {% endif %}
+                                        {% endfor %}
                                         {% for round_number in round_numbers %}<th class="text-center sort">Round {{ round_number }}</th>{% endfor %}
                                     </tr>
                                 </thead>
@@ -129,7 +137,22 @@
                                             </td>
                                             <td class="text-center">{{ team_score.match_points_display }}</td>
                                             <td class="text-center">{{ team_score.game_points_display }}</td>
-                                            {% for score, opp_score, round_num in team_score.round_scores %}
+                                            {% for tb_name, tb_display in tiebreaks %}
+                                                {% if tb_name != 'match_points' and tb_name != 'game_points' %}
+                                                <td class="text-center">
+                                                    {% if tb_name == 'head_to_head' %}{{ team_score.head_to_head_display }}
+                                                    {% elif tb_name == 'games_won' %}{{ team_score.games_won_display }}
+                                                    {% elif tb_name == 'sonneborn_berger' %}{{ team_score.sb_score_display }}
+                                                    {% elif tb_name == 'eggsb' %}{{ team_score.sb_score_display }}
+                                                    {% elif tb_name == 'emmsb' %}{{ team_score.sb_score_display }}
+                                                    {% elif tb_name == 'emgsb' %}{{ team_score.sb_score_display }}
+                                                    {% elif tb_name == 'egmsb' %}{{ team_score.sb_score_display }}
+                                                    {% elif tb_name == 'buchholz' %}{{ team_score.buchholz_display }}
+                                                    {% endif %}
+                                                </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% for score, opp_score, round_num, games_won in team_score.round_scores %}
                                                 <td class="text-center cell-score {% resultclass score opp_score %}">
                                                     {% if score != None %}
                                                         <a href="{% leagueurl 'pairings_by_round_team' league.tag season.tag round_num team_score.team.number %}">{{ score|floatformat }}</a>
