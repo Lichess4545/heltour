@@ -1247,6 +1247,8 @@ class Team(_BaseModel):
         return self.teammember_set.filter(is_captain=True).first()
 
     def get_teampairing(self, round_):
+        if not round_.publish_pairings:
+            return None
         return (round_.teampairing_set.filter(white_team=self) | round_.teampairing_set.filter(
             black_team=self)).first()
 
