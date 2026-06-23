@@ -626,12 +626,13 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
     signals.notify_players_game_scheduled, dispatch_uid="heltour.tournament.notify"
 )
 def notify_players_game_scheduled(round_, pairing, **kwargs):
+    # if scheduled_time is None, a mod removed a scheduled time, usually on request:
+    if pairing.scheduled_time is None:
+        return
     league = round_.get_league()
     league_setting = league.get_leaguesetting()
-
     if not league_setting.start_games:
         return
-
     time_part = (
         f"Your game has been scheduled for {pairing.scheduled_time:%A, %H:%M UTC}."
         "\nYou can agree to the game being started automatically on lichess at that time"
