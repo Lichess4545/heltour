@@ -325,6 +325,7 @@ def update_tv_state():
                     "draw",
                     "stalemate",
                     "insufficientMaterialClaim",
+                    "Insufficient material",
                 ]:
                     game.result = "1/2-1/2"
                 if meta.get("status") == "aborted":
