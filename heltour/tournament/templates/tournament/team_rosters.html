@@ -50,7 +50,11 @@
                                             {% for board_number, board in team.boards %}
                                                 <td class="cell-player{% if board.is_captain %} captain{% endif %}"
                                                     colspan="2">
-                                                    <span class="player-name{% if board.player in unresponsive_players %} player-unresponsive"
+                                                    <span class="player-name{% if board.player in red_card_players %} player-red-card"
+                                                          title="2+ games missed"
+                                                          {% elif board.player in unresponsive_players %}
+                                                          player-unresponsive
+                                                          "
                                                           title="unresponsive"
                                                           {% elif board.player in unavailable_players %}
                                                           player-unavailable
@@ -60,10 +64,6 @@
                                                           player-yellow-card
                                                           "
                                                           title="1 game missed"
-                                                          {% elif board.player in red_card_players %}
-                                                          player-red-card
-                                                          "
-                                                          title="2+ games missed"
                                                           {% else %}
                                                           "
                                                           {% endif %}>
@@ -109,16 +109,16 @@
                                                         {% if alt == None %}
                                                             {% if row_num == 1 %}-{% endif %}
                                                         {% else %}
-                                                            <span class="player-name{% if alt.season_player.player in unresponsive_players or alt.status == 'unresponsive' %} player-unresponsive"
-                                                                title="unresponsive"
+                                                            <span class="player-name{% if alt.season_player.player in red_card_players %} player-red-card"
+                                                                title="2+ games missed"
+                                                            {% elif alt.season_player.player in unresponsive_players or alt.status == 'unresponsive' %}
+                                                                player-unresponsive" title="unresponsive"
                                                             {% elif alt.season_player.player in unavailable_players %}
                                                                 player-unavailable" title="unavailable"
                                                             {% elif alt.season_player.player in scheduled_alternates %}
                                                                 player-scheduled" title="scheduled"
                                                             {% elif alt.season_player.player in yellow_card_players %}
                                                                 player-yellow-card" title="1 game missed"
-                                                            {% elif alt.season_player.player in red_card_players %}
-                                                                player-red-card" title="2+ games missed"
                                                             {% else %}"{% endif %}>
                                                                 <a href="{% leagueurl 'player_profile' league.tag season.tag alt.season_player.player.lichess_username %}">{{ alt.season_player.player.lichess_username }}</a>
                                                             </span>
