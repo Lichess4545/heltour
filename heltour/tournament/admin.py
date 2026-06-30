@@ -2832,7 +2832,7 @@ class ModRequestAdmin(_BaseAdmin):
 class BroadcastAdmin(_BaseAdmin):
     list_display = (
         "season",
-        "first_board",
+        "board_range_start",
         "lichess_id",
     )
     list_filter = (
@@ -2850,7 +2850,7 @@ class BroadcastRoundAdmin(_BaseAdmin):
     list_display = (
         "round_id",
         "broadcast",
-        "first_board",
+        "board_range_start",
         "lichess_id",
     )
     list_filter = (
