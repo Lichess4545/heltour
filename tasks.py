@@ -20,18 +20,18 @@ def update(c):
 
 
 @task
-def runserver(c):
-    """Run the Django development server on 0.0.0.0:8000."""
+def runserver(c, port=8000):
+    """Run the Django development server on 0.0.0.0:<port> (default 8000; devenv passes its allocated port)."""
     manage_py = project_relative("manage.py")
-    c.run(f"python -u {manage_py} runserver 0.0.0.0:8000", pty=True)
+    c.run(f"python -u {manage_py} runserver 0.0.0.0:{port}", pty=True)
 
 
 @task
-def runapiworker(c):
-    """Run the API worker on 0.0.0.0:8880 (HELTOUR_APP=api_worker swaps in heltour.api_worker's urls/apps)."""
+def runapiworker(c, port=8880):
+    """Run the API worker on 0.0.0.0:<port> (default 8880; devenv passes its allocated port). HELTOUR_APP=api_worker swaps in heltour.api_worker's urls/apps."""
     manage_py = project_relative("manage.py")
     with c.prefix("export HELTOUR_APP=api_worker"):
-        c.run(f"python {manage_py} runserver 0.0.0.0:8880")
+        c.run(f"python {manage_py} runserver 0.0.0.0:{port}")
 
 
 @task

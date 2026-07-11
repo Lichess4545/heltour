@@ -55,12 +55,33 @@ the non-devenv/container path), so there's no stale value to misread even though
 lose to devenv's. `django`/`apiworker`/`celery` gained `after = [ "devenv:processes:postgres"
 "devenv:processes:redis" ]`. `enterShell`'s banner prints the resolved values instead of literals.
 
+### Amendment: HTTP ports (django runserver, apiworker) allocated the same way
+
+The same conflict hit the HTTP ports: `django`'s runserver (base 8000) and the `apiworker`
+(base 8880) were fixed in `tasks.py`, so `devenv up` alongside another project already on 8000
+put `django` into a "port already in use" restart loop. Both process ports now use the identical
+allocator: `processes.django.ports.http.allocate = 8000` / `processes.apiworker.ports.http.allocate
+= 8880`, with the resolved `config.processes.<name>.ports.http.value` fed into the process command
+(`invoke runserver --port <value>` / `invoke runapiworker --port <value>` — `tasks.py`'s
+`runserver`/`runapiworker` gained a `port` argument defaulting to the old fixed value, so behaviour
+outside devenv is unchanged). The two settings that carry an HTTP port are derived from the same
+resolved values in the `let` block and set as plain `env.*`: `API_WORKER_HOST` (from the apiworker
+port, so `django`/`celery` still reach the apiworker after it shifts — `lichessapi.py` builds every
+apiworker URL from `settings.API_WORKER_HOST`) and `CSRF_TRUSTED_ORIGINS` (from the django port, so
+the browser origin still validates on a shifted port). `heltour/tournament/tests/test_lichessapi.py`
+previously asserted literal `http://localhost:8880/...` URLs; those assertions now build the
+expected URL from `settings.API_WORKER_HOST`, so the test follows the same single source instead of
+breaking when the port shifts. `.env`/`.env.example` drop the dev-path `API_WORKER_HOST` /
+`CSRF_TRUSTED_ORIGINS` lines (kept as documented placeholders in `.env.example` for the
+non-devenv/container path), same treatment as the DB/broker URLs above.
+
 ## Consequences
 
 - Running heltour's devenv alongside another project's no longer breaks the app processes: the
-  actually-bound postgres/redis/mailpit ports reach `django`/`apiworker`/`celery` for any single
-  `devenv up` invocation, live-verified under both a naturally-occurring conflict (redis) and an
-  artificially forced one (postgres, matching Dr. Dub's original report).
+  actually-bound postgres/redis/mailpit *and* django/apiworker ports reach the dependent processes
+  and settings for any single `devenv up` invocation, live-verified under naturally-occurring
+  conflicts (redis) and artificially forced ones (postgres and django's 8000, each matching a
+  reported failure mode).
 - Known gap, not fixed by this change and not fixable from `devenv.nix` alone: a *separate*
   `devenv shell` invocation evaluates `config.processes.<name>.ports.<port>.value` independently
   of an already-running `devenv up` and is not guaranteed to reflect the port that run's services

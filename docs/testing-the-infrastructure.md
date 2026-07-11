@@ -16,17 +16,17 @@ Step-by-step verification of the dev environment, test suite, settings cutover, 
    ```
    devenv up -d
    ```
-   Expect these to reach `ready`: `postgres` (Postgres 18), `redis`, `mailpit`, `django` (`invoke runserver`, port 8000), `apiworker` (`invoke runapiworker`, port 8880), `celery` (`invoke celery`). Check status:
+   Expect these to reach `ready`: `postgres` (Postgres 18), `redis`, `mailpit`, `django` (`invoke runserver`), `apiworker` (`invoke runapiworker`), `celery` (`invoke celery`). Check status:
    ```
    devenv processes list
    ```
-   If `django` cycles restarts with "port already in use," something else on the machine is bound to `:8000` — not a devenv defect; free the port or check what else is running there. `django`'s and `apiworker`'s ports (8000/8880) are fixed in `tasks.py` and don't shift; `postgres`/`redis`/`mailpit`'s ports do shift when their default is already taken (e.g. by another project's devenv) — `devenv shell`'s banner prints whatever they actually bound to for this invocation.
+   All five networked ports — `postgres`/`redis`/`mailpit` and now `django`/`apiworker` too — are devenv-allocated: each has a base (5432/6379/8025+1025/8000/8880) and shifts to the next free port when its base is already taken (e.g. by another project's devenv). The dependent config follows the shift: `DATABASE_URL`/`REDIS_URL`/`BROKER_URL` for the DB/broker, `API_WORKER_HOST` for the apiworker (so django/celery still reach it), and `CSRF_TRUSTED_ORIGINS` for django (so the browser origin still validates). `devenv shell`'s banner prints whatever each actually bound to for this invocation. A `django` "port already in use" restart loop now only happens if 8000 *and* every port devenv probed above it are taken — rare.
 
 4. Confirm each service is actually healthy, not just "ready". Get the ports this invocation actually resolved first:
    ```
-   devenv shell -- printenv DATABASE_URL REDIS_URL
+   devenv shell -- printenv DATABASE_URL REDIS_URL API_WORKER_HOST
    ```
-   Then, substituting the host/port from that output:
+   (or read the `devenv shell` banner, which prints the django URL too). Then, substituting the host/port from that output:
    - Postgres:
      ```
      PGPASSWORD=heltour_dev_password psql -h <host> -p <port> -U heltour_lichess4545 -d heltour_lichess4545 -c "select version();"
@@ -38,11 +38,11 @@ Step-by-step verification of the dev environment, test suite, settings cutover, 
      ```
      Expect `True`.
    - Mailpit: open the UI URL from the `devenv shell` banner (`http://<host>:<port>`, default `8025`) — the Mailpit web UI should load.
-   - Django: `curl -sI http://localhost:8000/admin/login/` — expect `HTTP/1.1 200 OK`.
-   - apiworker: `curl -sI http://localhost:8880/` — expect a response (not connection-refused).
+   - Django: `curl -sI http://localhost:<django port from banner>/admin/login/` — expect `HTTP/1.1 200 OK` (default port 8000).
+   - apiworker: `curl -sI <API_WORKER_HOST from above>/` — expect a response (not connection-refused; default `http://localhost:8880`).
    - Celery: check its process log for `celery@<host> ready.` and a `Connected to redis://...` line matching the `REDIS_URL` above.
 
-   Known caveat: the port substitution above matters because a *separate* `devenv shell` invocation evaluates independently of an already-running `devenv up` — if postgres/redis/mailpit had to shift ports for the running `devenv up`, a fresh `devenv shell` call started afterwards is not guaranteed to resolve the same values (observed on devenv 2.1.2). Read the actual port from a command run against the same `devenv up` session (its process logs, or `devenv processes list` plus `ss -ltnp`) if in doubt, rather than trusting a brand new shell invocation.
+   Known caveat: the port substitution above matters because a *separate* `devenv shell` invocation evaluates independently of an already-running `devenv up` — if any service had to shift ports for the running `devenv up`, a fresh `devenv shell` call started afterwards is not guaranteed to resolve the same values (observed on devenv 2.1.2). Read the actual port from a command run against the same `devenv up` session (its process logs, or `devenv processes list` plus `ss -ltnp`) if in doubt, rather than trusting a brand new shell invocation.
 
 5. Tear down when done:
    ```

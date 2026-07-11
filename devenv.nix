@@ -29,9 +29,17 @@ let
   redisPort = config.processes.redis.ports.main.value;
   mailpitSmtpPort = config.processes.mailpit.ports.smtp.value;
   mailpitUiPort = config.processes.mailpit.ports.ui.value;
+  # Same allocator as the DB/broker ports: django/apiworker declare a base
+  # HTTP port below and devenv shifts off it when taken. Reading the bound
+  # *.value feeds the shifted port into both the runserver command and the
+  # API_WORKER_HOST/CSRF_TRUSTED_ORIGINS the app builds from it.
+  djangoPort = config.processes.django.ports.http.value;
+  apiworkerPort = config.processes.apiworker.ports.http.value;
 
   databaseUrl = "postgresql://${postgresUser}:${postgresPassword}@127.0.0.1:${toString postgresPort}/${postgresDatabase}";
   redisUrl = "redis://127.0.0.1:${toString redisPort}/${redisDb}";
+  apiWorkerHost = "http://localhost:${toString apiworkerPort}";
+  csrfTrustedOrigins = "http://localhost:${toString djangoPort},http://127.0.0.1:${toString djangoPort}";
 in
 {
   packages = with pkgs; [
@@ -136,14 +144,21 @@ in
   env.BROKER_URL = redisUrl;
   env.EMAIL_HOST = "127.0.0.1";
   env.EMAIL_PORT = mailpitSmtpPort;
+  # django/celery reach the apiworker through API_WORKER_HOST; CSRF checks the
+  # browser origin against CSRF_TRUSTED_ORIGINS. Both carry the HTTP port, so
+  # both are derived from the same allocated values, not the fixed 8000/8880.
+  env.API_WORKER_HOST = apiWorkerHost;
+  env.CSRF_TRUSTED_ORIGINS = csrfTrustedOrigins;
 
   processes = {
     django = {
-      exec = "invoke runserver";
+      exec = "invoke runserver --port ${toString djangoPort}";
+      ports.http.allocate = 8000;
       after = [ "devenv:processes:postgres" "devenv:processes:redis" ];
     };
     apiworker = {
-      exec = "invoke runapiworker";
+      exec = "invoke runapiworker --port ${toString apiworkerPort}";
+      ports.http.allocate = 8880;
       after = [ "devenv:processes:postgres" "devenv:processes:redis" ];
     };
     celery = {
@@ -182,8 +197,8 @@ in
     echo ""
     echo "Postgres:   127.0.0.1:${toString postgresPort}/${postgresDatabase} (shifts if occupied; DATABASE_URL follows it)"
     echo "Redis:      127.0.0.1:${toString redisPort}/${redisDb} (shifts if occupied; REDIS_URL/BROKER_URL follow it)"
-    echo "Django:     http://localhost:8000"
-    echo "API worker: http://localhost:8880"
+    echo "Django:     http://localhost:${toString djangoPort} (shifts if occupied; CSRF_TRUSTED_ORIGINS follows it)"
+    echo "API worker: ${apiWorkerHost} (shifts if occupied; API_WORKER_HOST follows it)"
     echo "Mailpit:    http://127.0.0.1:${toString mailpitUiPort} (SMTP 127.0.0.1:${toString mailpitSmtpPort})"
     echo ""
     echo "Switch to fish shell: exec fish"
