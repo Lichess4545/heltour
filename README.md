@@ -24,4 +24,4 @@ Images are built with `docker buildx bake` (see `docker/docker-bake.hcl`) and pu
 Run `poetry run python manage.py createsuperuser` to create a new admin account.
 
 ### Optional Components
-- To generate pairings, download [JaVaFo](http://www.rrweb.org/javafo/current/javafo.jar) and set JAVAFO_COMMAND to 'java -jar /path/to/javafo.jar'
+- Pairing generation uses the JaVaFo jar vendored at `thirdparty/javafo.jar` (the default `JAVAFO_COMMAND`); set `JAVAFO_COMMAND` to point at a different jar or JRE if needed.

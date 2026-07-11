@@ -19,11 +19,12 @@ was available to adapt.
 Image basenames become `heltour-*` under the same registry prefix,
 `ghcr.io/lichess4545/heltour-*`, resolved by `docker/docker-bake.hcl`'s `tag()`/`REGISTRY`
 mechanism (ported verbatim from litour) and consumed by `.github/workflows/docker-build.yml`.
-Both `django_celery_beat` and `django_celery_results` were added to `INSTALLED_APPS`
-(`heltour/settings.py`); `CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"`
-and `CELERY_RESULT_BACKEND = "django-db"` were set on the celery app
-(`heltour/celery.py`, `namespace="CELERY"`). `docker/Dockerfile.celery` runs
-`celery worker -B` (embedded beat, no separate beat container/target in
+Both `django_celery_beat` and `django_celery_results` were added to `INSTALLED_APPS`, and
+`CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"` and
+`CELERY_RESULT_BACKEND = "django-db"` were set alongside it — all in `heltour/settings.py`.
+`heltour/celery.py` picks these up via `app.config_from_object('django.conf:settings',
+namespace='CELERY')`. `docker/Dockerfile.celery`'s CMD runs
+`celery -A heltour worker -l info -E -B` (embedded beat, no separate beat container/target in
 `docker/docker-bake.hcl` or `deploy/prod/compose.yml`). `CELERY_BEAT_SCHEDULE` entries were
 pruned to tasks that actually exist in heltour's `tasks.py` (litour's
 `validate_pending_registrations`/`update-fide-ratings` entries reference tasks heltour

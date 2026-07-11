@@ -68,8 +68,7 @@ in
 
   # Pinned to the Nix-provided JRE so `java` doesn't fall through to a system
   # /usr/bin/java, which would pick up an incompatible libjli.so off
-  # LD_LIBRARY_PATH below. thirdparty/javafo.jar itself isn't in this repo —
-  # see README for the manual download.
+  # LD_LIBRARY_PATH below. thirdparty/javafo.jar is vendored in this repo (ADR 0013).
   env.JAVAFO_COMMAND = "${pkgs.jre21_minimal}/bin/java -jar ./thirdparty/javafo.jar";
 
   languages.python = {

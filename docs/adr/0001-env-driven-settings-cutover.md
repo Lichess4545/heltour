@@ -37,8 +37,10 @@ from heltour's old `settings_default.py`, not copied from litour's list.
 
 ## Consequences
 
-- One file to read to know the running configuration; `manage.py`/`wsgi.py` now just read
-  `HELTOUR_APP`/`HELTOUR_ENV` from the process environment (`heltour/wsgi.py`).
+- One file to read to know the running configuration: `HELTOUR_APP` is read once, in
+  `heltour/settings.py` (`HELTOUR_APP = env("HELTOUR_APP")`); `HELTOUR_ENV` is read twice there
+  (the `STAGING` check and `CELERY_TASK_DEFAULT_QUEUE`). `manage.py` seeds a `HELTOUR_ENV`
+  default of `prod` via `os.environ.setdefault`.
 - Configuration is Docker/Compose-secrets-native (`*_FILE` pattern) without extra plumbing.
 - Deploying to a new host requires no new settings file or hostname registration — only env
   vars, documented exhaustively in `.env.example`.
