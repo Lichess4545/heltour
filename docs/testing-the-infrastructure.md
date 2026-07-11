@@ -8,7 +8,7 @@ Step-by-step verification of the dev environment, test suite, settings cutover, 
    ```
    cp .env.example .env
    ```
-   `.env` is read from `BASE_DIR/.env` by `heltour/settings.py` (`environ.FileAwareEnv.read_env`) on every process start. It is never committed (`.gitignore`) and never baked into a Docker image (`.dockerignore`).
+   `.env` is read from `BASE_DIR/.env` by `heltour/settings.py` (`environ.FileAwareEnv.read_env`) on every process start. It is never committed (`.gitignore`) and never baked into a Docker image (`.dockerignore`). `DATABASE_URL`/`REDIS_URL`/`BROKER_URL`/`EMAIL_HOST`/`EMAIL_PORT` are deliberately absent from `.env.example` for local dev — `devenv.nix` builds and exports them itself (see `docs/adr/`), from whatever port postgres/redis/mailpit actually bound, not a fixed guess. They only need to be set in `.env` when running outside devenv entirely.
 
 2. No `.envrc`/direnv is set up in this repo — there's nothing to `direnv allow`. Enter the environment explicitly with `devenv shell` or bring services up directly with the command below.
 
@@ -20,23 +20,29 @@ Step-by-step verification of the dev environment, test suite, settings cutover, 
    ```
    devenv processes list
    ```
-   If `django` cycles restarts with "port already in use," something else on the machine is bound to `:8000` — not a devenv defect; free the port or check what else is running there.
+   If `django` cycles restarts with "port already in use," something else on the machine is bound to `:8000` — not a devenv defect; free the port or check what else is running there. `django`'s and `apiworker`'s ports (8000/8880) are fixed in `tasks.py` and don't shift; `postgres`/`redis`/`mailpit`'s ports do shift when their default is already taken (e.g. by another project's devenv) — `devenv shell`'s banner prints whatever they actually bound to for this invocation.
 
-4. Confirm each service is actually healthy, not just "ready":
+4. Confirm each service is actually healthy, not just "ready". Get the ports this invocation actually resolved first:
+   ```
+   devenv shell -- printenv DATABASE_URL REDIS_URL
+   ```
+   Then, substituting the host/port from that output:
    - Postgres:
      ```
-     PGPASSWORD=heltour_dev_password psql -h localhost -p 5432 -U heltour_lichess4545 -d heltour_lichess4545 -c "select version();"
+     PGPASSWORD=heltour_dev_password psql -h <host> -p <port> -U heltour_lichess4545 -d heltour_lichess4545 -c "select version();"
      ```
      Expect a `PostgreSQL 18.x` row back.
    - Redis:
      ```
-     poetry run python -c "import redis; print(redis.from_url('redis://localhost:6379/1').ping())"
+     poetry run python -c "import redis; print(redis.from_url('<REDIS_URL from above>').ping())"
      ```
      Expect `True`.
-   - Mailpit: open `http://localhost:8025` — the Mailpit web UI should load (settings.py points `EMAIL_HOST=localhost`, `EMAIL_PORT=1025` at it).
+   - Mailpit: open the UI URL from the `devenv shell` banner (`http://<host>:<port>`, default `8025`) — the Mailpit web UI should load.
    - Django: `curl -sI http://localhost:8000/admin/login/` — expect `HTTP/1.1 200 OK`.
    - apiworker: `curl -sI http://localhost:8880/` — expect a response (not connection-refused).
-   - Celery: check its process log for `celery@<host> ready.` and `Connected to redis://localhost:6379/1`.
+   - Celery: check its process log for `celery@<host> ready.` and a `Connected to redis://...` line matching the `REDIS_URL` above.
+
+   Known caveat: the port substitution above matters because a *separate* `devenv shell` invocation evaluates independently of an already-running `devenv up` — if postgres/redis/mailpit had to shift ports for the running `devenv up`, a fresh `devenv shell` call started afterwards is not guaranteed to resolve the same values (observed on devenv 2.1.2). Read the actual port from a command run against the same `devenv up` session (its process logs, or `devenv processes list` plus `ss -ltnp`) if in doubt, rather than trusting a brand new shell invocation.
 
 5. Tear down when done:
    ```

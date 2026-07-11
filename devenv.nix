@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 
 let
   # Matches what psycopg2-binary and pillow (pinned in pyproject.toml) link
@@ -15,6 +15,23 @@ let
     pkgs.lcms2
     pkgs.openjpeg
   ];
+
+  postgresUser = "heltour_lichess4545";
+  postgresPassword = "heltour_dev_password";
+  postgresDatabase = "heltour_lichess4545";
+  # devenv's port allocator tries these base ports first and shifts to the
+  # next free one if occupied (e.g. by another project's devenv). Reading
+  # back the *.value the allocator actually bound, rather than the base
+  # port, keeps DATABASE_URL/REDIS_URL/BROKER_URL/EMAIL_* correct even when
+  # it shifts. See docs/adr for the full rationale.
+  postgresPort = config.env.PGPORT;
+  redisDb = "1";
+  redisPort = config.processes.redis.ports.main.value;
+  mailpitSmtpPort = config.processes.mailpit.ports.smtp.value;
+  mailpitUiPort = config.processes.mailpit.ports.ui.value;
+
+  databaseUrl = "postgresql://${postgresUser}:${postgresPassword}@127.0.0.1:${toString postgresPort}/${postgresDatabase}";
+  redisUrl = "redis://127.0.0.1:${toString redisPort}/${redisDb}";
 in
 {
   packages = with pkgs; [
@@ -96,8 +113,8 @@ in
     # migrate` fails with "permission denied for schema public". Owning the
     # database sidesteps that.
     initialScript = ''
-      CREATE USER heltour_lichess4545 WITH PASSWORD 'heltour_dev_password' SUPERUSER;
-      CREATE DATABASE heltour_lichess4545 OWNER heltour_lichess4545;
+      CREATE USER ${postgresUser} WITH PASSWORD '${postgresPassword}' SUPERUSER;
+      CREATE DATABASE ${postgresDatabase} OWNER ${postgresUser};
     '';
   };
 
@@ -109,10 +126,30 @@ in
 
   services.mailpit.enable = true;
 
+  # Single source of truth for the dev DB/broker/mail URLs: built from the
+  # ports devenv's allocator actually bound (see the `let` block above), not
+  # the fixed ports from .env.example. mkDefault-priority dotenv values from
+  # .env lose to these, so a stale DATABASE_URL left in .env can't shadow
+  # wherever postgres/redis/mailpit actually came up.
+  env.DATABASE_URL = databaseUrl;
+  env.REDIS_URL = redisUrl;
+  env.BROKER_URL = redisUrl;
+  env.EMAIL_HOST = "127.0.0.1";
+  env.EMAIL_PORT = mailpitSmtpPort;
+
   processes = {
-    django.exec = "invoke runserver";
-    apiworker.exec = "invoke runapiworker";
-    celery.exec = "invoke celery";
+    django = {
+      exec = "invoke runserver";
+      after = [ "devenv:processes:postgres" "devenv:processes:redis" ];
+    };
+    apiworker = {
+      exec = "invoke runapiworker";
+      after = [ "devenv:processes:postgres" "devenv:processes:redis" ];
+    };
+    celery = {
+      exec = "invoke celery";
+      after = [ "devenv:processes:postgres" "devenv:processes:redis" ];
+    };
   };
 
   enterShell = ''
@@ -143,9 +180,11 @@ in
     echo "invoke migrate runs database migrations"
     echo "invoke test runs the test suite"
     echo ""
+    echo "Postgres:   127.0.0.1:${toString postgresPort}/${postgresDatabase} (shifts if occupied; DATABASE_URL follows it)"
+    echo "Redis:      127.0.0.1:${toString redisPort}/${redisDb} (shifts if occupied; REDIS_URL/BROKER_URL follow it)"
     echo "Django:     http://localhost:8000"
     echo "API worker: http://localhost:8880"
-    echo "Mailpit:    http://localhost:8025"
+    echo "Mailpit:    http://127.0.0.1:${toString mailpitUiPort} (SMTP 127.0.0.1:${toString mailpitSmtpPort})"
     echo ""
     echo "Switch to fish shell: exec fish"
   '';
