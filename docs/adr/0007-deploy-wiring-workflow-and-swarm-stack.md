@@ -47,3 +47,9 @@ ported. `.travis.yml` was deleted, superseded by `test.yml` + `docker-build.yml`
   placeholders carried from litour's own stack.env.
 - `deploy.yml`'s webhook secrets (`HELTOUR_DEPLOY_PRODUCTION_*`) don't exist yet in this
   repo's GitHub secrets — provisioning them is a manual ops step outside this port's scope.
+- `deploy/prod/compose.yml` relies on `env_file: "stack.env"` per service, resolved by
+  Portainer but historically ignored by the raw `docker stack deploy -c` CLI. Whichever tool
+  actually drives a real deploy must be confirmed to resolve `env_file:` — dropping it silently
+  boots every service with `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` empty (400s) and `HELTOUR_ENV`
+  falling back to `"dev"`. See `docs/testing-the-infrastructure.md` §8 for the verification
+  step and the full prerequisites checklist.

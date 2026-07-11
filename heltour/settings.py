@@ -15,8 +15,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # are heltour's own convention: app code opens those paths itself.
 env = environ.FileAwareEnv(
     DEBUG=(bool, False),
-    STATIC_ROOT=(str, ""),
-    MEDIA_ROOT=(str, ""),
     ALLOWED_HOSTS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     LINK_PROTOCOL=(str, "https"),

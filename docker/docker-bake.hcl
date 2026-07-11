@@ -41,7 +41,7 @@ function "cache_to" {
 }
 
 group "verify" {
-  targets = ["web-verify", "javafo-verify"]
+  targets = ["web-verify", "javafo-verify", "celery-javafo-verify"]
 }
 
 group "default" {
@@ -134,12 +134,26 @@ target "heltour-api-worker" {
 target "heltour-celery" {
   context = "."
   dockerfile = "docker/Dockerfile.celery"
+  target = "celery"
   tags = tag("heltour-celery")
   contexts = {
     base = "target:base"
   }
   cache-from = cache_from("heltour-celery")
   cache-to = cache_to("heltour-celery")
+}
+
+target "celery-javafo-verify" {
+  context = "."
+  dockerfile = "docker/Dockerfile.celery"
+  target = "celery-verify"
+  tags = tag("heltour-celery-javafo-verify")
+  contexts = {
+    base = "target:base"
+  }
+  cache-only = true
+  cache-from = cache_from("heltour-celery-javafo-verify")
+  cache-to = cache_to("heltour-celery-javafo-verify")
 }
 
 target "heltour-migrate" {

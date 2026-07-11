@@ -31,3 +31,13 @@ not application code, not regenerated or rebuilt.
   JaVaFo version bumps must replace this file deliberately (and re-verify the sha) rather than
   relying on the README's old "download it yourself" instructions, which still describe the
   now-superseded manual path for anyone not using the vendored copy.
+- Corrected: the "functional in every environment" claim above was false for the `heltour-celery`
+  container until a follow-up fix. Pairing generation runs as an `@app.task` (`pairinggen.py`),
+  which executes inside `celery`, not `web` — but the `openjdk-17-jre-headless` install lived
+  only in `docker/Dockerfile.web`, so `heltour-celery` had no `java` and the task would fail at
+  runtime the first time a round was paired. Fixed by moving the `openjdk-17-jre-headless`
+  install into `docker/Dockerfile.base` (inherited by every image built from it, `web` and
+  `celery` alike) and removing the now-duplicate install from `docker/Dockerfile.web`.
+  `docker-bake.hcl` gained a matching `celery-javafo-verify` target (`Dockerfile.celery`'s new
+  `celery-verify` stage) so a missing `java`/jar in the celery image fails the build the same
+  way `javafo-verify` does for web.

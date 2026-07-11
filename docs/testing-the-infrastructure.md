@@ -190,9 +190,9 @@ Volume contract detail: `docs/adr/0002-media-named-volume-shared-web-caddy.md`, 
 
 3. **celery** — worker with embedded beat starts, and the beat schedule loads from the DB (`django_celery_beat`, per `docs/adr/0006-image-naming-celery-beat-db-scheduler.md`):
    ```
-   docker run --rm heltour-celery:latest --help
+   docker run --rm heltour-celery:latest celery --help
    ```
-   confirms the entrypoint/CMD is well-formed. For a live check against devenv's Postgres/Redis, use `devenv up -d` (section 1) and watch the `celery` process log for `celery@<host> ready.` plus a beat-scheduler startup line referencing `DatabaseScheduler`.
+   confirms the `celery` binary and the image's Python environment are well-formed (the image has no `ENTRYPOINT`, so `--help` alone would be passed as a bogus CMD override — the `celery` prefix is required). For a live check against devenv's Postgres/Redis, use `devenv up -d` (section 1) and watch the `celery` process log for `celery@<host> ready.` plus a beat-scheduler startup line referencing `DatabaseScheduler`.
 
 4. **migrate** — the `pg_isready` gate and `migrate` run:
    ```
@@ -237,10 +237,16 @@ Full rationale: `docs/adr/0007-deploy-wiring-workflow-and-swarm-stack.md`.
    ```
    Expect clean resolution, no errors — this only statically resolves the file; it does not require a Swarm or contact any external secret/network. It will *not* fail even if the `external: true` secrets/networks below don't exist yet — that's only checked at real `docker stack deploy` time.
 
-2. Prerequisites a real deploy needs, none of which `config` checks:
-   - Swarm secrets, created out-of-band on the manager (`docker secret create`): `heltour_prod_db_url`, `heltour_app_secret_key`, `heltour_prod_lichess_api_token`, `email_host_user`, `email_host_password`.
-   - The `caddy` network, external, front-facing (created outside this stack).
-   - A node label so `web`/`caddy` co-locate on the media volume's node: `docker node update --label-add heltour.media=true <node>` (section 5.3).
-   - Slack/Google Sheets/FCM secrets are **not yet wired** in this stack (see the `TODO(ops)` comment at the bottom of `deploy/prod/compose.yml`) — flagged there as a known gap, not an oversight in this runbook.
+2. **Deploy-mechanism assumption.** Every service in `deploy/prod/compose.yml` uses `env_file: "stack.env"` to supply `DEBUG`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `REDIS_URL`/`BROKER_URL`, `EMAIL_HOST*`, and `HELTOUR_ENV`. Portainer resolves `env_file:` when it deploys a stack. Classic `docker stack deploy -c deploy/prod/compose.yml <stack>` — the raw Swarm CLI — has historically ignored `env_file:` (it's a Compose-file-spec field, not part of the Swarm-native stack format the CLI parses). If the tool driving a real deploy silently drops it, every service still boots, but with `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` empty (Django returns 400 on every request) and `HELTOUR_ENV` falling back to `settings.py`'s schema default of `"dev"` instead of `"prod"`. Before a real deploy, confirm whichever tool triggers it (Portainer, a CI runner, a manual op on the manager) actually resolves `env_file:` — or inline `stack.env`'s values directly into each service's `environment:` block as a fallback.
 
-3. `deploy.yml`'s webhook contract: one `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secret per service (`apiworker`, `caddy`, `celery`, `migrate`, `web`), each holding a URL to an out-of-band listener on the Swarm host. The workflow just does `curl --fail -X POST <url>` per matrix entry — it doesn't build, push, or inspect anything; it assumes the image was already pushed by `docker-build.yml` and the listener itself pulls and redeploys. None of these secrets exist in this repo yet; that's an ops setup step, not something this runbook can verify locally.
+3. **Before first production deploy — prerequisites checklist.** None of these are checked by `config` (step 1):
+   - Swarm secrets, created out-of-band on the manager (`docker secret create`): `heltour_prod_db_url`, `heltour_app_secret_key`, `heltour_prod_lichess_api_token`, `heltour_email_host_user`, `heltour_email_host_password`.
+   - **Slack + Google Sheets secrets — hard prerequisites, not deferrable integrations.** `heltour/tournament/slackapi.py`'s `_get_slack_token()` opens `settings.SLACK_API_TOKEN_FILE_PATH` unconditionally (`with open(...)`, no fallback) — left unwired (the schema default is `""`), it raises `FileNotFoundError` the first time any Slack-backed code path runs (chesster commands, league Slack integration). `heltour/tournament/spreadsheet.py`'s `_open_doc()` has the same hard dependency on `GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH` for Sheets. heltour production uses both Slack/chesster and Sheets, unlike litour (whose fork doesn't) — so, despite the `TODO(ops)` comment at the bottom of `deploy/prod/compose.yml` flagging them as unwired, these must be wired (secret + matching `*_FILE_PATH` env var, following the `LICHESS_API_TOKEN_FILE_PATH` pattern) before a real cutover, not just before those features happen to be exercised.
+   - The `caddy` network, external, front-facing (created outside this stack).
+   - The `heltour.media` node label, set on exactly one Swarm node: `docker node update --label-add heltour.media=true <node>` (section 5.3) — `web` and `caddy` are pinned to it via `deploy.placement.constraints` and both need to land on the same node.
+   - `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secrets for all five services (`apiworker`, `caddy`, `celery`, `migrate`, `web`) — see item 4 below; a missing one fails that service's webhook step outright.
+   - `EMAIL_HOST`/`EMAIL_PORT` in `stack.env`, verified against heltour's actual mail relay — currently an unverified placeholder carried from litour's stack.env (AWS SES `eu-west-3`), per `docs/adr/0007-deploy-wiring-workflow-and-swarm-stack.md`'s Consequences.
+   - The `env_file` deploy-mechanism assumption above, confirmed against whichever tool actually triggers the deploy.
+   - FCM secrets remain **not yet wired** in this stack (see the same `TODO(ops)` comment) — flagged there as a known gap, not an oversight in this runbook.
+
+4. `deploy.yml`'s webhook contract: one `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secret per service (`apiworker`, `caddy`, `celery`, `migrate`, `web`), each holding a URL to an out-of-band listener on the Swarm host. The workflow just does `curl --fail -X POST <url>` per matrix entry — it doesn't build, push, or inspect anything; it assumes the image was already pushed by `docker-build.yml` and the listener itself pulls and redeploys. None of these secrets exist in this repo yet; that's an ops setup step, not something this runbook can verify locally.
