@@ -42,7 +42,6 @@ env = environ.FileAwareEnv(
     CELERY_DEFAULT_QUEUE=(str, "heltour-{}"),
     REDIS_URL=(str, "redis://localhost:6379/1"),
     SLEEP_UNIT=(float, 1.0),
-    SECRET_KEY=(str, "this-is-only-for-testing"),
     TEAMGEN_PROCESSES_NUMBER=(int, 8),
 )
 
@@ -291,7 +290,7 @@ CKEDITOR_CONFIGS = {
 CKEDITOR_UPLOAD_PATH = "uploads/"
 CKEDITOR_ALLOW_NONIMAGE_FILES = True
 
-LOGIN_URL = "/login/"
+LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
 SESSION_COOKIE_AGE = 4838400
 
