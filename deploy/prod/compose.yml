@@ -5,6 +5,11 @@ services:
       # Read side of the D2 media volume; web's /app/media below is the write side.
       # Path must match docker/Caddyfile's /public/media route (baked into the image —
       # no ./conf mount here, see task-4-report.md for why).
+      # media_data uses the default local driver (no node affinity): the label below
+      # must be set on exactly one node — docker node update --label-add
+      # heltour.media=true <node> — so web and caddy always land on that same node.
+      # If web/caddy ever need to scale across nodes, replace media_data with a
+      # shared-storage volume driver (nfs, glusterfs, cloud block storage) instead.
       - media_data:/public/media
       - caddy_data:/data
       - caddy_config:/config
@@ -14,6 +19,9 @@ services:
     deploy:
       update_config:
         order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
 
   web:
     image: ghcr.io/lichess4545/heltour-web:latest
@@ -41,6 +49,9 @@ services:
     deploy:
       update_config:
         order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
 
   apiworker:
     image: ghcr.io/lichess4545/heltour-api-worker:latest
