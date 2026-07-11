@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One HELTOUR_DEPLOY_PRODUCTION_<SERVICE> webhook per swarm service; each
+        # secret is a URL to an out-of-band listener on the swarm host that redeploys
+        # that service. The secrets are ops-managed GitHub repo secrets, not created
+        # by this workflow.
+        service:
+          - apiworker
+          - caddy
+          - celery
+          - migrate
+          - web
+    steps:
+      - name: Set deploy endpoints
+        run: |
+          echo "apiworker=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_APIWORKER }}" >> $GITHUB_ENV
+          echo "caddy=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_CADDY }}" >> $GITHUB_ENV
+          echo "celery=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_CELERY }}" >> $GITHUB_ENV
+          echo "migrate=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_MIGRATE }}" >> $GITHUB_ENV
+          echo "web=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_WEB }}" >> $GITHUB_ENV
+      - name: Deploy ${{ matrix.service }}
+        run: curl --fail -X POST ${{ env[matrix.service] }}
