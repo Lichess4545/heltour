@@ -26,22 +26,25 @@ RUN poetry install --no-root --only main
 
 COPY --chown=heltour:heltour . .
 
-# compilescss/collectstatic import settings.py, which fails fast if SECRET_KEY or
-# DATABASE_URL is unset — neither command touches a database, so these are
-# never-dialed placeholders, not real config.
-ENV DEBUG=True
-ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-ENV REDIS_URL=redis://localhost:6379/1
 ENV STATIC_ROOT=/app/static
-ENV SECRET_KEY=temporary-key-for-static-build
 # NOTE: chown /app/media here, before USER heltour below. When a named volume is
 # later mounted at /app/media, Docker seeds the mount point from this directory's
 # existing ownership — skip this and the mount point comes up root-owned, and the
 # non-root app user can't write uploads.
+#
+# compilescss/collectstatic import settings.py, which fails fast if SECRET_KEY or
+# DATABASE_URL is unset — neither command touches a database, so these are
+# never-dialed placeholders, not real config. They're passed inline (not via ENV)
+# so they don't persist into the runtime image and mask a missing production
+# override with a known secret and a fake database.
 RUN poetry install --only main && \
     mkdir -p /app/static /app/media && \
     chown heltour:heltour /app/media && \
+    SECRET_KEY=temporary-key-for-static-build \
+    DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy \
     python manage.py compilescss && \
+    SECRET_KEY=temporary-key-for-static-build \
+    DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy \
     python manage.py collectstatic --noinput
 
 USER heltour
