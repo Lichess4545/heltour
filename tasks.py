@@ -86,6 +86,16 @@ def test(c, tests=None):
 
 
 @task
+def seed(c, flush=False):
+    """Seed a small set of demo leagues (team, LoneWolf-style, Chess960-rated) for manual testing."""
+    manage_py = project_relative("manage.py")
+    cmd = f"python {manage_py} seed_test_data"
+    if flush:
+        cmd += " --flush"
+    c.run(cmd, pty=True)
+
+
+@task
 def collectstatic(c):
     """Collect static files."""
     manage_py = project_relative("manage.py")
