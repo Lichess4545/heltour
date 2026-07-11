@@ -1,5 +1,6 @@
 import random
 
+from cacheops import invalidate_all
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -68,6 +69,12 @@ class Command(BaseCommand):
             self._seed_lone_league(
                 CHESS960_LEAGUE_TAG, "Test Chess960 League", "chess960", num_players=12
             )
+
+        invalidate_all()
+        self.stdout.write(self.style.SUCCESS(
+            "Cleared the cacheops query cache so a running site shows the seeded "
+            "data at / immediately (runs even when leagues already existed)."
+        ))
 
     def _flush(self):
         for tag in (TEAM_LEAGUE_TAG, LONEWOLF_LEAGUE_TAG, CHESS960_LEAGUE_TAG):
