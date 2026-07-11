@@ -1,0 +1,246 @@
+# Testing the infrastructure
+
+Step-by-step verification of the dev environment, test suite, settings cutover, Docker images, Caddy/media wiring, per-service smoke tests, CI, and deploy stack. Run sections in order — later sections assume the dev environment from section 1 is up. Rationale for each design decision lives in `docs/adr/`; this runbook only covers verification steps.
+
+## 1. Dev environment
+
+1. Copy the env template:
+   ```
+   cp .env.example .env
+   ```
+   `.env` is read from `BASE_DIR/.env` by `heltour/settings.py` (`environ.FileAwareEnv.read_env`) on every process start. It is never committed (`.gitignore`) and never baked into a Docker image (`.dockerignore`).
+
+2. No `.envrc`/direnv is set up in this repo — there's nothing to `direnv allow`. Enter the environment explicitly with `devenv shell` or bring services up directly with the command below.
+
+3. Bring up services and dev processes:
+   ```
+   devenv up -d
+   ```
+   Expect these to reach `ready`: `postgres` (Postgres 18), `redis`, `mailpit`, `django` (`invoke runserver`, port 8000), `apiworker` (`invoke runapiworker`, port 8880), `celery` (`invoke celery`). Check status:
+   ```
+   devenv processes list
+   ```
+   If `django` cycles restarts with "port already in use," something else on the machine is bound to `:8000` — not a devenv defect; free the port or check what else is running there.
+
+4. Confirm each service is actually healthy, not just "ready":
+   - Postgres:
+     ```
+     PGPASSWORD=heltour_dev_password psql -h localhost -p 5432 -U heltour_lichess4545 -d heltour_lichess4545 -c "select version();"
+     ```
+     Expect a `PostgreSQL 18.x` row back.
+   - Redis:
+     ```
+     poetry run python -c "import redis; print(redis.from_url('redis://localhost:6379/1').ping())"
+     ```
+     Expect `True`.
+   - Mailpit: open `http://localhost:8025` — the Mailpit web UI should load (settings.py points `EMAIL_HOST=localhost`, `EMAIL_PORT=1025` at it).
+   - Django: `curl -sI http://localhost:8000/admin/login/` — expect `HTTP/1.1 200 OK`.
+   - apiworker: `curl -sI http://localhost:8880/` — expect a response (not connection-refused).
+   - Celery: check its process log for `celery@<host> ready.` and `Connected to redis://localhost:6379/1`.
+
+5. Tear down when done:
+   ```
+   devenv processes down
+   ```
+
+## 2. Django test suite
+
+1. Run the full suite:
+   ```
+   poetry run python manage.py test --settings=heltour.test_settings
+   ```
+   Expect `Ran 129 tests` and `OK`. Takes roughly 55s. Requires Postgres and Redis up (section 1).
+
+2. System check:
+   ```
+   poetry run python manage.py check
+   ```
+   Expect `System check identified no issues (0 silenced).`
+
+3. Migration drift check:
+   ```
+   poetry run python manage.py makemigrations --check --dry-run
+   ```
+   Expect `No changes detected`. A non-empty exit here means a model changed without a migration.
+
+4. Same suite via the invoke wrapper, to confirm `tasks.py` itself is wired correctly:
+   ```
+   poetry run invoke test
+   ```
+   Expect the same `129 tests ... OK`.
+
+## 3. Settings-cutover checks
+
+Full rationale: `docs/adr/0001-env-driven-settings-cutover.md`, `docs/adr/0008-fail-fast-secrets-no-baked-defaults.md`.
+
+1. **SECRET_KEY fail-fast.** With `.env` present, move it aside and clear the environment, then try to load settings:
+   ```
+   mv .env .env.bak
+   env -i PATH=$PATH HOME=$HOME DJANGO_SETTINGS_MODULE=heltour.settings poetry run python -c "import django; django.setup()"
+   ```
+   Expect `django.core.exceptions.ImproperlyConfigured: Set the SECRET_KEY environment variable`. Restore afterward:
+   ```
+   mv .env.bak .env
+   ```
+   `DATABASE_URL` fails the same way (`env.db()` has no default) — same test, same failure mode.
+
+2. **`.env` handling.** `heltour/settings.py` always reads `os.path.join(BASE_DIR, ".env")` (line 48) regardless of how the process was started. Confirm it's excluded from both git and image builds:
+   ```
+   grep -n '/\.env$' .gitignore
+   grep -n '^\.env' .dockerignore
+   ```
+   Expect `/.env` in `.gitignore` and `.env` / `.env.*` (with a `!.env.example` negation) in `.dockerignore`.
+
+3. **`*_FILE` / `*_FILE_PATH` secrets pattern.** Two distinct mechanisms coexist:
+   - django-environ's own `FileAwareEnv` auto-reads any `<VAR>_FILE` (e.g. `SECRET_KEY_FILE`) and substitutes its contents for `<VAR>` transparently.
+   - heltour's own convention, `*_FILE_PATH` (`SLACK_API_TOKEN_FILE_PATH`, `LICHESS_API_TOKEN_FILE_PATH`, `GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH`, `FCM_API_KEY_FILE_PATH`), where the app code (`slackapi.py`, `spreadsheet.py`, `api_worker/views.py`) opens the file at that path directly — this is a path setting, not a django-environ auto-substitution.
+   Don't confuse the two when reading `deploy/prod/compose.yml` — `SECRET_KEY_FILE` and `DATABASE_URL_FILE` are the first kind; `LICHESS_API_TOKEN_FILE_PATH` is the second.
+
+4. **HELTOUR_APP switch.** Confirm both values boot without error:
+   ```
+   HELTOUR_APP=tournament DJANGO_SETTINGS_MODULE=heltour.settings poetry run python -c "import django; django.setup(); print('ok')"
+   HELTOUR_APP=api_worker DJANGO_SETTINGS_MODULE=heltour.settings poetry run python -c "import django; django.setup(); print('ok')"
+   ```
+   Both print `ok`. In `deploy/prod/compose.yml` this is set per-service: `web`/`celery`/`migrate` use the default (`tournament`), `apiworker`'s image bakes `HELTOUR_APP=api_worker` via `Dockerfile.apiworker`'s own `ENV`.
+
+## 4. Docker images
+
+1. Build everything:
+   ```
+   docker buildx bake -f docker/docker-bake.hcl default
+   ```
+   The `default` group builds, in dependency order: `base` → `verify` (`web-verify` runs the full 129-test Django suite inside the image, `javafo-verify` runs the vendored `thirdparty/javafo.jar` and checks its banner) → `heltour-caddy`, `heltour-web`, `heltour-api-worker`, `heltour-celery`, `heltour-migrate`. A clean build (no cache) takes roughly a few minutes, dominated by apt/poetry install in `base`; `web-verify` alone adds ~55s for the test run. Expect all targets to report success; `web-verify`'s log should show `Ran 129 tests ... OK`.
+
+2. Run each verify target individually if you want isolated signal:
+   ```
+   docker buildx bake -f docker/docker-bake.hcl web-verify
+   docker buildx bake -f docker/docker-bake.hcl javafo-verify
+   ```
+   `web-verify` is `cache-only` — it never produces a runnable image, only a pass/fail build. Same for `javafo-verify` (expected output: `JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)`).
+
+3. Confirm no baked env leaks into the runtime images:
+   ```
+   docker inspect heltour-web:latest --format '{{json .Config.Env}}'
+   docker inspect heltour-api-worker:latest --format '{{json .Config.Env}}'
+   docker inspect heltour-celery:latest --format '{{json .Config.Env}}'
+   docker inspect heltour-migrate:latest --format '{{json .Config.Env}}'
+   ```
+   None should contain `SECRET_KEY`, `DATABASE_URL`, `DEBUG`, or `REDIS_URL` — only things like `STATIC_ROOT`, `DJANGO_SETTINGS_MODULE`/`HELTOUR_APP`/`HELTOUR_VERSION`/`PYTHONUNBUFFERED`, and base-image/poetry vars.
+
+4. Confirm fail-fast without env:
+   ```
+   docker run --rm heltour-web:latest python -c "import django; django.setup()"
+   ```
+   Expect exit code 1 and `ImproperlyConfigured: Set the SECRET_KEY environment variable`.
+
+5. Confirm it boots with real env:
+   ```
+   docker run --rm -e SECRET_KEY=x -e DATABASE_URL=postgresql://u:p@localhost:5432/d heltour-web:latest python -c "import django; django.setup(); print(django.conf.settings.DEBUG)"
+   ```
+   Expect it to succeed and print `False` (the real production default — `DEBUG` is not baked in and defaults safe).
+
+6. Confirm no `.env` or the legacy `env/` virtualenv reached the image:
+   ```
+   docker run --rm heltour-base:latest sh -c "test -f /app/.env && echo LEAK || echo clean; test -d /app/env && echo LEAK || echo clean"
+   ```
+   Expect `clean` twice.
+
+## 5. Caddy, static, and media
+
+Volume contract detail: `docs/adr/0002-media-named-volume-shared-web-caddy.md`, `docs/adr/0011-baked-caddyfile-single-source-of-truth.md`.
+
+1. Validate the baked Caddyfile:
+   ```
+   docker run --rm heltour-caddy:latest caddy validate --config /etc/caddy/Caddyfile
+   ```
+   Expect `Valid configuration`.
+
+2. Live-test the routing (the pattern used to verify this originally): run the image standalone, with no `web` backend and no media volume mounted, and probe all three route shapes:
+   ```
+   docker run -d -p 18080:80 --name caddy-test heltour-caddy:latest
+   curl -sI http://localhost:18080/static/admin/css/base.css   # expect 200 — baked in from collectstatic at image build
+   curl -sI http://localhost:18080/media/anything.jpg           # expect 404 — route works, file just doesn't exist (no volume mounted)
+   curl -sI http://localhost:18080/anything-else                # expect 502 — reverse_proxy to "web" host that doesn't exist standalone
+   docker rm -f caddy-test
+   ```
+   404 on `/media/*` (not an error) and 502 on the catch-all (not a crash) are both the correct standalone result — they resolve to real content/backends once running inside the compose network in section 8.
+
+3. The D2 media contract: `MEDIA_ROOT` resolves to `/app/media` inside `web` (and any other media-writing container); `docker/Caddyfile` serves `/media/*` from `/public/media`. Both paths must be the same named volume (`media_data` in `deploy/prod/compose.yml`) mounted at the two different paths in the two different containers — `web` writes, `caddy` reads. `media_data` is a default local-driver volume with no node affinity, so `deploy/prod/compose.yml` pins both `web` and `caddy` to the same Swarm node via `deploy.placement.constraints: [node.labels.heltour.media == true]`. That label must be set once, out of band, before a real deploy:
+   ```
+   docker node update --label-add heltour.media=true <node>
+   ```
+   Skipping this on a multi-node Swarm risks `web` and `caddy` landing on different nodes with two independent empty volumes — uploads silently never appear.
+
+## 6. Per-service smoke tests
+
+1. **web** — gunicorn boots and the admin is reachable:
+   ```
+   docker run -d --name web-test -e SECRET_KEY=x -e DATABASE_URL=postgresql://u:p@localhost:5432/d -p 18000:8000 heltour-web:latest
+   curl -sI http://localhost:18000/admin/login/
+   docker logs web-test
+   docker rm -f web-test
+   ```
+   Expect gunicorn worker boot lines in the log and `200 OK` from curl (DB unreachable is fine for a login-page GET — it doesn't query the DB before rendering the form; a full smoke test needs a real DB, see section 1 step 4 for the devenv-based version instead).
+
+2. **apiworker** — confirm `HELTOUR_APP=api_worker` is baked, not left at the default:
+   ```
+   docker run --rm heltour-api-worker:latest sh -c 'echo $HELTOUR_APP'
+   ```
+   Expect `api_worker`.
+
+3. **celery** — worker with embedded beat starts, and the beat schedule loads from the DB (`django_celery_beat`, per `docs/adr/0006-image-naming-celery-beat-db-scheduler.md`):
+   ```
+   docker run --rm heltour-celery:latest --help
+   ```
+   confirms the entrypoint/CMD is well-formed. For a live check against devenv's Postgres/Redis, use `devenv up -d` (section 1) and watch the `celery` process log for `celery@<host> ready.` plus a beat-scheduler startup line referencing `DatabaseScheduler`.
+
+4. **migrate** — the `pg_isready` gate and `migrate` run:
+   ```
+   docker run --rm -e DATABASE_URL=postgresql://heltour_lichess4545:heltour_dev_password@host.docker.internal:5432/heltour_lichess4545 -e SECRET_KEY=x heltour-migrate:latest
+   ```
+   (requires devenv's Postgres up and reachable from the container — adjust the host for your Docker network). Expect it to wait for `pg_isready`, then apply migrations, then exit 0. Re-running should report no pending migrations.
+
+## 7. CI sanity
+
+`.github/workflows/test.yml`, `docker-build.yml`, `deploy.yml`.
+
+1. Parse all three plus the deploy compose file:
+   ```
+   python3 -c "
+   import yaml
+   for f in ['.github/workflows/docker-build.yml','.github/workflows/test.yml','.github/workflows/deploy.yml','deploy/prod/compose.yml']:
+       yaml.safe_load(open(f)); print(f, 'OK')
+   "
+   ```
+   Expect `OK` on all four.
+
+2. Lint with actionlint (not preinstalled; fetch via nix if needed):
+   ```
+   nix run nixpkgs#actionlint -- .github/workflows/test.yml .github/workflows/docker-build.yml .github/workflows/deploy.yml
+   ```
+   `test.yml` should come back clean. `docker-build.yml`/`deploy.yml` report a handful of `SC2086` (unquoted `$GITHUB_OUTPUT`/`$GITHUB_ENV`) and one `SC2129` — style/info severity, pre-existing in the upstream source these were ported from, not a regression.
+
+3. What each workflow does, on PR vs. master:
+   - `test.yml` — runs the full Django suite against live `postgres:18-alpine` + `redis:7-alpine` service containers, on every push to `master` and every PR. No push/tag gating; it's pure verification.
+   - `docker-build.yml` — runs `docker buildx bake ... default` (build + verify) on every push, PR, and manual dispatch. Only *pushes* images to `ghcr.io` when the event is `workflow_dispatch` or a push to `master` — PRs build and verify but never push.
+   - `deploy.yml` — triggered by `workflow_call` or `workflow_dispatch`, gated by `if: github.ref == 'refs/heads/master'`. Not wired to run automatically after `docker-build.yml` — nothing in this repo currently chains them.
+
+4. What can't be verified without pushing/triggering: actual GitHub Actions execution (no runner available locally — static YAML parse + actionlint is the achievable bar), whether `docker-build.yml` actually pushes to `ghcr.io` (needs real `GITHUB_TOKEN`/registry access), and `deploy.yml`'s webhook calls (needs the `HELTOUR_DEPLOY_PRODUCTION_*` repo secrets, which are ops-managed and don't exist by default).
+
+## 8. Deploy stack sanity (without deploying)
+
+Full rationale: `docs/adr/0007-deploy-wiring-workflow-and-swarm-stack.md`.
+
+1. Resolve the compose file with its env file:
+   ```
+   docker compose -f deploy/prod/compose.yml --env-file deploy/prod/stack.env config
+   ```
+   Expect clean resolution, no errors — this only statically resolves the file; it does not require a Swarm or contact any external secret/network. It will *not* fail even if the `external: true` secrets/networks below don't exist yet — that's only checked at real `docker stack deploy` time.
+
+2. Prerequisites a real deploy needs, none of which `config` checks:
+   - Swarm secrets, created out-of-band on the manager (`docker secret create`): `heltour_prod_db_url`, `heltour_app_secret_key`, `heltour_prod_lichess_api_token`, `email_host_user`, `email_host_password`.
+   - The `caddy` network, external, front-facing (created outside this stack).
+   - A node label so `web`/`caddy` co-locate on the media volume's node: `docker node update --label-add heltour.media=true <node>` (section 5.3).
+   - Slack/Google Sheets/FCM secrets are **not yet wired** in this stack (see the `TODO(ops)` comment at the bottom of `deploy/prod/compose.yml`) — flagged there as a known gap, not an oversight in this runbook.
+
+3. `deploy.yml`'s webhook contract: one `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secret per service (`apiworker`, `caddy`, `celery`, `migrate`, `web`), each holding a URL to an out-of-band listener on the Swarm host. The workflow just does `curl --fail -X POST <url>` per matrix entry — it doesn't build, push, or inspect anything; it assumes the image was already pushed by `docker-build.yml` and the listener itself pulls and redeploys. None of these secrets exist in this repo yet; that's an ops setup step, not something this runbook can verify locally.
