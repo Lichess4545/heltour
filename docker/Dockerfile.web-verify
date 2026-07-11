@@ -1,0 +1,33 @@
+FROM base AS redis-server
+
+USER root
+
+RUN apt-get update && apt-get install -y redis-server && rm -rf /var/lib/apt/lists/*
+
+RUN echo "port 6379\nbind 127.0.0.1\ndaemonize yes\nlogfile /tmp/redis.log" > /tmp/redis.conf && \
+    chown heltour:heltour /tmp/redis.conf
+
+USER heltour
+
+FROM redis-server AS verify
+
+# NOTE: DEBUG=True is required here, not just a leftover default — the admin's
+# simulate_tournament/simulate_results actions are gated by
+# `if not settings.DEBUG and not settings.STAGING` (heltour/tournament/admin.py),
+# and the test suite exercises that path. This is a test-only image, never deployed,
+# so it isn't a production security concern.
+ENV DJANGO_SETTINGS_MODULE=heltour.test_settings \
+    PYTHONUNBUFFERED=1 \
+    DEBUG=True \
+    SECRET_KEY=test-secret-key-only-for-testing \
+    ALLOWED_HOSTS=* \
+    DATABASE_URL=sqlite:///db.sqlite3 \
+    REDIS_URL=redis://localhost:6379/0 \
+    BROKER_URL=redis://localhost:6379/1 \
+    HELTOUR_ENV=test
+
+RUN redis-server /tmp/redis.conf && \
+    sleep 1 && \
+    python manage.py test --settings=heltour.test_settings --failfast || (echo "Tests failed" && exit 1)
+
+CMD ["echo", "Verification complete"]

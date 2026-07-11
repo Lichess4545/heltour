@@ -1,0 +1,39 @@
+FROM base AS web
+
+ARG GITHUB_SHORT_SHA=unknown
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jre-headless && \
+    rm -rf /var/lib/apt/lists/*
+
+USER heltour
+
+EXPOSE 8000
+
+ENV DJANGO_SETTINGS_MODULE=heltour.settings \
+    PYTHONUNBUFFERED=1 \
+    HELTOUR_VERSION=${GITHUB_SHORT_SHA}
+
+CMD ["gunicorn", "heltour.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--threads", "2", \
+     "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--log-file", "-", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]
+
+# NOTE: named web-verify but distinct from docker/Dockerfile.web-verify (which runs
+# the Django test suite) — this stage only smoke-tests that the vendored javafo.jar
+# still runs and prints its expected banner, since pairing generation shells out to
+# it at runtime and a bad jar would otherwise fail silently until a round is paired.
+FROM web AS web-verify
+
+RUN output=$(java -jar /app/thirdparty/javafo.jar 2>&1) && \
+    echo "$output" | grep -q "JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)" || \
+    (echo "JavaFo test failed. Expected 'JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)', got: $output" && exit 1)
+
+CMD ["echo", "Web verification complete"]

@@ -1,0 +1,6 @@
+FROM base AS builder
+
+FROM caddy:2-alpine AS caddy
+
+COPY --from=builder /app/static /public/static
+COPY docker/Caddyfile /etc/caddy/Caddyfile

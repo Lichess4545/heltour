@@ -1,0 +1,9 @@
+FROM base
+
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=heltour.settings
+
+# NOTE: -B embeds celery beat in this worker process — there is no separate beat
+# service/container. Fine for a single celery replica; would double-schedule
+# periodic tasks if this image is ever scaled beyond one instance.
+CMD ["celery", "-A", "heltour", "worker", "-l", "info", "-E", "-B"]

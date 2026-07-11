@@ -1,0 +1,19 @@
+:80 {
+	handle_path /static/* {
+		root * /public/static
+		file_server
+	}
+
+	# /public/media must be the same named volume mounted at /app/media in the web
+	# (and any other media-writing) container — that's how uploads written by Django
+	# become servable here. It's empty at image-build time; the mount is the deploy
+	# stack's job, not this image's.
+	handle_path /media/* {
+		root * /public/media
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:8000
+	}
+}
