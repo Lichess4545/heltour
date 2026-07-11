@@ -169,6 +169,48 @@ def docker_bake(c, tag="latest", registry="", target="", push=False, production=
 docker_build = docker_bake
 
 
+DOCKER_TEST_COMPOSE = (
+    "docker compose -f docker/compose.test.yml -p heltour-test "
+    "--env-file docker/compose.test.env"
+)
+
+
+@task
+def docker_test_up(c, build=True):
+    """Build local images and bring up docker/compose.test.yml -- a local (non-Swarm) harness on http://localhost:8090."""
+    if build:
+        c.run("docker buildx bake -f docker/docker-bake.hcl production", pty=True)
+    c.run(f"{DOCKER_TEST_COMPOSE} up -d", pty=True)
+    print("Waiting for the site to come up on http://localhost:8090 ...")
+    c.run(
+        "for i in $(seq 1 60); do "
+        "code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/ || true); "
+        "case \"$code\" in 200|302) exit 0 ;; esac; "
+        "sleep 2; "
+        "done; "
+        "echo 'Timed out waiting for http://localhost:8090' >&2; exit 1",
+        pty=True,
+    )
+    print("heltour test stack is up: http://localhost:8090")
+    print("Run `invoke docker-test-seed` to populate demo leagues.")
+
+
+@task
+def docker_test_seed(c, flush=False):
+    """Run seed_test_data inside the running docker/compose.test.yml web container."""
+    cmd = f"{DOCKER_TEST_COMPOSE} exec web python manage.py seed_test_data"
+    if flush:
+        cmd += " --flush"
+    c.run(cmd, pty=True)
+    print("Seeded. Visit http://localhost:8090")
+
+
+@task
+def docker_test_down(c):
+    """Tear down docker/compose.test.yml and remove its volumes."""
+    c.run(f"{DOCKER_TEST_COMPOSE} down -v", pty=True)
+
+
 @task
 def reset_db(c):
     """Flush all data and re-apply migrations, keeping the same database."""

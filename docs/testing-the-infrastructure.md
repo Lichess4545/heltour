@@ -1,6 +1,6 @@
 # Testing the infrastructure
 
-Step-by-step verification of the dev environment, test suite, settings cutover, Docker images, Caddy/media wiring, per-service smoke tests, CI, and deploy stack. Run sections in order — later sections assume the dev environment from section 1 is up. Rationale for each design decision lives in `docs/adr/`; this runbook only covers verification steps.
+Step-by-step verification of the dev environment, test suite, settings cutover, Docker images, Caddy/media wiring, per-service smoke tests, CI, deploy stack, and a local container test harness. Run sections in order — later sections assume the dev environment from section 1 is up. Rationale for each design decision lives in `docs/adr/`; this runbook only covers verification steps.
 
 ## 1. Dev environment
 
@@ -256,3 +256,30 @@ Full rationale: `docs/adr/0007-deploy-wiring-workflow-and-swarm-stack.md`.
    - FCM secrets remain **not yet wired** in this stack (see the same `TODO(ops)` comment) — flagged there as a known gap, not an oversight in this runbook.
 
 4. `deploy.yml`'s webhook contract: one `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secret per service (`apiworker`, `caddy`, `celery`, `migrate`, `web`), each holding a URL to an out-of-band listener on the Swarm host. The workflow just does `curl --fail -X POST <url>` per matrix entry — it doesn't build, push, or inspect anything; it assumes the image was already pushed by `docker-build.yml` and the listener itself pulls and redeploys. None of these secrets exist in this repo yet; that's an ops setup step, not something this runbook can verify locally.
+
+## 9. Testing the containers locally
+
+`deploy/prod/compose.yml` is Swarm-flavored — `deploy:` blocks, `external: true` secrets and networks, `ghcr.io` images — and isn't runnable standalone. `docker/compose.test.yml` is the local counterpart: plain `docker compose` (v2, not Swarm), the locally-built images (`heltour-web`/`heltour-celery`/`heltour-migrate`/`heltour-caddy` from `docker/docker-bake.hcl`), and `docker/compose.test.env` for its settings — a committed file of dummy, test-only values (fake `SECRET_KEY`, a throwaway Postgres password), never real secrets.
+
+1. Bring up the stack (builds the images first, then waits for the site to answer):
+   ```
+   invoke docker-test-up
+   ```
+   This runs `docker buildx bake -f docker/docker-bake.hcl production` (the five runnable images, skipping the `web-verify`/`javafo-verify` cache-only targets — pass `--no-build` to skip the rebuild on a re-run), then `docker compose -f docker/compose.test.yml -p heltour-test up -d`, then polls `http://localhost:8090/` until it answers `200`/`302`. Site URL: **http://localhost:8090** — chosen to be clearly distinct from devenv's allocated Django port (default 8000, but it shifts) and from any other project's devenv. Postgres and Redis are *not* published to the host at all, so they never collide with a devenv session's own Postgres (default 5432, but it shifts)/Redis (default 6379) — the `migrate`, `web`, and `celery` containers reach them over the compose-internal network as `postgres`/`redis`.
+
+2. Seed the same demo leagues used in devenv, via the identical management command running inside the `web` container:
+   ```
+   invoke docker-test-seed
+   ```
+   (`invoke docker-test-seed --flush` to recreate them.) This is literally `docker compose -f docker/compose.test.yml -p heltour-test exec web python manage.py seed_test_data` — the same `seed_test_data` command as `invoke seed` in devenv (section 1), just run inside the container instead of the host. Confirm it worked:
+   ```
+   curl -s http://localhost:8090/ | grep -o 'Test 4545 Team League\|Test LoneWolf League\|Test Chess960 League'
+   ```
+   Expect all three league names back. The standings/roster pages return `200` too, e.g. `http://localhost:8090/test-4545/season/test-season-1/standings/`.
+
+3. Tear down (stops and removes the containers *and* the Postgres/media volumes — the next `docker-test-up` starts from an empty database):
+   ```
+   invoke docker-test-down
+   ```
+
+4. What this harness does and doesn't verify: it's the same runnable images `docker-build.yml` pushes to `ghcr.io` (section 4), wired together the way `deploy/prod/compose.yml` wires them (`web`↔`caddy` media volume, `migrate` gating `web`/`celery` via `service_completed_successfully`, Caddy's baked-in `reverse_proxy web:8000`) — so it catches image- and wiring-level breakage before a real deploy. It does *not* exercise the Swarm-specific parts (`deploy:` placement constraints, the `heltour.media` node label, external secrets/networks) — those still need section 8's static checks plus a real Swarm for full confidence.
