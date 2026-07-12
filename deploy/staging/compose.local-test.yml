@@ -12,7 +12,10 @@ services:
 
   caddy:
     ports:
-      - "8091:80"
+      - target: 80
+        published: 8091
+        protocol: tcp
+        mode: host
 
 volumes:
   postgres_data:
