@@ -37,3 +37,13 @@ None of the following is checked by `docker compose -f deploy/prod/compose.yml c
 - One `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` GitHub repo secret per service (`apiworker`, `caddy`, `celery`, `migrate`, `web`) — `deploy.yml` POSTs to the URL each holds; a missing one fails that service's step outright. The workflow doesn't build or push anything itself; it assumes `docker-build.yml` already pushed the image and the listener at that URL pulls and redeploys.
 - `EMAIL_HOST`/`EMAIL_PORT` in `stack.env`, verified against heltour's actual mail relay — currently an unverified placeholder carried from litour's `stack.env` (AWS SES `eu-west-3`).
 - FCM secrets remain **not yet wired** in this stack (same `TODO(ops)` comment) — a known gap, not an oversight here.
+
+## 4. Before a staging deploy
+
+`deploy/staging/compose.yml` mirrors `deploy/prod/compose.yml` service-for-service (`docs/adr/0015-staging-stack-and-deploy-trigger-policy.md`) — everything in §3 above applies, staging-scoped, plus:
+
+- Swarm secrets, distinct from prod's: `heltour_staging_db_url`, `heltour_staging_secret_key`, `heltour_staging_lichess_api_token`, `heltour_staging_email_host_user`, `heltour_staging_email_host_password` — fully env-scoped, unlike prod's `heltour_app_secret_key`/`heltour_email_host_*`, which aren't.
+- `HELTOUR_ENV=stage` in `deploy/staging/stack.env` — not `staging`. `heltour/settings.py`'s `STAGING` flag checks the literal string `"stage"`; anything else silently leaves it `False`.
+- DNS for `staging.lichess4545.com`/`staging.lichess4545.tv` pointed at the same swarm the `caddy` external network fronts — staging reuses that network and the baked-in `docker/Caddyfile` (ADR 0011), no separate Caddyfile or edge config exists in this repo.
+- The `heltour.media` node label — staging reuses the same labeled node as prod (`deploy/staging/compose.yml`'s `web`/`caddy` placement constraint is identical); no second label to provision.
+- One `HELTOUR_DEPLOY_STAGING_<SERVICE>` GitHub repo secret per service, mirroring `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` — fires automatically on every push to `master`; production stays `workflow_dispatch`-only.
