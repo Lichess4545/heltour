@@ -14,5 +14,11 @@ jobs:
 
       - uses: ./.github/actions/setup-devenv
 
+      - uses: ./.github/actions/dagger-engine-cache
+
       - name: Run Django test suite
         run: devenv shell -- dagger call --mod=.dagger test --source=.
+
+      - name: Save Dagger engine cache
+        if: always()
+        uses: ./.github/actions/dagger-engine-cache-stop

@@ -1,0 +1,11 @@
+name: Save cached Dagger engine
+description: Stop the engine container started by dagger-engine-cache and fix bind-mount ownership so the GitHub Actions cache can save it. Safe to run even if the engine never started.
+
+runs:
+  using: composite
+  steps:
+    - name: Stop cached Dagger engine container
+      shell: bash
+      run: |
+        docker stop dagger-engine-heltour > /dev/null 2>&1 || true
+        sudo chown -R "$(id -u):$(id -g)" /tmp/dagger-engine-cache > /dev/null 2>&1 || true

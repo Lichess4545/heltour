@@ -1,0 +1,27 @@
+name: Start cached Dagger engine
+description: Restore a GitHub Actions cache of the Dagger Engine's BuildKit state and start a persistent, bind-mounted engine container so dagger call reuses layers across runs. Falls back to Dagger's own uncached engine if the cache or container start fails.
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Dagger engine cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: /tmp/dagger-engine-cache
+        key: dagger-engine-${{ runner.os }}-${{ hashFiles('dagger.json') }}-${{ github.run_id }}
+        restore-keys: |
+          dagger-engine-${{ runner.os }}-${{ hashFiles('dagger.json') }}-
+
+    - name: Start cached Dagger engine container
+      shell: bash
+      run: |
+        mkdir -p /tmp/dagger-engine-cache
+        ENGINE_VERSION="$(jq -r .engineVersion dagger.json)"
+        if docker run -d --privileged \
+          --name dagger-engine-heltour \
+          -v /tmp/dagger-engine-cache:/var/lib/dagger \
+          "registry.dagger.io/engine:${ENGINE_VERSION}"; then
+          echo "_EXPERIMENTAL_DAGGER_RUNNER_HOST=container://dagger-engine-heltour" >> "$GITHUB_ENV"
+        else
+          echo "::warning::Could not start the cached Dagger engine container; dagger call will fall back to its own auto-provisioned, uncached engine."
+        fi
