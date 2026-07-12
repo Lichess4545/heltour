@@ -52,7 +52,7 @@ jobs:
           # targets: default builds+verifies every event, including PRs (the group
           # includes web-verify/javafo-verify) — only the condition below gates push.
           targets: default
-          push: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+          push: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         env:
           TAG: ${{ steps.tag.outputs.TAG }}
           REGISTRY: ghcr.io/${{ env.IMAGE_PREFIX }}
