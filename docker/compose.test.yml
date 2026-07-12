@@ -3,7 +3,7 @@
 # Plain `docker compose` (v2), not Swarm -- unlike deploy/prod/compose.yml, this has
 # no `deploy:` blocks, no external secrets, and no external networks. It stands up a
 # working site from locally-built images on host port 8090 (see
-# docs/testing-the-infrastructure.md "Testing the containers locally"), using
+# docs/testing-the-infrastructure.md "Local docker test harness"), using
 # docker/compose.test.env for its (dummy, test-only) settings.
 #
 # postgres/redis are intentionally not published to the host, so this never collides

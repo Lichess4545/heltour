@@ -51,5 +51,5 @@ ported. `.travis.yml` was deleted, superseded by `test.yml` + `docker-build.yml`
   Portainer but historically ignored by the raw `docker stack deploy -c` CLI. Whichever tool
   actually drives a real deploy must be confirmed to resolve `env_file:` — dropping it silently
   boots every service with `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` empty (400s) and `HELTOUR_ENV`
-  falling back to `"dev"`. See `docs/testing-the-infrastructure.md` §8 for the verification
-  step and the full prerequisites checklist.
+  falling back to `"dev"`. See `docs/testing-the-infrastructure.md` §3 for the full
+  prerequisites checklist.
