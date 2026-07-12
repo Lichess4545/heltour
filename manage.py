@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# cache-test marker: warm-run CI cache verification (safe to remove)
 import os
 import sys
 
