@@ -106,6 +106,10 @@ in
     };
   };
 
+  languages.javascript = {
+    enable = true;
+  };
+
   services.postgres = {
     enable = true;
     # Must stay in sync with nativeLibs' postgresql_18.lib and the client
