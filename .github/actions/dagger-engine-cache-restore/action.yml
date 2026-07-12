@@ -30,5 +30,5 @@ runs:
           docker run --rm \
             -v "$DAGGER_ENGINE_CACHE_VOLUME":/to \
             -v "$DAGGER_ENGINE_CACHE_DIR":/from:ro \
-            alpine sh -c 'cp -a /from/. /to/'
+            alpine sh -c 'cp -a /from/. /to/ && chown -R root:root /to'
         fi

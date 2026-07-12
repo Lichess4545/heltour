@@ -20,6 +20,11 @@ runs:
           -v "$DAGGER_ENGINE_CACHE_DIR":/to \
           alpine sh -c 'cp -a /from/. /to/'
 
+    - name: Make cache directory readable by the runner user
+      shell: bash
+      continue-on-error: true
+      run: sudo chmod -R a+rX "$DAGGER_ENGINE_CACHE_DIR"
+
     - name: Save engine cache archive
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       continue-on-error: true
