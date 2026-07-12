@@ -194,23 +194,32 @@ export class Heltour {
     return container.withExec(["sh", "-c", javafoVerifyScript()]).stdout()
   }
 
-  @func()
-  async build(source: Directory, githubShortSha = "unknown"): Promise<string> {
+  private namedImages(source: Directory, githubShortSha: string): [string, Container][] {
+    return [
+      ["heltour-base", this.base(source)],
+      ["heltour-caddy", this.caddy(source)],
+      ["heltour-web", this.web(source, githubShortSha)],
+      ["heltour-api-worker", this.apiWorker(source, githubShortSha)],
+      ["heltour-celery", this.celery(source)],
+      ["heltour-migrate", this.migrate(source)],
+    ]
+  }
+
+  private async verifyAndBuild(
+    source: Directory,
+    githubShortSha: string,
+  ): Promise<{ report: string; images: [string, Container][] }> {
+    const images = this.namedImages(source, githubShortSha)
+
     const [djangoSuite, javafoWeb, javafoCelery] = await Promise.all([
       this.verifyDjangoSuite(source),
       this.verifyJavafo(this.web(source, githubShortSha)),
       this.verifyJavafo(this.celery(source)),
     ])
 
-    await Promise.all([
-      this.web(source, githubShortSha).sync(),
-      this.apiWorker(source, githubShortSha).sync(),
-      this.celery(source).sync(),
-      this.migrate(source).sync(),
-      this.caddy(source).sync(),
-    ])
+    await Promise.all(images.map(([, container]) => container.sync()))
 
-    return [
+    const report = [
       "web-verify (django suite):",
       djangoSuite,
       "javafo-verify (web image):",
@@ -219,6 +228,14 @@ export class Heltour {
       javafoCelery,
       "images built: heltour-base, heltour-web, heltour-api-worker, heltour-celery, heltour-migrate, heltour-caddy",
     ].join("\n")
+
+    return { report, images }
+  }
+
+  @func()
+  async build(source: Directory, githubShortSha = "unknown"): Promise<string> {
+    const { report } = await this.verifyAndBuild(source, githubShortSha)
+    return report
   }
 
   @func()
@@ -232,20 +249,11 @@ export class Heltour {
     githubSha = "unknown",
     defaultBranchRef = "refs/heads/master",
   ): Promise<string> {
-    await this.build(source, githubSha.slice(0, 7))
+    const githubShortSha = githubSha.slice(0, 7)
+    const { images } = await this.verifyAndBuild(source, githubShortSha)
 
     const tag = resolvePublishTag(ref, eventName, prNumber, defaultBranchRef)
-    const githubShortSha = githubSha.slice(0, 7)
     const registry = `${GHCR_REGISTRY}/${GHCR_IMAGE_PREFIX}`
-
-    const images: [string, Container][] = [
-      ["heltour-base", this.base(source)],
-      ["heltour-caddy", this.caddy(source)],
-      ["heltour-web", this.web(source, githubShortSha)],
-      ["heltour-api-worker", this.apiWorker(source, githubShortSha)],
-      ["heltour-celery", this.celery(source)],
-      ["heltour-migrate", this.migrate(source)],
-    ]
 
     const published: string[] = []
     for (const [name, container] of images) {

@@ -19,14 +19,13 @@ jobs:
 
       - uses: ./.github/actions/setup-devenv
 
-      - uses: ./.github/actions/dagger-engine-cache
-
       - name: Build and verify images
+        if: github.event_name == 'pull_request'
         run: devenv shell -- dagger call --mod=.dagger build --source=. --github-short-sha="${{ github.sha }}"
 
       # Publishes on every push event (any branch), not just master -- matches the
       # existing temporary all-branches publish state from the pre-Dagger workflow.
-      - name: Publish images
+      - name: Build, verify, and publish images
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
         run: >
           devenv shell -- dagger call --mod=.dagger publish
@@ -39,7 +38,3 @@ jobs:
           --github-sha="${{ github.sha }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Save Dagger engine cache
-        if: always()
-        uses: ./.github/actions/dagger-engine-cache-stop
