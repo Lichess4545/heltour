@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# cache-test marker: warm-run CI cache verification (safe to remove)
+# cache-test marker v2: warm-run reuse test (safe to remove)
 import os
 import sys
 
