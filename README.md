@@ -2,32 +2,26 @@
 League management software for the Lichess4545 league.
 
 # requirements
-* Python
-* Pip
-* poetry
-* Postgres (Ubuntu packages postgresql and postgresql-server-dev-9.5)
-* Fabric (pip install fabric)
-* Virtualenv (Ubuntu package virtualenv)
-* [Sass](https://sass-lang.com/install)
+* [devenv](https://devenv.sh) (provides Python, Postgres, Redis, and poetry)
+* [Docker](https://docs.docker.com/get-docker/) with buildx, for building/running the container images
 
 # install
-These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.
+1. Copy `.env.example` to `.env` and fill in the values.
+2. `devenv up -d` to start Postgres and Redis.
+3. `poetry install` to install Python dependencies.
+4. `poetry run invoke migrate` to set up the database.
+5. `poetry run invoke runserver` to run the development server.
 
-1. Create a local settings file. In the heltour/local folder, copy one of the existing modules and name it "host_name.py" where "host_name" is your machine's hostname (with non-alphanumeric characters replaced by underscores).
-2. `./start.sh`
-3. `source env/bin/activate`
-4. `fab up`
-5. `fab createdb`
-6. `fab -R dev latestdb`
-8. `fab runserver`
+Run `poetry run invoke --list` to see all available development tasks (migrations, tests, celery, static assets, docker image builds, and more).
 
 # development
-Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
-
 Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled.
 
+# deployment
+Images are built with `docker buildx bake` (see `docker/docker-bake.hcl`) and published/deployed via the workflows in `.github/workflows/`. The production stack is defined in `deploy/prod/`.
+
 # create admin account
-Run `python manage.py createsuperuser` to create a new admin account.
+Run `poetry run python manage.py createsuperuser` to create a new admin account.
 
 ### Optional Components
-- To generate pairings, download [JaVaFo](http://www.rrweb.org/javafo/current/javafo.jar) and set JAVAFO_COMMAND to 'java -jar /path/to/javafo.jar'
+- Pairing generation uses the JaVaFo jar vendored at `thirdparty/javafo.jar` (the default `JAVAFO_COMMAND`); set `JAVAFO_COMMAND` to point at a different jar or JRE if needed.

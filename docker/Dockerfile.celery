@@ -1,0 +1,17 @@
+FROM base AS celery
+
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=heltour.settings
+
+# NOTE: -B embeds celery beat in this worker process — there is no separate beat
+# service/container. Fine for a single celery replica; would double-schedule
+# periodic tasks if this image is ever scaled beyond one instance.
+CMD ["celery", "-A", "heltour", "worker", "-l", "info", "-E", "-B"]
+
+FROM celery AS celery-verify
+
+RUN output=$(java -jar /app/thirdparty/javafo.jar 2>&1) && \
+    echo "$output" | grep -q "JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)" || \
+    (echo "JavaFo test failed. Expected 'JaVaFo (rrweb.org/javafo) - Rel. 2.2 (Build 3223)', got: $output" && exit 1)
+
+CMD ["echo", "Celery verification complete"]

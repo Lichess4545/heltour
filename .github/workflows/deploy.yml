@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  # Staging auto-deploys on every push to master. Production stays manual — the
+  # `deploy-production` job below only ever runs from workflow_dispatch/workflow_call,
+  # never from a push event. See docs/adr/0015-staging-stack-and-deploy-trigger-policy.md.
+  deploy-staging:
+    if: github.ref_name == github.event.repository.default_branch && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One HELTOUR_DEPLOY_STAGING_<SERVICE> webhook per swarm service, mirroring
+        # HELTOUR_DEPLOY_PRODUCTION_<SERVICE> below — see that job for the mechanism.
+        service:
+          - apiworker
+          - caddy
+          - celery
+          - migrate
+          - web
+    steps:
+      - name: Set deploy endpoints
+        run: |
+          echo "apiworker=${{ secrets.HELTOUR_DEPLOY_STAGING_APIWORKER }}" >> $GITHUB_ENV
+          echo "caddy=${{ secrets.HELTOUR_DEPLOY_STAGING_CADDY }}" >> $GITHUB_ENV
+          echo "celery=${{ secrets.HELTOUR_DEPLOY_STAGING_CELERY }}" >> $GITHUB_ENV
+          echo "migrate=${{ secrets.HELTOUR_DEPLOY_STAGING_MIGRATE }}" >> $GITHUB_ENV
+          echo "web=${{ secrets.HELTOUR_DEPLOY_STAGING_WEB }}" >> $GITHUB_ENV
+      - name: Deploy ${{ matrix.service }}
+        run: |
+          curl \
+            --silent \
+            --write-out "%{http_code}" \
+            --fail-with-body \
+            --request POST \
+            ${{ env[matrix.service] }}
+
+  deploy-production:
+    if: github.ref_name == github.event.repository.default_branch && github.event_name != 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One HELTOUR_DEPLOY_PRODUCTION_<SERVICE> webhook per swarm service; each
+        # secret is a URL to an out-of-band listener on the swarm host that redeploys
+        # that service. The secrets are ops-managed GitHub repo secrets, not created
+        # by this workflow.
+        service:
+          - apiworker
+          - caddy
+          - celery
+          - migrate
+          - web
+    steps:
+      - name: Set deploy endpoints
+        run: |
+          echo "apiworker=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_APIWORKER }}" >> $GITHUB_ENV
+          echo "caddy=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_CADDY }}" >> $GITHUB_ENV
+          echo "celery=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_CELERY }}" >> $GITHUB_ENV
+          echo "migrate=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_MIGRATE }}" >> $GITHUB_ENV
+          echo "web=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_WEB }}" >> $GITHUB_ENV
+      - name: Deploy ${{ matrix.service }}
+        run: |
+          curl \
+            --silent \
+            --write-out "%{http_code}" \
+            --fail-with-body \
+            --request POST \
+            ${{ env[matrix.service] }}

@@ -1,0 +1,22 @@
+.git/
+.devenv/
+.superpowers/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+# .env carries real secrets and is host-side only — it's injected at runtime
+# (env_file/secrets), never baked into an image layer.
+.env
+.env.*
+!.env.example
+*.sqlite3
+/static
+/media
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backups/
+*.dump
+.idea/

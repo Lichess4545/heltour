@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import SimpleTestCase
 
 from heltour.tournament.lichessapi import (
@@ -16,7 +17,7 @@ class NoShowTestCase(SimpleTestCase):
         update_or_create_broadcast(name="new broadcast", nrounds=1)
         apicall.assert_called_once_with(
             url=(
-                "http://localhost:8880/lichessapi/broadcast/new?priority=0&"
+                f"{settings.API_WORKER_HOST}/lichessapi/broadcast/new?priority=0&"
                 "max_retries=2&content_type=application/x-www-form-urlencoded&"
                 "format=application/json"
             ),
@@ -36,7 +37,7 @@ class NoShowTestCase(SimpleTestCase):
         )
         apicall.assert_called_once_with(
             url=(
-                "http://localhost:8880/lichessapi/broadcast/fakeid/edit?priority=0&"
+                f"{settings.API_WORKER_HOST}/lichessapi/broadcast/fakeid/edit?priority=0&"
                 "max_retries=2&content_type=application/x-www-form-urlencoded&"
                 "format=application/json"
             ),
@@ -67,7 +68,7 @@ class NoShowTestCase(SimpleTestCase):
         )
         apicall.assert_called_once_with(
             url=(
-                "http://localhost:8880/lichessapi/broadcast/fakeid/new?priority=0&"
+                f"{settings.API_WORKER_HOST}/lichessapi/broadcast/fakeid/new?priority=0&"
                 "max_retries=2&content_type=application/x-www-form-urlencoded&"
                 "format=application/json"
             ),
@@ -85,7 +86,7 @@ class NoShowTestCase(SimpleTestCase):
         )
         apicall.assert_called_once_with(
             url=(
-                "http://localhost:8880/lichessapi/broadcast/round/fakeroundid/edit?priority=0&"
+                f"{settings.API_WORKER_HOST}/lichessapi/broadcast/round/fakeroundid/edit?priority=0&"
                 "max_retries=2&content_type=application/x-www-form-urlencoded&"
                 "format=application/json"
             ),

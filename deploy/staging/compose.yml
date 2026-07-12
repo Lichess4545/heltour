@@ -1,0 +1,148 @@
+services:
+  caddy:
+    image: ghcr.io/lichess4545/heltour-caddy:latest
+    volumes:
+      # See deploy/prod/compose.yml for the full rationale (ADR 0002, ADR 0011) —
+      # staging reuses the same baked-in docker/Caddyfile since its route set is
+      # identical, just pointed at staging's own media volume via this stack's name.
+      - media_data:/public/media
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - caddy
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
+
+  web:
+    image: ghcr.io/lichess4545/heltour-web:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_staging_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_staging_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_staging_lichess_api_token
+      EMAIL_HOST_USER_FILE: /run/secrets/heltour_staging_email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_staging_email_host_password
+    volumes:
+      - media_data:/app/media
+    secrets:
+      - heltour_staging_db_url
+      - heltour_staging_secret_key
+      - heltour_staging_lichess_api_token
+      - heltour_staging_email_host_user
+      - heltour_staging_email_host_password
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
+
+  apiworker:
+    image: ghcr.io/lichess4545/heltour-api-worker:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_staging_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_staging_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_staging_lichess_api_token
+      EMAIL_HOST_USER_FILE: /run/secrets/heltour_staging_email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_staging_email_host_password
+    secrets:
+      - heltour_staging_db_url
+      - heltour_staging_secret_key
+      - heltour_staging_lichess_api_token
+      - heltour_staging_email_host_user
+      - heltour_staging_email_host_password
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+
+  celery:
+    image: ghcr.io/lichess4545/heltour-celery:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_staging_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_staging_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_staging_lichess_api_token
+    secrets:
+      - heltour_staging_db_url
+      - heltour_staging_secret_key
+      - heltour_staging_lichess_api_token
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+
+  migrate:
+    image: ghcr.io/lichess4545/heltour-migrate:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_staging_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_staging_secret_key
+    secrets:
+      - heltour_staging_db_url
+      - heltour_staging_secret_key
+    networks:
+      - heltour
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: stop-first
+
+volumes:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  media_data:
+
+networks:
+  caddy:
+    external: true
+  heltour:
+    driver: overlay
+
+secrets:
+  # external: true — created out-of-band on the swarm manager (docker secret create),
+  # staging-scoped names distinct from prod's so the two environments can never share
+  # a secret by accident (unlike deploy/prod/compose.yml, where SECRET_KEY/email
+  # secrets are — inconsistently — not prod-scoped; staging deliberately scopes all five).
+  heltour_staging_db_url:
+    external: true
+  heltour_staging_lichess_api_token:
+    external: true
+  heltour_staging_secret_key:
+    external: true
+  heltour_staging_email_host_user:
+    external: true
+  heltour_staging_email_host_password:
+    external: true
+  # TODO(ops): Slack, Google Sheets, and FCM secrets aren't wired here — same gap as
+  # deploy/prod/compose.yml. Add them following the same *_FILE_PATH pattern as
+  # LICHESS_API_TOKEN_FILE_PATH above when those integrations go live.

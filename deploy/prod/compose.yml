@@ -1,0 +1,156 @@
+services:
+  caddy:
+    image: ghcr.io/lichess4545/heltour-caddy:latest
+    volumes:
+      # Read side of the D2 media volume; web's /app/media below is the write side.
+      # Path must match docker/Caddyfile's /public/media route (baked into the image —
+      # no ./conf mount here, see task-4-report.md for why).
+      # media_data uses the default local driver (no node affinity): the label below
+      # must be set on exactly one node — docker node update --label-add
+      # heltour.media=true <node> — so web and caddy always land on that same node.
+      # If web/caddy ever need to scale across nodes, replace media_data with a
+      # shared-storage volume driver (nfs, glusterfs, cloud block storage) instead.
+      - media_data:/public/media
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - caddy
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
+
+  web:
+    image: ghcr.io/lichess4545/heltour-web:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_prod_db_url
+      # heltour.settings reads SECRET_KEY with no fallback default (fail-fast) — every
+      # service below that imports it carries this same var, unlike litour's reference
+      # stack, which relies on a dev-only default and can skip it.
+      SECRET_KEY_FILE: /run/secrets/heltour_app_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_prod_lichess_api_token
+      EMAIL_HOST_USER_FILE: /run/secrets/heltour_email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_email_host_password
+    volumes:
+      # Write side of the D2 media volume — pairs with caddy's /public/media above.
+      - media_data:/app/media
+    secrets:
+      - heltour_prod_db_url
+      - heltour_app_secret_key
+      - heltour_prod_lichess_api_token
+      - heltour_email_host_user
+      - heltour_email_host_password
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+      placement:
+        constraints:
+          - node.labels.heltour.media == true
+
+  apiworker:
+    image: ghcr.io/lichess4545/heltour-api-worker:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_prod_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_app_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_prod_lichess_api_token
+      EMAIL_HOST_USER_FILE: /run/secrets/heltour_email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_email_host_password
+    secrets:
+      - heltour_prod_db_url
+      - heltour_app_secret_key
+      - heltour_prod_lichess_api_token
+      - heltour_email_host_user
+      - heltour_email_host_password
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+
+  celery:
+    image: ghcr.io/lichess4545/heltour-celery:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_prod_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_app_secret_key
+      LICHESS_API_TOKEN_FILE_PATH: /run/secrets/heltour_prod_lichess_api_token
+    secrets:
+      - heltour_prod_db_url
+      - heltour_app_secret_key
+      - heltour_prod_lichess_api_token
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: start-first
+
+  migrate:
+    image: ghcr.io/lichess4545/heltour-migrate:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/heltour_prod_db_url
+      SECRET_KEY_FILE: /run/secrets/heltour_app_secret_key
+    secrets:
+      - heltour_prod_db_url
+      - heltour_app_secret_key
+    networks:
+      - heltour
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - heltour
+    deploy:
+      update_config:
+        order: stop-first
+
+volumes:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  media_data:
+
+networks:
+  caddy:
+    external: true
+  heltour:
+    driver: overlay
+
+secrets:
+  # external: true — created out-of-band on the swarm manager (docker secret create),
+  # not by this stack.
+  heltour_prod_db_url:
+    external: true
+  heltour_prod_lichess_api_token:
+    external: true
+  heltour_app_secret_key:
+    external: true
+  heltour_email_host_user:
+    external: true
+  heltour_email_host_password:
+    external: true
+  # TODO(ops): Slack, Google Sheets, and FCM secrets aren't wired here — heltour's
+  # settings.py has real endpoints for slackapi.py/spreadsheet.py that litour's
+  # reference stack has no equivalent of. Add them following the same *_FILE_PATH
+  # pattern as LICHESS_API_TOKEN_FILE_PATH above when those integrations go live.

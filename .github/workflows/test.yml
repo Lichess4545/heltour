@@ -1,0 +1,63 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: heltour_lichess4545
+          POSTGRES_USER: heltour_lichess4545
+          POSTGRES_PASSWORD: heltour_dev_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U heltour_lichess4545"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # GitHub Actions service containers publish to the runner's own localhost (no
+    # service-name DNS like docker compose) — DATABASE_URL/REDIS_URL below rely on that.
+    env:
+      SECRET_KEY: change-me-in-production
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
+      LINK_PROTOCOL: http
+      DATABASE_URL: postgresql://heltour_lichess4545:heltour_dev_password@localhost:5432/heltour_lichess4545
+      REDIS_URL: redis://localhost:6379/1
+      BROKER_URL: redis://localhost:6379/1
+      HELTOUR_APP: tournament
+      HELTOUR_ENV: dev
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+          cache: "poetry"
+
+      - name: Install Python deps
+        run: poetry install --no-interaction --no-root
+
+      - name: Run test suite
+        run: poetry run python manage.py test --settings=heltour.test_settings

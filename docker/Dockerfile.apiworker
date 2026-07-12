@@ -1,0 +1,20 @@
+FROM base
+
+ARG GITHUB_SHORT_SHA=unknown
+
+EXPOSE 8880
+
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=heltour.settings
+ENV HELTOUR_APP=api_worker
+ENV HELTOUR_VERSION=${GITHUB_SHORT_SHA}
+
+CMD ["gunicorn", "heltour.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--threads", "2", \
+     "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--log-file", "-", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

@@ -1,0 +1,77 @@
+# Local test harness for the images built by docker/docker-bake.hcl.
+#
+# Plain `docker compose` (v2), not Swarm -- unlike deploy/prod/compose.yml, this has
+# no `deploy:` blocks, no external secrets, and no external networks. It stands up a
+# working site from locally-built images on host port 8090 (see
+# docs/testing-the-infrastructure.md "Local docker test harness"), using
+# docker/compose.test.env for its (dummy, test-only) settings.
+#
+# postgres/redis are intentionally not published to the host, so this never collides
+# with a devenv session's own Postgres/Redis, whatever port those happen to be on.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: heltour_test
+      POSTGRES_PASSWORD: heltour_test_password
+      POSTGRES_DB: heltour_test
+    volumes:
+      - heltour_test_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heltour_test -d heltour_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    image: heltour-migrate:latest
+    env_file: compose.test.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: heltour-web:latest
+    env_file: compose.test.env
+    volumes:
+      - heltour_test_media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  celery:
+    image: heltour-celery:latest
+    env_file: compose.test.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  caddy:
+    image: heltour-caddy:latest
+    volumes:
+      - heltour_test_media:/public/media
+    ports:
+      - "8090:80"
+    depends_on:
+      - web
+
+volumes:
+  heltour_test_postgres:
+  heltour_test_media:

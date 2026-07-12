@@ -1,0 +1,6 @@
+FROM base AS migrate
+
+ENV DJANGO_SETTINGS_MODULE=heltour.settings \
+    PYTHONUNBUFFERED=1
+
+CMD ["sh", "-c", "pg_isready --dbname=$(cat $DATABASE_URL_FILE) --timeout=60 || pg_isready --dbname=$DATABASE_URL --timeout=60 && python manage.py migrate"]

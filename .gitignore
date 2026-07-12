@@ -15,3 +15,5 @@ data
 backups
 
 /.devenv
+/.env
+/.staging-test-harness-state.json
