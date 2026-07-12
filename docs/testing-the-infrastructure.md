@@ -60,9 +60,9 @@ This proves the stack converges on the real placement constraint and secret wiri
 
 ## 6. CI via Dagger
 
-All three GitHub Actions workflows (`test.yml`, `docker-build.yml`, `deploy.yml`) are thin: checkout, install Dagger + Bun (`.github/actions/setup-dagger`), then a single `dagger call --mod=.dagger <function>`. Every pipeline decision — the Django suite run, the image graph, the publish tag, the deploy webhooks — lives in the Dagger module at `.dagger/src/index.ts`, not in YAML.
+All three GitHub Actions workflows (`test.yml`, `docker-build.yml`, `deploy.yml`) are thin: checkout, install Nix + devenv (`.github/actions/setup-devenv`), then a single `devenv shell -- dagger call --mod=.dagger <function>`. Every pipeline decision — the Django suite run, the image graph, the publish tag, the deploy webhooks — lives in the Dagger module at `.dagger/src/index.ts`, not in YAML.
 
-Install the Dagger CLI locally (`curl -fsSL https://dl.dagger.io/dagger/install.sh | sh`, matching the `engineVersion` pinned in `dagger.json`) and run the same functions CI runs:
+The Dagger CLI is not installed separately: `devenv.nix` pulls `dagger` from the `dagger/nix` flake pinned in `devenv.yaml`/`devenv.lock`, at the version matching `dagger.json`'s `engineVersion`. `devenv shell` — the same command a developer runs locally — is CI's only source for the CLI, so local and CI always run the identical build. Run the same functions CI runs, from inside `devenv shell` (or prefixed with `devenv shell --`):
 
 - `dagger call test --source=.` — spins up Postgres 18 and Redis 7 as Dagger services and runs `manage.py test --settings=heltour.test_settings`, mirroring `test.yml`.
 - `dagger call build --source=. --github-short-sha=$(git rev-parse --short HEAD)` — builds `docker/Dockerfile.base` once, derives the `web`/`api-worker`/`celery`/`migrate`/`caddy` images from it, and runs both verification checks: the Django suite inside the image (mirroring `docker/Dockerfile.web-verify`) and the vendored `javafo.jar` smoke test on the `web` and `celery` images (mirroring the `web-verify`/`celery-verify` Dockerfile stages).

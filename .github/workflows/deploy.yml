@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: ./.github/actions/setup-dagger
+      - uses: ./.github/actions/setup-devenv
 
       - name: Set deploy endpoints
         run: |
@@ -38,7 +38,7 @@ jobs:
           echo "web=${{ secrets.HELTOUR_DEPLOY_STAGING_WEB }}" >> $GITHUB_ENV
 
       - name: Deploy ${{ matrix.service }}
-        run: dagger call --mod=.dagger deploy --environment=staging --service="${{ matrix.service }}" --url="env://${{ matrix.service }}"
+        run: devenv shell -- dagger call --mod=.dagger deploy --environment=staging --service="${{ matrix.service }}" --url="env://${{ matrix.service }}"
 
   deploy-production:
     if: github.ref_name == github.event.repository.default_branch && github.event_name != 'push'
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: ./.github/actions/setup-dagger
+      - uses: ./.github/actions/setup-devenv
 
       - name: Set deploy endpoints
         run: |
@@ -70,4 +70,4 @@ jobs:
           echo "web=${{ secrets.HELTOUR_DEPLOY_PRODUCTION_WEB }}" >> $GITHUB_ENV
 
       - name: Deploy ${{ matrix.service }}
-        run: dagger call --mod=.dagger deploy --environment=production --service="${{ matrix.service }}" --url="env://${{ matrix.service }}"
+        run: devenv shell -- dagger call --mod=.dagger deploy --environment=production --service="${{ matrix.service }}" --url="env://${{ matrix.service }}"

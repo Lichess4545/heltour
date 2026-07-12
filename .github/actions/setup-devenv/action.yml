@@ -1,0 +1,24 @@
+name: Set up devenv
+description: Install Nix and devenv so a workflow job can run `devenv shell -- dagger call ...` against the same Dagger CLI pinned in devenv.yaml/devenv.lock.
+
+inputs:
+  cachix-auth-token:
+    description: Cachix auth token for a project-specific push cache. Optional; without it this still pulls from the public "devenv" Cachix cache.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+
+    - name: Configure Cachix
+      uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+      with:
+        name: devenv
+        authToken: ${{ inputs.cachix-auth-token }}
+
+    - name: Install devenv
+      shell: bash
+      run: nix profile add nixpkgs#devenv

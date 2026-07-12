@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: ./.github/actions/setup-dagger
+      - uses: ./.github/actions/setup-devenv
 
       - name: Run Django test suite
-        run: dagger call --mod=.dagger test --source=.
+        run: devenv shell -- dagger call --mod=.dagger test --source=.

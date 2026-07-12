@@ -1,4 +1,4 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, inputs, ... }:
 
 let
   # Matches what psycopg2-binary and pillow (pinned in pyproject.toml) link
@@ -87,6 +87,8 @@ in
     flatpak
     openssh
     jre21_minimal
+
+    inputs.dagger.packages.${pkgs.stdenv.system}.dagger
   ];
 
   dotenv.enable = true;
