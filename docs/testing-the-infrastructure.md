@@ -47,3 +47,13 @@ None of the following is checked by `docker compose -f deploy/prod/compose.yml c
 - DNS for `staging.lichess4545.com`/`staging.lichess4545.tv` pointed at the same swarm the `caddy` external network fronts — staging reuses that network and the baked-in `docker/Caddyfile` (ADR 0011), no separate Caddyfile or edge config exists in this repo.
 - The `heltour.media` node label — staging reuses the same labeled node as prod (`deploy/staging/compose.yml`'s `web`/`caddy` placement constraint is identical); no second label to provision.
 - One `HELTOUR_DEPLOY_STAGING_<SERVICE>` GitHub repo secret per service, mirroring `HELTOUR_DEPLOY_PRODUCTION_<SERVICE>` — fires automatically on every push to `master`; production stays `workflow_dispatch`-only.
+
+## 5. Testing the staging deploy
+
+`deploy/staging/compose.local-test.yml` overlays `deploy/staging/compose.yml` unchanged onto a local single-node Swarm — unlike §2's plain-`docker-compose` harness, this exercises the actual Swarm stack: its `*_FILE` secret wiring, the external `caddy` network, the `heltour.media` placement constraint, and `stack.env`. The overlay adds only what §4 says staging assumes exists already: a local `postgres` service (standing in for the external DB) and a host-published port for `caddy` — **http://localhost:8091** (no DNS/TLS needed; `docker/Caddyfile` has no host-based routing).
+
+- `invoke staging-test-up` initializes a local Swarm if none is active (an already-active Swarm is reused, never re-initialized), builds the five `docker/docker-bake.hcl production` images tagged as `ghcr.io/lichess4545/heltour-*:latest` so `docker stack deploy --resolve-image=never` runs them without a registry pull, creates the five `heltour_staging_*` secrets from dummy local values, creates the external `caddy` network, labels the local node `heltour.media=true`, and deploys stack `staging` from both compose files.
+- `invoke staging-test-seed` (`--flush` to recreate) execs `seed_test_data` into the running `staging_web` task's container.
+- `invoke staging-test-down` removes the stack, the five secrets, the `caddy` network, and the node label, and leaves Swarm mode only if `staging-test-up` initialized it — tracked in a gitignored `.staging-test-harness-state.json` so a Swarm already in use for something else is never torn down.
+
+This proves the stack converges on the real placement constraint and secret wiring, and that `migrate`'s `restart_policy` correctly retries until its (local) database is reachable — confirmed by the `STAGING ENVIRONMENT` banner, which Django only renders once `HELTOUR_ENV=stage` has actually resolved through `stack.env`. It does not exercise real DNS/TLS, a registry pull, or the `deploy.yml` GitHub webhook path.

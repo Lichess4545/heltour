@@ -1,5 +1,6 @@
 from invoke import task
 from pathlib import Path
+import json
 import os
 import environ
 
@@ -209,6 +210,215 @@ def docker_test_seed(c, flush=False):
 def docker_test_down(c):
     """Tear down docker/compose.test.yml and remove its volumes."""
     c.run(f"{DOCKER_TEST_COMPOSE} down -v", pty=True)
+
+
+STAGING_TEST_STACK_NAME = "staging"
+STAGING_TEST_PORT = 8091
+STAGING_TEST_REGISTRY = "ghcr.io/lichess4545"
+STAGING_TEST_NODE_LABEL = "heltour.media"
+STAGING_TEST_CADDY_NETWORK = "caddy"
+STAGING_TEST_COMPOSE_ARGS = (
+    "-c deploy/staging/compose.yml -c deploy/staging/compose.local-test.yml"
+)
+STAGING_TEST_SECRETS = {
+    "heltour_staging_db_url": "postgres://heltour_staging:heltour_staging_password@postgres:5432/heltour_staging",
+    "heltour_staging_secret_key": "staging-test-harness-not-a-real-secret",
+    "heltour_staging_lichess_api_token": "staging-test-harness-dummy-lichess-token",
+    "heltour_staging_email_host_user": "staging-test-harness-dummy-email-user",
+    "heltour_staging_email_host_password": "staging-test-harness-dummy-email-password",
+}
+STAGING_TEST_STACK_VOLUMES = (
+    "redis_data",
+    "caddy_data",
+    "caddy_config",
+    "media_data",
+    "postgres_data",
+)
+STAGING_TEST_STATE_FILE = project_relative(".staging-test-harness-state.json")
+
+
+def _read_staging_test_state():
+    if not os.path.isfile(STAGING_TEST_STATE_FILE):
+        return {}
+    with open(STAGING_TEST_STATE_FILE) as f:
+        return json.load(f)
+
+
+def _write_staging_test_state(state):
+    with open(STAGING_TEST_STATE_FILE, "w") as f:
+        json.dump(state, f)
+
+
+def _docker_resource_exists(c, inspect_cmd):
+    return c.run(inspect_cmd, hide=True, warn=True).ok
+
+
+def _swarm_is_active(c):
+    result = c.run(
+        "docker info --format '{{.Swarm.LocalNodeState}}'", hide=True, warn=True
+    )
+    return result.ok and result.stdout.strip() == "active"
+
+
+def _local_swarm_node_id(c):
+    return c.run("docker node inspect self --format '{{.ID}}'", hide=True).stdout.strip()
+
+
+def _node_has_label(c, node_id, label):
+    label_format = '{{index .Spec.Labels "' + label + '"}}'
+    result = c.run(f"docker node inspect {node_id} --format '{label_format}'", hide=True)
+    return result.stdout.strip() == "true"
+
+
+@task
+def staging_test_up(c, build=True):
+    """Deploy deploy/staging/compose.yml plus its local-test overlay to a local single-node Swarm on http://localhost:8091."""
+    import shlex
+
+    state = _read_staging_test_state()
+
+    swarm_already_active = _swarm_is_active(c)
+    if swarm_already_active:
+        print("Swarm already active -- reusing it; staging-test-down will NOT leave Swarm.")
+    else:
+        print(
+            "No active Swarm found -- running `docker swarm init` "
+            "(staging-test-down will leave Swarm since this harness started it)."
+        )
+        c.run("docker swarm init --advertise-addr 127.0.0.1", pty=True)
+    state["swarm_initialized_by_harness"] = not swarm_already_active
+
+    if build:
+        docker_bake(c, tag="latest", registry=STAGING_TEST_REGISTRY, production=True)
+
+    node_id = _local_swarm_node_id(c)
+    node_label_already_set = _node_has_label(c, node_id, STAGING_TEST_NODE_LABEL)
+    if not node_label_already_set:
+        c.run(
+            f"docker node update --label-add {STAGING_TEST_NODE_LABEL}=true {node_id}",
+            pty=True,
+        )
+    state["node_label_added_by_harness"] = not node_label_already_set
+    state["node_id"] = node_id
+
+    caddy_network_already_exists = _docker_resource_exists(
+        c, f"docker network inspect {STAGING_TEST_CADDY_NETWORK}"
+    )
+    if not caddy_network_already_exists:
+        c.run(
+            f"docker network create --driver overlay --attachable {STAGING_TEST_CADDY_NETWORK}",
+            pty=True,
+        )
+    state["caddy_network_created_by_harness"] = not caddy_network_already_exists
+
+    for name, value in STAGING_TEST_SECRETS.items():
+        if not _docker_resource_exists(c, f"docker secret inspect {name}"):
+            c.run(
+                f"printf '%s' {shlex.quote(value)} | docker secret create {name} -",
+                pty=True,
+            )
+
+    _write_staging_test_state(state)
+
+    c.run(
+        f"docker stack deploy {STAGING_TEST_COMPOSE_ARGS} --resolve-image=never "
+        f"{STAGING_TEST_STACK_NAME}",
+        pty=True,
+    )
+
+    print(f"Waiting for the site to come up on http://localhost:{STAGING_TEST_PORT} ...")
+    c.run(
+        "for i in $(seq 1 90); do "
+        f"code=$(curl -4 -s -o /dev/null -w '%{{http_code}}' http://localhost:{STAGING_TEST_PORT}/ || true); "
+        "case \"$code\" in 200|302) exit 0 ;; esac; "
+        "sleep 2; "
+        "done; "
+        f"echo 'Timed out waiting for http://localhost:{STAGING_TEST_PORT}' >&2; exit 1",
+        pty=True,
+    )
+    print(f"staging Swarm stack is up: http://localhost:{STAGING_TEST_PORT}")
+    print("Run `invoke staging-test-seed` to populate demo leagues.")
+
+
+@task
+def staging_test_seed(c, flush=False):
+    """Run seed_test_data inside the running staging Swarm stack's web task."""
+    container_id = c.run(
+        "docker ps --filter label=com.docker.swarm.service.name="
+        f"{STAGING_TEST_STACK_NAME}_web --format '{{{{.ID}}}}' | head -n1",
+        hide=True,
+    ).stdout.strip()
+    if not container_id:
+        print("No running staging_web container found -- is `invoke staging-test-up` still converging?")
+        return
+    cmd = f"docker exec {container_id} python manage.py seed_test_data"
+    if flush:
+        cmd += " --flush"
+    c.run(cmd, pty=True)
+    print(f"Seeded. Visit http://localhost:{STAGING_TEST_PORT}")
+
+
+@task
+def staging_test_down(c):
+    """Tear down the local staging Swarm stack: services, secrets, the caddy network, the node label, and Swarm itself if this harness started it."""
+    state = _read_staging_test_state()
+
+    c.run(f"docker stack rm {STAGING_TEST_STACK_NAME}", pty=True, warn=True)
+
+    print("Waiting for staging stack services to fully stop ...")
+    c.run(
+        "for i in $(seq 1 60); do "
+        "n=$(docker service ls --filter label=com.docker.stack.namespace="
+        f"{STAGING_TEST_STACK_NAME} -q | wc -l); "
+        '[ "$n" -eq 0 ] && exit 0; '
+        "sleep 2; "
+        "done; "
+        "echo 'Timed out waiting for staging stack teardown' >&2",
+        pty=True,
+        warn=True,
+    )
+
+    for name in STAGING_TEST_SECRETS:
+        c.run(f"docker secret rm {name}", warn=True, hide=True)
+
+    undeleted_volumes = []
+    for volume in STAGING_TEST_STACK_VOLUMES:
+        full_name = f"{STAGING_TEST_STACK_NAME}_{volume}"
+        result = c.run(
+            "for i in $(seq 1 15); do "
+            f"docker volume rm {full_name} >/dev/null 2>&1 && exit 0; "
+            "sleep 1; "
+            "done; "
+            "exit 1",
+            warn=True,
+            hide=True,
+        )
+        if not result.ok:
+            undeleted_volumes.append(full_name)
+    if undeleted_volumes:
+        print(f"WARNING: could not remove volumes (still in use?): {', '.join(undeleted_volumes)}")
+
+    if state.get("caddy_network_created_by_harness"):
+        c.run(f"docker network rm {STAGING_TEST_CADDY_NETWORK}", warn=True, hide=True)
+
+    node_id = state.get("node_id")
+    if node_id and state.get("node_label_added_by_harness"):
+        c.run(
+            f"docker node update --label-rm {STAGING_TEST_NODE_LABEL} {node_id}",
+            warn=True,
+            hide=True,
+        )
+
+    if state.get("swarm_initialized_by_harness"):
+        print("Leaving Swarm -- this harness initialized it.")
+        c.run("docker swarm leave --force", pty=True)
+    else:
+        print("Leaving Swarm mode active -- it was already active before staging-test-up.")
+
+    if os.path.isfile(STAGING_TEST_STATE_FILE):
+        os.remove(STAGING_TEST_STATE_FILE)
+
+    print("staging Swarm test stack torn down.")
 
 
 @task

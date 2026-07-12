@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: heltour_staging
+      POSTGRES_PASSWORD: heltour_staging_password
+      POSTGRES_DB: heltour_staging
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - heltour
+
+  caddy:
+    ports:
+      - "8091:80"
+
+volumes:
+  postgres_data:
