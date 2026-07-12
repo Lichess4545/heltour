@@ -1,0 +1,28 @@
+name: Save Dagger engine cache
+description: Prunes the Dagger engine's local BuildKit cache to a bounded size and saves it so the next CI run can restore and reuse it.
+
+runs:
+  using: composite
+  steps:
+    - name: Prune engine cache
+      shell: bash
+      continue-on-error: true
+      run: devenv shell -- dagger core engine local-cache prune --max-used-space=8GB --target-space=6GB
+
+    - name: Export engine volume to cache directory
+      shell: bash
+      continue-on-error: true
+      run: |
+        rm -rf "$DAGGER_ENGINE_CACHE_DIR"
+        mkdir -p "$DAGGER_ENGINE_CACHE_DIR"
+        docker run --rm \
+          -v "$DAGGER_ENGINE_CACHE_VOLUME":/from:ro \
+          -v "$DAGGER_ENGINE_CACHE_DIR":/to \
+          alpine sh -c 'cp -a /from/. /to/'
+
+    - name: Save engine cache archive
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      continue-on-error: true
+      with:
+        path: ${{ runner.temp }}/dagger-engine-cache
+        key: dagger-engine-cache-${{ runner.os }}-${{ github.run_id }}

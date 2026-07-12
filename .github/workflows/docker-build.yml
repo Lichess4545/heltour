@@ -19,6 +19,8 @@ jobs:
 
       - uses: ./.github/actions/setup-devenv
 
+      - uses: ./.github/actions/dagger-engine-cache-restore
+
       - name: Build and verify images
         if: github.event_name == 'pull_request'
         run: devenv shell -- dagger call --mod=.dagger build --source=. --github-short-sha="${{ github.sha }}"
@@ -38,3 +40,6 @@ jobs:
           --github-sha="${{ github.sha }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/dagger-engine-cache-save
+        if: always()

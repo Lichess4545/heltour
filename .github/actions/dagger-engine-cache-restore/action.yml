@@ -1,0 +1,34 @@
+name: Restore Dagger engine cache
+description: Restores the Dagger engine's persisted BuildKit cache into a fixed-name Docker volume and points _EXPERIMENTAL_DAGGER_RUNNER_HOST at it, so dagger call reuses layers across CI runs.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve engine cache volume name
+      shell: bash
+      run: |
+        engine_version=$(jq -r .engineVersion dagger.json)
+        volume_name="dagger-engine-cache-${engine_version}"
+        echo "DAGGER_ENGINE_CACHE_VOLUME=${volume_name}" >> "$GITHUB_ENV"
+        echo "DAGGER_ENGINE_CACHE_DIR=${RUNNER_TEMP}/dagger-engine-cache" >> "$GITHUB_ENV"
+        echo "_EXPERIMENTAL_DAGGER_RUNNER_HOST=image://registry.dagger.io/engine:${engine_version}?volume=${volume_name}" >> "$GITHUB_ENV"
+
+    - name: Restore engine cache archive
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/dagger-engine-cache
+        key: dagger-engine-cache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          dagger-engine-cache-${{ runner.os }}-
+
+    - name: Load restored cache into the engine volume
+      shell: bash
+      run: |
+        docker volume create "$DAGGER_ENGINE_CACHE_VOLUME" >/dev/null
+        if [ -d "$DAGGER_ENGINE_CACHE_DIR" ] && [ -n "$(ls -A "$DAGGER_ENGINE_CACHE_DIR" 2>/dev/null)" ]; then
+          docker run --rm \
+            -v "$DAGGER_ENGINE_CACHE_VOLUME":/to \
+            -v "$DAGGER_ENGINE_CACHE_DIR":/from:ro \
+            alpine sh -c 'cp -a /from/. /to/'
+        fi
