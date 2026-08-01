@@ -275,33 +275,42 @@ def alternate_accepted(alternate):
         TeamPlayerPairing.objects.filter(team_pairing__round=round_,
                                          black=alternate.season_player.player)).nocache().exists():
         return False
-    # Find an open spot to fill, prioritized by the time the search started
+    # Prefer open spots where the opposing team does not also need an alternate.
+    # Within each group, retain the existing first-started search priority.
     active_searches = AlternateSearch.objects.filter(round=round_,
                                                      board_number=alternate.board_number,
                                                      is_active=True) \
         .order_by('date_created').select_related('team').nocache()
-    for search in active_searches:
-        if search.still_needs_alternate():
-            with reversion.create_revision():
-                reversion.set_comment('Alternate assigned')
-                assignment, _ = AlternateAssignment.objects.update_or_create(round=round_,
-                                                                             team=search.team,
-                                                                             board_number=search.board_number, \
-                                                                             defaults={
-                                                                                 'player': alternate.season_player.player,
-                                                                                 'replaced_player': None})
-            with reversion.create_revision():
-                reversion.set_comment('Alternate assigned')
-                alternate.status = 'accepted'
-                alternate.save()
-            with reversion.create_revision():
-                reversion.set_comment('Alternate search completed')
-                search.status = 'completed'
-                search.save()
-            signals.alternate_assigned.send(sender=alternate_accepted, season=season,
-                                            alt_assignment=assignment)
-            time.sleep(SLEEP_UNIT)
-            return True
+    open_searches = [search for search in active_searches if search.still_needs_alternate()]
+    teams_with_open_searches = {search.team_id for search in open_searches}
+
+    def search_priority(search):
+        opponent = search.team.get_opponent(round_)
+        both_teams_need_alternates = opponent is not None and \
+            opponent.pk in teams_with_open_searches
+        return (both_teams_need_alternates, search.date_created, search.pk)
+
+    for search in sorted(open_searches, key=search_priority):
+        with reversion.create_revision():
+            reversion.set_comment('Alternate assigned')
+            assignment, _ = AlternateAssignment.objects.update_or_create(round=round_,
+                                                                         team=search.team,
+                                                                         board_number=search.board_number, \
+                                                                         defaults={
+                                                                             'player': alternate.season_player.player,
+                                                                             'replaced_player': None})
+        with reversion.create_revision():
+            reversion.set_comment('Alternate assigned')
+            alternate.status = 'accepted'
+            alternate.save()
+        with reversion.create_revision():
+            reversion.set_comment('Alternate search completed')
+            search.status = 'completed'
+            search.save()
+        signals.alternate_assigned.send(sender=alternate_accepted, season=season,
+                                        alt_assignment=assignment)
+        time.sleep(SLEEP_UNIT)
+        return True
     return False
 
 
