@@ -11,6 +11,7 @@ from heltour.tournament.models import (
     Round,
     Season,
     Team,
+    TeamMember,
     TeamPairing,
     TeamPlayerPairing,
     LonePlayerPairing,
@@ -99,8 +100,26 @@ class TemplatesRedirectTestCase(TestCase):
         )
 
     def test_rosters_template(self):
+        TeamMember.objects.filter(team__number=1, board_number=1).update(
+            is_captain=True
+        )
+        TeamMember.objects.filter(team__number=1, board_number=2).update(
+            is_vice_captain=True
+        )
         response = self.client.get(season_url("team", "rosters"))
         self.assertTemplateUsed(response, "tournament/team_rosters.html")
+        self.assertContains(response, 'cell-player captain')
+        self.assertContains(response, 'cell-player vice-captain')
+
+        response = self.client.get(
+            reverse(
+                "by_league:by_season:team_profile",
+                args=[league_tag("team"), season_tag("team"), 1],
+            )
+        )
+        self.assertTemplateUsed(response, "tournament/team_profile.html")
+        self.assertContains(response, 'class="captain"')
+        self.assertContains(response, 'class="vice-captain"')
 
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
         with Shush():
@@ -134,6 +153,10 @@ class TemplatesRedirectTestCase(TestCase):
     def test_pairings_template(self):
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
+        TeamMember.objects.filter(team=team1, board_number=1).update(is_captain=True)
+        TeamMember.objects.filter(team=team1, board_number=2).update(
+            is_vice_captain=True
+        )
         Round.objects.filter(season__league__name="Team League", number=1).update(
             publish_pairings=True, start_date=timezone.now()
         )
@@ -160,6 +183,8 @@ class TemplatesRedirectTestCase(TestCase):
         response = self.client.get(season_url("team", "pairings"))
         self.assertTemplateUsed(response, "tournament/team_pairings.html")
         self.assertNotContains(response, "icon-confirmed")
+        self.assertContains(response, 'class="captain"')
+        self.assertContains(response, 'class="vice-captain"')
 
         response = self.client.get(season_url("lone", "pairings"))
         self.assertTemplateUsed(response, "tournament/lone_pairings.html")

@@ -145,6 +145,7 @@
                                                         ({% white_team_rating pairing %})
                                                     {% endif %}
                                                     {% if pairing.white_team_player in captains %}<span class="captain"></span>{% endif %}
+                                                    {% if pairing.white_team_player in vice_captains %}<span class="vice-captain"></span>{% endif %}
                                                 </a>
                                                 {% if white_img %}
                                                     <img src="{% static 'tournament/img/icon-'|add:white_img|add:'.svg' %}"
@@ -179,6 +180,7 @@
                                                         ({% black_team_rating pairing %})
                                                     {% endif %}
                                                     {% if pairing.black_team_player in captains %}<span class="captain"></span>{% endif %}
+                                                    {% if pairing.black_team_player in vice_captains %}<span class="vice-captain"></span>{% endif %}
                                                 </a>
                                                 <span class="color-dot right"></span>
                                                 <a class="opening-book hidden-xs"

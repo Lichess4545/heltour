@@ -579,6 +579,10 @@ class PairingsView(SeasonView):
                                    .nocache()}
         captains = {tm.player for tm in
                     TeamMember.objects.filter(team__season=self.season, is_captain=True)}
+        vice_captains = {tm.player for tm in
+                         TeamMember.objects.filter(team__season=self.season,
+                                                   is_vice_captain=True,
+                                                   is_captain=False)}
 
         # Show the legend if at least one the players in the visible pairings is unavailable
         show_legend = len(unavailable_players & (
@@ -593,6 +597,7 @@ class PairingsView(SeasonView):
             'team_list': team_list,
             'pairing_lists': pairing_lists,
             'captains': captains,
+            'vice_captains': vice_captains,
             'unavailable_players': unavailable_players,
             'show_legend': show_legend,
             'specified_round': specified_round,

@@ -17,7 +17,7 @@
                                     <td>
                                         <span class="hidden-xs">Board {{ n }}:</span><span class="visible-xs">Bd {{ n }}</span>
                                     </td>
-                                    <td {% if team_member.is_captain %}class="captain"{% endif %}>
+                                    <td {% if team_member.is_captain %}class="captain"{% elif team_member.is_vice_captain %}class="vice-captain"{% endif %}>
                                         {% if team_member %}
                                             <a href="{% leagueurl 'player_profile' league.tag season.tag team_member.player.lichess_username %}">
                                                 {{ team_member.player.lichess_username }}

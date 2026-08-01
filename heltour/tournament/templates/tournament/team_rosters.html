@@ -48,7 +48,7 @@
                                                    href="{% leagueurl 'team_profile' league.tag season.tag team.number %}">{{ team.name }}</a>
                                             </td>
                                             {% for board_number, board in team.boards %}
-                                                <td class="cell-player{% if board.is_captain %} captain{% endif %}"
+                                                <td class="cell-player{% if board.is_captain %} captain{% elif board.is_vice_captain %} vice-captain{% endif %}"
                                                     colspan="2">
                                                     <span class="player-name{% if board.player in red_card_players %} player-red-card"
                                                           title="2+ games missed"
