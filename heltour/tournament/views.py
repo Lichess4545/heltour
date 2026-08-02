@@ -770,6 +770,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
+            is_update = instance is not None
             player = Player.get_or_create(lichess_username=self.request.user.username)
             if post:
                 form = RegistrationForm(
@@ -781,12 +782,18 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                 if form.is_valid():
                     with reversion.create_revision():
                         reversion.set_comment('Submitted registration.')
-                        form.save()
+                        registration = form.save()
 
-                    self.request.session['reg_email'] = form.cleaned_data['email']
+                    self.request.session[
+                        RegistrationSuccessView.session_key(reg_season)
+                    ] = {
+                        'registration_id': registration.pk,
+                        'is_update': is_update,
+                        'changed_fields': form.changed_data if is_update else [],
+                    }
 
                     return redirect(leagueurl('registration_success', league_tag=self.league.tag,
-                                              season_tag=self.season.tag))
+                                              season_tag=reg_season.tag))
             else:
                 rules_doc = LeagueDocument.objects.filter(league=self.league, type='rules').first()
                 if rules_doc is not None:
@@ -814,15 +821,88 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         return self.view(post=True)
 
 
-class RegistrationSuccessView(SeasonView):
+class RegistrationSuccessView(LoginRequiredMixin, SeasonView):
+    summary_fields = (
+        ('email', 'Email'),
+        ('alternate_preference', 'Player preference'),
+        ('section_preference', 'Section preference'),
+        ('weeks_unavailable', 'Unavailable rounds'),
+        ('friends', 'Preferred teammates'),
+        ('avoid', 'Players to avoid'),
+    )
+
+    @staticmethod
+    def session_key(season):
+        return f'registration_success_{season.pk}'
+
+    @staticmethod
+    def field_value(registration, field_name, field):
+        if field_name == 'alternate_preference':
+            return registration.get_alternate_preference_display()
+        if field_name == 'section_preference':
+            if registration.section_preference is None:
+                return dict(field.choices).get('', 'No preference')
+            return registration.section_preference.name
+        if field_name == 'weeks_unavailable':
+            selected_weeks = {
+                week for week in registration.weeks_unavailable.split(',') if week
+            }
+            selected_labels = [
+                str(label) for value, label in field.choices
+                if str(value) in selected_weeks
+            ]
+            return ', '.join(selected_labels) if selected_labels else 'None'
+        return getattr(registration, field_name) or 'None'
+
+    def registration_summary(self, registration, reg_season, changed_fields):
+        form = RegistrationForm(
+            instance=registration,
+            season=reg_season,
+            player=registration.player,
+        )
+        rows = [{
+            'field': 'status',
+            'label': 'Status',
+            'value': registration.get_status_display(),
+            'changed': False,
+        }]
+        for field_name, label in self.summary_fields:
+            field = form.fields.get(field_name)
+            if field is None or field.widget.is_hidden:
+                continue
+            rows.append({
+                'field': field_name,
+                'label': label,
+                'value': self.field_value(registration, field_name, field),
+                'changed': field_name in changed_fields,
+            })
+        return rows
+
     def view(self):
         reg_season = Season.get_registration_season(self.league, self.season)
         if reg_season is None:
             return self.render('tournament/registration_closed.html', {})
 
+        registration = Registration.get_latest_registration(self.request.user, reg_season)
+        submission = self.request.session.pop(self.session_key(reg_season), None)
+        if submission is not None and (
+                registration is None
+                or submission.get('registration_id') != registration.pk):
+            submission = None
+        changed_fields = set(submission.get('changed_fields', [])) if submission else set()
+        summary = self.registration_summary(
+            registration, reg_season, changed_fields
+        ) if registration else []
+
         context = {
             'registration_season': reg_season,
-            'email': self.request.session.get('reg_email')
+            'registration': registration,
+            'registration_summary': summary,
+            'registration_submission': submission,
+            'email': registration.email if registration else None,
+            'show_player_preference': any(
+                row['field'] == 'alternate_preference' for row in summary
+            ),
         }
         return self.render('tournament/registration_success.html', context)
 
