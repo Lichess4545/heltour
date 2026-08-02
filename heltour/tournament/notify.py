@@ -427,7 +427,10 @@ def _notify_alternate_and_opponent(league, aa):
              + '{slack_url}\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel}.'
 
-    send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    sent_round_start_notification = send_pairing_notification(
+        'round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    if sent_round_start_notification:
+        _set_round_start_notification_sent(pairing, True)
 
     return opponent
 
@@ -483,7 +486,7 @@ def _offset_str(offset):
 def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg, offset=None,
                               player=None):
     if pairing.white is None or pairing.black is None:
-        return
+        return False
     round_ = pairing.get_round()
     season = round_.season
     league = season.league
@@ -547,6 +550,12 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     if send_to_black and black_setting.enable_lichess_mail and li_subject and li_msg:
         _lichess_message(league, black, li_subject.format(**black_params),
                          li_msg.format(**black_params))
+    return True
+
+
+def _set_round_start_notification_sent(pairing, sent):
+    pairing.round_start_notification_sent = sent
+    pairing.save(update_fields=['round_start_notification_sent'])
 
 
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
@@ -585,8 +594,13 @@ def notify_players_round_start(round_, **kwargs):
             if season.alternates_manager_enabled() and (
                 pairing.white in unavailable_players or pairing.black in unavailable_players):
                 # Don't send a notification, since the alternates manager will handle it
+                if pairing.round_start_notification_sent is None:
+                    _set_round_start_notification_sent(pairing, False)
                 continue
-            send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+            sent_round_start_notification = send_pairing_notification(
+                'round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+            if sent_round_start_notification:
+                _set_round_start_notification_sent(pairing, True)
             time.sleep(settings.SLEEP_UNIT)
 
 
@@ -618,7 +632,10 @@ def notify_players_late_pairing(round_, pairing, **kwargs):
             'Could not send round start notifications due to incorrect round state: %s' % round_)
         return
 
-    send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    sent_round_start_notification = send_pairing_notification(
+        'round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
+    if sent_round_start_notification:
+        _set_round_start_notification_sent(pairing, True)
     time.sleep(settings.SLEEP_UNIT)
 
 

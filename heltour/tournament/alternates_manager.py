@@ -103,6 +103,44 @@ def reset_alternate_search(season, round_, setting):
         workflows.UpdateBoardOrderWorkflow(season).run(alternates_only=True)
 
 
+def _cancel_resolved_searches(round_, board_number):
+    searches = AlternateSearch.objects.filter(
+        round=round_, board_number=board_number, is_active=True,
+        status__in=('started', 'all_contacted')) \
+        .select_related('team').nocache()
+    resolved_searches = []
+    pairings_to_notify = {}
+
+    for search in searches:
+        if search.still_needs_alternate():
+            continue
+        resolved_searches.append(search)
+
+        if not round_.publish_pairings:
+            continue
+        team_pairing = search.team.get_teampairing(round_)
+        if team_pairing is None:
+            continue
+        pairing = TeamPlayerPairing.objects.filter(
+            team_pairing=team_pairing, board_number=board_number, result='', game_link='',
+            scheduled_time=None).exclude(white=None).exclude(black=None).nocache().first()
+        if pairing is None or pairing.round_start_notification_sent is not False:
+            continue
+        if pairing.white.is_available_for(round_) and pairing.black.is_available_for(round_):
+            pairings_to_notify[pairing.pk] = pairing
+
+    for pairing in pairings_to_notify.values():
+        signals.notify_players_late_pairing.send(sender=do_alternate_search, round_=round_,
+                                                 pairing=pairing)
+        time.sleep(SLEEP_UNIT)
+
+    for search in resolved_searches:
+        with reversion.create_revision():
+            reversion.set_comment('Alternate search cancelled')
+            search.status = 'cancelled'
+            search.save()
+
+
 def do_alternate_search(season, round_, board_number, setting):
     # Figure out which players need to be replaced and which alternates have/haven't been contacted
     player_availabilities = PlayerAvailability.objects.filter(round=round_, is_available=False) \
@@ -144,6 +182,8 @@ def do_alternate_search(season, round_, board_number, setting):
             .select_related('season_player__registration', 'season_player__player').nocache(), \
         key=lambda a: a.priority_date())
 
+    _cancel_resolved_searches(round_, board_number)
+
     if len(players_that_need_replacements) == 0:
         # No searches in progress, so notify and update the status of previously-contacted alternates
         for alt in alternates_contacted:
@@ -168,7 +208,7 @@ def do_alternate_search(season, round_, board_number, setting):
             # Search is manually disabled, move on to the next open spot
             continue
 
-        if created or search.status == 'completed':
+        if created or search.status in ('completed', 'cancelled'):
             # Search has just (re)started
             signals.alternate_search_started.send(sender=do_alternate_search, season=season,
                                                   team=teams_by_player[p], \

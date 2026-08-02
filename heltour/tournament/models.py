@@ -1566,6 +1566,8 @@ class PlayerPairing(_BaseModel):
     broadcasted = models.BooleanField(default=False)
 
     colors_reversed = models.BooleanField(default=False)
+    # None means that the pairing predates notification tracking.
+    round_start_notification_sent = models.BooleanField(null=True, default=None)
 
     
     #We do not want to mark players as unresponsive if their opponents got assigned after round start
