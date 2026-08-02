@@ -3,6 +3,12 @@ var ws = null;
 var queue = [];
 
 var shown_games = {};
+var shown_finished_games = {};
+var seen_finished_games = {};
+var finished_game_order = [];
+var finished_initialized = false;
+var finished_filter_key = null;
+var finished_initial_limit = 6;
 var schedule_max = 10;
 var schedule_page_size = 10;
 
@@ -55,7 +61,18 @@ function run() {
 
 run();
 
-function newBoard($parent, game, m) {
+function updateGameStatus($parent, game) {
+    $parent.find('.top-label .player-result').text(game.black_result || '').toggle(!!game.black_result);
+    $parent.find('.bottom-label .player-result').text(game.white_result || '').toggle(!!game.white_result);
+    if (game.black_team) {
+        $parent.find('.top-label .team-score').text(game.black_team.score.toFixed(1));
+    }
+    if (game.white_team) {
+        $parent.find('.bottom-label .team-score').text(game.white_team.score.toFixed(1));
+    }
+}
+
+function newBoard($parent, game, m, watch) {
     var chess = new Chess();
 
     var ground = Chessground($parent.find('.chessground')[0], {
@@ -91,8 +108,7 @@ function newBoard($parent, game, m) {
             data: {
                 with_moves: 1
             },
-            dataType: 'jsonp',
-            jsonp: 'callback',
+            dataType: 'json',
             success: function (data) {
                 if (data.moves) {
                     var a = {};
@@ -117,7 +133,6 @@ function newBoard($parent, game, m) {
         top_label.find('.team-div').show();
         top_label.find('.board-number').text(game.board_number);
         top_label.find('.team-name').text(game.black_team.name);
-        top_label.find('.team-score').text(game.black_team.score.toFixed(1));
         top_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.black_team.number + '/');
     }
 
@@ -131,23 +146,57 @@ function newBoard($parent, game, m) {
         bottom_label.find('.team-div').show();
         bottom_label.find('.board-number').text(game.board_number);
         bottom_label.find('.team-name').text(game.white_team.name);
-        bottom_label.find('.team-score').text(game.white_team.score.toFixed(1));
         bottom_label.find('.team-link').attr('href', '/' + game.league + '/season/' + game.season + '/team/' + game.white_team.number + '/');
     }
 
-    var message = JSON.stringify({
-        t: 'startWatching',
-        d: game.id
-    })
-    send(ws, message);
+    updateGameStatus($parent, game);
+
+    if (watch !== false) {
+        var message = JSON.stringify({
+            t: 'startWatching',
+            d: game.id
+        })
+        send(ws, message);
+    }
 
 };
 
-function render(data) {
-    // Populate a set of all the games we're about to show
+function resetFinishedGames() {
+    $.each(shown_finished_games, function (id, el) {
+        $(el).remove();
+        delete chessGrounds[id];
+    });
+    shown_finished_games = {};
+    seen_finished_games = {};
+    finished_game_order = [];
+    finished_initialized = false;
+}
+
+function render(data, filter_key) {
+    if (filter_key !== undefined && filter_key !== finished_filter_key) {
+        resetFinishedGames();
+        finished_filter_key = filter_key;
+    }
+
+    var finished_games = data.finished || [];
+    var finished_to_show = {};
+    $.each(finished_games, function (i, g) {
+        if ((!finished_initialized && i < finished_initial_limit) ||
+                (finished_initialized && !(g.id in seen_finished_games))) {
+            finished_to_show[g.id] = 1;
+        }
+        seen_finished_games[g.id] = 1;
+    });
+    finished_initialized = true;
+
+    // Populate sets of all the games we're about to show
     var next_games = {};
     $.each(data.games, function (i, g) {
         next_games[g.id] = 1;
+    });
+    var next_finished_games = {};
+    $.each(finished_games, function (i, g) {
+        next_finished_games[g.id] = g;
     });
     var messages = {};
     $.each(data.watch, function (i, msg) {
@@ -156,20 +205,27 @@ function render(data) {
         }
     });
 
-    // Delete existing games we're not showing any more
+    // Move newly finished games and remove games no longer returned by the server
     $('#games-row').children().each(function (i, el) {
         var id = $(el).data('id');
         if (!(id in next_games)) {
-            $('#finished-games').show();
-            $('#finished-games-row').prepend(el);
+            var $el = $(el);
+            if (id in next_finished_games) {
+                updateGameStatus($el, next_finished_games[id]);
+                shown_finished_games[id] = $el;
+            } else {
+                $el.remove();
+                delete chessGrounds[id];
+            }
             delete shown_games[id];
         }
     });
 
-    // Show new games
+    // Show new current games
     $.each(data.games, function (i, g) {
         if (g.id in shown_games) {
             var $g = shown_games[g.id];
+            updateGameStatus($g, g);
             $g.toggle(g.matches_filter);
             if (g.matches_filter && !$g.data('has_board')) {
                 newBoard($g, g, messages[g.id]);
@@ -187,6 +243,36 @@ function render(data) {
             shown_games[g.id] = $g;
         }
     });
+
+    // Chessground needs an attached, visible element to calculate piece positions.
+    if (finished_game_order.length > 0 || Object.keys(finished_to_show).length > 0) {
+        $('#finished-games').show();
+    }
+
+    // Render up to finished_initial_limit games initially, then retain them and stack newly finished games on top.
+    var newly_shown_finished_games = [];
+    $.each(finished_games, function (i, g) {
+        var $g = shown_finished_games[g.id];
+        if (!$g && g.id in finished_to_show) {
+            $g = $('#game-template').clone().attr('id', null).data('id', g.id);
+            $g.find('.chessground').wrap('<a href="https://lichess.org/' + g.id + '"></a>');
+            $g.show();
+            $('#finished-games-row').append($g);
+            newBoard($g, g, null, false);
+            $g.data('has_board', true);
+            shown_finished_games[g.id] = $g;
+        } else if ($g) {
+            updateGameStatus($g, g);
+        }
+        if ($g && finished_game_order.indexOf(g.id) === -1) {
+            newly_shown_finished_games.push(g.id);
+        }
+    });
+    finished_game_order = newly_shown_finished_games.concat(finished_game_order);
+    $.each(finished_game_order, function (i, id) {
+        $('#finished-games-row').append(shown_finished_games[id]);
+    });
+    $('#finished-games').toggle(finished_game_order.length > 0);
 
     // Render the schedule
     $('#schedule').empty();
@@ -259,8 +345,9 @@ function poll() {
     $('#id_board').val(board);
     $('#id_team').val(team);
     $('#id_timezone').val(timezone);
+    var filter_key = [league, board, team].join('|');
     $.get(jsonUrl + '?league=' + league + '&board=' + board + '&team=' + team, function (data) {
-        render(data);
+        render(data, filter_key);
     });
 }
 

@@ -32,7 +32,7 @@
         if (location.hash.length > 0) {
             poll();
         } else {
-            render({{ json|safe }});
+            render({{ json|safe }}, [currentLeague, 'all', 'all'].join('|'));
         }
         window.onhashchange = poll;
     </script>
@@ -67,6 +67,7 @@
                                             <span class="player-name"></span>
                                             {% if not zen_mode %}(<span class="player-rating"></span>){% endif %}
                                         </a>
+                                        <span class="player-result"></span>
                                     </div>
                                 </div>
                                 <div class="chessground small {% if league.theme == 'green' %}green{% else %}blue{% endif %} cburnett"></div>
@@ -81,6 +82,7 @@
                                             <span class="player-name"></span>
                                             {% if not zen_mode %}(<span class="player-rating"></span>){% endif %}
                                         </a>
+                                        <span class="player-result"></span>
                                     </div>
                                 </div>
                             </section>

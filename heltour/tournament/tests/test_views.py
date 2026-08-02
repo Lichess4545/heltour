@@ -340,6 +340,91 @@ class TvTestCase(TestCase):
         self.assertNotContains(response, "Player1")
         self.assertNotContains(response, "Player3")
 
+    def test_recently_finished_games(self, *args):
+        rd = Round.objects.get(season__league__name="Lone League", number=1)
+        finished = LonePlayerPairing.objects.create(
+            round=rd,
+            white=self.player1,
+            black=self.player2,
+            game_link="https://lichess.org/FIN00001",
+            result="1-0",
+            colors_reversed=True,
+            pairing_order=2,
+        )
+        hidden = LonePlayerPairing.objects.create(
+            round=rd,
+            white=self.player1,
+            black=self.player2,
+            game_link="https://lichess.org/FIN00002",
+            result="1-0",
+            pairing_order=3,
+        )
+        LonePlayerPairing.objects.filter(pk=hidden.pk).update(tv_state="hide")
+        old = LonePlayerPairing.objects.create(
+            round=rd,
+            white=self.player1,
+            black=self.player2,
+            game_link="https://lichess.org/FIN00003",
+            result="1/2-1/2",
+            pairing_order=4,
+        )
+        LonePlayerPairing.objects.filter(pk=old.pk).update(
+            date_modified=timezone.now() - timedelta(hours=13)
+        )
+
+        response = self.client.get(season_url("lone", "tv_json"))
+        recent_games = response.json()["finished"]
+
+        self.assertEqual([g["id"] for g in recent_games], ["FIN00001"])
+        self.assertEqual(recent_games[0]["white_result"], "0")
+        self.assertEqual(recent_games[0]["black_result"], "1")
+        self.assertNotIn(hidden.game_id(), [g["id"] for g in recent_games])
+        self.assertNotIn(old.game_id(), [g["id"] for g in recent_games])
+
+        response = self.client.get(season_url("lone", "tv"))
+        self.assertContains(response, finished.game_id())
+        self.assertContains(response, '"white_result": "0"')
+
+    def test_recently_finished_game_with_unknown_result(self, *args):
+        rd = Round.objects.get(season__league__name="Lone League", number=1)
+        game = LonePlayerPairing.objects.create(
+            round=rd,
+            white=self.player1,
+            black=self.player2,
+            game_link="https://lichess.org/BAD00001",
+            result="unexpected",
+            pairing_order=2,
+        )
+
+        with self.assertLogs("heltour.tournament.models", level="WARNING") as logs:
+            response = self.client.get(season_url("lone", "tv_json"))
+
+        self.assertEqual(response.status_code, 200)
+        recent_game = next(g for g in response.json()["finished"] if g["id"] == game.game_id())
+        self.assertEqual(recent_game["white_result"], "?")
+        self.assertEqual(recent_game["black_result"], "?")
+        self.assertTrue(any("Unknown result for TV game" in line for line in logs.output))
+
+    def test_recently_finished_games_are_limited_to_twelve(self, *args):
+        rd = Round.objects.get(season__league__name="Lone League", number=1)
+        for i in range(13):
+            LonePlayerPairing.objects.create(
+                round=rd,
+                white=self.player1,
+                black=self.player2,
+                game_link=f"https://lichess.org/FIN{i:05d}",
+                result="1/2-1/2",
+                pairing_order=i + 2,
+            )
+
+        recent_games = self.client.get(season_url("lone", "tv_json")).json()["finished"]
+
+        self.assertEqual(len(recent_games), 12)
+        self.assertEqual(recent_games[0]["id"], "FIN00012")
+        self.assertNotIn("FIN00000", [g["id"] for g in recent_games])
+        self.assertTrue(all(g["white_result"] == "½" for g in recent_games))
+        self.assertTrue(all(g["black_result"] == "½" for g in recent_games))
+
     def test_non_classical_tv(self, *args):
         l960 = League.objects.create(
             name="c960 League",

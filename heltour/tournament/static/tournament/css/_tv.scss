@@ -20,6 +20,23 @@ section .gameLabel a {
     color: #666;
 }
 
+section .gameLabel .player-div {
+    position: relative;
+}
+
+section .gameLabel .player-result {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 5px;
+    min-width: 22px;
+    padding: 0 5px;
+    border-radius: 3px;
+    background: #666;
+    color: #fff;
+    text-align: center;
+}
+
 section .gameLabel .team-name {
     display: inline-block;
     max-width: 190px;

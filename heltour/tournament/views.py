@@ -2325,7 +2325,29 @@ class ToggleZenModeView(BaseView):
 
 
 def _tv_json(league, board=None, team=None):
+    def result_parts(game):
+        if not game.result:
+            return None, None
+
+        point_values = {
+            '1-0': ('1', '0'),
+            '1/2-1/2': ('\u00BD', '\u00BD'),
+            '0-1': ('0', '1'),
+            '1X-0F': ('1', '0'),
+            '1/2Z-1/2Z': ('\u00BD', '\u00BD'),
+            '0F-1X': ('0', '1'),
+            '0F-0F': ('0', '0'),
+        }
+        result = point_values.get(game.result)
+        if result is None:
+            logger.warning('Unknown result for TV game %s: %r', game.pk, game.result)
+            return '?', '?'
+        if game.colors_reversed:
+            return result[1], result[0]
+        return result
+
     def export_game(game, league, board, team):
+        white_result, black_result = result_parts(game)
         if hasattr(game, 'teamplayerpairing'):
             game_season = game.teamplayerpairing.team_pairing.round.season
             game_league = game_season.league
@@ -2333,8 +2355,10 @@ def _tv_json(league, board=None, team=None):
                 'id': game.game_id(),
                 'white_name': game.white.lichess_username,
                 'white_rating': game.white_rating_display(league),
+                'white_result': white_result,
                 'black_name': game.black.lichess_username,
                 'black_rating': game.black_rating_display(league),
+                'black_result': black_result,
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game_league.tag,
                 'season': game_season.tag,
@@ -2364,8 +2388,10 @@ def _tv_json(league, board=None, team=None):
                 'id': game.game_id(),
                 'white_name': game.white.lichess_username,
                 'white_rating': game.white_rating_display(league),
+                'white_result': white_result,
                 'black_name': game.black.lichess_username,
                 'black_rating': game.black_rating_display(league),
+                'black_result': black_result,
                 'time': game.scheduled_time.isoformat() if game.scheduled_time is not None else None,
                 'league': game_league.tag,
                 'season': game_season.tag,
@@ -2388,6 +2414,14 @@ def _tv_json(league, board=None, team=None):
                         'teamplayerpairing__team_pairing__white_team',
                         'loneplayerpairing__round__season__league',
                         'white', 'black').nocache()
+    finished_games = PlayerPairing.objects.filter(
+        date_modified__gte=timezone.now() - timedelta(hours=12)).exclude(result='').exclude(
+        tv_state='hide').exclude(game_link='').order_by('-date_modified') \
+        .select_related('teamplayerpairing__team_pairing__round__season__league',
+                        'teamplayerpairing__team_pairing__black_team',
+                        'teamplayerpairing__team_pairing__white_team',
+                        'loneplayerpairing__round__season__league',
+                        'white', 'black').nocache()
 
     @cached_as(League, Season, Round, Team, TeamScore, Player, PlayerPairing, TeamPlayerPairing,
                TeamPairing, LonePlayerPairing)
@@ -2399,11 +2433,19 @@ def _tv_json(league, board=None, team=None):
     def get_schedule(league, board, team):
         return [export_game(g, league, board, team) for g in scheduled_games]
 
+    @cached_as(League, Season, Round, Team, TeamScore, Player, PlayerPairing, TeamPlayerPairing,
+               TeamPairing, LonePlayerPairing, timeout=60)
+    def get_finished(league, board, team):
+        games = [export_game(g, league, board, team) for g in finished_games]
+        return [g for g in games if g is not None and g['matches_filter']][:12]
+
     games = get_games(league, board, team)
     schedule = get_schedule(league, board, team)
+    finished = get_finished(league, board, team)
     game_ids = [g['id'] for g in games]
     return {'games': games,
             'schedule': schedule,
+            'finished': finished,
             'watch': lichessapi.watch_games(game_ids)}
 
 
