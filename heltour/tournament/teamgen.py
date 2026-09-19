@@ -129,8 +129,6 @@ def split_into_equal_groups_by_rating(players, group_number):
 
 def get_rating_bounds_of_split(split):
     min_ratings = [min([p.rating for p in board]) for board in split]
-    print("min ratings")
-    print(min_ratings)
     max_ratings = [max([p.rating for p in board]) for board in split]
     min_ratings[-1] = 0
     max_ratings[0] = 5000
