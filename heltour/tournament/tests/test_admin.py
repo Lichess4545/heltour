@@ -2,7 +2,7 @@ from unittest.mock import ANY, patch
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -74,7 +74,7 @@ class SeasonAdminTestCase(TestCase):
     def test_create_several_broadcasts(self, dcb, message):
         self.client.force_login(user=self.superuser)
         self.client.post(
-            reverse("admin:tournament_season_changelist"),
+            self.path_s_changelist,
             data={
                 "action": "create_broadcast",
                 "_selected_action": Season.objects.all().values_list("pk", flat=True)
@@ -88,7 +88,7 @@ class SeasonAdminTestCase(TestCase):
         )
         dcb.assert_not_called()
 
-
+    @override_settings(DEBUG=True)
     @patch("heltour.tournament.simulation.simulate_season")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_simulate(self, message, simulate):
@@ -364,7 +364,7 @@ class SeasonAdminTestCase(TestCase):
             message.call_args.args[1], "Spam sent to 4 teams."
         )  # correct now.
         self.assertEqual(slack_message.call_count, 4)
-        self.assertEqual(slack_message.call_args.args[1], "message sent to teams")
+        slack_message.assert_called_with(channel=ANY, text="message sent to teams")
         self.assertTemplateUsed(response, "admin/change_list.html")
 
     def test_manage_players_add_delete_alternate(self):
