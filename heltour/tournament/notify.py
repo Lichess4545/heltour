@@ -516,7 +516,7 @@ def _notify_alternate_and_opponent(league, aa):
     if aa.player == aa.replaced_player:
         message_to_opponent = (
             f"{userlink_silent(_slack_user(opponent))}: Your opponent, "
-            f"{userlink_silent(_slack_user(aa.replaced.player))}, no longer requires "
+            f"{userlink_silent(_slack_user(aa.replaced_player))}, no longer requires "
             f"an alternate. Please contact {userlink_silent(_slack_user(aa.player))} "
             "as soon as possible."
         )

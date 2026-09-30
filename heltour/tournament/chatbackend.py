@@ -50,7 +50,7 @@ def chatbackend() -> str:
     return settings.USE_CHATBACKEND.capitalize()
 
 def chatbackend_render() -> bool:
-    return settings.USE_CHATBACKEND in ["slack", "zulip"]
+    return settings.USE_CHATBACKEND == "slack"
 
 
 def chatbackend_url() -> str:
