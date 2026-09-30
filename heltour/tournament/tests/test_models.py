@@ -1116,3 +1116,35 @@ class ScheduledEventTestCase(TestCase):
         self.assertFalse(automod_noshow.called)
         self.se.run(self.pp)
         self.assertTrue(automod_noshow.called)
+
+
+class PlayerTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.p1 = Player.objects.create(lichess_username='Player1')
+       # cls.p2 = Player.objects.create(lichess_username='Player2')
+        cls.profile_old = {
+                "id": "Player1",
+                "username": "Player1",
+                "perfs": {
+                    "classical": {
+                        "games": 25,
+                        "rating": 1858,
+                        "rd": 247,
+                       "prog": 48,
+                       "prov": "true"
+                    },
+                },
+                "createdAt": 1290415680000,
+                "seenAt": 1789845490097,
+                }
+
+    def test_update_profile(self):
+        self.assertIsNone(self.p1.rating)
+        self.p1.update_profile(user_meta=self.profile_old)
+        self.assertEqual(self.p1.rating, 1858)
+        self.assertEqual(self.p1.profile.get("perfs").get("classical").get("rd"), 247)
+
+
+
+
