@@ -922,7 +922,7 @@ class Player(_BaseModel):
         if seenAt is not None:
             return datetime.fromtimestamp(seenAt / 1000, tz=timezone.utc)
         # give an early default time otherwise:
-        return datetime.datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
+        return datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
 
     def max_rd_guess(self) -> float:
         ABSOLUTE_MAX_RD: int = 500 # max rd on lichess
