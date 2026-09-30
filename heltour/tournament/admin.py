@@ -474,8 +474,8 @@ class SeasonAdmin(_BaseAdmin):
                 self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
             path('<int:object_id>/creating_teams/',
-                 self.admin_site.admin_view(self.creating_teams_view),
-                 name='creating_teams'),
+                self.admin_site.admin_view(self.creating_teams_view),
+                name='creating_teams'),
             path('<int:object_id>/create_teams/',
                 self.admin_site.admin_view(self.create_teams_view),
                 name='create_teams'),
@@ -1048,9 +1048,9 @@ class SeasonAdmin(_BaseAdmin):
 
     def creating_teams_view(self, request, object_id):
         context = {
-            'opts': self.model._meta,
+            "opts": self.model._meta,
         }
-        return render(request, 'tournament/admin/creating_teams.html', context)
+        return render(request, "tournament/admin/creating_teams.html", context)
 
 
     def create_teams_view(self, request, object_id):
@@ -1062,11 +1062,13 @@ class SeasonAdmin(_BaseAdmin):
         if request.method == 'POST':
             form = forms.CreateTeamsForm(team_count, request.POST)
             if form.is_valid():
-               signals.do_create_teams.send(sender=self.__class__,
-                                            season_id=season.pk,
-                                            balance=form.cleaned_data["balance"],
-                                            count=form.cleaned_data["count"])
-               return redirect('admin:creating_teams', object_id)
+                signals.do_create_teams.send(
+                    sender=self.__class__,
+                    season_id=season.pk,
+                    balance=form.cleaned_data["balance"],
+                    count=form.cleaned_data["count"],
+                )
+                return redirect("admin:creating_teams", object_id)
 
         else:
             form = forms.CreateTeamsForm(team_count)
