@@ -595,7 +595,7 @@ def alternate_needed(alternate, round_, response_time, accept_url, decline_url, 
             # dm_link usernames empty, because the listening bot is added automatically
         )
         _lichess_message(
-            league=league, 
+            league=league,
             username=_slack_user(player),
             subject=li_subject,
             text=li_msg

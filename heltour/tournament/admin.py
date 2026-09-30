@@ -1877,7 +1877,7 @@ class TeamAdmin(_BaseAdmin):
                                   'The team season must be active and not completed in order to create channels.',
                                   messages.ERROR)
                 return
-            if len(team.season.tag) > 40:
+            if len(team.season.tag) > 3:
                 self.message_user(request, 'The team season tag is too long to create a channel.',
                                   messages.ERROR)
                 return
