@@ -928,7 +928,7 @@ class Player(_BaseModel):
         ABSOLUTE_MAX_RD: int = 500 # max rd on lichess
         DAILY_RD_INCREASE: float = .137 # rd goes from 60 to 110 in a year
         profile_update = self.profile_update_after()
-        if profile_update is None:
+        if self.profile is None:
             return ABSOLUTE_MAX_RD
         time_passed = timezone.now() - profile_update
         old_rd = self.profile.get('perfs', {}).get('classical', {}).get('rd', ABSOLUTE_MAX_RD)
