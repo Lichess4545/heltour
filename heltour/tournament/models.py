@@ -921,17 +921,18 @@ class Player(_BaseModel):
         seenAt = (self.profile or {}) .get('seenAt')
         if seenAt is not None:
             return datetime.fromtimestamp(seenAt / 1000, tz=timezone.utc)
-        return None
+        # give an early default time otherwise:
+        return datetime.datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
 
     def max_rd_guess(self) -> float:
-        absolute_max_rd = 500 # max rd on lichess
-        daily_rd_increase = .137 # rd goes from 60 to 110 in a year
+        ABSOLUTE_MAX_RD: int = 500 # max rd on lichess
+        DAILY_RD_INCREASE: float = .137 # rd goes from 60 to 110 in a year
         profile_update = self.profile_update_after()
         if profile_update is None:
-            return absolute_max_rd
+            return ABSOLUTE_MAX_RD
         time_passed = timezone.now() - profile_update
-        old_rd = self.profile.get('perfs', {}).get('classical', {}).get('rd', absolute_max_rd)
-        max_guess = max(old_rd + time_passed.days * daily_rd_increase, absolute_max_rd)
+        old_rd = self.profile.get('perfs', {}).get('classical', {}).get('rd', ABSOLUTE_MAX_RD)
+        max_guess = min(old_rd + time_passed.days * DAILY_RD_INCREASE, ABSOLUTE_MAX_RD)
         return max_guess
 
     def potentially_provisional(self) -> bool:
