@@ -306,6 +306,7 @@ class RegisterTestCase(TestCase):
         season.registration_open = True
         season.save()
         self.client.get(season_url("team", "register"))
+        # get_user_meta is called because there is no profile.
         get_user_meta.assert_called_with("Player1", priority=100)
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
@@ -326,7 +327,29 @@ class RegisterTestCase(TestCase):
         season.registration_open = True
         season.save()
         self.client.get(season_url("team", "register"))
+        # get_user_meta is called because rd is high and the profile has not been seen in years
         get_user_meta.assert_called_with("Player1", priority=100)
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_lowrd_profile(self, get_user_meta):
+        self.player.profile = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 50,
+                    "games": 25,
+                },
+            },
+            "seenAt": (timezone.now() - timedelta(days=20)).timestamp()*1000,
+        }
+        self.player.save()
+        self.client.login(username="Player1", password="test")
+        season = get_season("team")
+        season.registration_open = True
+        season.save()
+        self.client.get(season_url("team", "register"))
+        # get_user_meta is not called because RD is low
+        get_user_meta.assert_not_called()
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_new_profile(self, get_user_meta):
@@ -334,7 +357,7 @@ class RegisterTestCase(TestCase):
             "perfs": {
                 "classical": {
                     "rating": 1858,
-                    "rd": 50,
+                    "rd": 150,
                     "games": 25,
                 },
             },
@@ -346,6 +369,7 @@ class RegisterTestCase(TestCase):
         season.registration_open = True
         season.save()
         self.client.get(season_url("team", "register"))
+        # get_user_meta is not called because the profile was recently updated
         get_user_meta.assert_not_called()
 
 
