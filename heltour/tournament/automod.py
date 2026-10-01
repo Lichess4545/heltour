@@ -220,10 +220,12 @@ def claim_win_noshow_created(instance, **kwargs):
 
     p = instance.pairing
     opponent = p.white if p.white != instance.requester else p.black
-
-    if p.get_player_presence(instance.requester).online_for_game \
-        and not p.get_player_presence(opponent).online_for_game \
-        and timezone.now() > p.scheduled_time + timedelta(minutes=21):
+    if (
+        p.get_player_presence(instance.requester).online_for_game
+        and not p.get_player_presence(opponent).online_for_game
+        and timezone.now() > p.scheduled_time + timedelta(minutes=21)
+        and p.date_modified < timezone.now() - timedelta(hours=12)
+    ):
         instance.approve(
             response='You\'ve been given a win by forfeit. It is still possible to reschedule and play the game if you want to.')
 

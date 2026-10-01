@@ -1,9 +1,16 @@
-from unittest.mock import patch
+from datetime import timedelta
+from unittest.mock import ANY, Mock, patch
+
 from django.test import TestCase
 from django.utils import timezone
+
 from heltour.tournament.automod import automod_noshow
-from heltour.tournament.models import LonePlayerPairing, PlayerPresence
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_player, get_round
+from heltour.tournament.models import LonePlayerPairing, ModRequest, PlayerPresence
+from heltour.tournament.tests.testutils import (
+    createCommonLeagueData,
+    get_player,
+    get_round,
+)
 
 
 class NoShowTestCase(TestCase):
@@ -13,7 +20,20 @@ class NoShowTestCase(TestCase):
         cls.rd = get_round("lone", round_number=1)
         cls.player1 = get_player('Player1')
         cls.player2 = get_player('Player2')
-        cls.pairing = LonePlayerPairing.objects.create(round=cls.rd, white=cls.player1, black=cls.player2, game_link='', scheduled_time=timezone.now(), pairing_order=1, tv_state='default')
+        # mock an earlier creation date of the pairing
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=timezone.now() - timedelta(hours=48))
+        ):
+            cls.pairing = LonePlayerPairing.objects.create(
+                round=cls.rd,
+                white=cls.player1,
+                black=cls.player2,
+                game_link="",
+                scheduled_time=timezone.now() - timedelta(minutes=30),
+                pairing_order=1,
+                tv_state="default",
+            )
         PlayerPresence.objects.create(player=cls.player1, pairing=cls.pairing, round=cls.rd)
         PlayerPresence.objects.create(player=cls.player2, pairing=cls.pairing, round=cls.rd)
 
@@ -53,10 +73,54 @@ class NoShowTestCase(TestCase):
         PlayerPresence.objects.filter(player=self.player1, pairing=self.pairing, round=self.rd).update(online_for_game=True)
         PlayerPresence.objects.filter(player=self.player2, pairing=self.pairing, round=self.rd).update(online_for_game=False)
         automod_noshow(self.pairing)
-        self.assertTrue(noshow_sender.called)
         # assert noshow by black
-        self.assertEqual(noshow_sender.call_args[1]['player'], self.pairing.white)
-        self.assertEqual(noshow_sender.call_args[1]['opponent'], self.pairing.black)
+        noshow_sender.assert_called_once_with(sender=ANY, round_=self.rd, player=self.pairing.white, opponent=self.pairing.black)
+
+    @patch("heltour.tournament.models.ModRequest.approve")
+    @patch("heltour.tournament.models.ModRequest.reject")
+    def test_noshows_autoapprove(self, reqreject, reqapprove):
+        PlayerPresence.objects.filter(
+            player=self.player1, pairing=self.pairing, round=self.rd
+        ).update(online_for_game=True)
+        PlayerPresence.objects.filter(
+            player=self.player2, pairing=self.pairing, round=self.rd
+        ).update(online_for_game=False)
+        ModRequest.objects.create(
+            season=self.rd.season,
+            round=self.rd,
+            pairing=self.pairing,
+            requester=self.player1,
+            type="claim_win_noshow",
+            status="pending",
+        )
+        reqreject.assert_not_called()
+        # assert noshow by black automatically approved
+        reqapprove.assert_called_once_with(
+            response="You've been given a win by forfeit. It is still possible to reschedule and play the game if you want to."
+        )
+
+    @patch("heltour.tournament.models.ModRequest.approve")
+    @patch("heltour.tournament.models.ModRequest.reject")
+    def test_noshows_autoapprove_recent_change(self, reqreject, reqapprove):
+        PlayerPresence.objects.filter(
+            player=self.player1, pairing=self.pairing, round=self.rd
+        ).update(online_for_game=True)
+        PlayerPresence.objects.filter(
+            player=self.player2, pairing=self.pairing, round=self.rd
+        ).update(online_for_game=False)
+        self.pairing.scheduled_time = timezone.now() - timedelta(minutes=25)
+        self.pairing.save()
+        ModRequest.objects.create(
+            season=self.rd.season,
+            round=self.rd,
+            pairing=self.pairing,
+            requester=self.player1,
+            type="claim_win_noshow",
+            status="pending"
+        )
+        # should not be auto-approved, because the scheduled time was recently changed
+        reqapprove.assert_not_called()
+        reqreject.assert_not_called()
 
     @patch('heltour.tournament.lichessapi.get_game_meta',
             return_value={'moves': '1.e4 e5 2.Ke2'})
