@@ -52,6 +52,7 @@ class NoShowTestCase(TestCase):
         cls.gameid = "NKop9IyD"
         cls.game_link = f"https://lichess.org/{cls.gameid}"
 
+
     @patch("heltour.tournament.signals.notify_noshow.send", autospec=True)
     def test_has_moves(self, noshow_sender):
         self.pairing.tv_state = "has_moves"
