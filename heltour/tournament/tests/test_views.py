@@ -19,6 +19,7 @@ from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
     create_reg,
     get_league,
+    get_player,
     get_season,
     league_tag,
     league_url,
@@ -183,6 +184,7 @@ class RegisterTestCase(TestCase):
     def setUpTestData(cls):
         createCommonLeagueData()
         cls.user = User.objects.create_user("Player1", password="test")
+        cls.player = get_player("Player1")
 
     def test_require_login(self):
         response = self.client.get(season_url("team", "register"))
@@ -190,7 +192,8 @@ class RegisterTestCase(TestCase):
             response, league_url("team", "login"), fetch_redirect_response=False
         )
 
-    def test_template(self):
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_template(self, get_user_meta):
         self.client.login(username="Player1", password="test")
         response = self.client.get(season_url("team", "register"))
         self.assertTemplateUsed(response, "tournament/registration_closed.html")
@@ -201,6 +204,7 @@ class RegisterTestCase(TestCase):
 
         response = self.client.get(season_url("team", "register"))
         self.assertTemplateUsed(response, "tournament/register.html")
+        get_user_meta.assert_called_with("Player1", priority=100)
 
         response = self.client.get(season_url("team", "registration_success"))
         self.assertTemplateUsed(response, "tournament/registration_success.html")
@@ -243,7 +247,8 @@ class RegisterTestCase(TestCase):
             self.assertNotContains(response, "Register")
             self.assertNotContains(response, "Change Registration")
 
-    def test_register_post(self):
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_post(self, get_user_meta):
         self.client.login(username="Player1", password="test")
         Season.objects.filter(league__name="Team League", name="Test Season").update(
             registration_open=True,
@@ -293,6 +298,55 @@ class RegisterTestCase(TestCase):
             Registration.objects.filter(player__lichess_username="Player1").first().email,
             "player1@example.com",
         )
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_missing_profile(self, get_user_meta):
+        self.client.login(username="Player1", password="test")
+        season = get_season("team")
+        season.registration_open = True
+        season.save()
+        self.client.get(season_url("team", "register"))
+        get_user_meta.assert_called_with("Player1", priority=100)
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_old_profile(self, get_user_meta):
+        self.player.profile = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 247,
+                    "games": 25,
+                },
+            },
+            "seenAt": 1589845490097,
+        }
+        self.player.save()
+        self.client.login(username="Player1", password="test")
+        season = get_season("team")
+        season.registration_open = True
+        season.save()
+        self.client.get(season_url("team", "register"))
+        get_user_meta.assert_called_with("Player1", priority=100)
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_new_profile(self, get_user_meta):
+        self.player.profile = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 50,
+                    "games": 25,
+                },
+            },
+            "seenAt": (timezone.now() - timedelta(days=2)).timestamp()*1000,
+        }
+        self.player.save()
+        self.client.login(username="Player1", password="test")
+        season = get_season("team")
+        season.registration_open = True
+        season.save()
+        self.client.get(season_url("team", "register"))
+        get_user_meta.assert_not_called()
 
 
 @patch("heltour.tournament.lichessapi.watch_games", return_value=None)
