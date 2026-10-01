@@ -224,7 +224,7 @@ def claim_win_noshow_created(instance, **kwargs):
         p.get_player_presence(instance.requester).online_for_game
         and not p.get_player_presence(opponent).online_for_game
         and timezone.now() > p.scheduled_time + timedelta(minutes=21)
-        and p.date_modified < timezone.now() - timedelta(hours=12)
+        and p.date_modified < timezone.now() - timedelta(hours=12) # the pairing has to have been unchanged for 12 (?) hours to auto-approve
     ):
         instance.approve(
             response='You\'ve been given a win by forfeit. It is still possible to reschedule and play the game if you want to.')
