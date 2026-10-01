@@ -2,15 +2,15 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 from heltour.tournament.automod import automod_noshow
-from heltour.tournament.models import LeagueSetting, LonePlayerPairing, PlayerPresence
-from heltour.tournament.tests.testutils import createCommonLeagueData, get_league, get_player, get_round
+from heltour.tournament.models import LonePlayerPairing, PlayerPresence
+from heltour.tournament.tests.testutils import createCommonLeagueData, get_player, get_round
 
 
 class NoShowTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        cls.rd = get_round('team', round_number=1)
+        cls.rd = get_round("lone", round_number=1)
         cls.player1 = get_player('Player1')
         cls.player2 = get_player('Player2')
         cls.pairing = LonePlayerPairing.objects.create(round=cls.rd, white=cls.player1, black=cls.player2, game_link='', scheduled_time=timezone.now(), pairing_order=1, tv_state='default')
