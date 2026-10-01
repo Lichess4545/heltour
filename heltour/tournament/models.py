@@ -2199,6 +2199,26 @@ class PlayerAvailability(_BaseModel):
     class Meta:
         verbose_name_plural = 'player availabilities'
 
+    def __init__(self, *args, **kwargs):
+        super(PlayerAvailability, self).__init__(*args, **kwargs)
+        self.initial_is_available = self.is_available
+
+    def save(self, *args, **kwargs):
+        if (
+            self.pk is None
+            or self.initial_is_available != self.is_available
+            # availabaility was actually changed
+            and not self.is_available
+            # player changed to being unavailable
+            and not self.round.season.league.is_team_league()
+            # it is not a team league (alt-system means notification is useless)
+            and not self.round.publish_pairings
+            and PlayerPairing.objects.filter(round=self.round)
+            ## there are unpublished pairings, so notify mods
+        ):
+            signals.notify_mods_availability_changed.send(sender=self.__class__, round_=self.round, player=self.player)
+        super(Round, self).save(*args, **kwargs)
+
     def __str__(self):
         return "%s" % self.player
 
