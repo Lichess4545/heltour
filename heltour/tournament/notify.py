@@ -11,7 +11,9 @@ from heltour import settings
 from heltour.tournament import lichessapi, signals, slackapi
 from heltour.tournament.models import (
     LeagueChannel,
+    Player,
     PlayerAvailability,
+    PlayerBye,
     PlayerLateRegistration,
     PlayerNotificationSetting,
     PlayerWithdrawal,
@@ -549,6 +551,26 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
                          li_msg.format(**black_params))
 
 
+def send_bye_notification(*, type_: chr, player: Player, round_: Round, im_msg: chr, li_subject: chr, li_msg: chr, offset: int=None) -> None:
+    season = round_.season
+    league = season.league
+    setting = PlayerNotificationSetting.get_or_default(
+        player=player, type="round_started", league=league, offset=None
+    )
+    playername = player.lichess_username.lower()
+    params = {
+        "self": playername,
+        "opponent": None,
+        "color": 'black',
+        "slack_url": f"https://lichess4545.slack.com/messages/@{playername}/"
+    }
+    if (setting.enable_slack_im or setting.enable_slack_mpim) and im_msg:
+        _message_user(league, playername, im_msg.format(**params))
+    if setting.enable_lichess_mail and li_subject and li_msg:
+        _lichess_message(league, playername, li_subject.format(**params), li_msg.foramt(**params))
+
+
+
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -588,6 +610,10 @@ def notify_players_round_start(round_, **kwargs):
                 continue
             send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
             time.sleep(settings.SLEEP_UNIT)
+        for bye in PlayerBye.objects.filter(round=round_, type="full-point-pairings-bye"):
+            msg = "You have been given a full-point bye for Round {round} in {season} due to there being an odd number of players."
+            send_bye_notification(type_="round_started", player=bye.player, round_=round_, im_msg=msg, li_subject=li_subject, li_msg=msg)
+
 
 
 @receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
