@@ -565,9 +565,9 @@ def send_bye_notification(*, type_: chr, player: Player, round_: Round, im_msg: 
         "slack_url": f"https://lichess4545.slack.com/messages/@{playername}/"
     }
     if (setting.enable_slack_im or setting.enable_slack_mpim) and im_msg:
-        _message_user(league, playername, im_msg.format(**params))
+        _message_user(league=league, username=playername, text=im_msg.format(**params))
     if setting.enable_lichess_mail and li_subject and li_msg:
-        _lichess_message(league, playername, li_subject.format(**params), li_msg.foramt(**params))
+        _lichess_message(league=league, username=playername, subject=li_subject.format(**params), text=li_msg.format(**params))
 
 
 
@@ -611,7 +611,11 @@ def notify_players_round_start(round_, **kwargs):
             send_pairing_notification('round_started', pairing, im_msg, mp_msg, li_subject, li_msg)
             time.sleep(settings.SLEEP_UNIT)
         for bye in PlayerBye.objects.filter(round=round_, type="full-point-pairings-bye"):
-            msg = "You have been given a full-point bye for Round {round} in {season} due to there being an odd number of players."
+            msg = (
+                "You have been given a full-point bye for Round {round} in {season}"
+                "due to there being an odd number of players."
+                "If you have any questions, please summon the league mods."
+            )
             send_bye_notification(type_="round_started", player=bye.player, round_=round_, im_msg=msg, li_subject=li_subject, li_msg=msg)
 
 
