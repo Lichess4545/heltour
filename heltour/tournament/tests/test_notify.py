@@ -3,8 +3,17 @@ from unittest.mock import ANY, patch
 from django.test import TestCase
 from django.utils import timezone
 
-from heltour.tournament.models import League, LeagueSetting, LonePlayerPairing, PlayerBye, PlayerPairing
-from heltour.tournament.notify import notify_players_game_scheduled, notify_players_round_start, send_bye_notification
+from heltour.tournament.models import (
+    LeagueSetting,
+    LonePlayerPairing,
+    PlayerBye,
+    PlayerPairing,
+)
+from heltour.tournament.notify import (
+    notify_players_game_scheduled,
+    notify_players_round_start,
+    send_bye_notification,
+)
 from heltour.tournament.tests.testutils import (
     Shush,
     createCommonLeagueData,
@@ -69,7 +78,9 @@ class PairingNotificationsTestCase(TestCase):
             li_subject=subj,
             li_msg=limsg,
         )
-        lim.assert_called_once_with(league=self.l, username=player, subject=subj, text=limsg)
+        lim.assert_called_once_with(
+            league=self.l, username=player, subject=subj, text=limsg
+        )
         mu.assert_called_once_with(league=self.l, username=player, text=msg)
 
     @patch("heltour.tournament.notify.send_bye_notification", autospec=True)
@@ -77,6 +88,20 @@ class PairingNotificationsTestCase(TestCase):
     def test_notify_players_round_start(self, spn, sbn):
         pp = PlayerPairing.objects.get(pk=self.lp1.pk)
         notify_players_round_start(round_=self.r1)
-        spn.assert_called_once_with(type_="round_started", pairing=pp, im_msg=ANY, mp_msg=ANY, li_subject=ANY, li_msg=ANY)
+        spn.assert_called_once_with(
+            type_="round_started",
+            pairing=pp,
+            im_msg=ANY,
+            mp_msg=ANY,
+            li_subject=ANY,
+            li_msg=ANY,
+        )
         # sbn importantly not called more than once for non-pairing byes.
-        sbn.assert_called_once_with(type_="round_started", player=self.p3, round_=self.r1, im_msg=ANY, li_subject=ANY, li_msg=ANY)
+        sbn.assert_called_once_with(
+            type_="round_started",
+            player=self.p3,
+            round_=self.r1,
+            im_msg=ANY,
+            li_subject=ANY,
+            li_msg=ANY,
+        )
