@@ -612,13 +612,22 @@ def notify_players_round_start(round_, **kwargs):
             time.sleep(settings.SLEEP_UNIT)
         # in theory there should only be one pairings-bye per round
         # but i am not completely certain, so let's loop over that one bye just in case.
-        for bye in PlayerBye.objects.filter(round=round_, type="full-point-pairings-bye"):
+        for bye in PlayerBye.objects.filter(
+            round=round_, type="full-point-pairings-bye"
+        ):
             msg = (
                 "You have been given a full-point bye for Round {round} in {season}"
                 "due to there being an odd number of players."
                 "If you have any questions, please summon the league mods."
             )
-            send_bye_notification(type_="round_started", player=bye.player, round_=round_, im_msg=msg, li_subject=li_subject, li_msg=msg)
+            send_bye_notification(
+                type_="round_started",
+                player=bye.player,
+                round_=round_,
+                im_msg=msg,
+                li_subject=li_subject,
+                li_msg=msg,
+            )
 
 
 
