@@ -1,0 +1,8 @@
+from .environment import LICHESS_DOMAIN
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+LICHESS_OAUTH_ACCOUNT_URL = f"{LICHESS_DOMAIN}api/account"
+LICHESS_OAUTH_EMAIL_URL = f"{LICHESS_DOMAIN}api/email"
+LICHESS_OAUTH_AUTHORIZE_URL = f"{LICHESS_DOMAIN}oauth"
+LICHESS_OAUTH_TOKEN_URL = f"{LICHESS_DOMAIN}api/token"

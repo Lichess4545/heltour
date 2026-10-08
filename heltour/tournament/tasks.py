@@ -838,7 +838,7 @@ def run_scheduled_events():
             # Determine an upper bound for events that should be run before the next task execution
             # The idea is that we want events to be run as close to their scheduled time as possible,
             # not just at whatever interval this task happens to be run
-            future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events'][
+            future_bound = upper_bound + settings.CELERY_BEAT_SCHEDULE['run_scheduled_events'][
                 'schedule']
 
             def matching_rounds(**kwargs):
@@ -891,7 +891,7 @@ def run_scheduled_events():
         upper_bound = now
         lower_bound = now - _max_lateness
 
-        future_bound = upper_bound + settings.CELERYBEAT_SCHEDULE['run_scheduled_events'][
+        future_bound = upper_bound + settings.CELERY_BEAT_SCHEDULE['run_scheduled_events'][
             'schedule']
 
         for n in ScheduledNotification.objects.filter(notification_time__gt=lower_bound,

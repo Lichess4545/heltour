@@ -19,11 +19,7 @@ logger = logging.getLogger(__name__)
 retry_wait_times = {0: 60, 1: 60, 2: 180, 3: 300, 4: 600}
 
 def _get_lichess_api_token():
-    try:
-        with open(settings.LICHESS_API_TOKEN_FILE_PATH) as fin:
-            return fin.read().strip()
-    except IOError:
-        return None
+    return settings.LICHESS_API_TOKEN or None
 
 def _do_lichess_api_call(
     redis_key,
