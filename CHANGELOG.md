@@ -4,6 +4,12 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.0.1 — 2026-10-08
+
+### Fixes
+
+- **deploy**: route caddy through the shared Traefik on the frontend network ([0379edd](https://github.com/Lichess4545/heltour/commit/0379edd77b201110043bd163e0821ccb10d0c4d0))
+
 ## v2.0.0 — 2026-10-08
 
 ### Features
