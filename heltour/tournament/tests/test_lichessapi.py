@@ -4,6 +4,7 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 from heltour.tournament.lichessapi import (
+    send_mail,
     update_or_create_broadcast,
     update_or_create_broadcast_round,
 )
@@ -93,3 +94,28 @@ class NoShowTestCase(SimpleTestCase):
             timeout=30,
             post_data="name=Round 0&syncIds=gamelink1 gamelink2&status=started",
         )
+
+
+class SendMailTestCase(SimpleTestCase):
+    def _send(self, response):
+        with patch(
+            "heltour.tournament.lichessapi._apicall_with_error_parsing",
+            return_value=response,
+        ):
+            send_mail("someone", "subject", "text")
+
+    def test_ok_json_is_success(self):
+        with self.assertNoLogs("heltour.tournament.lichessapi", level="ERROR"):
+            self._send('{"ok":true}')
+
+    def test_plain_ok_is_success(self):
+        with self.assertNoLogs("heltour.tournament.lichessapi", level="ERROR"):
+            self._send("ok")
+
+    def test_error_json_is_logged(self):
+        with self.assertLogs("heltour.tournament.lichessapi", level="ERROR"):
+            self._send('{"error":"Cannot send a message to this user"}')
+
+    def test_unexpected_text_is_logged(self):
+        with self.assertLogs("heltour.tournament.lichessapi", level="ERROR"):
+            self._send("nope")
