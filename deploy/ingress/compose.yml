@@ -1,0 +1,25 @@
+services:
+  traefik:
+    image: traefik:v3.7
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --certificatesresolvers.myresolver.acme.email=${HELTOUR_ACME_EMAIL:?}
+      - --certificatesresolvers.myresolver.acme.storage=/acme/acme.json
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      - --accesslog=true
+    extra_hosts:
+      - legacy.heltour.internal:${HELTOUR_LEGACY_IP:?}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - acme_data:/acme
+    restart: unless-stopped
+
+volumes:
+  acme_data:

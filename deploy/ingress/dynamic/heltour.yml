@@ -1,0 +1,19 @@
+http:
+  routers:
+    heltour:
+      rule: Host(`www.lichess4545.com`) || Host(`lichess4545.com`) || Host(`lichess4545.tv`) || Host(`www.lichess4545.tv`)
+      entryPoints: [websecure]
+      service: heltour
+      tls:
+        certResolver: myresolver
+
+  services:
+    heltour:
+      loadBalancer:
+        servers:
+          - url: https://legacy.heltour.internal
+        serversTransport: legacy
+
+  serversTransports:
+    legacy:
+      serverName: www.lichess4545.com
