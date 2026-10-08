@@ -15,4 +15,12 @@
       CREATE DATABASE heltour_lichess4545 OWNER heltour_lichess4545;
     '';
   };
+
+  packages = [
+    pkgs.gh
+    pkgs.git-cliff
+    pkgs.skopeo
+  ];
+
+  scripts.release.exec = ''cd "$DEVENV_ROOT" && exec nix run "$DEVENV_ROOT#release" -- "$@"'';
 }

@@ -48,3 +48,8 @@ Run `python manage.py createsuperuser` to create a new admin account.
 Static files are compiled and collected into the image. Uploaded media lives in `/var/lib/heltour/media`, which the web and caddy containers must share. The image runs as `nobody` and is configured entirely from env vars (see `.env.example`).
 
 The build pins a hash of the python dependencies in `poetry.lock`, kept in `python-deps.hash`. When `poetry.lock` changes, run `ci/python-deps-hash.sh` and commit `python-deps.hash`.
+
+# releasing
+Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md` and the version in `pyproject.toml`, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`.
+
+`release minor` or `release v1.2.3` override the derived version. There are no `v*` tags yet, so name the first release explicitly, since `pyproject.toml` is already at 1.0.1.

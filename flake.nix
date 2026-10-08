@@ -4,12 +4,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    dull-nix.url = "github:dull-ca/nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, dull-nix }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ dull-nix.overlays.default ];
+        };
         inherit (pkgs) lib;
 
         python = pkgs.python311;
@@ -190,12 +194,19 @@
       {
         checks = {
           inherit container javafo django;
+          release-guards-hold = pkgs.releaseGuardsTest;
         };
 
         packages = {
           inherit container;
           default = container;
           python-deps = pythonDeps;
+          release = pkgs.mkReleaseCommand {
+            repositoryUrl = "https://github.com/Lichess4545/heltour";
+            hooks = ./ci/release-hooks.sh;
+            releaseWorkflow = "release.yml";
+          };
+          release-guards = pkgs.releaseGuards;
         };
       });
 }
