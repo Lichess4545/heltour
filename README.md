@@ -40,10 +40,12 @@ Run `python manage.py createsuperuser` to create a new admin account.
 | `heltour-apiworker` | gunicorn serving the api worker on port 8880 |
 | `heltour-celery` | the celery worker, with beat embedded and its schedule in the database |
 | `heltour-migrate` | applies migrations and invalidates the cacheops cache, then exits |
-| `heltour-caddy` | caddy on port 8080, serving `/static`, `/media` and proxying the rest to `web:8000` |
+| `heltour-caddy` | caddy on port 8080, serving `/static`, proxying `/media` to the media bucket and the rest to `web:8000` |
 | `heltour-manage` | `manage.py` with any arguments |
 
-Static files are compiled and collected into the image. Uploaded media lives in `/var/lib/heltour/media`, which the web and caddy containers must share. The image runs as `nobody` and is configured entirely from env vars (see `.env.example`).
+Static files are compiled and collected into the image. The image runs as `nobody` and is configured entirely from env vars (see `.env.example`).
+
+Uploaded media goes to S3 compatible object storage when `MEDIA_S3_BUCKET` is set, and to `MEDIA_ROOT` otherwise, which is what local development and the tests use. Media URLs stay `/media/<key>` either way: caddy proxies `/media/*` to `MEDIA_ORIGIN_URL`, the URL at which the bucket serves the objects under `MEDIA_S3_PREFIX` without authentication. With path style addressing that is `<endpoint>/<bucket>/<prefix>`; for a provider whose S3 endpoint never serves anonymous reads, such as Cloudflare R2, it is the bucket's public domain followed by the prefix. The bucket must therefore allow anonymous reads of those objects; the credentials are only used to write them. Without `MEDIA_ORIGIN_URL`, caddy sends `/media` to web, which serves `MEDIA_ROOT` only when `DEBUG` is on.
 
 The build pins a hash of the python dependencies in `poetry.lock`, kept in `python-deps.hash`. When `poetry.lock` changes, run `ci/python-deps-hash.sh` and commit `python-deps.hash`.
 
@@ -63,6 +65,7 @@ Follow a deploy with `gh run list --repo Lichess4545/heltour --workflow deploy.y
 Before the stack is first deployed:
 
 - Traefik routes to caddy on port 8080 over the external `frontend` network, using the labels on the caddy service (entrypoint `websecure`, certresolver `dnsresolver`).
+- Create the media bucket, allow anonymous reads of the objects under the prefix, and create a key that can read, write and list it. Only web gets the bucket settings and key, since no other Django service reads or writes media; caddy gets `MEDIA_ORIGIN_URL`.
 - Create the Docker secrets. Each service mounts only the secrets it uses, and points its `*_FILE` variables at those alone, so a new secret must be added to the `secrets` and `environment` of every service that needs it.
 
 | Secret | Holds | Mounted in |
@@ -76,12 +79,21 @@ Before the stack is first deployed:
 | `heltour_slack_channel_builder_token` | `SLACK_CHANNEL_BUILDER_TOKEN` | celery |
 | `heltour_slack_webhook` | `SLACK_WEBHOOK_URL` | web, celery |
 | `heltour_google_service_account` | `GOOGLE_SERVICE_ACCOUNT_KEY`, the Google service account's JSON key | web |
+| `heltour_media_s3_access_key_id` | `MEDIA_S3_ACCESS_KEY_ID`, the media bucket's access key id | web |
+| `heltour_media_s3_secret_access_key` | `MEDIA_S3_SECRET_ACCESS_KEY`, the media bucket's secret access key | web |
 
 The Portainer stack is created from this repo (`main`, and `deploy/prod/compose.yml`) with its webhook enabled, and these stack environment variables:
 
 | Variable | Purpose |
 | --- | --- |
 | `HELTOUR_EMAIL_HOST` | the SMTP host; required |
+| `HELTOUR_MEDIA_S3_BUCKET` | the media bucket; required |
+| `HELTOUR_MEDIA_S3_ENDPOINT_URL` | the S3 endpoint, such as `https://s3.gra.io.cloud.ovh.net`; required |
+| `HELTOUR_MEDIA_S3_REGION` | the bucket's region, if the provider needs one |
+| `HELTOUR_MEDIA_S3_PREFIX` | the key prefix media lives under; empty by default |
+| `HELTOUR_MEDIA_S3_ADDRESSING_STYLE` | `path` (the default) or `virtual` |
+| `HELTOUR_MEDIA_S3_DEFAULT_ACL` | a canned ACL such as `public-read` for each upload, for providers that grant anonymous reads per object rather than by bucket policy; empty by default |
+| `HELTOUR_MEDIA_ORIGIN_URL` | the public URL caddy proxies `/media/*` to, such as `https://s3.gra.io.cloud.ovh.net/<bucket>/<prefix>`; required |
 | `HELTOUR_CELERY_REPLICAS` | `1` runs the celery worker and beat, `0` (the default) runs neither; never more than `1`, since beat runs inside the worker |
 
 The webhook URL is stored as the `PORTAINER_PRODUCTION_WEBHOOK_URL` repo secret, so every stable release redeploys production. `migrate` runs on each deploy that changes the image, applying migrations and invalidating the cache, then exits.
