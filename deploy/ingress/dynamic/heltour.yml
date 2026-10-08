@@ -1,7 +1,7 @@
 http:
   routers:
     heltour:
-      rule: Host(`www.lichess4545.com`) || Host(`lichess4545.com`) || Host(`lichess4545.tv`) || Host(`www.lichess4545.tv`)
+      rule: Host(`www.lichess4545.com`) || Host(`lichess4545.com`)
       entryPoints: [websecure]
       service: heltour
       tls:
