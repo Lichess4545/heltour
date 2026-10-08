@@ -35,9 +35,16 @@ services:
     volumes:
       - media:/var/lib/heltour/media:ro
     networks:
-      default:
-      proxy:
-        aliases: [heltour]
+      - default
+      - frontend
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=frontend
+      - traefik.http.services.heltour.loadbalancer.server.port=8080
+      - traefik.http.routers.heltour.rule=Host(`www.lichess4545.com`) || Host(`lichess4545.com`)
+      - traefik.http.routers.heltour.entrypoints=websecure
+      - traefik.http.routers.heltour.tls=true
+      - traefik.http.routers.heltour.tls.certresolver=myresolver
     deploy:
       placement:
         constraints: [node.labels.heltour.media == true]
@@ -96,7 +103,7 @@ volumes:
   redis:
 
 networks:
-  proxy:
+  frontend:
     external: true
 
 secrets:
