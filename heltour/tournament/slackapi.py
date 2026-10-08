@@ -1,5 +1,6 @@
 import requests
-from heltour import settings
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from collections import namedtuple
 import logging
 
@@ -7,19 +8,19 @@ logger = logging.getLogger(__name__)
 
 
 def _get_slack_token():
-    with open(settings.SLACK_API_TOKEN_FILE_PATH) as fin:
-        return fin.read().strip()
+    if not settings.SLACK_API_TOKEN:
+        raise ImproperlyConfigured("SLACK_API_TOKEN is not set")
+    return settings.SLACK_API_TOKEN
+
 
 def _get_slack_channel_builder_token():
-    with open(settings.SLACK_CHANNEL_BUILDER_TOKEN_FILE_PATH) as fin:
-        return fin.read().strip()
+    if not settings.SLACK_CHANNEL_BUILDER_TOKEN:
+        raise ImproperlyConfigured("SLACK_CHANNEL_BUILDER_TOKEN is not set")
+    return settings.SLACK_CHANNEL_BUILDER_TOKEN
+
 
 def _get_slack_webhook():
-    try:
-        with open(settings.SLACK_WEBHOOK_FILE_PATH) as fin:
-            return fin.read().strip()
-    except (IOError, IndexError):
-        return None
+    return settings.SLACK_WEBHOOK_URL or None
 
 
 def invite_user(email):

@@ -12,7 +12,7 @@ League management software for the Lichess4545 league.
 # install
 These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.
 
-1. Create a local settings file. In the heltour/local folder, copy one of the existing modules and name it "host_name.py" where "host_name" is your machine's hostname (with non-alphanumeric characters replaced by underscores).
+1. Copy `.env.example` to `.env` and fill it in. Settings come from env vars or `.env`; each one can instead be read from a file named by `<NAME>_FILE`.
 2. `./start.sh`
 3. `source env/bin/activate`
 4. `fab up`
@@ -24,6 +24,8 @@ These install instructions have been test on Arch and Ubuntu linux. Other OSes s
 Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
 
 Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled.
+
+Run the tests with `python manage.py test --settings=heltour.test_settings`.
 
 # create admin account
 Run `python manage.py createsuperuser` to create a new admin account.

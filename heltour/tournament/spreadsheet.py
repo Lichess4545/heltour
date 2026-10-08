@@ -1,13 +1,15 @@
+import json
 import re
 from datetime import datetime, timedelta
 
 import gspread
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.utils import timezone
 from gspread.exceptions import WorksheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 
-from heltour import settings
 from heltour.tournament.models import (
     Alternate,
     LonePlayerPairing,
@@ -29,8 +31,10 @@ from heltour.tournament.models import (
 
 def _open_doc(url):
     scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        settings.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH, scope)
+    if not settings.GOOGLE_SERVICE_ACCOUNT_KEY:
+        raise ImproperlyConfigured("GOOGLE_SERVICE_ACCOUNT_KEY is not set")
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+        json.loads(settings.GOOGLE_SERVICE_ACCOUNT_KEY), scope)
     gc = gspread.authorize(credentials)
     try:
         return gc.open_by_url(url)
