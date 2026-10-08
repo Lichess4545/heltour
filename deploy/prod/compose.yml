@@ -1,0 +1,120 @@
+x-image: &image ghcr.io/lichess4545/heltour:1.0.1
+
+x-environment: &environment
+  HELTOUR_ENV: prod
+  ALLOWED_HOSTS: www.lichess4545.com,lichess4545.com,apiworker
+  CSRF_TRUSTED_ORIGINS: https://www.lichess4545.com,https://lichess4545.com
+  REDIS_URL: redis://redis:6379/1
+  API_WORKER_HOST: http://apiworker:8880
+  EMAIL_HOST: ${HELTOUR_EMAIL_HOST:?must be set in the stack environment}
+  DATABASE_URL_FILE: /run/secrets/heltour_database_url
+  SECRET_KEY_FILE: /run/secrets/heltour_secret_key
+  EMAIL_HOST_USER_FILE: /run/secrets/heltour_email_host_user
+  EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_email_host_password
+  LICHESS_API_TOKEN_FILE: /run/secrets/heltour_lichess_api_token
+  SLACK_API_TOKEN_FILE: /run/secrets/heltour_slack_api_token
+  SLACK_CHANNEL_BUILDER_TOKEN_FILE: /run/secrets/heltour_slack_channel_builder_token
+  SLACK_WEBHOOK_URL_FILE: /run/secrets/heltour_slack_webhook
+  GOOGLE_SERVICE_ACCOUNT_KEY_FILE: /run/secrets/heltour_google_service_account
+
+x-secrets: &secrets
+  - heltour_database_url
+  - heltour_secret_key
+  - heltour_email_host_user
+  - heltour_email_host_password
+  - heltour_lichess_api_token
+  - heltour_slack_api_token
+  - heltour_slack_channel_builder_token
+  - heltour_slack_webhook
+  - heltour_google_service_account
+
+services:
+  caddy:
+    image: *image
+    command: heltour-caddy
+    volumes:
+      - media:/var/lib/heltour/media:ro
+    networks:
+      default:
+      proxy:
+        aliases: [heltour]
+    deploy:
+      placement:
+        constraints: [node.labels.heltour.media == true]
+      update_config:
+        order: start-first
+
+  web:
+    image: *image
+    command: heltour-web
+    environment: *environment
+    secrets: *secrets
+    volumes:
+      - media:/var/lib/heltour/media
+    deploy:
+      placement:
+        constraints: [node.labels.heltour.media == true]
+      update_config:
+        order: start-first
+
+  apiworker:
+    image: *image
+    command: heltour-apiworker
+    environment: *environment
+    secrets: *secrets
+    deploy:
+      update_config:
+        order: start-first
+
+  celery:
+    image: *image
+    command: heltour-celery
+    environment: *environment
+    secrets: *secrets
+    deploy:
+      replicas: ${HELTOUR_CELERY_REPLICAS:-0}
+
+  migrate:
+    image: *image
+    command: heltour-migrate
+    environment: *environment
+    secrets: *secrets
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+
+volumes:
+  media:
+  redis:
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  heltour_database_url:
+    external: true
+  heltour_secret_key:
+    external: true
+  heltour_email_host_user:
+    external: true
+  heltour_email_host_password:
+    external: true
+  heltour_lichess_api_token:
+    external: true
+  heltour_slack_api_token:
+    external: true
+  heltour_slack_channel_builder_token:
+    external: true
+  heltour_slack_webhook:
+    external: true
+  heltour_google_service_account:
+    external: true
