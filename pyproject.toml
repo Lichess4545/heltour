@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heltour"
-version = "2.0.1"
+version = "2.0.2"
 description = "A [hel]per for [tour]naments.  Intended to run swiss based tournaments, but is actually the source for the lichess4545.com leagues."
 authors = ["Lakin Wecker <lakin@structuredabstraction.com>"]
 license = "MIT"

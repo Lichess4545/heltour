@@ -4,6 +4,12 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.0.2 — 2026-10-08
+
+### Fixes
+
+- **release**: bump the production stack on stable releases ([dd75bb3](https://github.com/Lichess4545/heltour/commit/dd75bb336a543811ec0f9249082b1d2fb16beb5c))
+
 ## v2.0.1 — 2026-10-08
 
 ### Fixes
