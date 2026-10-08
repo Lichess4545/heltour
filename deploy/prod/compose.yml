@@ -44,7 +44,7 @@ services:
       - traefik.http.routers.heltour.rule=Host(`www.lichess4545.com`) || Host(`lichess4545.com`)
       - traefik.http.routers.heltour.entrypoints=websecure
       - traefik.http.routers.heltour.tls=true
-      - traefik.http.routers.heltour.tls.certresolver=myresolver
+      - traefik.http.routers.heltour.tls.certresolver=dnsresolver
     deploy:
       update_config:
         order: start-first
