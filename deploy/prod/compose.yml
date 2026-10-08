@@ -46,8 +46,6 @@ services:
       - traefik.http.routers.heltour.tls=true
       - traefik.http.routers.heltour.tls.certresolver=myresolver
     deploy:
-      placement:
-        constraints: [node.labels.heltour.media == true]
       update_config:
         order: start-first
 
@@ -59,8 +57,6 @@ services:
     volumes:
       - media:/var/lib/heltour/media
     deploy:
-      placement:
-        constraints: [node.labels.heltour.media == true]
       update_config:
         order: start-first
 
