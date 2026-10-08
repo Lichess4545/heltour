@@ -4,6 +4,12 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.0.4 — 2026-10-08
+
+### Fixes
+
+- **deploy**: issue certificates through Traefik's DNS challenge resolver ([#790](https://github.com/Lichess4545/heltour/pull/790)) ([ac8823b](https://github.com/Lichess4545/heltour/commit/ac8823b52ea3e0e893408c86626f4341bd005f83))
+
 ## v2.0.3 — 2026-10-08
 
 ### Fixes
