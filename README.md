@@ -60,7 +60,6 @@ Run `release` from the devenv shell on an up-to-date `main`. It reads the next v
 Before a stack is first deployed:
 
 - Traefik routes to caddy on port 8080 over the external `frontend` network, using the labels on the caddy service (entrypoint `websecure`, certresolver `myresolver`), the same way pgn-mule is deployed.
-- Label the node that keeps uploaded media: `docker node update --label-add heltour.media=true <node>`. The web and caddy services share the media volume, so both run on that node.
 - Create the Docker secrets. Staging uses the same names with `heltour_staging_` in place of `heltour_`.
 
 | Secret | Holds |
