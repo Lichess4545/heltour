@@ -50,6 +50,36 @@ Static files are compiled and collected into the image. Uploaded media lives in 
 The build pins a hash of the python dependencies in `poetry.lock`, kept in `python-deps.hash`. When `poetry.lock` changes, run `ci/python-deps-hash.sh` and commit `python-deps.hash`.
 
 # releasing
-Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md` and the version in `pyproject.toml`, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`.
+Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md`, the version in `pyproject.toml` and the image version the stacks deploy, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`. Every release updates the staging stack; only a stable release updates the production stack.
 
 `release minor` or `release v1.2.3` override the derived version. There are no `v*` tags yet, so name the first release explicitly, since `pyproject.toml` is already at 1.0.1.
+
+# deployment
+`deploy/prod/compose.yml` and `deploy/staging/compose.yml` are the production and staging stacks for Portainer on Docker Swarm. Each pins an explicit image version, which `release` updates; redeploying a stack picks it up. Postgres is external, and each stack runs its own redis.
+
+Before a stack is first deployed:
+
+- Create the external overlay network the front proxy reaches caddy on: `docker network create --driver overlay --attachable proxy`. Caddy listens on port 8080 there, as `heltour` (production) or `heltour-staging` (staging).
+- Label the node that keeps uploaded media: `docker node update --label-add heltour.media=true <node>`. The web and caddy services share the media volume, so both run on that node.
+- Create the Docker secrets. Staging uses the same names with `heltour_staging_` in place of `heltour_`.
+
+| Secret | Holds |
+| --- | --- |
+| `heltour_database_url` | `DATABASE_URL`, a postgres URL |
+| `heltour_secret_key` | `SECRET_KEY` |
+| `heltour_email_host_user` | `EMAIL_HOST_USER` |
+| `heltour_email_host_password` | `EMAIL_HOST_PASSWORD` |
+| `heltour_lichess_api_token` | `LICHESS_API_TOKEN` |
+| `heltour_slack_api_token` | `SLACK_API_TOKEN` |
+| `heltour_slack_channel_builder_token` | `SLACK_CHANNEL_BUILDER_TOKEN` |
+| `heltour_slack_webhook` | `SLACK_WEBHOOK_URL` |
+| `heltour_google_service_account` | `GOOGLE_SERVICE_ACCOUNT_KEY`, the Google service account's JSON key |
+
+Each Portainer stack is created from this repo (`main`, and the stack's compose file) with its webhook enabled, and these stack environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `HELTOUR_EMAIL_HOST` | the SMTP host; required |
+| `HELTOUR_CELERY_REPLICAS` | `1` runs the celery worker and beat, `0` (the default) runs neither; never more than `1`, since beat runs inside the worker |
+
+The webhook URLs are stored as the `PORTAINER_STAGING_WEBHOOK_URL` and `PORTAINER_PRODUCTION_WEBHOOK_URL` repo secrets, so every release redeploys staging and every stable release redeploys production. `migrate` runs on each deploy that changes the image, applying migrations and invalidating the cache, then exits.
