@@ -2,7 +2,21 @@ import os
 
 import django_stubs_ext
 
-from .environment import BASE_DIR, DEBUG, HELTOUR_APP, STATIC_ROOT
+from .environment import (
+    BASE_DIR,
+    DEBUG,
+    HELTOUR_APP,
+    MEDIA_S3_ACCESS_KEY_ID,
+    MEDIA_S3_ADDRESSING_STYLE,
+    MEDIA_S3_BUCKET,
+    MEDIA_S3_DEFAULT_ACL,
+    MEDIA_S3_ENDPOINT_URL,
+    MEDIA_S3_PREFIX,
+    MEDIA_S3_REGION,
+    MEDIA_S3_SECRET_ACCESS_KEY,
+    STATIC_ROOT,
+)
+from .media import media_storage
 
 django_stubs_ext.monkeypatch()
 
@@ -110,7 +124,16 @@ STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": media_storage(
+        bucket=MEDIA_S3_BUCKET,
+        endpoint_url=MEDIA_S3_ENDPOINT_URL,
+        region=MEDIA_S3_REGION,
+        prefix=MEDIA_S3_PREFIX,
+        addressing_style=MEDIA_S3_ADDRESSING_STYLE,
+        access_key=MEDIA_S3_ACCESS_KEY_ID,
+        secret_key=MEDIA_S3_SECRET_ACCESS_KEY,
+        default_acl=MEDIA_S3_DEFAULT_ACL,
+    ),
     "staticfiles": {"BACKEND": "heltour.storage.VersionedStaticFilesStorage"},
 }
 
