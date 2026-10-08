@@ -4,6 +4,12 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.0.3 — 2026-10-08
+
+### Fixes
+
+- **deploy**: drop the web and caddy placement constraints ([#789](https://github.com/Lichess4545/heltour/pull/789)) ([0f7a6b2](https://github.com/Lichess4545/heltour/commit/0f7a6b222cd5309ed40f8d582946b93841877fee))
+
 ## v2.0.2 — 2026-10-08
 
 ### Fixes
