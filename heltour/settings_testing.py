@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'django_comments',
     'heltour.comments',
-    'static_precompiler',
+    'sass_processor',
     'impersonate',
 ]
 

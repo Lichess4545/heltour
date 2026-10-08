@@ -75,7 +75,7 @@ INSTALLED_APPS = [
     'django_comments',
     'heltour.comments',
     'impersonate',
-    'static_precompiler',
+    'sass_processor',
 ]
 
 COMMENTS_APP = 'heltour.comments'
@@ -256,13 +256,18 @@ CACHES = {
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATIC_PRECOMPILER_OUTPUT_DIR = '../heltour/tournament/static/'
-STATIC_PRECOMPILER_COMPILERS = (
-    ('static_precompiler.compilers.SCSS', {
-        'sourcemap_enabled': True,
-        'output_style': 'compact'
-    }),
-)
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'sass_processor.finders.CssFinder',
+]
+SASS_PROCESSOR_ROOT = STATIC_ROOT
+SASS_PROCESSOR_INCLUDE_DIRS = [
+    os.path.join(BASE_DIR, 'heltour/tournament/static/tournament/css'),
+]
+SASS_PROCESSOR_AUTO_INCLUDE = False
+SASS_PRECISION = 8
+SASS_OUTPUT_STYLE = 'compact'
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
