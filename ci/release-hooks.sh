@@ -3,6 +3,9 @@ set -euo pipefail
 
 readonly published_image=ghcr.io/lichess4545/heltour
 readonly version_pattern='^version = ".*"$'
+readonly image_pattern="^(x-image: &image $published_image:).*$"
+readonly staging_stack=deploy/staging/compose.yml
+readonly prod_stack=deploy/prod/compose.yml
 
 refuse() {
   if [[ ${GITHUB_ACTIONS-} == true ]]; then
@@ -14,8 +17,13 @@ refuse() {
 }
 
 assert_ready() {
+  local stack
   (($(grep -cE "$version_pattern" pyproject.toml) == 1)) \
     || refuse "pyproject.toml must have exactly one 'version = \"...\"' line"
+  for stack in "$staging_stack" "$prod_stack"; do
+    (($(grep -cE "$image_pattern" "$stack") == 1)) \
+      || refuse "$stack must have exactly one 'x-image: &image $published_image:' line"
+  done
 }
 
 assert_unpublished() {
@@ -36,13 +44,24 @@ describe() {
   fi
   printf '%-9s %s:%s\n' image "$published_image" "${version#v}"
   printf '%-9s %s\n' ':latest' "$latest"
+  printf '%-9s %s\n' staging "$staging_stack deploys ${version#v}"
+  if release-guards is-stable "$version"; then
+    printf '%-9s %s\n' prod "$prod_stack deploys ${version#v}"
+  else
+    printf '%-9s %s\n' prod "$prod_stack unchanged"
+  fi
 }
 
 set_version() {
   local version=${1-}
   assert_ready
   sed -i -E "s|$version_pattern|version = \"${version#v}\"|" pyproject.toml
-  printf 'pyproject.toml\n'
+  sed -i -E "s|$image_pattern|\\1${version#v}|" "$staging_stack"
+  printf 'pyproject.toml\n%s\n' "$staging_stack"
+  if release-guards is-stable "$version"; then
+    sed -i -E "s|$image_pattern|\\1${version#v}|" "$prod_stack"
+    printf '%s\n' "$prod_stack"
+  fi
 }
 
 case ${1-} in
