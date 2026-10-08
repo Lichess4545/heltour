@@ -1,0 +1,40 @@
+name: Python deps hash
+
+on:
+  pull_request:
+    paths: [poetry.lock, python-deps.hash]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
+      - uses: cachix/install-nix-action@v31
+
+      - id: hash
+        run: ci/python-deps-hash.sh || echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push hash
+        if: >-
+          steps.hash.outputs.changed == 'true'
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && github.actor != 'dependabot[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build: update python-deps.hash for poetry.lock" python-deps.hash
+          git push
+
+      - name: Fail on stale hash
+        if: >-
+          steps.hash.outputs.changed == 'true'
+          && (github.event.pull_request.head.repo.full_name != github.repository
+          || github.actor == 'dependabot[bot]')
+        run: |
+          echo "::error::python-deps.hash is stale. Run ci/python-deps-hash.sh and commit python-deps.hash."
+          exit 1

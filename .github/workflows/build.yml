@@ -1,0 +1,62 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: heltour
+          POSTGRES_PASSWORD: heltour
+          POSTGRES_DB: heltour
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U heltour"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    env:
+      DEBUG: "True"
+      DATABASE_URL: postgresql://heltour:heltour@localhost:5432/heltour
+      REDIS_URL: redis://localhost:6379/1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Install packages
+        run: poetry install --no-interaction --no-root --only main
+
+      - name: Run tests
+        run: poetry run python manage.py test --settings=heltour.test_settings
+
+  nix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - run: nix flake check --print-build-logs
