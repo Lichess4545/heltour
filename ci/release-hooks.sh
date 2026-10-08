@@ -36,7 +36,7 @@ assert_unpublished() {
 }
 
 describe() {
-  local version=${1-} latest
+  local version=v${1#v} latest
   if release-guards is-stable "$version"; then
     latest="moves to $version"
   else
@@ -53,7 +53,7 @@ describe() {
 }
 
 set_version() {
-  local version=${1-}
+  local version=v${1#v}
   assert_ready
   sed -i -E "s|$version_pattern|version = \"${version#v}\"|" pyproject.toml
   sed -i -E "s|$image_pattern|\\1${version#v}|" "$staging_stack"
