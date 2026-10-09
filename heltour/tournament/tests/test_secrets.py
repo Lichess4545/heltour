@@ -33,7 +33,8 @@ class SlackSecretsTestCase(SimpleTestCase):
     @override_settings(SLACK_WEBHOOK_URL="")
     @patch("heltour.tournament.slackapi.requests.post")
     def test_skips_messages_without_a_webhook_url(self, post):
-        slackapi.send_message("#general", "hello")
+        with self.assertLogs("heltour.tournament.slackapi", level="ERROR"):
+            slackapi.send_message("#general", "hello")
         post.assert_not_called()
 
 

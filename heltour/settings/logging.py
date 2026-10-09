@@ -1,3 +1,5 @@
+from .environment import LOG_LEVEL
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -16,6 +18,6 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "DEBUG",
+        "level": LOG_LEVEL,
     },
 }
