@@ -4,6 +4,38 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.1.0 — 2026-10-09
+
+### Features
+
+- use django database celery backends ([a1a95f3](https://github.com/Lichess4545/heltour/commit/a1a95f3cfb75a0e1aefeeaca28e4c873d262d414))
+- use the devenv to provide a development environment ([f5673f0](https://github.com/Lichess4545/heltour/commit/f5673f0a55c9dd3f45041b9d501712cc94f9a13d))
+- **tournament**: add a seed_test_data command that seeds demo leagues ([#797](https://github.com/Lichess4545/heltour/pull/797)) ([dab1283](https://github.com/Lichess4545/heltour/commit/dab12839d3a411c71f70a6529bc31a63d1ac36e1))
+- adding the deployed version to the footer and adding a deploy command ([44a9468](https://github.com/Lichess4545/heltour/commit/44a9468d4514e493c30944b0e3f37ca4722e78bf))
+
+### Fixes
+
+- stop logging successful Lichess messages as send failures ([c597ccc](https://github.com/Lichess4545/heltour/commit/c597ccca32aa4d831a56c14973f2293fbfc207f3))
+- result is a json, not a simple string ([#729](https://github.com/Lichess4545/heltour/pull/729)) ([f39376f](https://github.com/Lichess4545/heltour/commit/f39376fd46a6b7ea24adb037cbf73e13c10d77ef))
+
+### Tests
+
+- PlayerProfileView tests ([307ca2d](https://github.com/Lichess4545/heltour/commit/307ca2d70140cb0ee22170d63a2a943209fb1752))
+- more tests for notify.py ([#735](https://github.com/Lichess4545/heltour/pull/735)) ([8b62f45](https://github.com/Lichess4545/heltour/commit/8b62f45cb80827e653c4f2637f105717c2f91597))
+- more automod tests ([#697](https://github.com/Lichess4545/heltour/pull/697)) ([5f3e209](https://github.com/Lichess4545/heltour/commit/5f3e209b1b0a5ec9ce9a9a9b5f5673e7f3b4c5b9))
+
+### Tooling
+
+- refactor the stack to have per service secrets and remove staging. ([c34d480](https://github.com/Lichess4545/heltour/commit/c34d480ddb91003630e34a1bd9952ee27a30e1f1))
+- remove the bare-metal deploy ([#795](https://github.com/Lichess4545/heltour/pull/795)) ([d5a1ba2](https://github.com/Lichess4545/heltour/commit/d5a1ba2ec5a3e6e26769747672c79393b664141f))
+- **deps**: bump python dependencies with security fixes ([f082b00](https://github.com/Lichess4545/heltour/commit/f082b007a6f4537d78f4ce86eac607d0ba03a5b7))
+- add a slightly reworded version of the lichess/ghostty ai-policy ([c6b8a45](https://github.com/Lichess4545/heltour/commit/c6b8a45360568457107c430c542b509d62483aca))
+- use devenv allocated ports properly  ([41d92a1](https://github.com/Lichess4545/heltour/commit/41d92a1d040f64fc867f13614c0af6d3c1e950c2))
+
+### Other
+
+- initial tests for the api ([32851f9](https://github.com/Lichess4545/heltour/commit/32851f974f3cb9656fabbf09c39c2a29aea27938))
+
 ## v2.0.4 — 2026-10-08
 
 ### Fixes
