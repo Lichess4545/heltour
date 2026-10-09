@@ -11,13 +11,15 @@ League management software for the Lichess4545 league.
 These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.
 
 1. Copy `.env.example` to `.env` and fill it in. Settings come from env vars or `.env`; each one can instead be read from a file named by `<NAME>_FILE`.
-2. `poetry install`
-3. Start postgres and redis. `devenv up` starts a postgres with the database `.env.example` points at.
-4. `poetry run python manage.py migrate`
-5. `poetry run python manage.py runserver`
+2. `devenv up` starts postgres, redis, mailpit and the heltour processes, described under development.
+3. `devenv shell -- python manage.py migrate`
+
+Without devenv, run `poetry install`, start postgres and redis yourself, then `poetry run python manage.py migrate` and `poetry run python manage.py runserver`.
 
 # development
-Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
+[devenv](https://devenv.sh) provides python 3.11, the poetry environment and the JRE JaVaFo needs. `devenv shell` enters it, installing the main poetry dependencies into `.venv`.
+
+`devenv up` starts postgres, redis, mailpit, django, the api worker and a celery worker. Each starts on its usual port (5432, 6379, 1025 and 8025 for mailpit, 8000 for django, 8880 for the api worker) or the next free one, and devenv sets `DATABASE_URL`, `REDIS_URL`, `BROKER_URL`, `EMAIL_HOST`, `EMAIL_PORT`, `API_WORKER_HOST` and `CSRF_TRUSTED_ORIGINS` from the ports it chose, overriding `.env`. `devenv processes list` shows them. A separate `devenv shell` can pick different ports from a running `devenv up` when one had to move, so check its `DATABASE_URL` before running `manage.py migrate` from it.
 
 Ensure that your editor has an [EditorConfig plugin](https://editorconfig.org/#download) enabled.
 
