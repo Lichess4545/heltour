@@ -771,6 +771,13 @@ class RegisterView(LoginRequiredMixin, LeagueView):
         with cache.lock(f'update_create_registration-{self.request.user.id}-{reg_season.id}'):
             instance = Registration.get_latest_registration(self.request.user, reg_season)
             player = Player.get_or_create(lichess_username=self.request.user.username)
+            if (
+               player.potentially_provisional()
+               and (timezone.now() - player.profile_update_after()) > timedelta(weeks=1)
+            ):
+                user_meta = lichessapi.get_user_meta(
+                    player.lichess_username, priority=100)
+                player.update_profile(user_meta)
             if post:
                 form = RegistrationForm(
                     self.request.POST,

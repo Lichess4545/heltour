@@ -920,8 +920,23 @@ class Player(_BaseModel):
         # thus, the profile was last updated *after* this seenAt.
         seenAt = (self.profile or {}) .get('seenAt')
         if seenAt is not None:
-            return datetime.utcfromtimestamp(seenAt / 1000)
-        return None
+            return datetime.fromtimestamp(seenAt / 1000, tz=timezone.utc)
+        # give an early default time otherwise:
+        return datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
+
+    def max_rd_guess(self) -> float:
+        ABSOLUTE_MAX_RD: int = 500 # max rd on lichess
+        DAILY_RD_INCREASE: float = .137 # rd goes from 60 to 110 in a year
+        profile_update = self.profile_update_after()
+        if self.profile is None:
+            return ABSOLUTE_MAX_RD
+        time_passed = timezone.now() - profile_update
+        old_rd = self.profile.get('perfs', {}).get('classical', {}).get('rd', ABSOLUTE_MAX_RD)
+        max_guess = min(old_rd + time_passed.days * DAILY_RD_INCREASE, ABSOLUTE_MAX_RD)
+        return max_guess
+
+    def potentially_provisional(self) -> bool:
+        return self.max_rd_guess() > 110
 
     @classmethod
     def get_or_create(cls, lichess_username):

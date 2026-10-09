@@ -1116,3 +1116,74 @@ class ScheduledEventTestCase(TestCase):
         self.assertFalse(automod_noshow.called)
         self.se.run(self.pp)
         self.assertTrue(automod_noshow.called)
+
+class PlayerTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.p1 = Player.objects.create(lichess_username="Player1")
+        # cls.p2 = Player.objects.create(lichess_username='Player2')
+        cls.profile_old = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 247,
+                    "games": 25,
+                },
+            },
+            "seenAt": 1589845490097,
+        }
+        cls.profile_mid = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 109.5,
+                    "games": 25,
+                },
+            },
+            "seenAt": (timezone.now() - timedelta(days=10)).timestamp()*1000,
+        }
+        cls.profile_new = {
+            "perfs": {
+                "classical": {
+                    "rating": 1858,
+                    "rd": 50,
+                    "games": 25,
+                },
+            },
+            "seenAt": (timezone.now() - timedelta(days=2)).timestamp()*1000,
+        }
+
+
+    def test_update_profile(self):
+        self.assertIsNone(self.p1.rating)
+        self.p1.update_profile(user_meta=self.profile_old)
+        self.assertEqual(self.p1.rating, 1858)
+        self.assertEqual(self.p1.account_status, "normal")
+        self.assertEqual(self.p1.profile.get("perfs").get("classical").get("rd"), 247)
+
+    def test_profile_update_after(self):
+        newtime = datetime.fromtimestamp(1589845490.097, tz=timezone.utc)
+        defaulttime = datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
+        self.assertEqual(self.p1.profile_update_after(), defaulttime)
+        self.p1.update_profile(user_meta=self.profile_old)
+        self.assertEqual(self.p1.profile_update_after(), newtime)
+        self.p1.update_profile(user_meta=self.profile_new)
+        self.assertTrue(self.p1.profile_update_after() > timezone.now() - timedelta(days=3))
+
+    def test_max_rd_guess(self):
+        self.assertEqual(self.p1.max_rd_guess(), 500)
+        self.p1.update_profile(user_meta=self.profile_old)
+        self.assertEqual(self.p1.max_rd_guess(), 500)
+        self.p1.update_profile(user_meta=self.profile_mid)
+        self.assertTrue(self.p1.max_rd_guess() > 110)
+        self.assertTrue(self.p1.max_rd_guess() < 111)
+
+    def test_potentially_provisional(self):
+        self.assertTrue(self.p1.potentially_provisional())
+        self.p1.update_profile(user_meta=self.profile_old)
+        self.assertTrue(self.p1.potentially_provisional())
+        self.p1.update_profile(user_meta=self.profile_mid)
+        self.assertTrue(self.p1.potentially_provisional())
+        self.p1.update_profile(user_meta=self.profile_new)
+        self.assertFalse(self.p1.potentially_provisional())
+
