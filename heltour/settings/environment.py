@@ -35,7 +35,6 @@ LINK_PROTOCOL = env.str("LINK_PROTOCOL", default="https")
 HELTOUR_APP = env.str("HELTOUR_APP", default="tournament")
 HELTOUR_ENV = env.str("HELTOUR_ENV", default="dev")
 HELTOUR_VERSION = env.str("HELTOUR_VERSION", default="unknown")
-STAGING = HELTOUR_ENV == "stage"
 
 STATIC_ROOT = env.str("STATIC_ROOT", default=os.path.join(BASE_DIR, "static"))
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=os.path.join(BASE_DIR, "media"))

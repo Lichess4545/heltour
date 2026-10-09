@@ -22,13 +22,7 @@
         {% block head_js %}{% endblock %}
     </head>
     <body class="{% if league %}theme-{{ league.theme }}{% endif %}{% if dark_mode %} dark{% endif %}">
-        {% if STAGING %}
-            <header style="background-color: #c00; height: 30px; text-align: center;">
-                <div class="container-fluid">
-                    <p style="color: #fff; margin: 5px 0;">STAGING ENVIRONMENT - FOR TESTING ONLY</p>
-                </div>
-            </header>
-        {% elif DEBUG %}
+        {% if DEBUG %}
             <header style="background-color: #00c; height: 30px; text-align: center;">
                 <div class="container-fluid">
                     <p style="color: #fff; margin: 5px 0;">DEBUG</p>

@@ -50,17 +50,17 @@ Static files are compiled and collected into the image. Uploaded media lives in 
 The build pins a hash of the python dependencies in `poetry.lock`, kept in `python-deps.hash`. When `poetry.lock` changes, run `ci/python-deps-hash.sh` and commit `python-deps.hash`.
 
 # releasing
-Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md`, the version in `pyproject.toml` and the image version the stacks deploy, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`. Every release updates the staging stack; only a stable release updates the production stack.
+Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md`, the version in `pyproject.toml` and the image version the production stack deploys, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`. Only a stable release updates and redeploys the production stack; a prerelease only publishes its versioned image and a GitHub prerelease.
 
 `release minor` or `release v1.2.3` override the derived version. There are no `v*` tags yet, so name the first release explicitly, since `pyproject.toml` is already at 1.0.1.
 
 # deployment
-`deploy/prod/compose.yml` and `deploy/staging/compose.yml` are the production and staging stacks for Portainer on Docker Swarm. Each pins an explicit image version, which `release` updates; redeploying a stack picks it up. Postgres is external, and each stack runs its own redis.
+`deploy/prod/compose.yml` is the production stack for Portainer on Docker Swarm. It pins an explicit image version, which `release` updates; redeploying the stack picks it up. Postgres is external, and the stack runs its own redis.
 
-Before a stack is first deployed:
+Before the stack is first deployed:
 
 - Traefik routes to caddy on port 8080 over the external `frontend` network, using the labels on the caddy service (entrypoint `websecure`, certresolver `dnsresolver`).
-- Create the Docker secrets. Staging uses the same names with `heltour_staging_` in place of `heltour_`.
+- Create the Docker secrets.
 
 | Secret | Holds |
 | --- | --- |
@@ -74,11 +74,11 @@ Before a stack is first deployed:
 | `heltour_slack_webhook` | `SLACK_WEBHOOK_URL` |
 | `heltour_google_service_account` | `GOOGLE_SERVICE_ACCOUNT_KEY`, the Google service account's JSON key |
 
-Each Portainer stack is created from this repo (`main`, and the stack's compose file) with its webhook enabled, and these stack environment variables:
+The Portainer stack is created from this repo (`main`, and `deploy/prod/compose.yml`) with its webhook enabled, and these stack environment variables:
 
 | Variable | Purpose |
 | --- | --- |
 | `HELTOUR_EMAIL_HOST` | the SMTP host; required |
 | `HELTOUR_CELERY_REPLICAS` | `1` runs the celery worker and beat, `0` (the default) runs neither; never more than `1`, since beat runs inside the worker |
 
-The webhook URLs are stored as the `PORTAINER_STAGING_WEBHOOK_URL` and `PORTAINER_PRODUCTION_WEBHOOK_URL` repo secrets, so every release redeploys staging and every stable release redeploys production. `migrate` runs on each deploy that changes the image, applying migrations and invalidating the cache, then exits.
+The webhook URL is stored as the `PORTAINER_PRODUCTION_WEBHOOK_URL` repo secret, so every stable release redeploys production. `migrate` runs on each deploy that changes the image, applying migrations and invalidating the cache, then exits.
