@@ -217,6 +217,13 @@ def notify_mods_round_start_done(round_, **kwargs):
     _send_notification('mod', round_.season.league, message)
 
 
+@receiver(signals.notify_mods_availability_changed, dispatch_uid="heltour.tournament.notify")
+def notify_mods_availability_changed(round_, player, available, **kwargs):
+    availability = "available" if available else "NOT available"
+    message = f"Player {player} changed to {availability} for {round_}, unpublished pairings already exist."
+    _send_notification("mod", round_.season.league, message)
+
+
 @receiver(signals.pairings_generated, dispatch_uid='heltour.tournament.notify')
 def pairings_generated(round_, **kwargs):
     league = round_.season.league
