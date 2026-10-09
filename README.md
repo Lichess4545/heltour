@@ -6,19 +6,15 @@ League management software for the Lichess4545 league.
 * Pip
 * poetry
 * Postgres (Ubuntu packages postgresql and postgresql-server-dev-9.5)
-* Fabric (pip install fabric)
-* Virtualenv (Ubuntu package virtualenv)
 
 # install
 These install instructions have been test on Arch and Ubuntu linux. Other OSes should work, but the install may vary slightly.
 
 1. Copy `.env.example` to `.env` and fill it in. Settings come from env vars or `.env`; each one can instead be read from a file named by `<NAME>_FILE`.
-2. `./start.sh`
-3. `source env/bin/activate`
-4. `fab up`
-5. `fab createdb`
-6. `fab -R dev latestdb`
-8. `fab runserver`
+2. `poetry install`
+3. Start postgres and redis. `devenv up` starts a postgres with the database `.env.example` points at.
+4. `poetry run python manage.py migrate`
+5. `poetry run python manage.py runserver`
 
 # development
 Use [4545vagrant](https://github.com/lakinwecker/4545vagrant) as development environment.
