@@ -712,7 +712,9 @@ def get_season_games(request):
                     "round": r.number if r else None,
                     "game_id": game_id,
                     "white": p.white.lichess_username if p.white else None,
+                    "white_rating": p.white.rating_for(s.league) if p.white else None,
                     "black": p.black.lichess_username if p.black else None,
+                    "black_rating": p.black.rating_for(s.league) if p.black else None,
                     "result": p.result,
                 }
                 if hasattr(p, "teamplayerpairing"):
