@@ -4,17 +4,25 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.4.0 — 2026-10-09
+
+### Features
+
+- add ratings to api.get_season_games ([96843de](https://github.com/Lichess4545/heltour/commit/96843de5ecd13ed22a90d1123577ef5686fc5f96))
+- discourage players with slack-linked accounts from using the contact page more strongly ([290391f](https://github.com/Lichess4545/heltour/commit/290391f01a7c9b7f59d995fc1c4c88ab2381ca1f))
+
+### Tooling
+
+- **deploy**: deploy production 2.3.0 ([9a77733](https://github.com/Lichess4545/heltour/commit/9a7773375fcb3993dab5a0c0e752b883e44c3b04))
+- **deploy**: deploy production 2.1.0 ([4c1ffda](https://github.com/Lichess4545/heltour/commit/4c1ffdac09b02c229cbe559ef40b71bcd5a9e35b))
+- **deploy**: deploy production 2.3.0 ([679b84d](https://github.com/Lichess4545/heltour/commit/679b84dfe3dd619be90e349d07d45d7d73979c86))
+
 ## v2.3.0 — 2026-10-09
 
 ### Features
 
-- when registering, try to guesstimate whether forcing a profile update makes sense ([#772](https://github.com/Lichess4545/heltour/pull/772)) ([34ea3c7](https://github.com/Lichess4545/heltour/commit/34ea3c78d53b20216796ac3d0f38b36432a58f13))
-
-## v2.2.0 — 2026-10-09
-
-### Features
-
 - make the get_roster api public ([#773](https://github.com/Lichess4545/heltour/pull/773)) ([f864f67](https://github.com/Lichess4545/heltour/commit/f864f6770962d2a150c36a8c471363bbb1fa9f70))
+- when registering, try to guesstimate whether forcing a profile update makes sense ([#772](https://github.com/Lichess4545/heltour/pull/772)) ([34ea3c7](https://github.com/Lichess4545/heltour/commit/34ea3c78d53b20216796ac3d0f38b36432a58f13))
 
 ### Documentation
 
