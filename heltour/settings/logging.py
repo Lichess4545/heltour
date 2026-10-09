@@ -16,6 +16,11 @@ LOGGING = {
             "class": "django.utils.log.AdminEmailHandler",
         },
     },
+    "loggers": {
+        "boto3": {"level": "INFO"},
+        "botocore": {"level": "INFO"},
+        "s3transfer": {"level": "INFO"},
+    },
     "root": {
         "handlers": ["console"],
         "level": LOG_LEVEL,

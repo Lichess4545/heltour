@@ -90,7 +90,7 @@
           ${venv}/bin/python manage.py collectstatic --noinput
         '';
 
-        caddyfile = pkgs.writeText "Caddyfile" ''
+        caddyfile = name: media: pkgs.writeText name ''
           {
           	admin off
           	auto_https off
@@ -102,16 +102,25 @@
           		root * ${static}
           		file_server
           	}
-
-          	handle_path /media/* {
-          		root * ${mediaRoot}
-          		file_server
-          	}
-
+          ${media}
           	handle {
           		reverse_proxy web:8000
           	}
           }
+        '';
+
+        siteCaddyfile = caddyfile "Caddyfile" "";
+
+        mediaCaddyfile = caddyfile "Caddyfile.media" ''
+
+          	handle_path /media/* {
+          		rewrite * {$MEDIA_ORIGIN_PATH}{uri}
+          		reverse_proxy {$MEDIA_ORIGIN_UPSTREAM} {
+          			header_up Host {upstream_hostport}
+          			header_up -Cookie
+          			header_up -Authorization
+          		}
+          	}
         '';
 
         command = name: runtimeInputs: text: pkgs.writeShellApplication {
@@ -143,7 +152,16 @@
               exec python manage.py "$@"
             '')
             (command "heltour-caddy" [ pkgs.caddy ] ''
-              exec caddy run --adapter caddyfile --config ${caddyfile}
+              if [ -z "''${MEDIA_ORIGIN_URL:-}" ]; then
+                exec caddy run --adapter caddyfile --config ${siteCaddyfile}
+              fi
+              origin="''${MEDIA_ORIGIN_URL%/}"
+              authority="''${origin#*://}"
+              authority="''${authority%%/*}"
+              path="''${origin#*://"$authority"}"
+              export MEDIA_ORIGIN_UPSTREAM="''${origin%%://*}://$authority"
+              export MEDIA_ORIGIN_PATH="$path"
+              exec caddy run --adapter caddyfile --config ${mediaCaddyfile}
             '')
           ];
         };
