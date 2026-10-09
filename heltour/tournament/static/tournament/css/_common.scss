@@ -386,7 +386,9 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     color: #337ab7;
 }
 
-#table-team-pairings .color-dot, #table-team-pairings .captain {
+#table-team-pairings .color-dot,
+#table-team-pairings .captain,
+#table-team-pairings .vice-captain {
     color: rgb(51, 51, 51);
 }
 
@@ -449,7 +451,8 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     overflow: hidden;
 }
 
-#table-rosters .cell-player.captain .player-name {
+#table-rosters .cell-player.captain .player-name,
+#table-rosters .cell-player.vice-captain .player-name {
     max-width: calc(100% - 25px);
 }
 
@@ -457,6 +460,12 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
 .player-profile-section .captain:after,
 .pairings-row .captain:after {
     content: '(C)';
+}
+
+#table-rosters .cell-player.vice-captain:after,
+.player-profile-section .vice-captain:after,
+.pairings-row .vice-captain:after {
+    content: '(V)';
 }
 
 #table-alternates > tbody > tr > td {
@@ -977,7 +986,8 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     #table-rosters {
         table-layout: auto;
     }
-    #table-rosters .cell-player.captain .player-name {
+    #table-rosters .cell-player.captain .player-name,
+    #table-rosters .cell-player.vice-captain .player-name {
         max-width: 100%;
     }
 }
