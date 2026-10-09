@@ -4,6 +4,20 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.2.0 — 2026-10-09
+
+### Features
+
+- make the get_roster api public ([#773](https://github.com/Lichess4545/heltour/pull/773)) ([f864f67](https://github.com/Lichess4545/heltour/commit/f864f6770962d2a150c36a8c471363bbb1fa9f70))
+
+### Documentation
+
+- rewrite the README to be shorter and easier to follow ([6b64953](https://github.com/Lichess4545/heltour/commit/6b64953b58c9c15915e56c52a6473e3f12951b82))
+
+### Tooling
+
+- **deploy**: deploy production 2.1.0 ([e55bad1](https://github.com/Lichess4545/heltour/commit/e55bad183b19704d1d252510a54ec5c31ae58ecd))
+
 ## v2.1.0 — 2026-10-09
 
 ### Features
