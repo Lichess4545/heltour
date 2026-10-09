@@ -48,12 +48,17 @@ Static files are compiled and collected into the image. Uploaded media lives in 
 The build pins a hash of the python dependencies in `poetry.lock`, kept in `python-deps.hash`. When `poetry.lock` changes, run `ci/python-deps-hash.sh` and commit `python-deps.hash`.
 
 # releasing
-Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md`, the version in `pyproject.toml` and the image version the production stack deploys, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`. Only a stable release updates and redeploys the production stack; a prerelease only publishes its versioned image and a GitHub prerelease.
+Run `release` from the devenv shell on an up-to-date `main`. It reads the next version from the [conventional commit](https://www.conventionalcommits.org) subjects since the last `v*` tag (`feat` is a minor, any other type a patch, `!` or `BREAKING CHANGE` a major), writes `CHANGELOG.md` and the version in `pyproject.toml`, asks you to confirm, then pushes `main` and the tag. Pushing the tag runs `.github/workflows/release.yml`, which builds the image and publishes it as `ghcr.io/lichess4545/heltour:<version>`. A stable release also moves `:latest`, then runs the deploy workflow to put that version into production (see below). A prerelease only publishes its versioned image and a GitHub prerelease.
 
 `release minor` or `release v1.2.3` override the derived version. There are no `v*` tags yet, so name the first release explicitly, since `pyproject.toml` is already at 1.0.1.
 
+## Deploying a version
+Run `deploy 2.0.3` (or `deploy v2.0.3`) from the devenv shell to put any published version into production, older or newer than the running one. It starts `.github/workflows/deploy.yml`, which checks that the `v2.0.3` tag and the `ghcr.io/lichess4545/heltour:2.0.3` image exist, commits the new image version to `deploy/prod/compose.yml` on `main`, and calls the Portainer webhook. If production already deploys that version it stops without changing anything. A stable release runs the same workflow, so after rolling back, the next stable release moves production forward again.
+
+Follow a deploy with `gh run list --repo Lichess4545/heltour --workflow deploy.yml` or `gh run watch --repo Lichess4545/heltour`.
+
 # deployment
-`deploy/prod/compose.yml` is the production stack for Portainer on Docker Swarm. It pins an explicit image version, which `release` updates; redeploying the stack picks it up. Postgres is external, and the stack runs its own redis.
+`deploy/prod/compose.yml` is the production stack for Portainer on Docker Swarm. It pins an explicit image version, which only the deploy workflow updates; redeploying the stack picks it up. Postgres is external, and the stack runs its own redis.
 
 Before the stack is first deployed:
 

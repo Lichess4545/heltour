@@ -10,38 +10,21 @@ jobs:
     permissions:
       contents: write
       packages: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      stable: ${{ steps.release.outputs.stable }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: cachix/install-nix-action@v31
-
-      - name: Add release guards to PATH
-        run: |
-          guards=$(nix build --no-link --print-out-paths .#release-guards)
-          echo "$guards/bin" >> "$GITHUB_PATH"
-
-      - name: Resolve version
-        run: |
-          release-guards assert-releasable "$GITHUB_REF_NAME"
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-          echo "RELEASE_COMMIT=$(git rev-parse "$GITHUB_SHA^{commit}")" >> "$GITHUB_ENV"
-          if release-guards is-stable "$GITHUB_REF_NAME"; then
-            echo "IS_STABLE_RELEASE=true" >> "$GITHUB_ENV"
-          else
-            echo "IS_STABLE_RELEASE=false" >> "$GITHUB_ENV"
-          fi
+      - uses: ./.github/actions/release-tools
+        id: release
+        with:
+          version: ${{ github.ref_name }}
 
       - name: Require a commit on main
-        run: release-guards assert-on-main "$RELEASE_COMMIT"
-
-      - name: Write registries.conf
-        run: |
-          cat > "$RUNNER_TEMP/registries.conf" <<'CONF'
-          unqualified-search-registries = ["docker.io"]
-          CONF
-          echo "CONTAINERS_REGISTRIES_CONF=$RUNNER_TEMP/registries.conf" >> "$GITHUB_ENV"
+        run: release-guards assert-on-main "$(git rev-parse "$GITHUB_SHA^{commit}")"
 
       - name: Log in to ghcr.io
         env:
@@ -62,20 +45,18 @@ jobs:
       - name: Build image
         run: nix build .#container --print-build-logs
 
-      - name: Push version tag
+      - name: Push image tags
         run: |
-          nix run nixpkgs#skopeo -- copy \
-            --dest-authfile "$GHCR_AUTHFILE" \
-            docker-archive:result \
-            "docker://$(ci/release-hooks.sh image):${VERSION}"
-
-      - name: Push latest tag
-        if: env.IS_STABLE_RELEASE == 'true'
-        run: |
-          nix run nixpkgs#skopeo -- copy \
-            --dest-authfile "$GHCR_AUTHFILE" \
-            docker-archive:result \
-            "docker://$(ci/release-hooks.sh image):latest"
+          tags=("$VERSION")
+          if [ "$IS_STABLE_RELEASE" = "true" ]; then
+            tags+=(latest)
+          fi
+          for tag in "${tags[@]}"; do
+            nix run nixpkgs#skopeo -- copy \
+              --dest-authfile "$GHCR_AUTHFILE" \
+              docker-archive:result \
+              "docker://$(ci/release-hooks.sh image):$tag"
+          done
 
       - name: Render release notes
         run: |
@@ -94,13 +75,14 @@ jobs:
           fi
           gh release create "$GITHUB_REF_NAME" "${args[@]}"
 
-      - name: Redeploy production
-        if: env.IS_STABLE_RELEASE == 'true'
-        env:
-          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_PRODUCTION_WEBHOOK_URL }}
-        run: |
-          if [ -z "$PORTAINER_WEBHOOK_URL" ]; then
-            echo "::notice::PORTAINER_PRODUCTION_WEBHOOK_URL is not set, skipping the production redeploy"
-            exit 0
-          fi
-          curl -fsS -X POST "$PORTAINER_WEBHOOK_URL"
+  deploy:
+    needs: publish
+    if: needs.publish.outputs.stable == 'true'
+    permissions:
+      contents: write
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
+    secrets:
+      PORTAINER_PRODUCTION_WEBHOOK_URL: ${{ secrets.PORTAINER_PRODUCTION_WEBHOOK_URL }}
