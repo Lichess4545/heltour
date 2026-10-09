@@ -1,3 +1,5 @@
+from __future__ import annotations
+# ^ needed here until we use python 3.10 for typing str|None
 import time
 from datetime import timedelta
 
@@ -12,9 +14,12 @@ from heltour.tournament import lichessapi, signals
 from heltour.tournament.models import (
     MOD_REQUEST_SENDER,
     ModRequest,
+    Player,
     PlayerAvailability,
+    PlayerPairing,
     PlayerWarning,
     PlayerWithdrawal,
+    Round,
     SeasonPlayer,
     add_system_comment,
     logger,
@@ -100,14 +105,24 @@ def automod_unresponsive(round_, **kwargs):
         white_present = p.get_player_presence(p.white).first_msg_time is not None
         black_present = p.get_player_presence(p.black).first_msg_time is not None
         if not white_present:
-            player_unresponsive(round_, p, p.white, groups)
+            groups = player_unresponsive(
+                round_=round_,
+                pairing=p,
+                player=p.white,
+                groups=groups
+            )
             if black_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.black,
                                                           opponent=p.white, pairing=p)
             time.sleep(settings.SLEEP_UNIT)
         if not black_present:
-            player_unresponsive(round_, p, p.black, groups)
+            groups = player_unresponsive(
+                round_=round_,
+                pairing=p,
+                player=p.black,
+                groups=groups
+            )
             if white_present:
                 signals.notify_opponent_unresponsive.send(sender=automod_unresponsive,
                                                           round_=round_, player=p.white,
@@ -118,7 +133,12 @@ def automod_unresponsive(round_, **kwargs):
                                           reds=groups['red'])
 
 
-def player_unresponsive(round_, pairing, player, groups):
+def player_unresponsive(
+    round_: Round,
+    pairing: PlayerPairing,
+    player: Player,
+    groups: dict[str, Player],
+) -> dict[str, Player]:
     season = round_.season
     league = season.league
     has_warning = PlayerWarning.objects.filter(player=player, round__season=season,
@@ -131,9 +151,9 @@ def player_unresponsive(round_, pairing, player, groups):
         allow_continue = league.competitor_type != 'team'
         groups['warning'].append(player)
     else:
-        card_color = give_card(round_, player, 'card_unresponsive')
+        card_color = give_card(round_=round_, player=player, type_="card_unresponsive")
         if not card_color:
-            return
+            return groups
         punishment = 'You have been given a %s card.' % card_color
         allow_continue = card_color != 'red' and league.competitor_type != 'team'
         groups[card_color].append(player)
@@ -141,10 +161,15 @@ def player_unresponsive(round_, pairing, player, groups):
         avail, _ = PlayerAvailability.objects.get_or_create(round=round_, player=player)
         avail.is_available = False
         avail.save()
-    signals.notify_unresponsive.send(sender=automod_unresponsive, round_=round_, player=player,
-                                     punishment=punishment, allow_continue=allow_continue,
-                                     pairing=pairing)
-
+    signals.notify_unresponsive.send(
+        sender=automod_unresponsive,
+        round_=round_,
+        player=player,
+        punishment=punishment,
+        allow_continue=allow_continue,
+        pairing=pairing,
+    )
+    return groups
 
 @receiver(signals.mod_request_approved, sender=MOD_REQUEST_SENDER['appeal_late_response'],
           dispatch_uid='heltour.tournament.automod')
@@ -368,7 +393,7 @@ def appeal_scheduling_draw_approved(instance, **kwargs):
     add_system_comment(instance.pairing, comment_)
 
 
-def give_card(round_, player, type_):
+def give_card(round_: Round, player: Player, type_: str | None) -> str | None:
     # TODO: Unit tests?
     with transaction.atomic():
         sp = SeasonPlayer.objects.filter(season=round_.season, player=player).first()
