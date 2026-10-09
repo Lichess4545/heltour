@@ -4,6 +4,12 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.3.0 — 2026-10-09
+
+### Features
+
+- when registering, try to guesstimate whether forcing a profile update makes sense ([#772](https://github.com/Lichess4545/heltour/pull/772)) ([34ea3c7](https://github.com/Lichess4545/heltour/commit/34ea3c78d53b20216796ac3d0f38b36432a58f13))
+
 ## v2.2.0 — 2026-10-09
 
 ### Features
