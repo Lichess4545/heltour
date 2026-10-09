@@ -60,19 +60,19 @@ Run `release` from the devenv shell on an up-to-date `main`. It reads the next v
 Before the stack is first deployed:
 
 - Traefik routes to caddy on port 8080 over the external `frontend` network, using the labels on the caddy service (entrypoint `websecure`, certresolver `dnsresolver`).
-- Create the Docker secrets.
+- Create the Docker secrets. Each service mounts only the secrets it uses, and points its `*_FILE` variables at those alone, so a new secret must be added to the `secrets` and `environment` of every service that needs it.
 
-| Secret | Holds |
-| --- | --- |
-| `heltour_database_url` | `DATABASE_URL`, a postgres URL |
-| `heltour_secret_key` | `SECRET_KEY` |
-| `heltour_email_host_user` | `EMAIL_HOST_USER` |
-| `heltour_email_host_password` | `EMAIL_HOST_PASSWORD` |
-| `heltour_lichess_api_token` | `LICHESS_API_TOKEN` |
-| `heltour_slack_api_token` | `SLACK_API_TOKEN` |
-| `heltour_slack_channel_builder_token` | `SLACK_CHANNEL_BUILDER_TOKEN` |
-| `heltour_slack_webhook` | `SLACK_WEBHOOK_URL` |
-| `heltour_google_service_account` | `GOOGLE_SERVICE_ACCOUNT_KEY`, the Google service account's JSON key |
+| Secret | Holds | Mounted in |
+| --- | --- | --- |
+| `heltour_database_url` | `DATABASE_URL`, a postgres URL | web, apiworker, celery, migrate |
+| `heltour_secret_key` | `SECRET_KEY` | web, apiworker, celery, migrate |
+| `heltour_email_host_user` | `EMAIL_HOST_USER` | web |
+| `heltour_email_host_password` | `EMAIL_HOST_PASSWORD` | web |
+| `heltour_lichess_api_token` | `LICHESS_API_TOKEN` | apiworker |
+| `heltour_slack_api_token` | `SLACK_API_TOKEN` | web, celery |
+| `heltour_slack_channel_builder_token` | `SLACK_CHANNEL_BUILDER_TOKEN` | celery |
+| `heltour_slack_webhook` | `SLACK_WEBHOOK_URL` | web, celery |
+| `heltour_google_service_account` | `GOOGLE_SERVICE_ACCOUNT_KEY`, the Google service account's JSON key | web |
 
 The Portainer stack is created from this repo (`main`, and `deploy/prod/compose.yml`) with its webhook enabled, and these stack environment variables:
 

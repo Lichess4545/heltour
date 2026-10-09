@@ -7,26 +7,6 @@ x-environment: &environment
   REDIS_URL: redis://redis:6379/1
   API_WORKER_HOST: http://apiworker:8880
   EMAIL_HOST: ${HELTOUR_EMAIL_HOST:?must be set in the stack environment}
-  DATABASE_URL_FILE: /run/secrets/heltour_database_url
-  SECRET_KEY_FILE: /run/secrets/heltour_secret_key
-  EMAIL_HOST_USER_FILE: /run/secrets/heltour_email_host_user
-  EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_email_host_password
-  LICHESS_API_TOKEN_FILE: /run/secrets/heltour_lichess_api_token
-  SLACK_API_TOKEN_FILE: /run/secrets/heltour_slack_api_token
-  SLACK_CHANNEL_BUILDER_TOKEN_FILE: /run/secrets/heltour_slack_channel_builder_token
-  SLACK_WEBHOOK_URL_FILE: /run/secrets/heltour_slack_webhook
-  GOOGLE_SERVICE_ACCOUNT_KEY_FILE: /run/secrets/heltour_google_service_account
-
-x-secrets: &secrets
-  - heltour_database_url
-  - heltour_secret_key
-  - heltour_email_host_user
-  - heltour_email_host_password
-  - heltour_lichess_api_token
-  - heltour_slack_api_token
-  - heltour_slack_channel_builder_token
-  - heltour_slack_webhook
-  - heltour_google_service_account
 
 services:
   caddy:
@@ -52,8 +32,23 @@ services:
   web:
     image: *image
     command: heltour-web
-    environment: *environment
-    secrets: *secrets
+    environment:
+      <<: *environment
+      DATABASE_URL_FILE: /run/secrets/heltour_database_url
+      SECRET_KEY_FILE: /run/secrets/heltour_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/heltour_email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/heltour_email_host_password
+      SLACK_API_TOKEN_FILE: /run/secrets/heltour_slack_api_token
+      SLACK_WEBHOOK_URL_FILE: /run/secrets/heltour_slack_webhook
+      GOOGLE_SERVICE_ACCOUNT_KEY_FILE: /run/secrets/heltour_google_service_account
+    secrets:
+      - heltour_database_url
+      - heltour_secret_key
+      - heltour_email_host_user
+      - heltour_email_host_password
+      - heltour_slack_api_token
+      - heltour_slack_webhook
+      - heltour_google_service_account
     volumes:
       - media:/var/lib/heltour/media
     deploy:
@@ -63,8 +58,15 @@ services:
   apiworker:
     image: *image
     command: heltour-apiworker
-    environment: *environment
-    secrets: *secrets
+    environment:
+      <<: *environment
+      DATABASE_URL_FILE: /run/secrets/heltour_database_url
+      SECRET_KEY_FILE: /run/secrets/heltour_secret_key
+      LICHESS_API_TOKEN_FILE: /run/secrets/heltour_lichess_api_token
+    secrets:
+      - heltour_database_url
+      - heltour_secret_key
+      - heltour_lichess_api_token
     deploy:
       update_config:
         order: start-first
@@ -72,16 +74,32 @@ services:
   celery:
     image: *image
     command: heltour-celery
-    environment: *environment
-    secrets: *secrets
+    environment:
+      <<: *environment
+      DATABASE_URL_FILE: /run/secrets/heltour_database_url
+      SECRET_KEY_FILE: /run/secrets/heltour_secret_key
+      SLACK_API_TOKEN_FILE: /run/secrets/heltour_slack_api_token
+      SLACK_CHANNEL_BUILDER_TOKEN_FILE: /run/secrets/heltour_slack_channel_builder_token
+      SLACK_WEBHOOK_URL_FILE: /run/secrets/heltour_slack_webhook
+    secrets:
+      - heltour_database_url
+      - heltour_secret_key
+      - heltour_slack_api_token
+      - heltour_slack_channel_builder_token
+      - heltour_slack_webhook
     deploy:
       replicas: ${HELTOUR_CELERY_REPLICAS:-0}
 
   migrate:
     image: *image
     command: heltour-migrate
-    environment: *environment
-    secrets: *secrets
+    environment:
+      <<: *environment
+      DATABASE_URL_FILE: /run/secrets/heltour_database_url
+      SECRET_KEY_FILE: /run/secrets/heltour_secret_key
+    secrets:
+      - heltour_database_url
+      - heltour_secret_key
     deploy:
       restart_policy:
         condition: on-failure
