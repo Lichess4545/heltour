@@ -94,16 +94,6 @@ jobs:
           fi
           gh release create "$GITHUB_REF_NAME" "${args[@]}"
 
-      - name: Redeploy staging
-        env:
-          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_STAGING_WEBHOOK_URL }}
-        run: |
-          if [ -z "$PORTAINER_WEBHOOK_URL" ]; then
-            echo "::notice::PORTAINER_STAGING_WEBHOOK_URL is not set, skipping the staging redeploy"
-            exit 0
-          fi
-          curl -fsS -X POST "$PORTAINER_WEBHOOK_URL"
-
       - name: Redeploy production
         if: env.IS_STABLE_RELEASE == 'true'
         env:

@@ -2,8 +2,6 @@ from datetime import timedelta
 
 from celery.schedules import crontab
 
-from .environment import STAGING
-
 CELERY_BEAT_SCHEDULE = {
     "update-ratings": {
         "task": "heltour.tournament.tasks.update_player_ratings",
@@ -51,6 +49,3 @@ CELERY_BEAT_SCHEDULE = {
         "args": (),
     },
 }
-
-if STAGING:
-    del CELERY_BEAT_SCHEDULE["update-ratings"]
