@@ -39,11 +39,6 @@ more-itertools = "^10.7.0"
 django-environ = "^0.12.0"
 gunicorn = "^23.0.0"
 
-[tool.poetry.group.bare-metal.dependencies]
-fabric3 = "==1.14.post1"
-baste = { git = "https://bitbucket.org/strabs/baste.git", branch="release-2.2" }
-patchwork = "1.0.1"
-
 [tool.poetry.dev-dependencies]
 
 [build-system]
