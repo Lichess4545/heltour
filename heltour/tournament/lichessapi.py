@@ -126,8 +126,15 @@ def send_mail(lichess_username, subject, text, priority=0, max_retries=5, timeou
         settings.API_WORKER_HOST, lichess_username, priority, max_retries)
     post_data = {'text': '%s\n%s' % (subject, text)}
     result = _apicall_with_error_parsing(url, timeout, post_data=post_data)
-    if result != 'ok':
+    if not _mail_sent(result):
         logger.error('Error sending mail: %s' % result)
+
+
+def _mail_sent(result):
+    try:
+        return json.loads(result).get('ok') is True
+    except (ValueError, AttributeError):
+        return result == 'ok'
 
 def watch_games(game_ids):
     try:
