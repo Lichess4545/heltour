@@ -159,7 +159,9 @@ class TemplatesRedirectTestCase(TestCase):
         )
         response = self.client.get(season_url("team", "pairings"))
         self.assertTemplateUsed(response, "tournament/team_pairings.html")
-        self.assertNotContains(response, "icon-confirmed")
+        self.assertEqual(
+            [[(None, None), (None, None)]], self.pairing_icons(response)
+        )
 
         response = self.client.get(season_url("lone", "pairings"))
         self.assertTemplateUsed(response, "tournament/lone_pairings.html")
@@ -168,7 +170,15 @@ class TemplatesRedirectTestCase(TestCase):
             white_confirmed=True, black_confirmed=True
         )
         response = self.client.get(season_url("team", "pairings"))
-        self.assertContains(response, "icon-confirmed")
+        self.assertEqual(
+            [[("confirmed", "confirmed"), (None, None)]], self.pairing_icons(response)
+        )
+
+    def pairing_icons(self, response):
+        return [
+            [(white_img, black_img) for _, white_img, _, black_img, _ in pairings]
+            for pairings in response.context["pairing_lists"]
+        ]
 
     def test_stats_template(self):
         response = self.client.get(season_url("team", "stats"))
