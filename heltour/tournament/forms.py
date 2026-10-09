@@ -166,6 +166,12 @@ class RegistrationForm(forms.ModelForm):
                                                                          choices=weeks,
                                                                          widget=forms.CheckboxSelectMultiple(
                                                                              attrs=toggle_attrs))
+            # The model stores the selected round numbers as a comma-separated string,
+            # while MultipleChoiceField compares lists. Normalize the initial value so
+            # unchanged availability is not reported in changed_data.
+            self.initial['weeks_unavailable'] = [
+                week for week in self.instance.weeks_unavailable.split(',') if week
+            ]
         else:
             del self.fields['weeks_unavailable']
 

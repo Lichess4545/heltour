@@ -13,12 +13,45 @@
                     </h3>
                 </div>
                 <div class="well-body">
-                    <p>Successfully registered.</p>
+                    {% if registration_submission.is_update %}
+                        <p>Your registration was successfully updated.</p>
+                    {% elif registration_submission %}
+                        <p>Successfully registered.</p>
+                    {% elif registration %}
+                        <p>Your current registration details are shown below.</p>
+                    {% else %}
+                        <p>No registration was found for this account.</p>
+                    {% endif %}
                     {% if email %}
                         <p>
                             A confirmation email will be sent to <strong>{{ email }}</strong> once a moderator approves
                             your registration.
                         </p>
+                    {% endif %}
+                    {% if registration_summary %}
+                        <h4>Your registration</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <tbody>
+                                    {% for row in registration_summary %}
+                                        <tr data-registration-field="{{ row.field }}"{% if row.changed %} class="success"{% endif %}>
+                                            <th scope="row">{{ row.label }}</th>
+                                            <td>
+                                                {{ row.value }}
+                                                {% if row.changed %}
+                                                    <span class="label label-success pull-right">Changed</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if show_player_preference %}
+                            <p class="text-muted">
+                                Player preference is a request and does not guarantee placement as a full-time player or alternate.
+                            </p>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

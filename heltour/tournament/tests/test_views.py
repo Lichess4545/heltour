@@ -185,10 +185,14 @@ class RegisterTestCase(TestCase):
         cls.user = User.objects.create_user("Player1", password="test")
 
     def test_require_login(self):
-        response = self.client.get(season_url("team", "register"))
-        self.assertRedirects(
-            response, league_url("team", "login"), fetch_redirect_response=False
-        )
+        for page_name in ["register", "registration_success"]:
+            with self.subTest(page_name=page_name):
+                response = self.client.get(season_url("team", page_name))
+                self.assertRedirects(
+                    response,
+                    league_url("team", "login"),
+                    fetch_redirect_response=False,
+                )
 
     def test_template(self):
         self.client.login(username="Player1", password="test")
@@ -275,7 +279,7 @@ class RegisterTestCase(TestCase):
         )
         with Shush():
             response = self.client.post(
-                season_url("team", "register"),
+                league_url("team", "register"),
                 data={
                     "email": "player1@example.com",
                     "has_played_20_games": False,
@@ -293,6 +297,132 @@ class RegisterTestCase(TestCase):
             Registration.objects.filter(player__lichess_username="Player1").first().email,
             "player1@example.com",
         )
+
+    def _open_registration(self, league_type):
+        season = get_season(league_type)
+        season.registration_open = True
+        season.start_date = timezone.now() + timedelta(days=14)
+        season.round_duration = timedelta(days=7)
+        season.save()
+        for round_number, round_ in enumerate(
+                season.round_set.order_by("number"), start=1):
+            round_.start_date = timezone.now() + timedelta(days=round_number)
+            round_.end_date = round_.start_date + timedelta(days=7)
+            round_.save()
+        return season
+
+    def _registration_data(self, league_type, alternate_preference="full_time"):
+        data = {
+            "email": "player1@example.com",
+            "has_played_20_games": True,
+            "can_commit": True,
+            "agreed_to_rules": True,
+            "agreed_to_tos": True,
+            "weeks_unavailable": ["2"],
+        }
+        if league_type == "team":
+            data.update({
+                "friends": "Player2",
+                "avoid": "Player3",
+                "alternate_preference": alternate_preference,
+            })
+        return data
+
+    def test_registration_success_summary_and_update_highlights(self):
+        self.client.login(username="Player1", password="test")
+        self._open_registration("team")
+
+        with Shush():
+            response = self.client.post(
+                season_url("team", "register"),
+                self._registration_data("team"),
+                follow=True,
+            )
+        self.assertContains(response, "Successfully registered.")
+        summary = {
+            row["field"]: row for row in response.context["registration_summary"]
+        }
+        self.assertEqual(summary["status"]["value"], "Pending")
+        self.assertEqual(summary["alternate_preference"]["value"], "Full Time")
+        self.assertEqual(summary["friends"]["value"], "Player2")
+        self.assertIn("Round 2", summary["weeks_unavailable"]["value"])
+        self.assertFalse(any(row["changed"] for row in summary.values()))
+
+        with Shush():
+            response = self.client.post(
+                season_url("team", "register"),
+                self._registration_data("team", alternate_preference="alternate"),
+                follow=True,
+            )
+        self.assertContains(response, "Your registration was successfully updated.")
+        summary = {
+            row["field"]: row for row in response.context["registration_summary"]
+        }
+        self.assertEqual(summary["alternate_preference"]["value"], "Alternate")
+        self.assertTrue(summary["alternate_preference"]["changed"])
+        self.assertFalse(summary["weeks_unavailable"]["changed"])
+        self.assertContains(
+            response,
+            'data-registration-field="alternate_preference" class="success"',
+        )
+        self.assertEqual(response.content.decode().count(">Changed</span>"), 1)
+
+        response = self.client.get(season_url("team", "registration_success"))
+        self.assertContains(response, "Your current registration details are shown below.")
+        self.assertNotContains(response, ">Changed</span>")
+
+    def test_lone_and_chess960_summaries_omit_team_options(self):
+        User.objects.create_user("NewPlayer", password="test")
+        self.client.login(username="NewPlayer", password="test")
+        League.objects.create(
+            name="c960 League",
+            tag=league_tag("960"),
+            competitor_type="lone",
+            rating_type="chess960",
+        )
+        Season.objects.create(
+            league=League.objects.get(tag=league_tag("960")),
+            name="Season960",
+            tag=season_tag("960"),
+            rounds=3,
+        )
+
+        for league_type in ["lone", "960"]:
+            with self.subTest(league_type=league_type):
+                self._open_registration(league_type)
+                with Shush():
+                    response = self.client.post(
+                        season_url(league_type, "register"),
+                        self._registration_data(league_type),
+                        follow=True,
+                    )
+                summary_fields = {
+                    row["field"] for row in response.context["registration_summary"]
+                }
+                self.assertIn("email", summary_fields)
+                self.assertIn("weeks_unavailable", summary_fields)
+                self.assertNotIn("alternate_preference", summary_fields)
+                self.assertNotIn("friends", summary_fields)
+                self.assertNotIn("avoid", summary_fields)
+                self.assertNotContains(response, "Player preference")
+
+    def test_registration_success_only_shows_the_logged_in_players_data(self):
+        self.client.login(username="Player1", password="test")
+        season = self._open_registration("team")
+        create_reg(season, "Player1")
+        registration = Registration.objects.get(
+            season=season, player__lichess_username="Player1"
+        )
+        registration.email = "player1@example.com"
+        registration.save()
+        other_registration = create_reg(season, "Player2")
+        other_registration.email = "player2-private@example.com"
+        other_registration.save()
+
+        response = self.client.get(season_url("team", "registration_success"))
+
+        self.assertContains(response, "player1@example.com")
+        self.assertNotContains(response, "player2-private@example.com")
 
 
 @patch("heltour.tournament.lichessapi.watch_games", return_value=None)
