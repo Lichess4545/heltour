@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     "heltour.comments",
     "impersonate",
     "sass_processor",
+    "django_celery_beat",
+    "django_celery_results",
 ]
 
 if DEBUG:

@@ -133,7 +133,7 @@
               exec gunicorn heltour.wsgi:application --bind 0.0.0.0:8880 --workers 2 --timeout 60 --worker-tmp-dir /dev/shm --access-logfile - "$@"
             '')
             (command "heltour-celery" [ venv ] ''
-              exec celery --app heltour worker --beat --schedule /tmp/celerybeat-schedule --concurrency 4 --loglevel INFO -O fair "$@"
+              exec celery --app heltour worker --beat --concurrency 4 --loglevel INFO -O fair "$@"
             '')
             (command "heltour-migrate" [ venv ] ''
               python manage.py migrate --noinput

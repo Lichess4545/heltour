@@ -36,7 +36,7 @@ Run `python manage.py createsuperuser` to create a new admin account.
 | --- | --- |
 | `heltour-web` (default) | gunicorn serving the site on port 8000 |
 | `heltour-apiworker` | gunicorn serving the api worker on port 8880 |
-| `heltour-celery` | the celery worker, with beat embedded and its schedule file in `/tmp` |
+| `heltour-celery` | the celery worker, with beat embedded and its schedule in the database |
 | `heltour-migrate` | applies migrations and invalidates the cacheops cache, then exits |
 | `heltour-caddy` | caddy on port 8080, serving `/static`, `/media` and proxying the rest to `web:8000` |
 | `heltour-manage` | `manage.py` with any arguments |
