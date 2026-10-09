@@ -64,7 +64,7 @@ def get_player(player_name):
     return Player.objects.get(lichess_username__iexact=player_name)
 
 
-def get_round(league_type, round_number):
+def get_round(league_type: str, round_number: int) -> Round:
     return Round.objects.get(season=get_season(league_type), number=round_number)
 
 def get_team(team_name: str) -> Team:
