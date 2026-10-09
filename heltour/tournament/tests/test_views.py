@@ -430,3 +430,17 @@ class PlayerProfileCase(TestCase):
             [(get_league("lone"), [(get_season("lone"), 0, None)])],
         )
         self.assertEqual(response.context["has_other_seasons"], True)
+
+
+class FooterReleaseLinkTestCase(TestCase):
+    release_link = '<a href="https://github.com/Lichess4545/heltour/releases/tag/v2.0.5">v2.0.5</a>'
+
+    def test_links_a_released_version(self):
+        with self.settings(HELTOUR_VERSION="2.0.5"):
+            response = self.client.get("/")
+        self.assertContains(response, self.release_link, html=True)
+
+    def test_omits_the_link_outside_a_release(self):
+        with self.settings(HELTOUR_VERSION="unknown"):
+            response = self.client.get("/")
+        self.assertNotContains(response, "/releases/tag/")

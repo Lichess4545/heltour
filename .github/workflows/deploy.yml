@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version to deploy to production, such as 2.0.3
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      PORTAINER_PRODUCTION_WEBHOOK_URL:
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: ./.github/actions/release-tools
+        with:
+          version: ${{ inputs.version }}
+
+      - name: Require the release tag
+        run: |
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::the tag v$VERSION does not exist"
+            exit 1
+          fi
+
+      - name: Require a published image
+        run: ci/release-hooks.sh assert-published "$VERSION"
+
+      - name: Point the production stack at the version
+        id: stack
+        run: |
+          changed=$(ci/release-hooks.sh set-prod-image "$VERSION")
+          if [ -z "$changed" ]; then
+            echo "::notice::production already deploys $VERSION, nothing to do"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(deploy): deploy production $VERSION" -- "$changed"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Redeploy production
+        if: steps.stack.outputs.changed == 'true'
+        env:
+          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_PRODUCTION_WEBHOOK_URL }}
+        run: |
+          if [ -z "$PORTAINER_WEBHOOK_URL" ]; then
+            echo "::notice::PORTAINER_PRODUCTION_WEBHOOK_URL is not set, skipping the production redeploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$PORTAINER_WEBHOOK_URL"

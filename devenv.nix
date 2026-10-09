@@ -86,4 +86,17 @@ in
   ];
 
   scripts.release.exec = ''cd "$DEVENV_ROOT" && exec nix run "$DEVENV_ROOT#release" -- "$@"'';
+
+  scripts.deploy.exec = ''
+    set -eu
+    if [ $# -ne 1 ]; then
+      echo "usage: deploy <version>" >&2
+      exit 2
+    fi
+    version=''${1#v}
+    gh workflow run deploy.yml --repo Lichess4545/heltour -f version="$version"
+    echo "Requested a production deploy of $version. Follow it with:"
+    echo "  gh run list --repo Lichess4545/heltour --workflow deploy.yml"
+    echo "  gh run watch --repo Lichess4545/heltour"
+  '';
 }

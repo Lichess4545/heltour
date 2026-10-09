@@ -46,6 +46,9 @@
                     <img class="darkmode-toggle" src="{% static "tournament/img/yin-yang-32.png" %}">
                 </a>
                 &middot; <a href="{% url 'toggle_zenmode' %}?redirect_url={{ request.path }}"><strong>&#9784;</strong></a>
+                {% if release_url %}
+                    &middot; <a href="{{ release_url }}">v{{ heltour_version }}</a>
+                {% endif %}
             </p>
         </div>
     </footer>

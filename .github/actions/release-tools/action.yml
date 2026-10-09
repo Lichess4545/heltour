@@ -1,0 +1,38 @@
+name: Release tools
+description: Install nix, put release-guards on PATH, and resolve a release version
+inputs:
+  version:
+    description: Release tag or version, such as v2.0.3 or 2.0.3
+    required: true
+outputs:
+  version:
+    description: The version without its v prefix
+    value: ${{ steps.version.outputs.version }}
+  stable:
+    description: Whether the version is a stable release
+    value: ${{ steps.version.outputs.stable }}
+runs:
+  using: composite
+  steps:
+    - uses: cachix/install-nix-action@v31
+
+    - name: Add release guards to PATH
+      shell: bash
+      run: |
+        guards=$(nix build --no-link --print-out-paths .#release-guards)
+        echo "$guards/bin" >> "$GITHUB_PATH"
+
+    - name: Resolve version
+      id: version
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+      run: |
+        tag="v${REQUESTED_VERSION#v}"
+        release-guards assert-releasable "$tag"
+        stable=false
+        if release-guards is-stable "$tag"; then
+          stable=true
+        fi
+        printf 'VERSION=%s\nIS_STABLE_RELEASE=%s\n' "${tag#v}" "$stable" >> "$GITHUB_ENV"
+        printf 'version=%s\nstable=%s\n' "${tag#v}" "$stable" >> "$GITHUB_OUTPUT"
