@@ -275,7 +275,6 @@ def _filter_pairings(pairings, player=None, white=None, black=None, scheduled=No
 
 
 @require_GET
-@require_api_token
 def get_roster(request):
     try:
         league_tag = request.GET.get("league", None)
