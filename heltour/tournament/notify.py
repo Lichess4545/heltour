@@ -466,6 +466,15 @@ def alternate_spots_filled(alternate, response_time, **kwargs):
     _message_user(league, _slack_user(alternate.season_player), message)
 
 
+@receiver(signals.alternate_unresponsive, dispatch_uid='heltour.tournament.notify')
+def alternate_unresponsive(round_, alternate, response_time, **kwargs):
+    league = round_.season.league
+    # Send a DM to the alternate
+    message = 'Since you didn\'t respond to the alternate offer within %s, you\'ve been moved to the bottom of the alternates list. You can still accept the offer using the links you received, as long as the spot is open.' % _offset_str(
+        response_time)
+    _message_user(league, _slack_user(alternate.season_player), message)
+
+
 # TODO: Special notification for cancelling a search/reassigning the original player?
 
 def _offset_str(offset):

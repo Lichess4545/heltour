@@ -2114,10 +2114,9 @@ class AlternateAcceptView(LoginRequiredMixin, SeasonView):
             msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
             msg = 'You have already declined a game for round %d.' % round_.number
-        elif alt.status == 'unresponsive':
-            msg = 'You did not respond in time this round. Please make sure to accept or decline a game in time to maintain your priority on the alternate list.'
-        elif alt.status == 'contacted':
-            # OK
+        elif alt.status in ('contacted', 'unresponsive'):
+            # OK - unresponsive alternates have lost their queue position but can
+            # still accept as long as a spot is open
             if post:
                 if alternates_manager.alternate_accepted(alt):
                     msg = 'You have been assigned to a team for round %d. Please check Slack for more info.' % round_.number
@@ -2129,6 +2128,8 @@ class AlternateAcceptView(LoginRequiredMixin, SeasonView):
                 end_time = round_.end_date.strftime('%Y-%m-%d %H:%M')
                 msg = 'Please confirm you can play a game for round %d. You must have multiple times you can play between %s and %s (UTC).' \
                       % (round_.number, start_time, end_time)
+                if alt.status == 'unresponsive':
+                    msg = 'You did not respond in time and have been moved to the bottom of the alternates list. You can still accept while a spot is open. ' + msg
                 show_button = True
         else:
             msg = 'Sorry, no games are currently available for round %d.' % round_.number
@@ -2162,10 +2163,8 @@ class AlternateDeclineView(LoginRequiredMixin, SeasonView):
             msg = 'You have already accepted a game for round %d.' % round_.number
         elif alt.status == 'declined':
             msg = 'You have already declined a game for round %d.' % round_.number
-        elif alt.status == 'unresponsive':
-            msg = 'You did not respond in time this round. Please make sure to accept or decline a game in time to maintain your priority on the alternate list.'
-        elif alt.status == 'contacted' or alt.status == 'waiting':
-            # OK
+        elif alt.status in ('contacted', 'waiting', 'unresponsive'):
+            # OK - unresponsive alternates can still decline their open offer
             if post:
                 alternates_manager.alternate_declined(alt)
                 msg = 'You will not receive any more game offers for round %d. Thank you for your response.' % round_.number
