@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.http.response import Http404
+from django.templatetags.static import static
 from unittest.mock import patch
 from heltour.tournament.models import (
     League,
@@ -532,3 +533,13 @@ class FooterReleaseLinkTestCase(TestCase):
         with self.settings(HELTOUR_VERSION="unknown"):
             response = self.client.get("/")
         self.assertNotContains(response, "/releases/tag/")
+
+
+class VersionedStaticFilesStorageTestCase(TestCase):
+    def test_versions_file_urls(self):
+        with self.settings(HELTOUR_VERSION="2.4.0"):
+            self.assertEqual(static("ckeditor/ckeditor/ckeditor.js"), "/static/ckeditor/ckeditor/ckeditor.js?v=2.4.0")
+
+    def test_leaves_directory_urls_alone(self):
+        with self.settings(HELTOUR_VERSION="2.4.0"):
+            self.assertEqual(static("ckeditor/ckeditor/"), "/static/ckeditor/ckeditor/")
