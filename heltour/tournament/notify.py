@@ -192,7 +192,7 @@ def player_account_status_changed(instance, old_value, new_value, **kwargs):
         else:
             message = (
                 f"{userlink_silent(_slack_user(instance))} "
-                f'{link(url=lichess_profile_url, text="Lichess")} account status changed '
+                f'{link(url=lichess_profile_url, text="lichess")} account status changed '
                 f"from {old_value} to {new_value}. "
                 f'{link(url=player_profile_url, text="Player profile")}'
             )
@@ -368,7 +368,7 @@ def alternate_search_reminder(season, team, board_number, round_, **kwargs):
 
     # Broadcast a reminder to both team captains
     message = (
-        f"{_captains_ping(team, round_)}I am still searching for an alternate for "
+        f"{_captains_ping(team, round_)} I am still searching for an alternate for "
         f"{userlink_silent(_slack_user(player))} on board {board_number} of "
         f'"{team.name}" in round {round_.number}.'
     )
@@ -380,7 +380,7 @@ def alternate_search_all_contacted(season, team, board_number, round_, number_co
     league = season.league
     # Broadcast a message to both team captains
     message = (
-        f"{_captains_ping(team, round_)}I have messaged every eligible alternate for "
+        f"{_captains_ping(team, round_)} I have messaged every eligible alternate for "
         f'board {board_number} of "{team.name}". Still waiting for responses '
         f"from {number_contacted}."
     )
@@ -392,7 +392,7 @@ def alternate_search_failed(season, team, board_number, round_, **kwargs):
     league = season.league
     # Broadcast a message to both team captains
     message = (
-        f"{_captains_ping(team, round_)}Sorry, I could not find an alternate for "
+        f"{_captains_ping(team, round_)} Sorry, I could not find an alternate for "
         f'board {board_number} of "{team.name}" in round {round_.number}.'
     )
     _send_notification('captains', league, message)
@@ -415,28 +415,29 @@ def alternate_assigned(season, alt_assignment, **kwargs):
     # Send a message to the captains
     if aa.player == aa.replaced_player:
         message = (
-            f"{_captains_ping(aa.team, aa.round)}I have reassigned "
+            f"{_captains_ping(aa.team, aa.round)} I have reassigned "
             f"{userlink_silent(_slack_user(aa.player))} to play on board "
             f'{aa.board_number} of "{aa.team.name}" for round {aa.round.number}.'
             f"{opponent_notified}"
         )
     else:
         message = (
-            f"{_captains_ping(aa.team, aa.round)}I have assigned "
+            f"{_captains_ping(aa.team, aa.round)} I have assigned "
             f"{userlink_silent(_slack_user(aa.player))} to play on board "
             f'{aa.board_number} of "{aa.team.name}" in place of '
-            f"{_slack_user(aa.replaced_player)} for round "
+            f"{userlink_silent(_slack_user(aa.replaced_player))} for round "
             f"{aa.round.number}.{opponent_notified}"
         )
     _send_notification('captains', league, message)
 
 
 _pairing_text_tz = (
-    f'{{white}} ({italic("white pieces")}, {{white_tz}}) vs {{black}} '
-    f'({italic("black pieces")}, {{black_tz}})\n'
+    f'{userlink_silent("{white}")} ({italic("white pieces")}, {{white_tz}}) vs '
+    f'{userlink_silent("{black}")} ({italic("black pieces")}, {{black_tz}})\n'
 )
 _pairing_text = (
-    f'{{white}} ({italic("white pieces")}) vs {{black}} ({italic("_black pieces_")})\n'
+    f'{userlink_silent("{white}")} ({italic("white pieces")}) vs '
+    f'{userlink_silent("{black}")} ({italic("black pieces")})\n'
 )
 
 
@@ -542,7 +543,7 @@ def _notify_alternate_and_opponent(league, aa):
     # Send configured notifications
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
              + _pairing_text_tz \
-             + 'Send a direct message to your opponent, {opponent}, as soon as possible.\n' \
+             + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}, as soon as possible.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -721,7 +722,8 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
              + _pairing_text_tz \
-             + 'Send a direct message to your opponent, {opponent}, within {contact_period}.\n' \
+             + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}' \
+             + ', within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -762,7 +764,8 @@ def notify_players_round_start(round_, **kwargs):
 def notify_players_late_pairing(round_, pairing, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
              + _pairing_text_tz \
-             + 'Send a direct message to your opponent, {opponent}, within {contact_period}.\n' \
+             + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}, ' \
+             + 'within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
@@ -1024,7 +1027,7 @@ def notify_unresponsive(round_, player, punishment, allow_continue, pairing, **k
         else:
             team = tpp.black_team()
         message = (
-            f"{_captains_ping(team, round_)}{userlink_silent(_slack_user(player))} "
+            f"{_captains_ping(team, round_)} {userlink_silent(_slack_user(player))} "
             f'appears to be unresponsive on board {tpp.board_number} of "{team.name}" '
             f"in round {round_.number}."
         )
