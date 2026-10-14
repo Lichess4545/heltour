@@ -33,6 +33,7 @@ from heltour.tournament import (
 )
 from heltour.tournament.chatbackend import (
     ChatBackendError,
+    cb_create_team_channel,
     channel_message,
     channellink,
     get_user,

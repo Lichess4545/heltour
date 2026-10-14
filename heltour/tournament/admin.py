@@ -817,7 +817,7 @@ class SeasonAdmin(_BaseAdmin):
                 teams = season.team_set.all()
                 for t in teams:
                     if t.slack_channel:
-                        channel_message(
+                        chatbackend.channel_message(
                             channel=t.slack_channel,
                             text=form.cleaned_data["text"]
                         )
