@@ -160,7 +160,7 @@ class RegistrationsTestCase(TestCase):
         url_review = abs_url(reverse("admin:review_registration", args=[cls.reg.pk]))
         url_regs = abs_url(reverse("admin:tournament_registration_changelist"))
         cls.message_str = (
-            f"@{cls.player_str} (0) has <"
+            f"<@{cls.player_str}> (0) has <"
             f"{url_review}?_changelist_filters=status__exact%3Dpending"
             f"%26season__id__exact%3D{cls.s.pk}|registered>"
             f" for {cls.l.name}. "
@@ -229,16 +229,16 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.reg.round.season.league,
-            f"@{self.p.lichess_username} <{url}|added> for round {self.r.number}",
+            f"<@{self.p.lichess_username.lower()}> <{url}|added> for round {self.r.number}",
         )
 
-    def test_withrawal(self, sn):
+    def test_withdrawal(self, sn):
         withdrawal_saved(instance=self.withdrawal, created=True)
         url = abs_url(reverse("admin:manage_players", args=[self.r.season.pk]))
         sn.assert_called_once_with(
             "mod",
             self.withdrawal.round.season.league,
-            f"@{self.p.lichess_username} <{url}|withdrawn> for round {self.r.number}",
+            f"<@{self.p.lichess_username.lower()}> <{url}|withdrawn> for round {self.r.number}",
         )
 
     def test_pairing_forfeit_changed(self, sn):
@@ -246,8 +246,8 @@ class ModNotifications(TestCase):
         sn.assert_called_with(
             "mod",
             self.pp.round.season.league,
-            f"@{self.pp.white.lichess_username.lower()} vs "
-            f"@{self.pp.black.lichess_username.lower()} 1F-0X",
+            f"<@{self.pp.white.lichess_username.lower()}> vs "
+            f"<@{self.pp.black.lichess_username.lower()}> 1F-0X",
         )
 
     def test_player_account_status_changed(self, sn):
@@ -263,7 +263,7 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"@{self.p_lower} marked as closed on "
+            f"<@{self.p_lower}> marked as closed on "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
             f"<{url}|Player profile>",
         )
@@ -274,7 +274,7 @@ class ModNotifications(TestCase):
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"@{self.p_lower} "
+            f"<@{self.p_lower}> "
             f"<https://lichess.org/@/{self.p.lichess_username}|lichess> account"
             " status changed from closed to normal. "
             f"<{url}|Player profile>",
@@ -286,8 +286,8 @@ class ModNotifications(TestCase):
             "mod",
             self.r.season.league,
             f"{self.r} - The following games are "
-            f"unscheduled: @{self.p3_lower}"
-            f" vs @{self.p4_lower}",
+            f"unscheduled: <@{self.p3_lower}>"
+            f" vs <@{self.p4_lower}>",
         )
 
     def test_notify_mods_missing_result(self, sn):
@@ -296,8 +296,8 @@ class ModNotifications(TestCase):
             "mod",
             self.r.season.league,
             f"{self.r} - The following games are "
-            f"missing results: @{self.p3_lower}"
-            f" vs @{self.p4_lower}",
+            f"missing results: <@{self.p3_lower}>"
+            f" vs <@{self.p4_lower}>",
         )
 
     def test_notify_mods_pairings_published(self, sn):
@@ -424,18 +424,20 @@ class OtherNotifications(TestCase):
                 call(
                     self.l,
                     self.p1_lower,
-                    f"@{self.p1_lower}: I am searching for an "
+                    f"<@{self.p1_lower}>: I am searching for an "
                     f"alternate to replace you for round {self.r.number}, since "
                     "you have been marked as unavailable. To stop the search and"
                     f" set yourself available again, <{url}|click here>.",
+                    "",
                 ),
                 call(
                     self.l,
                     self.p3_lower,
-                    f"@{self.p3_lower}: Your opponent, "
-                    f"@{self.p1_lower}, has been marked as "
+                    f"<@{self.p3_lower}>: Your opponent, "
+                    f"<@{self.p1_lower}>, has been marked as "
                     "unavailable. I am searching for an alternate for you to "
                     "play, please be patient.",
+                    "",
                 ),
             ],
             any_order=True,
@@ -505,17 +507,19 @@ class OtherNotifications(TestCase):
                 call(
                     self.l,
                     self.p2_lower,
-                    f"@{self.p2_lower}: You are playing on board 1 of "
+                    f"<@{self.p2_lower}>: You are playing on board 1 of "
                     f'"{self.team1.name}". The team captain is <@{self.p1_lower}>.\nPlease '
                     f"contact your opponent, <@{self.p3_lower}>, as"
                     " soon as possible.",
+                    "",
                 ),
                 call(
                     self.l,
                     self.p3_lower,
-                    f"@{self.p3_lower}: Your opponent, @{self.p1_lower}, "
+                    f"<@{self.p3_lower}>: Your opponent, <@{self.p1_lower}>, "
                     "has been replaced by an alternate. Please contact your new opponent, "
                     f"<@{self.p2_lower}>, as soon as possible.",
+                    "",
                 ),
             ],
             any_order=True,
@@ -558,7 +562,7 @@ class OtherNotifications(TestCase):
             self.l,
             f"{self.cap_ping}I have assigned <@{self.p2_lower}> to "
             f'play on board 1 of "{self.team1.name}" in place of <@{self.p1_lower}> for'
-            f" round {self.r.number}. Their opponent, @{self.p3_lower}"
+            f" round {self.r.number}. Their opponent, <@{self.p3_lower}>"
             ", has been notified.",
         )
 
@@ -575,17 +579,18 @@ class OtherNotifications(TestCase):
         )
         sn.assert_not_called()
         mu.assert_called_once_with(
-            self.l,
-            self.pb_lower,
-            f"@{self.pb_lower}: A team needs an alternate for round {self.r.number}. "
+            league=self.l,
+            username=self.pb_lower,
+            text=f"<@{self.pb_lower}>: A team needs an alternate for round {self.r.number}. "
             "Would you like to play? Please click one of the following links within 1 hour.\n"
             f"<{abs_url('/accept')}|Yes, I want to play>\n<{abs_url('/decline')}|No, maybe next week>",
+            userid="",
         )
         lm.assert_called_once_with(
-            self.l,
-            self.pb_lower,
-            f"Round {self.r.number} - {self.l.name}",
-            f"A team needs an alternate for round {self.r.number}. Please check Slack for more information.\n"
+            league=self.l,
+            username=self.pb_lower,
+            subject=f"Round {self.r.number} - {self.l.name}",
+            text=f"A team needs an alternate for round {self.r.number}. Please check Slack for more information.\n"
             "https://lichess4545.slack.com/messages/@chesster/",
         )
 
@@ -593,11 +598,12 @@ class OtherNotifications(TestCase):
         self.alt.status = "unresponsive"
         alternate_spots_filled(alternate=self.alt, response_time=timedelta(hours=1))
         mu.assert_called_once_with(
-            self.l,
-            self.pb_lower,
-            "All available alternate spots have now been filled. "
+            league=self.l,
+            username=self.pb_lower,
+            text="All available alternate spots have now been filled. "
             "You've been moved to the bottom of the list since you didn't respond "
             "within 1 hour.",
+            userid="",
         )
 
     @patch("heltour.tournament.notify._lichess_message", autospec=True)
@@ -612,9 +618,10 @@ class OtherNotifications(TestCase):
             li_msg="li_msg",
         )
         mmu.assert_called_once_with(
-            self.l,
-            [self.p1_lower, self.p3_lower],
-            "mp msg",
+            league=self.l,
+            usernames=[self.p1_lower, self.p3_lower],
+            text="mp msg",
+            userids=["", ""],
         )
         lm.assert_has_calls(
             [
