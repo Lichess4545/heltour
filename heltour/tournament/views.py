@@ -1774,7 +1774,7 @@ class PlayerProfileView(LeagueView):
             'can_edit': self.request.user.has_perm('tournament.change_season_player', self.league),
             'trophies': trophies,
             "dm_player": dm_link(
-                usernames=[player],
+                usernames=[player.lichess_username],
                 userids=[player.slack_user_id],
                 add_bot=False
             ),
