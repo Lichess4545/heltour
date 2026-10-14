@@ -73,7 +73,7 @@ def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
         if add_bot:
             usernames.append(settings.SLACK_LISTENING_BOT)
         users = "@" + ",@".join(usernames)
-        return f"{settings.SLACK_URL}/messages/{users}"
+        return f"{settings.SLACK_URL}/messages/{users}/"
     else:
         raise ChatBackendError(
             "ERROR: Unknown chat backend in settings.USE_CHATBACKEND"
@@ -198,7 +198,7 @@ def multiple_user_message(
 # other functions
 
 
-def create_team_channel(
+def cb_create_team_channel(
     *,
     team,
     channel_name: str,
