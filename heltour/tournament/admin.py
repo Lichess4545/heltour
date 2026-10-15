@@ -19,6 +19,7 @@ from django.core import mail
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db import DatabaseError, transaction
 from django.db.models import Q
 from django.db.models.query import Prefetch
 from django.db.models.signals import post_save
@@ -1055,9 +1056,13 @@ class SeasonAdmin(_BaseAdmin):
         }
         return render(request, "tournament/admin/creating_teams.html", context)
 
-
+    @transaction.atomic
     def create_teams_view(self, request, object_id):
-        season = get_object_or_404(Season, pk=object_id)
+        try:
+            season = get_object_or_404(Season.objects.select_for_update(nowait=True), pk=object_id)
+        except DatabaseError:
+            self.message_user(request, 'Teams are currently already being created.', messages.ERROR)
+            return
         season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
         if season_started:
             return HttpResponse(status=400)
@@ -1070,6 +1075,7 @@ class SeasonAdmin(_BaseAdmin):
                     season_id=season.pk,
                     balance=form.cleaned_data["balance"],
                     count=form.cleaned_data["count"],
+                    user=request.user,
                 )
                 return redirect("admin:creating_teams", object_id)
 
