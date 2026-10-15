@@ -12,6 +12,7 @@ from typing import Dict
 
 import reversion
 from django.core.cache import cache
+from django.db import DatabaseError, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
@@ -1093,7 +1094,8 @@ def do_create_team_channel(sender, team_ids, **kwargs):
 
 
 @app.task(soft_time_limit=3600)
-def create_teams(season_id, balance, count):
+@transaction.atomic
+def create_teams(season_id, balance, count, user):
     def insert_teams(teams):
         for team_number, team in enumerate(teams, 1):
             team_instance = Team.objects.create(
@@ -1114,12 +1116,15 @@ def create_teams(season_id, balance, count):
                 Alternate.objects.create(
                     season_player=season_player, board_number=board_number
                 )
-
-    season = Season.objects.get(pk=season_id)
+    try:
+        season = Season.objects.select_for_update(nowait=True).get(pk=season_id)
+    except DatabaseError:
+        return
     player_data = [p for p in season.export_players() if p["date_created"]]
     league = teamgen.get_best_league(player_data, season.boards, balance, count)
 
     with reversion.create_revision():
+        reversion.set_user(user)
         reversion.set_comment("Create teams")
         Team.objects.filter(season=season).delete()
         insert_teams(league["teams"])
