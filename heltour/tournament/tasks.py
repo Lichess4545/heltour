@@ -1133,8 +1133,8 @@ def create_teams(season_id, balance, count, user):
 
 
 @receiver(signals.do_create_teams, dispatch_uid="heltour.tournament.tasks")
-def do_create_teams(sender, season_id, balance, count, **kwargs):
-    create_teams.apply_async(args=[season_id, balance, count], countdown=1)
+def do_create_teams(sender, season_id, balance, count, user, **kwargs):
+    create_teams.apply_async(args=[season_id, balance, count, user], countdown=1)
 
 
 @app.task()
