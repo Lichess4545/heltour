@@ -140,21 +140,33 @@ body.dark {
         background-color: #514d67;
     }
 
-    .standings-container p:first-child {
-        background-color: #82773c;
+    .standings-container p:first-child,
+    .player-gold {
+        background-color: #80753b;
     }
 
-    .standings-container p:nth-child(2) {
-        background-color: #7b7b7b;
+    .standings-container p:nth-child(2),
+    .player-silver {
+        background-color: #757575;
     }
 
-    .standings-container p:nth-child(3) {
+    .standings-container p:nth-child(3),
+    .player-bronze {
         background-color: #8a5622;
     }
 
-    .standings-container p:nth-child(4) {
+    .standings-container p:nth-child(4),
+    .player-blue {
         background-color: #34546f;
     }
+
+    .player-gold, .player-gold a,
+    .player-silver, .player-silver a,
+    .player-bronze, .player-bronze a,
+    .player-blue, .player-blue a {
+        color: $white;
+    }
+
     .standings-container p {
         display: inline;
         padding-left: 10px;
