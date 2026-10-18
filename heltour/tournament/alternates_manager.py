@@ -2,6 +2,7 @@ import time
 from datetime import timedelta
 
 import reversion
+from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 
@@ -57,8 +58,38 @@ def tick(season):
         # This might be run multiple times
         reset_alternate_search(season, round_, setting)
 
+    mark_unresponsive_alternates(season, round_, setting)
+
     for board_number in season.board_number_list():
         do_alternate_search(season, round_, board_number, setting)
+
+
+def mark_unresponsive_alternates(season, round_, setting):
+    # Enforce the response deadline continuously: any contacted alternate whose
+    # latest offer is older than the unresponsive interval is marked unresponsive,
+    # which moves them to the bottom of the queue (via priority_date_override).
+    # Their accept/decline links stay usable while a spot is open, so on boards
+    # with no other waiting alternates they remain a last resort.
+    deadline = timezone.now() - setting.unresponsive_interval
+    overdue_alternates = Alternate.objects.filter(season_player__season=season,
+                                                  status='contacted',
+                                                  last_contact_date__lt=deadline) \
+        .select_related('season_player__player').nocache()
+    for alt in overdue_alternates:
+        with transaction.atomic():
+            # Re-check under lock so a concurrent accept/decline isn't overwritten
+            locked_alt = Alternate.objects.select_for_update().get(pk=alt.pk)
+            if locked_alt.status != 'contacted' or locked_alt.last_contact_date is None \
+                    or locked_alt.last_contact_date >= deadline:
+                continue
+            with reversion.create_revision():
+                reversion.set_comment('Alternate marked unresponsive')
+                locked_alt.status = 'unresponsive'
+                locked_alt.save()
+        signals.alternate_unresponsive.send(sender=mark_unresponsive_alternates,
+                                            round_=round_, alternate=locked_alt,
+                                            response_time=setting.unresponsive_interval)
+        time.sleep(SLEEP_UNIT)
 
 
 def reset_alternate_search(season, round_, setting):
@@ -266,7 +297,9 @@ def alternate_accepted(alternate):
     season = alternate.season_player.season
     round_ = current_round(season)
     # Validate that the alternate is in the correct state
-    if alternate.status != 'contacted':
+    # Unresponsive alternates lose their queue position but not their ability to
+    # accept: as long as a spot is open they are still eligible via their link.
+    if alternate.status not in ('contacted', 'unresponsive'):
         return False
     # Validate that the alternate doesn't already have a game in the round
     # Players can sometimes play multiple games (e.g. playing up a board), but that isn't done through the alternates manager
@@ -308,7 +341,7 @@ def alternate_accepted(alternate):
 def alternate_declined(alternate):
     # This is called by the alternate_decline endpoint
     # The alternate gets there via a private link sent to their slack
-    if alternate.status == 'waiting' or alternate.status == 'contacted':
+    if alternate.status in ('waiting', 'contacted', 'unresponsive'):
         with reversion.create_revision():
             reversion.set_comment('Alternate declined')
             alternate.status = 'declined'
