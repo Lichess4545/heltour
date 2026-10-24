@@ -219,6 +219,7 @@ TEAM_TIEBREAK_OPTIONS = (
     ("game_points", "Game Points"),
     ("head_to_head", "Head-to-Head"),
     ("games_won", "Games Won"),
+    ("matches_won", "Matches Won"),
     ("sonneborn_berger", "Sonneborn-Berger"),
     ("buchholz", "Buchholz"),
     ("eggsb", "EGGSB - Extended Game-Game Sonneborn-Berger"),
@@ -892,6 +893,7 @@ class Season(_BaseModel):
                 score.game_points = 0
                 score.head_to_head = 0
                 score.games_won = 0
+                score.matches_won = 0
                 score.sb_score = 0
                 score.buchholz = 0
                 score.save()
@@ -939,6 +941,7 @@ class Season(_BaseModel):
                 )
                 score.buchholz = tiebreak_values.get("buchholz", 0)
                 score.head_to_head = tiebreak_values.get("head_to_head", 0)
+                score.matches_won = tiebreaks.calculate_matches_won(result)
             else:
                 # Team has no results (no games played)
                 score.playoff_score = 0
@@ -946,6 +949,7 @@ class Season(_BaseModel):
                 score.match_points = 0
                 score.game_points = 0
                 score.games_won = 0
+                score.matches_won = 0
                 score.sb_score = 0
                 score.buchholz = 0
                 score.head_to_head = 0
@@ -2149,6 +2153,7 @@ class TeamScore(_BaseModel):
     playoff_score = models.PositiveIntegerField(default=0)
     head_to_head = models.PositiveIntegerField(default=0)
     games_won = models.PositiveIntegerField(default=0)
+    matches_won = models.PositiveIntegerField(default=0)
     sb_score = ScoreField(default=0)
     buchholz = ScoreField(default=0)
 
@@ -2164,6 +2169,9 @@ class TeamScore(_BaseModel):
     def games_won_display(self):
         return str(self.games_won)
 
+    def matches_won_display(self):
+        return str(self.matches_won)
+
     def sb_score_display(self):
         return "%g" % self.sb_score
 
@@ -2176,6 +2184,7 @@ class TeamScore(_BaseModel):
             "game_points": self.game_points_display,
             "head_to_head": self.head_to_head_display,
             "games_won": self.games_won_display,
+            "matches_won": self.matches_won_display,
             "sonneborn_berger": self.sb_score_display,
             "buchholz": self.buchholz_display,
             # All extended SB variants use the same sb_score field
@@ -2202,6 +2211,7 @@ class TeamScore(_BaseModel):
             "game_points": self.game_points,
             "head_to_head": self.head_to_head,
             "games_won": self.games_won,
+            "matches_won": self.matches_won,
             "sonneborn_berger": self.sb_score,
             "eggsb": self.sb_score,  # All SB variants use the same field
             "emmsb": self.sb_score,

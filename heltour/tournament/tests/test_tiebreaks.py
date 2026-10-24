@@ -202,6 +202,38 @@ class TeamTiebreakTestCase(TestCase):
         self.assertEqual(scores[2].games_won, 0)
         self.assertEqual(scores[3].games_won, 0)  # Bye doesn't count as games won
 
+    def test_matches_won_breaks_tie(self):
+        """Test matches won ranks a win+loss above two draws on equal points"""
+        tournament = (
+            self.create_base_tournament(rounds=2)
+            .round(1)
+            .match("Team 1", "Team 2", "1-0", "1/2-1/2")
+            .match("Team 3", "Team 4", "1/2-1/2", "1/2-1/2")
+            .complete()
+            .round(2)
+            .match("Team 1", "Team 4", "0-1", "1/2-1/2")
+            .match("Team 2", "Team 3", "1/2-1/2", "1/2-1/2")
+            .complete()
+            .calculate()
+            .build()
+        )
+
+        season = tournament.seasons["Test Season"]
+        league = season.league
+        league.team_tiebreak_1 = "matches_won"
+        league.save()
+        season.calculate_scores()
+
+        scores = {
+            ts.team.number: ts for ts in TeamScore.objects.filter(team__season=season)
+        }
+
+        self.assertEqual((scores[1].match_points, scores[1].game_points), (2, 2.0))
+        self.assertEqual((scores[3].match_points, scores[3].game_points), (2, 2.0))
+        self.assertEqual(scores[1].matches_won, 1)
+        self.assertEqual(scores[3].matches_won, 0)
+        self.assertGreater(scores[1].pairing_sort_key(), scores[3].pairing_sort_key())
+
     def test_configurable_tiebreak_order(self):
         """Test that tiebreaks are applied in the configured order"""
         tournament = (
