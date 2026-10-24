@@ -90,6 +90,9 @@ in
   # "no version information available" warning on every invocation.
   env.JAVAFO_COMMAND = "${pkgs.jre21_minimal}/bin/java -jar ./thirdparty/javafo.jar";
 
+  # invoke defaults to /bin/bash, which doesn't exist on NixOS.
+  env.INVOKE_RUN_SHELL = "${pkgs.bash}/bin/bash";
+
   languages.python = {
     enable = true;
     package = pkgs.python311;
