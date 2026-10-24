@@ -261,10 +261,14 @@ class JavaFoIntegrationTests(TestCase):
             for pairing in pairings:
                 pair = tuple(sorted([pairing.white_id, pairing.black_id]))
                 self.assertNotIn(pair, played_pairs, f"Players {pair} paired twice!")
-                played_pairs.add(pair)
 
             # Simulate results
             tournament.simulate_round_results(round_obj)
+
+            # Forfeited games don't count as played, so FIDE allows re-pairing them.
+            for pairing in LonePlayerPairing.objects.filter(round=round_obj):
+                if pairing.game_played():
+                    played_pairs.add(tuple(sorted([pairing.white_id, pairing.black_id])))
             tournament.complete_round(round_obj)
             tournament.calculate_standings()
 
