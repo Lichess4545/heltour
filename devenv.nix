@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 
 let
   nativeLibs = [
@@ -92,6 +92,11 @@ in
 
   # invoke defaults to /bin/bash, which doesn't exist on NixOS.
   env.INVOKE_RUN_SHELL = "${pkgs.bash}/bin/bash";
+
+  # devenv may move postgres/redis off their base ports; these override the .env values.
+  env.DATABASE_URL = "postgresql://heltour:heltour_dev_password@127.0.0.1:${toString config.env.PGPORT}/heltour";
+  env.REDIS_URL = "redis://127.0.0.1:${toString config.processes.redis.ports.main.value}/0";
+  env.BROKER_URL = "redis://127.0.0.1:${toString config.processes.redis.ports.main.value}/1";
 
   languages.python = {
     enable = true;
