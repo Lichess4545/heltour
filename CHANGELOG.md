@@ -4,6 +4,13 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.4.3 — 2026-10-24
+
+### Tooling
+
+- **deploy**: deploy production 2.4.2 ([e0e44b5](https://github.com/Lichess4545/heltour/commit/e0e44b54065574161732f369f627b78f6823d910))
+- security & CVE fixes ([#807](https://github.com/Lichess4545/heltour/pull/807)) ([186b15c](https://github.com/Lichess4545/heltour/commit/186b15ccc6d0ef9616ed593152d88323b7b85a8b))
+
 ## v2.4.2 — 2026-10-24
 
 ### Fixes
