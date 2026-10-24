@@ -4,6 +4,16 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.4.2 — 2026-10-24
+
+### Fixes
+
+- update lichess game urls to /game/ ([#806](https://github.com/Lichess4545/heltour/pull/806)) ([6804f6d](https://github.com/Lichess4545/heltour/commit/6804f6d50694e1e1a1d56e046ec5ecff46f1ea06))
+
+### Tooling
+
+- **deploy**: deploy production 2.4.1 ([d8ebf21](https://github.com/Lichess4545/heltour/commit/d8ebf21af1cfe7c8517e2bfca7626dc760a3d82d))
+
 ## v2.4.1 — 2026-10-10
 
 ### Fixes
