@@ -21,7 +21,10 @@ from heltour.tournament_core.tiebreaks import (
     calculate_buchholz_cut1,
     calculate_head_to_head,
     calculate_games_won,
+    calculate_matches_won,
     calculate_all_tiebreaks,
+    CompetitorScore,
+    MatchResult,
 )
 from heltour.tournament_core.scoring import STANDARD_SCORING
 from heltour.tournament_core.builder import TournamentBuilder
@@ -293,6 +296,22 @@ class SimpleTiebreakTests(unittest.TestCase):
         # For individuals with single-game matches, games_won counts actual game wins
         # Player 1 won 1 game, drew 2 games
         self.assertEqual(calculate_games_won(results[1]), 1)
+
+    def test_matches_won_excludes_draws_losses_and_byes(self):
+        """Test matches won counts only non-bye matches won on game points."""
+        score = CompetitorScore(
+            competitor_id=1,
+            match_points=5,
+            game_points=8.0,
+            match_results=[
+                MatchResult(2, 3.0, 1.0, 2),
+                MatchResult(3, 2.0, 2.0, 1),
+                MatchResult(4, 1.0, 3.0, 0),
+                MatchResult(None, 2.0, 0.0, 2, is_bye=True),
+            ],
+        )
+
+        self.assertEqual(calculate_matches_won(score), 1)
 
     def test_all_tiebreaks_empty_tournament(self):
         """Test edge case: no games played."""
