@@ -330,6 +330,15 @@ def calculate_games_won(competitor_score: CompetitorScore) -> int:
     return sum(result.games_won for result in competitor_score.match_results)
 
 
+def calculate_matches_won(competitor_score: CompetitorScore) -> int:
+    """Calculate the number of non-bye matches won on game points."""
+    return sum(
+        1
+        for result in competitor_score.match_results
+        if not result.is_bye and result.game_points > result.opponent_game_points
+    )
+
+
 def build_competitor_scores(
     score_dict: Dict[Tuple[int, int], any],
     last_round_number: int,
@@ -457,6 +466,8 @@ def calculate_all_tiebreaks(
                 )
             elif tiebreak_name == "games_won":
                 tiebreaks["games_won"] = calculate_games_won(score)
+            elif tiebreak_name == "matches_won":
+                tiebreaks["matches_won"] = calculate_matches_won(score)
             elif tiebreak_name == "game_points":
                 tiebreaks["game_points"] = score.game_points
 
