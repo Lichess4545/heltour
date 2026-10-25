@@ -53,7 +53,7 @@ class Player:
             if friend in self.team.get_boards():
                 self.pref_score += FRIEND_WEIGHT
             else:
-                pass  # MUTATION: absent friends no longer cost -1
+                self.pref_score -= FRIEND_WEIGHT
         for avoid in self.avoid:
             if avoid in self.team.get_boards():
                 self.pref_score -= AVOID_WEIGHT
