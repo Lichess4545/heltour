@@ -1,3 +1,6 @@
+import re
+import sass
+from django.contrib.staticfiles import finders
 from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
@@ -15,6 +18,8 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
     LonePlayerPairing,
+    SeasonPrizeWinner,
+    THEME_OPTIONS,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
@@ -29,7 +34,8 @@ from heltour.tournament.tests.testutils import (
     season_url,
     Shush,
 )
-from heltour.tournament.views import _get_league, _get_season
+from heltour.tournament.views import _get_league, _get_season, _get_player_highlights
+from heltour.tournament.templatetags.tournament_extras import highlightclass, resultclass
 
 
 class HelperWoLeagueTestCase(TestCase):
@@ -543,3 +549,40 @@ class VersionedStaticFilesStorageTestCase(TestCase):
     def test_leaves_directory_urls_alone(self):
         with self.settings(HELTOUR_VERSION="2.4.0"):
             self.assertEqual(static("ckeditor/ckeditor/"), "/static/ckeditor/ckeditor/")
+
+
+class GeneratedCssClassTestCase(TestCase):
+    def _selectors(self, filename):
+        css = sass.compile(filename=finders.find(filename))
+        # Drop declaration blocks (twice, to unwrap @media) so only selector text remains
+        for _ in range(2):
+            css = re.sub(r'\{[^{}]*\}', ' ', css)
+        return css
+
+    def _generated_selectors(self):
+        highlights = _get_player_highlights(SeasonPrizeWinner.objects.none())
+        for name, _ in highlights:
+            cls = highlightclass([(name, {None})], None)
+            yield '.' + cls
+            yield 'body.dark .' + cls
+        for score, opp_score in [(1, 0), (0, 1), (1, 1)]:
+            yield '.' + resultclass(score, opp_score)
+        for board_number in [1, 2]:
+            pairing = TeamPlayerPairing(board_number=board_number)
+            yield '.player-' + pairing.white_team_color()
+            yield '.player-' + pairing.black_team_color()
+        for theme, _ in THEME_OPTIONS:
+            yield '.theme-' + theme
+            yield '.league-homelink-' + theme
+            yield '.league-icon.' + theme
+
+    def test_every_generated_class_is_styled(self):
+        selectors = self._selectors('tournament/css/main.scss')
+        generated = set(self._generated_selectors())
+        # Guard against both sides silently coming back empty
+        self.assertTrue(selectors.strip())
+        self.assertTrue(generated)
+        missing = sorted({sel for sel in generated
+                          if not re.search(re.escape(sel) + r'(?![\w-])', selectors)})
+        if missing:
+            self.fail('No CSS rule for: ' + ', '.join(missing))
