@@ -18,6 +18,7 @@ from heltour.tournament.models import (
     Registration,
     Round,
     abs_url,
+    get_gamelink_from_gameid,
     logger,
 )
 
@@ -679,7 +680,7 @@ def notify_players_game_time(pairing, **kwargs):
 @receiver(signals.notify_players_game_started, dispatch_uid='heltour.tournament.notify')
 def notify_players_game_started(*, pairing, do_clockstart, clockstart_in, gameid, **kwargs):
     im_msg = ('We created your game.\n'
-              f'<{settings.LICHESS_DOMAIN}{gameid}|Please join it here>.')
+              f'<{get_gamelink_from_gameid(gameid)}|Please join it here>.')
     if do_clockstart:
         im_msg = f'{im_msg}\nClocks will start in about {clockstart_in} minutes, but you can start making moves at any time.'
     
