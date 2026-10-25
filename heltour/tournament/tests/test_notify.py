@@ -43,11 +43,12 @@ from heltour.tournament.notify import (
     notify_mods_round_start_done,
     notify_mods_unscheduled,
     notify_players_game_scheduled,
+    notify_players_game_started,
     notify_players_game_time,
     notify_players_late_pairing,
     notify_players_round_start,
-    pairings_generated,
     pairing_forfeit_changed,
+    pairings_generated,
     player_account_status_changed,
     registration_saved,
     send_pairing_notification,
@@ -680,6 +681,55 @@ class OtherNotifications(TestCase):
             "Send a challenge for a rated {time_control} game as {color}.\n"
             "https://lichess.org/?user={opponent}#friend",
         )
+
+    @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
+    def test_notify_players_game_started(self, spn, sn, mu):
+        notify_players_game_started(
+            pairing=self.tpp1,
+            do_clockstart=False,
+            clockstart_in=0,
+            gameid="noid",
+        )
+        spn.assert_called_once_with(
+            "game_started",
+            self.tpp1,
+            (
+                "We created your game.\n"
+                "<https://lichess.org/game/noid|Please join it here>."
+            ),
+            (
+                "We created your game.\n"
+                "<https://lichess.org/game/noid|Please join it here>."
+            ),
+            "",
+            "",
+        )
+        spn.reset_mock()
+        notify_players_game_started(
+            pairing=self.tpp1,
+            do_clockstart=True,
+            clockstart_in=1,
+            gameid="noid",
+        )
+        spn.assert_called_once_with(
+            "game_started",
+            self.tpp1,
+            (
+                "We created your game.\n"
+                "<https://lichess.org/game/noid|Please join it here>.\n"
+                "Clocks will start in about 1 minutes, "
+                "but you can start making moves at any time."
+            ),
+            (
+                "We created your game.\n"
+                "<https://lichess.org/game/noid|Please join it here>.\n"
+                "Clocks will start in about 1 minutes, "
+                "but you can start making moves at any time."
+            ),
+            "",
+            "",
+        )
+
 
 
 class PairingNotificationsTestCase(TestCase):
