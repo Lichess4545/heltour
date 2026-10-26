@@ -1,0 +1,210 @@
+services:
+  static:
+    image: ghcr.io/lichess4545/litour-caddy:latest
+    command: caddy file-server --root /public --listen :80
+    networks:
+      - frontend
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=frontend
+      - traefik.http.services.kzntc26-static.loadbalancer.server.port=80
+      - traefik.http.routers.kzntc26-static.rule=Host(`kzntc26.lichess.app`) && PathPrefix(`/static`)
+      - traefik.http.routers.kzntc26-static.entrypoints=websecure
+      - traefik.http.routers.kzntc26-static.tls=true
+      - traefik.http.routers.kzntc26-static.tls.certresolver=myresolver
+      - traefik.http.routers.kzntc26-static.priority=200
+    deploy:
+      update_config:
+        order: start-first
+
+  web:
+    image: ghcr.io/lichess4545/litour-web:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
+    secrets:
+      - kzntc26_prod_db_url
+      - litour_app_secret_key
+      - litour_prod_lichess_api_token
+      - email_host_user
+      - email_host_password
+    networks:
+      - frontend
+      - litour
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=frontend
+      - traefik.http.services.kzntc26-web.loadbalancer.server.port=8000
+      - traefik.http.routers.kzntc26-web.rule=Host(`kzntc26.lichess.app`)
+      - traefik.http.routers.kzntc26-web.entrypoints=websecure
+      - traefik.http.routers.kzntc26-web.tls=true
+      - traefik.http.routers.kzntc26-web.tls.certresolver=myresolver
+      - traefik.http.routers.kzntc26-web.priority=100
+    deploy:
+      update_config:
+        order: start-first
+
+  apiworker:
+    image: ghcr.io/lichess4545/litour-api-worker:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+      HELTOUR_ENV: prod
+      HELTOUR_APP: api_worker
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
+    secrets:
+      - kzntc26_prod_db_url
+      - litour_prod_lichess_api_token
+      - litour_app_secret_key
+      - email_host_user
+      - email_host_password
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  api:
+    image: ghcr.io/lichess4545/litour-api:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+      HELTOUR_ENV: prod
+      SECRET_KEY_FILE: /run/secrets/litour_app_secret_key
+      EMAIL_HOST_USER_FILE: /run/secrets/email_host_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/email_host_password
+    secrets:
+      - kzntc26_prod_db_url
+      - litour_prod_lichess_api_token
+      - litour_app_secret_key
+      - email_host_user
+      - email_host_password
+    networks:
+      frontend:
+      litour:
+        aliases:
+          - kzntc26-api
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=frontend
+      - traefik.http.services.kzntc26-api.loadbalancer.server.port=8001
+      - traefik.http.routers.kzntc26-api.rule=Host(`kzntc26.lichess.app`) && PathPrefix(`/v2/api`)
+      - traefik.http.routers.kzntc26-api.entrypoints=websecure
+      - traefik.http.routers.kzntc26-api.tls=true
+      - traefik.http.routers.kzntc26-api.tls.certresolver=myresolver
+      - traefik.http.routers.kzntc26-api.priority=300
+      - traefik.http.routers.kzntc26-api.middlewares=kzntc26-api-strip
+      - traefik.http.middlewares.kzntc26-api-strip.stripprefix.prefixes=/v2/api
+    deploy:
+      update_config:
+        order: start-first
+
+  ui:
+    image: ghcr.io/lichess4545/litour-ui:latest
+    env_file: "stack.env"
+    environment:
+      LITOUR_API_BASE_URL: http://kzntc26-api:8001
+      LITOUR_UI_BASE_PATH: /v2
+    networks:
+      - frontend
+      - litour
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=frontend
+      - traefik.http.services.kzntc26-ui.loadbalancer.server.port=3000
+      - traefik.http.routers.kzntc26-ui.rule=Host(`kzntc26.lichess.app`) && PathPrefix(`/v2`)
+      - traefik.http.routers.kzntc26-ui.entrypoints=websecure
+      - traefik.http.routers.kzntc26-ui.tls=true
+      - traefik.http.routers.kzntc26-ui.tls.certresolver=myresolver
+      - traefik.http.routers.kzntc26-ui.priority=200
+    deploy:
+      update_config:
+        order: start-first
+
+  celery:
+    image: ghcr.io/lichess4545/litour-celery:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+    secrets:
+      - kzntc26_prod_db_url
+      - litour_prod_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  watcher:
+    image: ghcr.io/lichess4545/litour-watcher:latest
+    env_file: "stack.env"
+    environment:
+      LICHESS_API_TOKEN_FILE: /run/secrets/litour_prod_lichess_api_token
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+    secrets:
+      - kzntc26_prod_db_url
+      - litour_prod_lichess_api_token
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: start-first
+
+  migrate:
+    image: ghcr.io/lichess4545/litour-migrate:latest
+    env_file: "stack.env"
+    environment:
+      DATABASE_URL_FILE: /run/secrets/kzntc26_prod_db_url
+    secrets:
+      - kzntc26_prod_db_url
+    networks:
+      - litour
+    deploy:
+      restart_policy:
+        condition: none
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - litour
+    deploy:
+      update_config:
+        order: stop-first
+
+volumes:
+  redis_data:
+
+networks:
+  frontend:
+    external: true
+  litour:
+    driver: overlay
+
+secrets:
+  kzntc26_prod_db_url:
+    external: true
+  litour_prod_lichess_api_token:
+    external: true
+  litour_app_secret_key:
+    external: true
+  email_host_user:
+    external: true
+  email_host_password:
+    external: true
