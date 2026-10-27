@@ -405,7 +405,7 @@ class TvTestCase(TestCase):
             round=rd,
             white=cls.player1,
             black=cls.player2,
-            game_link="https://lichess.org/KT837Aut",
+            game_link="https://lichess.org/game/KT837Aut",
             scheduled_time=timezone.now(),
             pairing_order=1,
             tv_state="has_moves",
@@ -419,7 +419,7 @@ class TvTestCase(TestCase):
         LonePlayerPairing.objects.filter(
             white__lichess_username="Player1",
             black__lichess_username="Player2",
-            game_link="https://lichess.org/KT837Aut",
+            game_link="https://lichess.org/game/KT837Aut",
         ).update(tv_state="default")
         response = self.client.get(season_url("lone", "tv"))
         self.assertContains(response, "KT837Aut")
@@ -428,7 +428,7 @@ class TvTestCase(TestCase):
         LonePlayerPairing.objects.filter(
             white__lichess_username="Player1",
             black__lichess_username="Player2",
-            game_link="https://lichess.org/KT837Aut",
+            game_link="https://lichess.org/game/KT837Aut",
         ).update(tv_state="hide")
         response = self.client.get(season_url("lone", "tv"))
         self.assertNotContains(response, "KT837Aut")
@@ -477,7 +477,7 @@ class TvTestCase(TestCase):
             round=r960,
             white=self.player1,
             black=self.player2,
-            game_link="https://lichess.org/KT837Aut",
+            game_link="https://lichess.org/game/KT837Aut",
             tv_state="has_moves",
             pairing_order=1,
         )
