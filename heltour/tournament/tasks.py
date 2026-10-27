@@ -1119,6 +1119,7 @@ def create_teams(season_id, balance, count, user):
     try:
         season = Season.objects.select_for_update(nowait=True).get(pk=season_id)
     except DatabaseError:
+        logger.info("Tried to start create_teams several times.")
         return
     player_data = [p for p in season.export_players() if p["date_created"]]
     league = teamgen.get_best_league(player_data, season.boards, balance, count)
