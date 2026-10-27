@@ -12,6 +12,7 @@ from typing import Dict
 
 import reversion
 from django.core.cache import cache
+from django.db import DatabaseError, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.dispatch.dispatcher import receiver
@@ -28,6 +29,7 @@ from heltour.tournament import (
     pairinggen,
     signals,
     slackapi,
+    teamgen,
     uptime,
 )
 from heltour.tournament.models import (
@@ -1086,9 +1088,54 @@ def create_team_channel(team_ids):
         time.sleep(settings.SLEEP_UNIT)
 
 
-@receiver(signals.do_create_team_channel, dispatch_uid='heltour.tournament.tasks')
+@receiver(signals.do_create_team_channel, dispatch_uid="heltour.tournament.tasks")
 def do_create_team_channel(sender, team_ids, **kwargs):
     create_team_channel.apply_async(args=[team_ids], countdown=1)
+
+
+@app.task(soft_time_limit=3600)
+@transaction.atomic
+def create_teams(season_id, balance, count, user):
+    def insert_teams(teams):
+        for team_number, team in enumerate(teams, 1):
+            team_instance = Team.objects.create(
+                season=season, number=team_number, name=f"Team {team_number}"
+            )
+            for board_number, board in enumerate(team.boards, 1):
+                player = Player.objects.get(lichess_username=board.name)
+                TeamMember.objects.create(
+                    team=team_instance, player=player, board_number=board_number
+                )
+
+    def insert_alternates(alts_split):
+        for board_number, board in enumerate(alts_split, 1):
+            for player in board:
+                season_player = SeasonPlayer.objects.get(
+                    season=season, player__lichess_username__iexact=player.name
+                )
+                Alternate.objects.create(
+                    season_player=season_player, board_number=board_number
+                )
+    try:
+        season = Season.objects.select_for_update(nowait=True).get(pk=season_id)
+    except DatabaseError:
+        logger.info("Tried to start create_teams several times.")
+        return
+    player_data = [p for p in season.export_players() if p["date_created"]]
+    league = teamgen.get_best_league(player_data, season.boards, balance, count)
+
+    with reversion.create_revision():
+        reversion.set_user(user)
+        reversion.set_comment("Create teams")
+        Team.objects.filter(season=season).delete()
+        insert_teams(league["teams"])
+        Alternate.objects.filter(season_player__season=season).delete()
+        insert_alternates(league["alts_split"])
+
+
+@receiver(signals.do_create_teams, dispatch_uid="heltour.tournament.tasks")
+def do_create_teams(sender, season_id, balance, count, user, **kwargs):
+    create_teams.apply_async(args=[season_id, balance, count, user], countdown=1)
 
 
 @app.task()

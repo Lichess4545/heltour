@@ -18,6 +18,7 @@ from django.core import mail
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db import DatabaseError, transaction
 from django.db.models import Q
 from django.db.models.query import Prefetch
 from django.db.models.signals import post_save
@@ -43,7 +44,6 @@ from heltour.tournament import (
     simulation,
     slackapi,
     spreadsheet,
-    teamgen,
 )
 from heltour.tournament.models import (
     Alternate,
@@ -474,6 +474,9 @@ class SeasonAdmin(_BaseAdmin):
             path('<int:object_id>/manage_players/',
                 self.admin_site.admin_view(self.manage_players_view),
                 name='manage_players'),
+            path('<int:object_id>/creating_teams/',
+                self.admin_site.admin_view(self.creating_teams_view),
+                name='creating_teams'),
             path('<int:object_id>/create_teams/',
                 self.admin_site.admin_view(self.create_teams_view),
                 name='create_teams'),
@@ -1043,28 +1046,20 @@ class SeasonAdmin(_BaseAdmin):
 
         return render(request, 'tournament/admin/edit_rosters_player_info.html', context)
 
+
+    def creating_teams_view(self, request, object_id):
+        context = {
+            "opts": self.model._meta,
+        }
+        return render(request, "tournament/admin/creating_teams.html", context)
+
+    @transaction.atomic
     def create_teams_view(self, request, object_id):
-        def insert_teams(teams):
-            for team_number, team in enumerate(teams, 1):
-                team_instance = Team.objects.create(season=season,
-                                                    number=team_number,
-                                                    name=f'Team {team_number}')
-                for board_number, board in enumerate(team.boards, 1):
-                    player = Player.objects.get(lichess_username=board.name)
-                    TeamMember.objects.create(team=team_instance,
-                                              player=player,
-                                              board_number=board_number)
-
-        def insert_alternates(alts_split):
-            for board_number, board in enumerate(alts_split, 1):
-                for player in board:
-                    season_player = (SeasonPlayer.objects
-                                     .get(season=season,
-                                          player__lichess_username__iexact=player.name))
-                    Alternate.objects.create(season_player=season_player,
-                                             board_number=board_number)
-
-        season = get_object_or_404(Season, pk=object_id)
+        try:
+            season = get_object_or_404(Season.objects.select_for_update(nowait=True), pk=object_id)
+        except DatabaseError:
+            self.message_user(request, 'Teams are currently already being created.', messages.ERROR)
+            return
         season_started = Round.objects.filter(season=season, publish_pairings=True).exists()
         if season_started:
             return HttpResponse(status=400)
@@ -1072,23 +1067,14 @@ class SeasonAdmin(_BaseAdmin):
         if request.method == 'POST':
             form = forms.CreateTeamsForm(team_count, request.POST)
             if form.is_valid():
-                player_data = [p for p in season.export_players() if p['date_created']]
-                league = teamgen.get_best_league(player_data,
-                                                 season.boards,
-                                                 form.cleaned_data['balance'],
-                                                 form.cleaned_data['count'])
-
-                with reversion.create_revision():
-                    reversion.set_user(request.user)
-                    reversion.set_comment('Create teams')
-
-                    Team.objects.filter(season=season).delete()
-                    insert_teams(league['teams'])
-
-                    Alternate.objects.filter(season_player__season=season).delete()
-                    insert_alternates(league['alts_split'])
-
-                return redirect('admin:manage_players', object_id)
+                signals.do_create_teams.send(
+                    sender=self.__class__,
+                    season_id=season.pk,
+                    balance=form.cleaned_data["balance"],
+                    count=form.cleaned_data["count"],
+                    user=request.user,
+                )
+                return redirect("admin:creating_teams", object_id)
 
         else:
             form = forms.CreateTeamsForm(team_count)

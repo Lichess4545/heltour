@@ -1,7 +1,10 @@
+import threading
+import time
 from datetime import timedelta
 from unittest.mock import ANY, call, patch
 
-from django.test import TestCase
+from django.db import DatabaseError, connection
+from django.test import TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.utils import timezone
 
 from heltour.tournament.lichessapi import ApiClientError
@@ -13,6 +16,7 @@ from heltour.tournament.models import (
     OauthToken,
     Player,
     Round,
+    Season,
     SeasonPlayer,
     Team,
     TeamPairing,
@@ -28,6 +32,7 @@ from heltour.tournament.tasks import (
     create_broadcast,
     create_broadcast_round,
     create_team_channel,
+    create_teams,
     fetch_players_to_update,
     start_games,
     update_broadcast,
@@ -679,4 +684,66 @@ class TestBroadcasts(TestCase):
         )
         self.assertEqual(
             Broadcast.objects.get(season=sl, board_range_start=3).lichess_id, "bcslug"
+        )
+
+# the following test is ~~shamelessly stolen from~~ partially inspired by
+# https://github.com/django/django/blob/360ccd4bd89d8c2404d5d29bdc71a4a465c7e740/tests/select_for_update/tests.py
+# and adapted for our own purposes.
+@patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
+class TestTeamCreationTask(TransactionTestCase):
+    @classmethod
+    def setUp(self):
+        createCommonLeagueData()
+        self.s = get_season("team")
+        # We need another database connection in transaction to test that one
+        # connection issuing a SELECT ... FOR UPDATE will block.
+        self.new_connection = connection.copy()
+
+    def tearDown(self):
+        try:
+            self.end_blocking_transaction()
+        except (DatabaseError, AttributeError):
+            pass
+        self.new_connection.close()
+
+    def start_blocking_transaction(self):
+        self.new_connection.set_autocommit(False)
+        # Start a blocking transaction. At some point,
+        # end_blocking_transaction() should be called.
+        self.cursor = self.new_connection.cursor()
+        sql = "SELECT * FROM %(db_table)s %(for_update)s;" % {
+            "db_table": Season._meta.db_table,
+            "for_update": self.new_connection.ops.for_update_sql(),
+        }
+        self.cursor.execute(sql, ())
+        self.cursor.fetchone()
+
+    def end_blocking_transaction(self):
+        # Roll back the blocking transaction.
+        self.cursor.close()
+        self.new_connection.rollback()
+        self.new_connection.set_autocommit(True)
+
+    def run_create_teams(self):
+        try:
+            create_teams(self.s.pk, 1, 1, "testuser")
+        finally:
+            connection.close()
+
+    @skipUnlessDBFeature("has_select_for_update")
+    @skipUnlessDBFeature("supports_transactions")
+    @patch("heltour.tournament.tasks.logger.info")
+    def test_create_teams_blocked(self, loggerinfo):
+        # first, let's start the transaction in our thread.
+        self.start_blocking_transaction()
+        thread = threading.Thread(target=self.run_create_teams)
+        thread.start()
+        # short sleep to make sure there's time to encounter the block
+        time.sleep(.1)
+        thread.join()
+        # while we're at it, let's check that we can still get season objects without select_for_update:
+        self.assertEqual(Season.objects.filter(tag="teamseason").count(), 1)
+        self.end_blocking_transaction()
+        loggerinfo.assert_called_once_with(
+            "Tried to start create_teams several times."
         )
