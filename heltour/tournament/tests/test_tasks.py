@@ -687,7 +687,7 @@ class TestBroadcasts(TestCase):
         )
 
 # the following test is ~~shamelessly stolen from~~ partially inspired by
-# https://github.com/django/django/blob/360ccd4bd89d8c2404d5d29bdc71a4a465c7e740/tests/select_for_update/tests.py#L56-L79
+# https://github.com/django/django/blob/360ccd4bd89d8c2404d5d29bdc71a4a465c7e740/tests/select_for_update/tests.py
 # and adapted for our own purposes.
 @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)
 class TestTeamCreationTask(TransactionTestCase):
@@ -724,15 +724,19 @@ class TestTeamCreationTask(TransactionTestCase):
         self.new_connection.rollback()
         self.new_connection.set_autocommit(True)
 
+    def run_create_teams(self):
+        try:
+            create_teams(self.s.pk, 1, 1, "testuser")
+        finally:
+            connection.close()
+
     @skipUnlessDBFeature("has_select_for_update")
     @skipUnlessDBFeature("supports_transactions")
     @patch("heltour.tournament.tasks.logger.info")
     def test_create_teams_blocked(self, loggerinfo):
         # first, let's start the transaction in our thread.
         self.start_blocking_transaction()
-        # short sleep before starting thread.
-        time.sleep(.1)
-        thread = threading.Thread(target=create_teams, args=(self.s.pk, .8, 1, "testuser"))
+        thread = threading.Thread(target=self.run_create_teams)
         thread.start()
         # short sleep to make sure there's time to encounter the block
         time.sleep(.1)
@@ -740,4 +744,6 @@ class TestTeamCreationTask(TransactionTestCase):
         # while we're at it, let's check that we can still get season objects without select_for_update:
         self.assertEqual(Season.objects.filter(tag="teamseason").count(), 1)
         self.end_blocking_transaction()
-        loggerinfo.assert_called_once_with("Tried to start create_teams several times.")
+        loggerinfo.assert_called_once_with(
+            "Tried to start create_teams several times."
+        )
