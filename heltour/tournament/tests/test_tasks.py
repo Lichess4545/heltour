@@ -730,10 +730,12 @@ class TestTeamCreationTask(TransactionTestCase):
     def test_create_teams_blocked(self, loggerinfo):
         # first, let's start the transaction in our thread.
         self.start_blocking_transaction()
+        # short sleep before starting thread.
+        time.sleep(.1)
         thread = threading.Thread(target=create_teams, args=(self.s.pk, .8, 1, "testuser"))
         thread.start()
         # short sleep to make sure there's time to encounter the block
-        time.sleep(1)
+        time.sleep(.1)
         thread.join()
         # while we're at it, let's check that we can still get season objects without select_for_update:
         self.assertEqual(Season.objects.filter(tag="teamseason").count(), 1)
