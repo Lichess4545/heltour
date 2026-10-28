@@ -50,15 +50,6 @@ class NoShowTestCase(TestCase):
                 pairing_order=1,
                 tv_state="default",
             )
-        cls.pairing = LonePlayerPairing.objects.create(
-            round=cls.rd,
-            white=cls.player1,
-            black=cls.player2,
-            game_link="",
-            scheduled_time=timezone.now(),
-            pairing_order=1,
-            tv_state="default",
-        )
         PlayerPresence.objects.create(
             player=cls.player1, pairing=cls.pairing, round=cls.rd
         )
