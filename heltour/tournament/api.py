@@ -145,6 +145,7 @@ def update_pairing(request):
         datetime = request.POST.get("datetime", None)
         if datetime is not None:
             datetime = parse_datetime(datetime)
+        strict = request.POST.get("strict", None) == "true"
     except ValueError:
         return HttpResponse("Bad request", status=400)
 
@@ -157,7 +158,7 @@ def update_pairing(request):
         pairings += _get_pairings(round_=r, player=None, white=white, black=black)
 
     reversed = False
-    if len(pairings) == 0:
+    if len(pairings) == 0 and not strict:
         # Try alternate colors
         reversed = True
         for r in rounds:
@@ -171,6 +172,12 @@ def update_pairing(request):
     pairing = pairings[0]
     initial_game_link = pairing.game_link
     initial_result = pairing.result
+
+    if strict:
+        if game_link is not None and initial_game_link and initial_game_link != game_link:
+            return JsonResponse({"updated": 0, "error": "game_link_conflict"})
+        if result is not None and initial_result:
+            return JsonResponse({"updated": 0, "error": "result_already_set"})
 
     if game_link is not None:
         pairing.game_link = game_link
@@ -196,6 +203,34 @@ def update_pairing(request):
             "result_changed": initial_result != pairing.result,
         }
     )
+
+
+@require_GET
+@require_api_token
+def get_leagues(request):
+    leagues = League.objects.filter(is_active=True).order_by("display_order", "tag")
+    return JsonResponse({"leagues": [_export_league(league) for league in leagues]})
+
+
+def _export_league(league):
+    return {
+        "tag": league.tag,
+        "name": league.name,
+        "time_control": _export_time_control(league),
+        "variant": league.variant(),
+        "rated": league.games_are_rated(),
+    }
+
+
+def _export_time_control(league):
+    try:
+        initial = league.time_control_initial()
+        increment = league.time_control_increment()
+    except ValueError:
+        return None
+    if initial is None or increment is None:
+        return None
+    return {"initial": initial, "increment": increment}
 
 
 def _get_active_rounds(league_tag, season_tag):

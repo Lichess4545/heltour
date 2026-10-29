@@ -162,6 +162,14 @@ class League(_BaseModel):
         expected_moves = 60
         return initial + increment * expected_moves
 
+    def variant(self):
+        if self.rating_type in ['classical', 'rapid', 'blitz', 'bullet']:
+            return 'standard'
+        return self.rating_type
+
+    def games_are_rated(self):
+        return True
+
     def get_leaguesetting(self):
         try:
             return self.leaguesetting
