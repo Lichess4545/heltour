@@ -301,7 +301,7 @@ def update_tv_state():
                         meta['clock']['initial'] == league.time_control_initial() and
                         meta['clock']['increment'] == league.time_control_increment() and
                         meta['perf'] == league.rating_type and
-                        meta['rated'] is True and
+                        meta['rated'] is league.games_are_rated() and
                         meta['status'] != 'aborted'):
                         game.game_link = get_gamelink_from_gameid(meta['id'])
                         if ' ' in meta.get('moves'): # ' ' indicates >= 2 moves
@@ -385,10 +385,10 @@ def _expire_bad_tokens(*, league_games, bad_token):
                 return None # only one oauth_token can be the bad token, so we do not need to proceed the function
 
 
-def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, leaguename, league_games):
+def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, clockstart_in, variant, rated, leaguename, league_games):
     result = None
     try:
-        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename)
+        result = lichessapi.bulk_start_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, rated=rated, leaguename=leaguename)
     except lichessapi.ApiClientError as err:
         logger.info(f"Received error from lichess api: {err}")
         logger.info("Attempting to recover by removing rejected tokens.")
@@ -423,6 +423,7 @@ def _start_league_games(*, tokens, clock, increment, do_clockstart, clockstart, 
                         clockstart=clockstart,
                         clockstart_in=clockstart_in,
                         variant=variant,
+                        rated=rated,
                         leaguename=leaguename,
                     )
                 except lichessapi.ApiClientError as err:
@@ -513,9 +514,8 @@ def start_games():
     for leaguename, league in leagues.items():
         clock = league.time_control_initial()
         increment = league.time_control_increment()
-        variant = league.rating_type
-        if variant in ['classical', 'rapid', 'blitz', 'bullet']:
-            variant = 'standard'
+        variant = league.variant()
+        rated = league.games_are_rated()
         # filter games_to_start to the current league
         league_games = games_to_start.filter(loneplayerpairing__round__season__league=league) | games_to_start.filter(teamplayerpairing__team_pairing__round__season__league=league)
         # get tokens per game
@@ -523,7 +523,7 @@ def start_games():
         do_clockstart = league.get_leaguesetting().start_clocks
         clockstart_in = league.get_leaguesetting().start_clock_time
         clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
-        _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, leaguename=leaguename, league_games=league_games)
+        _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, rated=rated, leaguename=leaguename, league_games=league_games)
     logger.info('[FINISHED] Done trying to start games.')
     # send the signal to update broadcasts of all active rounds.
     # this could be a periodic task by itself, but the perfect time to run it happens

@@ -10,10 +10,12 @@ from heltour.tournament.api import (
     _get_next_round,
     _get_pairings,
     find_pairing,
+    get_leagues,
     update_pairing,
 )
 from heltour.tournament.models import (
     ApiKey,
+    League,
     LonePlayerPairing,
     Player,
     Round,
@@ -443,5 +445,196 @@ class ApiPairingsTestCase(TestCase):
                 "black": "Player2",
                 "game_link_changed": True,
                 "result_changed": True,
+            },
+        )
+
+    def _post_update_pairing(self, **data):
+        req = self.rf.post(
+            path="/api/update_pairing/",
+            data={"league": "loneleague", "season": "loneseason", **data},
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        return json.loads(update_pairing(req).content)
+
+    def _set_lp1(self, **fields):
+        LonePlayerPairing.objects.filter(pk=self.lp1.pk).update(**fields)
+
+    def _lp1(self):
+        return LonePlayerPairing.objects.get(pk=self.lp1.pk)
+
+    def test_update_pairing_strict_does_not_match_reversed_colors(self):
+        response = self._post_update_pairing(
+            white="Player2",
+            black="Player1",
+            game_link="https://lichess.org/strictgame",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "not_found"})
+        self.assertEqual(self._lp1().game_link, "")
+
+    def test_update_pairing_strict_refuses_a_different_game_link(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/secondgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "game_link_conflict"})
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/firstgame")
+        self.assertEqual(lp1.result, "")
+
+    def test_update_pairing_strict_refuses_to_replace_a_result(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame", result="1/2-1/2")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/firstgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "result_already_set"})
+        self.assertEqual(self._lp1().result, "1/2-1/2")
+
+    def test_update_pairing_strict_accepts_the_stored_game_link(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/firstgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(
+            response,
+            {
+                "updated": 1,
+                "reversed": False,
+                "white": "Player1",
+                "black": "Player2",
+                "game_link_changed": False,
+                "result_changed": True,
+            },
+        )
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/firstgame")
+        self.assertEqual(lp1.result, "1-0")
+
+    def test_update_pairing_without_strict_overwrites(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame", result="1/2-1/2")
+        response = self._post_update_pairing(
+            white="Player2",
+            black="Player1",
+            game_link="https://lichess.org/secondgame",
+            result="0-1",
+        )
+        self.assertEqual(
+            response,
+            {
+                "updated": 1,
+                "reversed": True,
+                "white": "Player1",
+                "black": "Player2",
+                "game_link_changed": True,
+                "result_changed": True,
+            },
+        )
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/secondgame")
+        self.assertEqual(lp1.result, "0-1")
+
+
+class ApiGetLeaguesTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.rf = RequestFactory()
+        cls.api_key = ApiKey.objects.create(name="test_key")
+        League.objects.create(
+            name="Lichess4545 League",
+            tag="team4545",
+            time_control="45+45",
+            rating_type="classical",
+            competitor_type="team",
+            display_order=1,
+        )
+        League.objects.create(
+            name="Chess960 League",
+            tag="chess960",
+            time_control="20+10",
+            rating_type="chess960",
+            competitor_type="lone",
+            display_order=2,
+        )
+        League.objects.create(
+            name="Blank Time Control League",
+            tag="blanktc",
+            time_control="",
+            rating_type="blitz",
+            competitor_type="lone",
+            display_order=3,
+        )
+        League.objects.create(
+            name="Unparseable Time Control League",
+            tag="badtc",
+            time_control="forty-five+45",
+            rating_type="rapid",
+            competitor_type="lone",
+            display_order=4,
+        )
+        League.objects.create(
+            name="Inactive League",
+            tag="inactive",
+            time_control="30+30",
+            rating_type="classical",
+            competitor_type="lone",
+            is_active=False,
+        )
+
+    def test_get_leagues_requires_api_token(self):
+        response = get_leagues(self.rf.get(path="/api/get_leagues/"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_get_leagues(self):
+        req = self.rf.get(
+            path="/api/get_leagues/",
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        response = get_leagues(req)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                "leagues": [
+                    {
+                        "tag": "team4545",
+                        "name": "Lichess4545 League",
+                        "time_control": {"initial": 2700, "increment": 45},
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "chess960",
+                        "name": "Chess960 League",
+                        "time_control": {"initial": 1200, "increment": 10},
+                        "variant": "chess960",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "blanktc",
+                        "name": "Blank Time Control League",
+                        "time_control": None,
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "badtc",
+                        "name": "Unparseable Time Control League",
+                        "time_control": None,
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                ]
             },
         )
