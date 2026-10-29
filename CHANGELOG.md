@@ -4,6 +4,21 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.5.0 — 2026-10-29
+
+### Features
+
+- improve APIs so that arboters can assume less about how the leagues work ([#814](https://github.com/Lichess4545/heltour/pull/814)) ([3d48536](https://github.com/Lichess4545/heltour/commit/3d48536d3f9cf3070a130c2de13a0982fee80344))
+
+### Fixes
+
+- restore prior-season podium highlights in lonewolf standings ([#804](https://github.com/Lichess4545/heltour/pull/804)) ([7e51e13](https://github.com/Lichess4545/heltour/commit/7e51e131a514f7a6f20f1374b662053df20d664a))
+- more /game/ url fixes, for notify_players_game_started and tests ([#809](https://github.com/Lichess4545/heltour/pull/809)) ([fda62ec](https://github.com/Lichess4545/heltour/commit/fda62ec654dcefada5e447e3103b57ccab56a948))
+
+### Tooling
+
+- **deploy**: deploy production 2.4.3 ([1f974e3](https://github.com/Lichess4545/heltour/commit/1f974e39d07d4fea421f60efabb335537d6b9fa2))
+
 ## v2.4.3 — 2026-10-24
 
 ### Tooling
