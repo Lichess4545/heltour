@@ -1,7 +1,11 @@
 import json
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from unittest.mock import ANY, call, patch
 
+from django.db import connection
 from django.test import RequestFactory, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from heltour.tournament.api import (
@@ -12,19 +16,25 @@ from heltour.tournament.api import (
     find_pairing,
     get_leagues,
     update_pairing,
+    v2_pairings,
 )
 from heltour.tournament.models import (
     ApiKey,
     League,
     LonePlayerPairing,
     Player,
+    PlayerPairing,
     Round,
     Season,
+    TeamPairing,
+    TeamPlayerPairing,
 )
 from heltour.tournament.tests.testutils import (
     createCommonLeagueData,
+    get_player,
     get_round,
     get_season,
+    get_team,
 )
 
 
@@ -638,3 +648,158 @@ class ApiGetLeaguesTestCase(TestCase):
                 ]
             },
         )
+
+
+class ApiV2PairingsTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        createCommonLeagueData()
+        cls.api_key = ApiKey.objects.create(name="test_key")
+        Season.objects.update(is_active=True)
+        Round.objects.filter(number=1).update(publish_pairings=True)
+        cls.match = TeamPairing.objects.create(
+            round=get_round("team", 1),
+            white_team=get_team("Team 1"),
+            black_team=get_team("Team 2"),
+            pairing_order=1,
+        )
+
+    def _pairings(self, **filters):
+        request = RequestFactory().get(
+            "/api/v2/pairings/",
+            filters,
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        return json.loads(v2_pairings(request).content)["pairings"]
+
+    def _lone_pairing(self, white="Player1", black="Player2", **fields):
+        pairing = LonePlayerPairing.objects.create(
+            round=get_round("lone", 1),
+            white=get_player(white),
+            black=get_player(black),
+            pairing_order=1,
+        )
+        PlayerPairing.objects.filter(pk=pairing.pk).update(**fields)
+
+    def _board(self, board_number, white="Player1", black="Player3"):
+        TeamPlayerPairing.objects.create(
+            team_pairing=self.match,
+            board_number=board_number,
+            white=white and get_player(white),
+            black=black and get_player(black),
+        )
+
+    def test_when_no_api_token_is_given_the_request_is_unauthorized(self):
+        response = v2_pairings(RequestFactory().get("/api/v2/pairings/"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_when_a_lone_game_is_played_it_has_ratings_points_game_and_schedule(self):
+        self._lone_pairing(
+            white_rating=1650,
+            black_rating=1720,
+            result="1-0",
+            game_link="https://lichess.org/game/abcd1234",
+            scheduled_time=datetime(2026, 11, 2, 18, 30, tzinfo=dt_timezone.utc),
+        )
+        self.assertEqual(
+            self._pairings(),
+            [
+                {
+                    "league": "loneleague",
+                    "season": "loneseason",
+                    "round": 1,
+                    "players": {
+                        "white": {
+                            "user": {"name": "Player1", "id": "player1"},
+                            "rating": 1650,
+                            "points": 1,
+                        },
+                        "black": {
+                            "user": {"name": "Player2", "id": "player2"},
+                            "rating": 1720,
+                            "points": 0,
+                        },
+                    },
+                    "game": {
+                        "id": "abcd1234",
+                        "url": "https://lichess.org/game/abcd1234",
+                    },
+                    "scheduledAt": 1793644200000,
+                }
+            ],
+        )
+
+    def test_when_a_board_is_paired_it_has_its_number_teams_and_team_match(self):
+        TeamPairing.objects.update(white_points=1.5, black_points=0.5)
+        self._board(1)
+        self.assertEqual(
+            self._pairings(),
+            [
+                {
+                    "league": "teamleague",
+                    "season": "teamseason",
+                    "round": 1,
+                    "board": 1,
+                    "players": {
+                        "white": {
+                            "user": {"name": "Player1", "id": "player1"},
+                            "rating": 0,
+                            "team": 1,
+                        },
+                        "black": {
+                            "user": {"name": "Player3", "id": "player3"},
+                            "rating": 0,
+                            "team": 2,
+                        },
+                    },
+                    "teamMatch": {
+                        "teams": [
+                            {"number": 1, "name": "Team 1", "points": 1.5},
+                            {"number": 2, "name": "Team 2", "points": 0.5},
+                        ],
+                        "boards": 2,
+                    },
+                }
+            ],
+        )
+
+    def test_when_the_board_is_even_white_plays_for_the_match_black_team(self):
+        self._board(2)
+        [pairing] = self._pairings()
+        self.assertEqual(pairing["players"]["white"]["team"], 2)
+        self.assertEqual(pairing["players"]["black"]["team"], 1)
+
+    def test_when_white_forfeits_black_wins_and_the_pairing_is_a_forfeit(self):
+        self._lone_pairing(result="0F-1X")
+        [pairing] = self._pairings()
+        self.assertEqual(pairing["players"]["white"]["points"], 0)
+        self.assertEqual(pairing["players"]["black"]["points"], 1)
+        self.assertIs(pairing["forfeit"], True)
+
+    def test_when_a_board_has_no_black_player_black_has_only_its_team(self):
+        self._board(1, black=None)
+        [pairing] = self._pairings()
+        self.assertEqual(pairing["players"]["black"], {"team": 2})
+
+    def test_when_filtered_by_league_other_leagues_are_left_out(self):
+        self._board(1)
+        self._lone_pairing()
+        [pairing] = self._pairings(league="teamleague")
+        self.assertEqual(pairing["league"], "teamleague")
+
+    def test_when_filtered_by_season_other_seasons_are_left_out(self):
+        self._board(1)
+        self._lone_pairing()
+        [pairing] = self._pairings(season="loneseason")
+        self.assertEqual(pairing["season"], "loneseason")
+
+    def test_when_pairings_are_added_the_query_count_stays_the_same(self):
+        self._board(1)
+        self._lone_pairing()
+        with CaptureQueriesContext(connection) as queries:
+            self._pairings()
+        self._board(2, "Player4", "Player2")
+        self._lone_pairing("Player3", "Player4")
+        self._lone_pairing("Player5", "Player6")
+        with self.assertNumQueries(len(queries)):
+            self.assertEqual(len(self._pairings()), 5)
