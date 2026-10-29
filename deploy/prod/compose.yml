@@ -1,4 +1,4 @@
-x-image: &image ghcr.io/lichess4545/heltour:2.4.3
+x-image: &image ghcr.io/lichess4545/heltour:2.5.0
 
 x-environment: &environment
   HELTOUR_ENV: prod
