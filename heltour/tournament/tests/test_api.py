@@ -10,10 +10,12 @@ from heltour.tournament.api import (
     _get_next_round,
     _get_pairings,
     find_pairing,
+    get_leagues,
     update_pairing,
 )
 from heltour.tournament.models import (
     ApiKey,
+    League,
     LonePlayerPairing,
     Player,
     Round,
@@ -443,5 +445,99 @@ class ApiPairingsTestCase(TestCase):
                 "black": "Player2",
                 "game_link_changed": True,
                 "result_changed": True,
+            },
+        )
+
+
+class ApiGetLeaguesTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.rf = RequestFactory()
+        cls.api_key = ApiKey.objects.create(name="test_key")
+        League.objects.create(
+            name="Lichess4545 League",
+            tag="team4545",
+            time_control="45+45",
+            rating_type="classical",
+            competitor_type="team",
+            display_order=1,
+        )
+        League.objects.create(
+            name="Chess960 League",
+            tag="chess960",
+            time_control="20+10",
+            rating_type="chess960",
+            competitor_type="lone",
+            display_order=2,
+        )
+        League.objects.create(
+            name="Blank Time Control League",
+            tag="blanktc",
+            time_control="",
+            rating_type="blitz",
+            competitor_type="lone",
+            display_order=3,
+        )
+        League.objects.create(
+            name="Unparseable Time Control League",
+            tag="badtc",
+            time_control="forty-five+45",
+            rating_type="rapid",
+            competitor_type="lone",
+            display_order=4,
+        )
+        League.objects.create(
+            name="Inactive League",
+            tag="inactive",
+            time_control="30+30",
+            rating_type="classical",
+            competitor_type="lone",
+            is_active=False,
+        )
+
+    def test_get_leagues_requires_api_token(self):
+        response = get_leagues(self.rf.get(path="/api/get_leagues/"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_get_leagues(self):
+        req = self.rf.get(
+            path="/api/get_leagues/",
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        response = get_leagues(req)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                "leagues": [
+                    {
+                        "tag": "team4545",
+                        "name": "Lichess4545 League",
+                        "time_control": {"initial": 2700, "increment": 45},
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "chess960",
+                        "name": "Chess960 League",
+                        "time_control": {"initial": 1200, "increment": 10},
+                        "variant": "chess960",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "blanktc",
+                        "name": "Blank Time Control League",
+                        "time_control": None,
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                    {
+                        "tag": "badtc",
+                        "name": "Unparseable Time Control League",
+                        "time_control": None,
+                        "variant": "standard",
+                        "rated": True,
+                    },
+                ]
             },
         )

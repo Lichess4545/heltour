@@ -177,6 +177,7 @@ api_urlpatterns = [
     path("player_contact/", api.player_contact, name="player_contact"),
     path("get_season_games/", api.get_season_games, name="get_season_games"),
     path("celery_status/", api.celery_status, name="celery_status"),
+    path("get_leagues/", api.get_leagues, name="get_leagues"),
 ]
 
 urlpatterns = [

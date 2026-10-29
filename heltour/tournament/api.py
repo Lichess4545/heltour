@@ -198,6 +198,34 @@ def update_pairing(request):
     )
 
 
+@require_GET
+@require_api_token
+def get_leagues(request):
+    leagues = League.objects.filter(is_active=True).order_by("display_order", "tag")
+    return JsonResponse({"leagues": [_export_league(league) for league in leagues]})
+
+
+def _export_league(league):
+    return {
+        "tag": league.tag,
+        "name": league.name,
+        "time_control": _export_time_control(league),
+        "variant": league.variant(),
+        "rated": league.games_are_rated(),
+    }
+
+
+def _export_time_control(league):
+    try:
+        initial = league.time_control_initial()
+        increment = league.time_control_increment()
+    except ValueError:
+        return None
+    if initial is None or increment is None:
+        return None
+    return {"initial": initial, "increment": increment}
+
+
 def _get_active_rounds(league_tag, season_tag):
     rounds = Round.objects.filter(
         season__is_active=True, publish_pairings=True, is_completed=False
