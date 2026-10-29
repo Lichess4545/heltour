@@ -448,6 +448,103 @@ class ApiPairingsTestCase(TestCase):
             },
         )
 
+    def _post_update_pairing(self, **data):
+        req = self.rf.post(
+            path="/api/update_pairing/",
+            data={"league": "loneleague", "season": "loneseason", **data},
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        return json.loads(update_pairing(req).content)
+
+    def _set_lp1(self, **fields):
+        LonePlayerPairing.objects.filter(pk=self.lp1.pk).update(**fields)
+
+    def _lp1(self):
+        return LonePlayerPairing.objects.get(pk=self.lp1.pk)
+
+    def test_update_pairing_strict_does_not_match_reversed_colors(self):
+        response = self._post_update_pairing(
+            white="Player2",
+            black="Player1",
+            game_link="https://lichess.org/strictgame",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "not_found"})
+        self.assertEqual(self._lp1().game_link, "")
+
+    def test_update_pairing_strict_refuses_a_different_game_link(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/secondgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "game_link_conflict"})
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/firstgame")
+        self.assertEqual(lp1.result, "")
+
+    def test_update_pairing_strict_refuses_to_replace_a_result(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame", result="1/2-1/2")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/firstgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(response, {"updated": 0, "error": "result_already_set"})
+        self.assertEqual(self._lp1().result, "1/2-1/2")
+
+    def test_update_pairing_strict_accepts_the_stored_game_link(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame")
+        response = self._post_update_pairing(
+            white="Player1",
+            black="Player2",
+            game_link="https://lichess.org/firstgame",
+            result="1-0",
+            strict="true",
+        )
+        self.assertEqual(
+            response,
+            {
+                "updated": 1,
+                "reversed": False,
+                "white": "Player1",
+                "black": "Player2",
+                "game_link_changed": False,
+                "result_changed": True,
+            },
+        )
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/firstgame")
+        self.assertEqual(lp1.result, "1-0")
+
+    def test_update_pairing_without_strict_overwrites(self):
+        self._set_lp1(game_link="https://lichess.org/firstgame", result="1/2-1/2")
+        response = self._post_update_pairing(
+            white="Player2",
+            black="Player1",
+            game_link="https://lichess.org/secondgame",
+            result="0-1",
+        )
+        self.assertEqual(
+            response,
+            {
+                "updated": 1,
+                "reversed": True,
+                "white": "Player1",
+                "black": "Player2",
+                "game_link_changed": True,
+                "result_changed": True,
+            },
+        )
+        lp1 = self._lp1()
+        self.assertEqual(lp1.game_link, "https://lichess.org/secondgame")
+        self.assertEqual(lp1.result, "0-1")
+
 
 class ApiGetLeaguesTestCase(TestCase):
     @classmethod

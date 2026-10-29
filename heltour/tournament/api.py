@@ -145,6 +145,7 @@ def update_pairing(request):
         datetime = request.POST.get("datetime", None)
         if datetime is not None:
             datetime = parse_datetime(datetime)
+        strict = request.POST.get("strict", None) == "true"
     except ValueError:
         return HttpResponse("Bad request", status=400)
 
@@ -157,7 +158,7 @@ def update_pairing(request):
         pairings += _get_pairings(round_=r, player=None, white=white, black=black)
 
     reversed = False
-    if len(pairings) == 0:
+    if len(pairings) == 0 and not strict:
         # Try alternate colors
         reversed = True
         for r in rounds:
@@ -171,6 +172,12 @@ def update_pairing(request):
     pairing = pairings[0]
     initial_game_link = pairing.game_link
     initial_result = pairing.result
+
+    if strict:
+        if game_link is not None and initial_game_link and initial_game_link != game_link:
+            return JsonResponse({"updated": 0, "error": "game_link_conflict"})
+        if result is not None and initial_result:
+            return JsonResponse({"updated": 0, "error": "result_already_set"})
 
     if game_link is not None:
         pairing.game_link = game_link
