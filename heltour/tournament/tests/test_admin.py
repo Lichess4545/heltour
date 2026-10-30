@@ -326,7 +326,7 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         self.assertTemplateUsed(response, "tournament/admin/team_spam.html")
 
-    @patch("heltour.tournament.slackapi.send_message")
+    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_team_spam_view(self, message, slack_message):
         self.client.force_login(user=self.superuser)
@@ -364,7 +364,9 @@ class SeasonAdminTestCase(TestCase):
             message.call_args.args[1], "Spam sent to 4 teams."
         )  # correct now.
         self.assertEqual(slack_message.call_count, 4)
-        slack_message.assert_called_with(channel=ANY, text="message sent to teams")
+        slack_message.assert_called_with(
+            "channel", "message sent to teams", "(no topic)", 0
+        )
         self.assertTemplateUsed(response, "admin/change_list.html")
 
     def test_manage_players_add_delete_alternate(self):

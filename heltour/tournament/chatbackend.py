@@ -7,6 +7,21 @@ from heltour.tournament.chat_client import ChatClient
 from heltour.tournament.chat_notifier import Notifier
 
 
+class ChatBackendError(Exception):
+    pass
+
+
+class InvitationFailedError(ChatBackendError):
+    pass
+
+
+SlackUser = namedtuple(
+    "SlackUser",
+    ["id", "name_deprecated", "real_name", "display_name", "email", "tz_offset"],
+)
+SlackGroup = namedtuple("SlackGroup", ["id", "name"])
+
+
 def make_chat_client(backend: str) -> ChatClient:
     if backend == "slack":
         from heltour.tournament.slackapi import SlackClient
@@ -107,34 +122,28 @@ def cb_create_team_channel(
         notifier.cb_create_team_channel(
             team, channel_name, user_ids, topic, intro_message, tries
         )
-    except notifier.ChatBackendError:
+    except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
 def get_user(user_id: str, tries: int = 0) -> namedtuple:
     try:
         return notifier.get_user(user_id, tries)
-    except notifier.ChatBackendError:
+    except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
 def get_user_list(tries: int = 0) -> list[namedtuple]:
     try:
         return notifier.get_user_list(tries)
-    except notifier.ChatBackendError:
+    except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
 def invite_user(email: str, tries: int = 0) -> None:
     try:
         return notifier.invite_user(email, tries)
-    except notifier.InvitationFailedError:
+    except ChatClient.InvitationFailedError:
         raise InvitationFailedError()
 
 
-class ChatBackendError(Exception):
-    pass
-
-
-class InvitationFailedError(ChatBackendError):
-    pass

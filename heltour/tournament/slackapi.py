@@ -23,10 +23,15 @@ class SlackClient(ChatClient):
     def __init__(self, api_token: str) -> None:
         self.api_token = api_token
 
-    def _get_slack_webhook():
+    def _get_slack_token(self):
+        if not settings.SLACK_API_TOKEN:
+            raise ImproperlyConfigured("SLACK_API_TOKEN is not set")
+        return settings.SLACK_API_TOKEN
+
+    def _get_slack_webhook(self):
         return settings.SLACK_WEBHOOK_URL or None
 
-    def _get_slack_channel_builder_token():
+    def _get_slack_channel_builder_token(self):
         if not settings.SLACK_CHANNEL_BUILDER_TOKEN:
             raise ImproperlyConfigured("SLACK_CHANNEL_BUILDER_TOKEN is not set")
         return settings.SLACK_CHANNEL_BUILDER_TOKEN
@@ -41,7 +46,7 @@ class SlackClient(ChatClient):
         json = r.json()
         if not json["ok"]:
             if json["error"] == "name_taken":
-                raise self.ChatbackendError
+                raise self.ChatBackendError
             raise self.ChatBackendError(json["error"])
         g = json["channel"]
         return SlackGroup(g["id"], g["name"])
@@ -55,7 +60,7 @@ class SlackClient(ChatClient):
         )
         json = r.json()
         if not json["ok"]:
-            raise self.ChatbackendError(json["error"])
+            raise self.ChatBackendError(json["error"])
 
     def _leave_group(self, group_id):
         url = "https://slack.com/api/conversations.leave"
@@ -66,7 +71,7 @@ class SlackClient(ChatClient):
         )
         json = r.json()
         if not json["ok"]:
-            raise self.ChatbackendError(json["error"])
+            raise self.ChatBackendError(json["error"])
 
     def _set_group_topic(self, group_id, topic):
         url = "https://slack.com/api/conversations.setTopic"
@@ -77,7 +82,7 @@ class SlackClient(ChatClient):
         )
         json = r.json()
         if not json["ok"]:
-            raise self.ChatbackendError(json["error"])
+            raise self.ChatBackendError(json["error"])
 
     def bold(self, text: str) -> str:
         return f"*{text}*"
@@ -171,7 +176,7 @@ class SlackClient(ChatClient):
     def multiple_user_message(
         self, usernames: list[str], text: str, userids: list[str], tries: int = 0
     ) -> None:
-        self.channel_message(channel="+".join((f"@{u}" for u in usernames)), text=text)
+        self.channel_message(channel="+".join(f"@{u}" for u in usernames), text=text)
 
     def cb_create_team_channel(
         self,
@@ -183,21 +188,21 @@ class SlackClient(ChatClient):
         tries: int = 0,
     ) -> None:
         try:
-            group = self.create_group(channel_name)
+            group = self._create_group(channel_name)
             sleep(settings.SLEEP_UNIT)
         except self.ChatBackendError:
             logger.error("Could not create slack team, name taken: %s" % channel_name)
             return
         channel_ref = "#%s" % group.name
         try:
-            self.invite_to_group(group.id, user_ids)
-        except self.ChatbackendError:
+            self._invite_to_group(group.id, user_ids)
+        except self.ChatBackendError:
             logger.exception("Could not invite %s to channel" % ",".join(user_ids))
             sleep(settings.SLEEP_UNIT)
         try:
-            self.invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
+            self._invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
             sleep(settings.SLEEP_UNIT)
-        except self.ChatbackendError:
+        except self.ChatBackendError:
             logger.exception(
                 "Could not invite the listening bot to "
                 f"channel {channel_name} ({group.id})"
@@ -207,21 +212,21 @@ class SlackClient(ChatClient):
             team.slack_channel = group.id
             team.save()
         try:
-            self.set_group_topic(group.id, topic)
+            self._set_group_topic(group.id, topic)
             sleep(settings.SLEEP_UNIT)
         except self.ChatBackendError:
             logger.exception(
                 f"Failed to set topic for channel {channel_name} ({group.id})"
             )
         try:
-            self.leave_group(group.id)
+            self._leave_group(group.id)
             sleep(settings.SLEEP_UNIT)
-        except self.ChatbackendError:
+        except self.ChatBackendError:
             logger.exception(f"Failed to leave channel {channel_name} ({group.id})")
         try:
             self.channel_message(channel_ref, intro_message)
             sleep(settings.SLEEP_UNIT)
-        except self.ChatbackendError:
+        except self.ChatBackendError:
             logger.exception(
                 f"Failed to sent intro message to channel {channel_name} ({group.id})"
             )
@@ -233,7 +238,7 @@ class SlackClient(ChatClient):
         )
         json = r.json()
         if not json["ok"]:
-            raise self.ChatbackendError(json["error"])
+            raise self.ChatBackendError(json["error"])
         m = json["user"]
         return SlackUser(
             m["id"],
@@ -249,7 +254,7 @@ class SlackClient(ChatClient):
         r = requests.get(url, params={"token": self._get_slack_token()})
         json = r.json()
         if not json["ok"]:
-            raise self.ChatbackendError(json["error"])
+            raise self.ChatBackendError(json["error"])
         return [
             SlackUser(
                 m["id"],

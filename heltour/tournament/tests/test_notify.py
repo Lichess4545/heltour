@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 from django.db.models.signals import post_save
 from django.test import TestCase
@@ -67,7 +67,7 @@ from heltour.tournament.tests.testutils import (
 )
 
 
-@patch("heltour.tournament.slackapi.send_message", autospec=True)
+@patch("heltour.tournament.slackapi.SlackClient.channel_message", autospec=True)
 class UnderscoreFunctions(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -87,23 +87,27 @@ class UnderscoreFunctions(TestCase):
         atm = "another test message"
         result = _send_notification(notification_type="mod", league=self.l, text=tm)
         self.assertEqual(result, None)
-        sm.assert_called_once_with("#test_mods", tm)
+        sm.assert_called_once_with(
+            ANY, "#test_mods", tm, "(no topic)", 0
+        )
         sm.reset_mock()
         result_c = _send_notification(
             notification_type="captains", league=self.l, text=atm
         )
         self.assertEqual(result_c, None)
-        sm.assert_called_once_with("#test_captains", atm)
+        sm.assert_called_once_with(
+            ANY, "#test_captains", atm, "(no topic)", 0
+        )
 
     def test_message_user(self, sm):
         tm = "hello, how are you"
         atm = "you want to play against @random_user?"
         result = _message_user(league=self.l, username="glbert", text=tm)
         self.assertEqual(result, None)
-        sm.assert_called_once_with("@glbert", text=tm)
+        sm.assert_called_once_with(ANY, "@glbert", text=tm)
         sm.reset_mock()
         result = _message_user(league=self.l, username="blah_$_blah", text=atm)
-        sm.assert_called_once_with("@blah_$_blah", text=atm)
+        sm.assert_called_once_with(ANY, "@blah_$_blah", text=atm)
 
     def test_message_multiple_users(self, sm):
         tm = "you people should schedule your games! #scheduling"
@@ -113,7 +117,7 @@ class UnderscoreFunctions(TestCase):
             text=tm,
         )
         self.assertEqual(result, None)
-        sm.assert_called_once_with("@glbert+@test_user+@lakinwecker+@chesster", tm)
+        sm.assert_called_once_with(ANY, "@glbert+@test_user+@lakinwecker+@chesster", tm)
 
     @patch("heltour.tournament.lichessapi.send_mail")
     def test_lichess_message(self, lichessapi_sm, slack_sm):
