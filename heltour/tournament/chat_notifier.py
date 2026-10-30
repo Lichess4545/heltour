@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from chat_client import ChatClient
+from heltour.tournament.chat_client import ChatClient
 
 
 class Notifier:

@@ -1,16 +1,15 @@
-import os
 from collections import namedtuple
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from chat_client import ChatClient
-from chat_notifier import Notifier
+from heltour.tournament.chat_client import ChatClient
+from heltour.tournament.chat_notifier import Notifier
 
 
 def make_chat_client(backend: str) -> ChatClient:
     if backend == "slack":
-        from slack import SlackClient
+        from heltour.tournament.slackapi import SlackClient
 
         if not settings.SLACK_API_TOKEN:
             raise ImproperlyConfigured("SLACK_API_TOKEN is not set")
@@ -19,7 +18,7 @@ def make_chat_client(backend: str) -> ChatClient:
     raise ChatBackendError(f"Unknown CHAT_BACKEND: {backend!r}")
 
 
-chat = make_chat_client(os.environ.get("CHAT_BACKEND", "slack"))
+chat = make_chat_client(settings.USE_CHATBACKEND)
 notifier = Notifier(chat)
 
 
@@ -66,11 +65,11 @@ def ping_mods() -> str:
 
 
 def userlink_ping(user: str) -> str:
-    return notifier.userlink_ping()
+    return notifier.userlink_ping(user)
 
 
 def userlink_silent(user: str) -> str:
-    return notifier.userlink_silent()
+    return notifier.userlink_silent(user)
 
 
 def channel_message(
