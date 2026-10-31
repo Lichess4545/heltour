@@ -28,6 +28,8 @@ from heltour.tournament.models import (
     TeamMember,
     TeamPlayerPairing,
     get_gameid_from_gamelink,
+    get_gamelink_from_gameid,
+    result_is_forfeit,
 )
 
 # API methods expect an HTTP header in the form:
@@ -231,6 +233,90 @@ def _export_time_control(league):
     if initial is None or increment is None:
         return None
     return {"initial": initial, "increment": increment}
+
+
+@require_GET
+@require_api_token
+def v2_pairings(request):
+    rounds = list(
+        _get_active_rounds(
+            league_tag=request.GET.get("league"), season_tag=request.GET.get("season")
+        )
+    )
+    team_boards = (
+        TeamPlayerPairing.objects.filter(team_pairing__round__in=rounds)
+        .select_related(
+            "white",
+            "black",
+            "team_pairing__round__season__league",
+            "team_pairing__white_team",
+            "team_pairing__black_team",
+        )
+        .order_by("team_pairing__pairing_order", "board_number")
+        .nocache()
+    )
+    lone_pairings = (
+        LonePlayerPairing.objects.filter(round__in=rounds)
+        .select_related("white", "black", "round__season__league")
+        .order_by("pairing_order")
+        .nocache()
+    )
+    pairings = sorted(
+        [*team_boards, *lone_pairings], key=lambda p: rounds.index(_round_of(p))
+    )
+    return JsonResponse({"pairings": [_export_v2_pairing(p) for p in pairings]})
+
+
+def _round_of(pairing):
+    return getattr(pairing, "team_pairing", pairing).round
+
+
+def _export_v2_pairing(p):
+    round_ = _round_of(p)
+    league = round_.season.league
+    game_id = p.game_id()
+    white = _export_v2_side(p.white, p.white_rating_display(league), p.white_score())
+    black = _export_v2_side(p.black, p.black_rating_display(league), p.black_score())
+    exported = {
+        "league": league.tag,
+        "season": round_.season.tag,
+        "round": round_.number,
+        "players": {"white": white, "black": black},
+        "game": game_id and {"id": game_id, "url": get_gamelink_from_gameid(game_id)},
+        "forfeit": result_is_forfeit(p.result) or None,
+        "scheduledAt": p.scheduled_time and round(p.scheduled_time.timestamp() * 1000),
+    }
+    if isinstance(p, TeamPlayerPairing):
+        match = p.team_pairing
+        exported["board"] = p.board_number
+        white["team"] = p.white_team().number
+        black["team"] = p.black_team().number
+        exported["teamMatch"] = {
+            "teams": [
+                {"number": team.number, "name": team.name, "points": points}
+                for team, points in (
+                    (match.white_team, match.white_points),
+                    (match.black_team, match.black_points),
+                )
+            ],
+            "boards": round_.season.boards,
+        }
+    return _without_nones(exported)
+
+
+def _export_v2_side(player, rating, points):
+    if player is None:
+        return {"points": points}
+    user = {"name": player.lichess_username, "id": player.lichess_username.lower()}
+    return {"user": user, "rating": rating, "points": points}
+
+
+def _without_nones(exported):
+    return {
+        key: _without_nones(value) if isinstance(value, dict) else value
+        for key, value in exported.items()
+        if value is not None
+    }
 
 
 def _get_active_rounds(league_tag, season_tag):
