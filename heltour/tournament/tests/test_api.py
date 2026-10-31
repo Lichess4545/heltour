@@ -12,6 +12,7 @@ from heltour.tournament.api import (
     find_pairing,
     get_leagues,
     update_pairing,
+    v2_token_test,
 )
 from heltour.tournament.models import (
     ApiKey,
@@ -638,3 +639,26 @@ class ApiGetLeaguesTestCase(TestCase):
                 ]
             },
         )
+
+
+class ApiV2TokenTestTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.rf = RequestFactory()
+        cls.api_key = ApiKey.objects.create(name="test_key")
+
+    def test_when_the_key_is_known_the_token_is_accepted(self):
+        req = self.rf.get(
+            path="/api/v2/token/test/",
+            headers={"AUTHORIZATION": f"Token {self.api_key.secret_token}"},
+        )
+        response = v2_token_test(req)
+        self.assertEqual(response.status_code, 204)
+
+    def test_when_the_key_is_unknown_the_request_is_unauthorized(self):
+        req = self.rf.get(
+            path="/api/v2/token/test/",
+            headers={"AUTHORIZATION": "Token someincorrectkey"},
+        )
+        response = v2_token_test(req)
+        self.assertEqual(response.status_code, 401)

@@ -212,6 +212,12 @@ def get_leagues(request):
     return JsonResponse({"leagues": [_export_league(league) for league in leagues]})
 
 
+@require_GET
+@require_api_token
+def v2_token_test(request):
+    return HttpResponse(status=204)
+
+
 def _export_league(league):
     return {
         "tag": league.tag,
