@@ -4,6 +4,20 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.6.0 — 2026-10-31
+
+### Features
+
+- add a v2 API endpoint to test a token ([#816](https://github.com/Lichess4545/heltour/pull/816)) ([b1eeeda](https://github.com/Lichess4545/heltour/commit/b1eeeda22b9a516193643d8f99c8c5ff4d134ce8))
+
+### Performance
+
+- **teamgen**: rescore only the two swapped teams when testing a swap ([#810](https://github.com/Lichess4545/heltour/pull/810)) ([6543658](https://github.com/Lichess4545/heltour/commit/654365848ec9771fa3d72229a02025be4c693dff))
+
+### Tooling
+
+- **deploy**: deploy production 2.5.0 ([9b546c3](https://github.com/Lichess4545/heltour/commit/9b546c3f6e29b4b49079ab5b67ad9730b03017d0))
+
 ## v2.5.0 — 2026-10-29
 
 ### Features
