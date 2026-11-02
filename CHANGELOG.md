@@ -4,6 +4,16 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.6.1 — 2026-11-02
+
+### Fixes
+
+- **pairings**: write unallocated full-point byes as F in the JaVaFo TRF ([#820](https://github.com/Lichess4545/heltour/pull/820)) ([e76a24b](https://github.com/Lichess4545/heltour/commit/e76a24b2534b80fedabcb2b7e3bc27b564332e32))
+
+### Tooling
+
+- **deploy**: deploy production 2.6.0 ([656a07e](https://github.com/Lichess4545/heltour/commit/656a07e43f60d20d89fe68b37565ab280577a1fd))
+
 ## v2.6.0 — 2026-10-31
 
 ### Features
