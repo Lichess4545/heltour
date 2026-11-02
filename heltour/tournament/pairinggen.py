@@ -338,9 +338,9 @@ class DutchLonePairingSystem:
                     yield JavafoPairing(p.white, 'black', p.black_score(),
                                         forfeit=not p.game_played())
             elif b is not None:
-                yield JavafoPairing(None, None, b.score(), forfeit=True)
+                yield JavafoPairing(None, None, b.score(), forfeit=True, bye_type=b.type)
             elif bonus_score >= 1:
-                yield JavafoPairing(None, None, 1, forfeit=True)
+                yield JavafoPairing(None, None, 1, forfeit=True, bye_type='full-point-bye')
                 bonus_score -= 1
             elif bonus_score == 0.5:
                 yield JavafoPairing(None, None, 0.5, forfeit=True)
@@ -359,11 +359,12 @@ class JavafoPlayer:
 
 
 class JavafoPairing:
-    def __init__(self, opponent, color, score, forfeit=False):
+    def __init__(self, opponent, color, score, forfeit=False, bye_type=None):
         self.opponent = opponent
         self.color = color
         self.score = score
         self.forfeit = forfeit
+        self.bye_type = bye_type
 
 
 class JavafoPairingResult:
@@ -404,7 +405,9 @@ class JavafoInstance:
                     opponent_num = next((num for num, player in enumerate(self.players, 1) if
                                          player.player == pairing.opponent), '0000')
                     color = 'w' if pairing.color == 'white' else 'b' if pairing.color == 'black' else '-'
-                    if pairing.forfeit:
+                    if pairing.bye_type == 'full-point-bye':
+                        score = 'F'
+                    elif pairing.forfeit:
                         score = '+' if pairing.score == 1 else '-' if pairing.score == 0 else '=' if pairing.score == 0.5 else ' '
                     else:
                         score = '1' if pairing.score == 1 else '0' if pairing.score == 0 else '=' if pairing.score == 0.5 else ' '
