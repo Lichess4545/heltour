@@ -2404,7 +2404,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
         return my_urls + urls
 
     def link_reminder(self, request, queryset):
-        slack_users = get_user_list()
+        slack_users = chatbackend.get_user_list()
         by_email = {u.email: u.id for u in slack_users}
 
         for sp in queryset.filter(is_active=True, player__slack_user_id='').select_related(
@@ -2419,14 +2419,14 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 url = request.build_absolute_uri(url)
                 text = (
                     f"Reminder: You need to link your Slack and Lichess accounts. "
-                    f'{link(url=url, text="Click here")} to do that now. '
+                    f'{chatbackend.link(url=url, text="Click here")} to do that now. '
                     "Contact a mod if you need help."
                 )
-                direct_user_message(username=uid, text=text, userid=uid)
+                chatbackend.direct_user_message(username=uid, text=text, userid=uid)
         return redirect("admin:tournament_seasonplayer_changelist")
 
     def link_players(self, request, queryset):
-        slack_users = get_user_list()
+        slack_users = chatbackend.get_user_list()
         by_email = {u.email: u.id for u in slack_users}
         linked = 0
 
@@ -2440,11 +2440,11 @@ class SeasonPlayerAdmin(_BaseAdmin):
                 linked += 1
                 lichesslink = f"{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}"
                 text = (
-                    f"We linked your {chatbackend()} account to the lichess account "
-                    f"{link(url=lichesslink, text=sp.player.lichess_username)}. "
+                    f"We linked your {chatbackend.chatbackend()} account to the lichess account "
+                    f"{chatbackend.link(url=lichesslink, text=sp.player.lichess_username)}. "
                     "If that is not your lichess account, please contact a "
                 )
-                if chatbackend() == "Zulip":
+                if settings.USE_CHATBACKEND == "Zulip":
                     text = (
                         f"{text}@*website moderator*.\nYou can do so by posting "
                         "`@*website moderator*` to #**general>summon mods**"
@@ -2454,7 +2454,7 @@ class SeasonPlayerAdmin(_BaseAdmin):
                         f"{text} moderator.\n"
                         "You can do so by posting `@chesster summon mods` in #general"
                     )
-                direct_user_message(username=uid, text=text, userid=uid)
+                chatbackend.direct_user_message(username=uid, text=text, userid=uid)
         self.message_user(request, f"Linked {linked} players.")
 
         return redirect("admin:tournament_seasonplayer_changelist")
