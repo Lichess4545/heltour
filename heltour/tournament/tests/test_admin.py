@@ -365,7 +365,7 @@ class SeasonAdminTestCase(TestCase):
         )  # correct now.
         self.assertEqual(slack_message.call_count, 4)
         slack_message.assert_called_with(
-            "channel", "message sent to teams", "(no topic)", 0
+            "channel", "message sent to teams", "(no topic)"
         )
         self.assertTemplateUsed(response, "admin/change_list.html")
 

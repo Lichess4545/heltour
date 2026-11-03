@@ -88,7 +88,7 @@ class UnderscoreFunctions(TestCase):
         result = _send_notification(notification_type="mod", league=self.l, text=tm)
         self.assertEqual(result, None)
         sm.assert_called_once_with(
-            ANY, "#test_mods", tm, "(no topic)", 0
+            ANY, "#test_mods", tm, "(no topic)"
         )
         sm.reset_mock()
         result_c = _send_notification(
@@ -96,7 +96,7 @@ class UnderscoreFunctions(TestCase):
         )
         self.assertEqual(result_c, None)
         sm.assert_called_once_with(
-            ANY, "#test_captains", atm, "(no topic)", 0
+            ANY, "#test_captains", atm, "(no topic)"
         )
 
     def test_message_user(self, sm):
