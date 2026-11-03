@@ -88,25 +88,25 @@ def userlink_silent(user: str) -> str:
 
 
 def channel_message(
-    *, channel: str, text: str, topic: str = "(no topic)", tries: int = 0
+    *, channel: str, text: str, topic: str = "(no topic)"
 ) -> None:
-    notifier.channel_message(channel, text, topic, tries)
+    notifier.channel_message(channel, text, topic)
 
 
-def send_control_message(text: str, tries: int = 0) -> None:
-    notifier.send_control_message(text, tries)
+def send_control_message(text: str) -> None:
+    notifier.send_control_message(text)
 
 
 def direct_user_message(
-    *, username: str, text: str, userid: str, tries: int = 0
+    *, username: str, text: str, userid: str
 ) -> None:
-    notifier.direct_user_message(username, text, userid, tries)
+    notifier.direct_user_message(username, text, userid)
 
 
 def multiple_user_message(
-    *, usernames: list[str], text: str, userids: list[str], tries: int = 0
+    *, usernames: list[str], text: str, userids: list[str]
 ) -> None:
-    notifier.multiple_user_message(usernames, text, userids, tries)
+    notifier.multiple_user_message(usernames, text, userids)
 
 
 def cb_create_team_channel(
@@ -116,33 +116,32 @@ def cb_create_team_channel(
     user_ids: list[str],
     topic: str,
     intro_message: str,
-    tries: int = 0,
 ) -> None:
     try:
         notifier.cb_create_team_channel(
-            team, channel_name, user_ids, topic, intro_message, tries
+            team, channel_name, user_ids, topic, intro_message
         )
     except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
-def get_user(user_id: str, tries: int = 0) -> namedtuple:
+def get_user(user_id: str) -> namedtuple:
     try:
-        return notifier.get_user(user_id, tries)
+        return notifier.get_user(user_id)
     except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
-def get_user_list(tries: int = 0) -> list[namedtuple]:
+def get_user_list() -> list[namedtuple]:
     try:
-        return notifier.get_user_list(tries)
+        return notifier.get_user_list()
     except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
-def invite_user(email: str, tries: int = 0) -> None:
+def invite_user(email: str) -> None:
     try:
-        return notifier.invite_user(email, tries)
+        return notifier.invite_user(email)
     except ChatClient.InvitationFailedError:
         raise InvitationFailedError()
 

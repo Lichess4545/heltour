@@ -133,7 +133,7 @@ class SlackClient(ChatClient):
         return self.userlink_ping(user)
 
     def channel_message(
-        self, channel: str, text: str, topic: str = "(no topic)", tries: int = 0
+        self, channel: str, text: str, topic: str = "(no topic)"
     ) -> None:
         url = self._get_slack_webhook()
         if not url:
@@ -152,7 +152,7 @@ class SlackClient(ChatClient):
             # Unexpected error
             logger.error(f"Could not send slack message to {channel}, error {r.text}")
 
-    def send_control_message(self, text: str, tries: int = 0) -> None:
+    def send_control_message(self, text: str) -> None:
         url = self._get_slack_webhook()
         if not url:
             # Not configured
@@ -169,12 +169,12 @@ class SlackClient(ChatClient):
             logger.error("Could not send slack control message, error %s" % r.text)
 
     def direct_user_message(
-        self, username: str, text: str, userid: str, tries: int = 0
+        self, username: str, text: str, userid: str
     ) -> None:
         self.channel_message(channel=f"@{username}", text=text)
 
     def multiple_user_message(
-        self, usernames: list[str], text: str, userids: list[str], tries: int = 0
+        self, usernames: list[str], text: str, userids: list[str]
     ) -> None:
         self.channel_message(channel="+".join(f"@{u}" for u in usernames), text=text)
 
@@ -185,7 +185,6 @@ class SlackClient(ChatClient):
         user_ids: list[str],
         topic: str,
         intro_message: str,
-        tries: int = 0,
     ) -> None:
         try:
             group = self._create_group(channel_name)
@@ -231,7 +230,7 @@ class SlackClient(ChatClient):
                 f"Failed to sent intro message to channel {channel_name} ({group.id})"
             )
 
-    def get_user(self, user_id: str, tries: int = 0) -> namedtuple:
+    def get_user(self, user_id: str) -> namedtuple:
         url = "https://slack.com/api/users.info"
         r = requests.get(
             url, params={"user": user_id, "token": self._get_slack_token()}
@@ -249,7 +248,7 @@ class SlackClient(ChatClient):
             m.get("tz_offset"),
         )
 
-    def get_user_list(self, tries: int = 0) -> list[namedtuple]:
+    def get_user_list(self) -> list[namedtuple]:
         url = "https://slack.com/api/users.list"
         r = requests.get(url, params={"token": self._get_slack_token()})
         json = r.json()
@@ -267,7 +266,7 @@ class SlackClient(ChatClient):
             for m in json["members"]
         ]
 
-    def invite_user(self, email: str, tries: int = 0) -> None:
+    def invite_user(self, email: str) -> None:
         url = "https://slack.com/api/users.admin.invite"
         r = requests.get(url, params={"token": self._get_slack_token(), "email": email})
         json = r.json()

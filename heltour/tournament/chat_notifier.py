@@ -50,22 +50,22 @@ class Notifier:
         return self.chat.userlink_silent(user)
 
     def channel_message(
-        self, channel: str, text: str, topic: str = "(no topic)", tries: int = 0
+        self, channel: str, text: str, topic: str = "(no topic)"
     ) -> None:
-        self.chat.channel_message(channel, text, topic, tries)
+        self.chat.channel_message(channel, text, topic)
 
-    def send_control_message(self, text: str, tries: int = 0) -> None:
-        self.chat.send_control_message(text, tries)
+    def send_control_message(self, text: str) -> None:
+        self.chat.send_control_message(text)
 
     def direct_user_message(
-        self, username: str, text: str, userid: str, tries: int = 0
+        self, username: str, text: str, userid: str
     ) -> None:
-        self.chat.direct_user_message(username, text, userid, tries)
+        self.chat.direct_user_message(username, text, userid)
 
     def multiple_user_message(
-        self, usernames: list[str], text: str, userids: list[str], tries: int = 0
+        self, usernames: list[str], text: str, userids: list[str]
     ) -> None:
-        self.chat.multiple_user_message(usernames, text, userids, tries)
+        self.chat.multiple_user_message(usernames, text, userids)
 
     def cb_create_team_channel(
         self,
@@ -74,17 +74,16 @@ class Notifier:
         user_ids: list[str],
         topic: str,
         intro_message: str,
-        tries: int = 0,
     ) -> None:
         self.chat.cb_create_team_channel(
-            team, channel_name, user_ids, topic, intro_message, tries
+            team, channel_name, user_ids, topic, intro_message
         )
 
-    def get_user(self, user_id: str, tries: int = 0) -> namedtuple:
-        return self.chat.get_user(user_id, tries)
+    def get_user(self, user_id: str) -> namedtuple:
+        return self.chat.get_user(user_id)
 
-    def get_user_list(self, tries: int = 0) -> list[namedtuple]:
-        return self.chat.get_user_list(tries)
+    def get_user_list(self) -> list[namedtuple]:
+        return self.chat.get_user_list()
 
-    def invite_user(self, email: str, tries: int = 0) -> None:
-        return self.chat.invite_user(email, tries)
+    def invite_user(self, email: str) -> None:
+        return self.chat.invite_user(email)

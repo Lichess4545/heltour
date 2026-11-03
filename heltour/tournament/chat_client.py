@@ -51,20 +51,20 @@ class ChatClient:
         raise NotImplementedError
 
     def channel_message(
-        self, channel: str, text: str, topic: str = "(no topic)", tries: int = 0
+        self, channel: str, text: str, topic: str = "(no topic)"
     ) -> None:
         raise NotImplementedError
 
-    def send_control_message(self, text: str, tries: int = 0) -> None:
+    def send_control_message(self, text: str) -> None:
         raise NotImplementedError
 
     def direct_user_message(
-        self, username: str, text: str, userid: str, tries: int = 0
+        self, username: str, text: str, userid: str
     ) -> None:
         raise NotImplementedError
 
     def multiple_user_message(
-        self, usernames: list[str], text: str, userids: list[str], tries: int = 0
+        self, usernames: list[str], text: str, userids: list[str]
     ) -> None:
         raise NotImplementedError
 
@@ -75,15 +75,14 @@ class ChatClient:
         user_ids: list[str],
         topic: str,
         intro_message: str,
-        tries: int = 0,
     ) -> None:
         raise NotImplementedError
 
-    def get_user(self, user_id: str, tries: int = 0) -> namedtuple:
+    def get_user(self, user_id: str) -> namedtuple:
         raise NotImplementedError
 
-    def get_user_list(self, tries: int = 0) -> list[namedtuple]:
+    def get_user_list(self) -> list[namedtuple]:
         raise NotImplementedError
 
-    def invite_user(self, email: str, tries: int = 0) -> None:
+    def invite_user(self, email: str) -> None:
         raise NotImplementedError
