@@ -32,12 +32,18 @@ INSTALLED_APPS = [
     "sass_processor",
     "django_celery_beat",
     "django_celery_results",
+    "rest_framework",
+    "heltour.api_v2",
 ]
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
 
 COMMENTS_APP = "heltour.comments"
+
+REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
