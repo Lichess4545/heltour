@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 import reversion
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -222,13 +223,13 @@ def _export_league(league):
     return {
         "tag": league.tag,
         "name": league.name,
-        "time_control": _export_time_control(league),
+        "time_control": export_time_control(league),
         "variant": league.variant(),
         "rated": league.games_are_rated(),
     }
 
 
-def _export_time_control(league):
+def export_time_control(league: League) -> dict[str, int] | None:
     try:
         initial = league.time_control_initial()
         increment = league.time_control_increment()
@@ -239,10 +240,13 @@ def _export_time_control(league):
     return {"initial": initial, "increment": increment}
 
 
+ACTIVE_ROUND = Q(season__is_active=True, publish_pairings=True, is_completed=False)
+
+
 def _get_active_rounds(league_tag, season_tag):
-    rounds = Round.objects.filter(
-        season__is_active=True, publish_pairings=True, is_completed=False
-    ).order_by("-season__start_date", "-season__id", "-number")
+    rounds = Round.objects.filter(ACTIVE_ROUND).order_by(
+        "-season__start_date", "-season__id", "-number"
+    )
     if league_tag is not None:
         rounds = rounds.filter(season__league__tag=league_tag)
     if season_tag is not None:
