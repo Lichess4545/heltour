@@ -51,6 +51,14 @@ With `devenv up` running:
 devenv shell -- python manage.py test --settings=heltour.test_settings
 ```
 
+ruff formats and lints `heltour/api_v2/`, and strict mypy type checks it:
+
+```
+devenv shell -- ruff format --check
+devenv shell -- ruff check
+devenv shell -- mypy
+```
+
 ## Contributing
 
 - Read [AI_POLICY.md](AI_POLICY.md) before you open a pull request.
