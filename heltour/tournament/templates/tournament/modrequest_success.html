@@ -9,7 +9,10 @@
                     <h3>{{ req_type }}</h3>
                 </div>
                 <div class="well-body">
-                    <p>Request successfully submitted. You'll be contacted on Slack if it's approved.</p>
+                    <p>
+                        Request successfully submitted.
+                        {% if chatbackend_render %}You'll be contacted on {{ chatbackend }} if it's approved.{% endif %}
+                    </p>
                 </div>
             </div>
         </div>
