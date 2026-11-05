@@ -49,13 +49,14 @@ class Player:
 
     def set_pref_score(self):
         self.pref_score = 0
+        teammates = set(self.team.get_boards())
         for friend in self.friends:
-            if friend in self.team.get_boards():
+            if friend in teammates:
                 self.pref_score += FRIEND_WEIGHT
             else:
                 self.pref_score -= FRIEND_WEIGHT
         for avoid in self.avoid:
-            if avoid in self.team.get_boards():
+            if avoid in teammates:
                 self.pref_score -= AVOID_WEIGHT
         # player with more than 5 choices can be <5 preference even if all teammates are preferred
     def set_req_met(self):
@@ -217,10 +218,10 @@ def make_league(playerdata, boards, balance):
         # try a swap and return the preference change if this swap was made
         prior_pref = teama.team_pref_score + teamb.team_pref_score
         swapPlayers(teama, playera, teamb, playerb, board)  # swap players forwards
-        update_pref(players, teams)
+        update_pref(teama.boards + teamb.boards, [teama, teamb])
         post_pref = teama.team_pref_score + teamb.team_pref_score
         swapPlayers(teama, playerb, teamb, playera, board)  # swap players back
-        update_pref(players, teams)
+        update_pref(teama.boards + teamb.boards, [teama, teamb])
         return post_pref - prior_pref  # more positive = better swap
 
     # take player from least happy team

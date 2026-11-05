@@ -19,7 +19,7 @@ in
   languages.python = {
     enable = true;
     package = pkgs.python311;
-    manylinux.enable = true;
+    manylinux.enable = pkgs.stdenv.isLinux;
     poetry = {
       enable = true;
       install = {

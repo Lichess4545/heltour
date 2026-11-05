@@ -50,7 +50,7 @@ class NoShowTestCase(TestCase):
             player=cls.player2, pairing=cls.pairing, round=cls.rd
         )
         cls.gameid = "NKop9IyD"
-        cls.game_link = f"https://lichess.org/{cls.gameid}"
+        cls.game_link = f"https://lichess.org/game/{cls.gameid}"
 
     @patch("heltour.tournament.signals.notify_noshow.send", autospec=True)
     def test_has_moves(self, noshow_sender):
@@ -165,7 +165,6 @@ class NoShowTestCase(TestCase):
         self.pairing.black_confirmed = True
         self.pairing.game_link = self.game_link
         automod_noshow(self.pairing)
-        self.assertTrue(game_meta.called)
         game_meta.assert_called_once_with(self.gameid, priority=ANY, timeout=ANY)
         # assert a noshow by white
         noshow_sender.assert_called_once_with(

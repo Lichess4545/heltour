@@ -65,8 +65,8 @@
           buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
           installPhase = ''
             export HOME=$TMPDIR
-            python -m venv $out
-            PYTHONPATH=${python.pkgs.setuptools}/${python.sitePackages}:${python.pkgs.wheel}/${python.sitePackages} \
+            python -m venv --without-pip $out
+            PYTHONPATH=${python.pkgs.pip}/${python.sitePackages}:${python.pkgs.setuptools}/${python.sitePackages}:${python.pkgs.wheel}/${python.sitePackages} \
               $out/bin/python -m pip install \
                 --no-index \
                 --no-deps \

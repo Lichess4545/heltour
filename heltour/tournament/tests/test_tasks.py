@@ -271,7 +271,7 @@ class TestAutostartGames(TestCase):
             start_games()
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
-        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
+        self.assertEqual(tpp2.game_link, "https://lichess.org/game/NKop9IyD")
         self.assertEqual(tpp1.game_link, "")
 
     @patch(
@@ -291,8 +291,8 @@ class TestAutostartGames(TestCase):
             start_games()
         tpp2 = TeamPlayerPairing.objects.get(board_number=2)
         tpp1 = TeamPlayerPairing.objects.get(board_number=1)
-        self.assertEqual(tpp2.game_link, "https://lichess.org/NKop9IyD")
-        self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")
+        self.assertEqual(tpp2.game_link, "https://lichess.org/game/NKop9IyD")
+        self.assertEqual(tpp1.game_link, "https://lichess.org/game/KT837Aut")
 
     @patch(
         "heltour.tournament.lichessapi.bulk_start_games",
@@ -314,7 +314,7 @@ class TestAutostartGames(TestCase):
         # test that the tpp2 game link was not set
         self.assertEqual(tpp2.game_link, "")
         # test that the ttp1 game was set, that is a bad token pairing was removed and the remaining pairing still used
-        self.assertEqual(tpp1.game_link, "https://lichess.org/KT837Aut")
+        self.assertEqual(tpp1.game_link, "https://lichess.org/game/KT837Aut")
         # test that the expiry of the bad token was set to a time in the past
         self.assertTrue(
             tpp2.black.oauth_token.expires < timezone.now() - timedelta(minutes=30)

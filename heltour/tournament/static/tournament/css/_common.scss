@@ -820,21 +820,33 @@ tr > td.pairing-player:nth-of-type(3) .download-games {
     color: black;
 }
 
-.standings-container p:first-child {
+.standings-container p:first-child,
+.player-gold {
     background-color: #ffd700;
 }
 
-.standings-container p:nth-child(2) {
+.standings-container p:nth-child(2),
+.player-silver {
     background-color: #c0c0c0;
 }
 
-.standings-container p:nth-child(3) {
+.standings-container p:nth-child(3),
+.player-bronze {
     background-color: #cd7f32;
 }
 
-.standings-container p:nth-child(4) {
+.standings-container p:nth-child(4),
+.player-blue {
     background-color: #7bbcf2;
 }
+
+.player-gold a,
+.player-silver a,
+.player-bronze a,
+.player-blue a {
+    color: black;
+}
+
 .standings-container p {
     display: inline;
     padding-left: 10px;

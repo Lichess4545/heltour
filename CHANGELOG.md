@@ -4,6 +4,62 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.6.1 — 2026-11-02
+
+### Fixes
+
+- **pairings**: write unallocated full-point byes as F in the JaVaFo TRF ([#820](https://github.com/Lichess4545/heltour/pull/820)) ([e76a24b](https://github.com/Lichess4545/heltour/commit/e76a24b2534b80fedabcb2b7e3bc27b564332e32))
+
+### Tooling
+
+- **deploy**: deploy production 2.6.0 ([656a07e](https://github.com/Lichess4545/heltour/commit/656a07e43f60d20d89fe68b37565ab280577a1fd))
+
+## v2.6.0 — 2026-10-31
+
+### Features
+
+- add a v2 API endpoint to test a token ([#816](https://github.com/Lichess4545/heltour/pull/816)) ([b1eeeda](https://github.com/Lichess4545/heltour/commit/b1eeeda22b9a516193643d8f99c8c5ff4d134ce8))
+
+### Performance
+
+- **teamgen**: rescore only the two swapped teams when testing a swap ([#810](https://github.com/Lichess4545/heltour/pull/810)) ([6543658](https://github.com/Lichess4545/heltour/commit/654365848ec9771fa3d72229a02025be4c693dff))
+
+### Tooling
+
+- **deploy**: deploy production 2.5.0 ([9b546c3](https://github.com/Lichess4545/heltour/commit/9b546c3f6e29b4b49079ab5b67ad9730b03017d0))
+
+## v2.5.0 — 2026-10-29
+
+### Features
+
+- improve APIs so that arboters can assume less about how the leagues work ([#814](https://github.com/Lichess4545/heltour/pull/814)) ([3d48536](https://github.com/Lichess4545/heltour/commit/3d48536d3f9cf3070a130c2de13a0982fee80344))
+
+### Fixes
+
+- restore prior-season podium highlights in lonewolf standings ([#804](https://github.com/Lichess4545/heltour/pull/804)) ([7e51e13](https://github.com/Lichess4545/heltour/commit/7e51e131a514f7a6f20f1374b662053df20d664a))
+- more /game/ url fixes, for notify_players_game_started and tests ([#809](https://github.com/Lichess4545/heltour/pull/809)) ([fda62ec](https://github.com/Lichess4545/heltour/commit/fda62ec654dcefada5e447e3103b57ccab56a948))
+
+### Tooling
+
+- **deploy**: deploy production 2.4.3 ([1f974e3](https://github.com/Lichess4545/heltour/commit/1f974e39d07d4fea421f60efabb335537d6b9fa2))
+
+## v2.4.3 — 2026-10-24
+
+### Tooling
+
+- **deploy**: deploy production 2.4.2 ([e0e44b5](https://github.com/Lichess4545/heltour/commit/e0e44b54065574161732f369f627b78f6823d910))
+- security & CVE fixes ([#807](https://github.com/Lichess4545/heltour/pull/807)) ([186b15c](https://github.com/Lichess4545/heltour/commit/186b15ccc6d0ef9616ed593152d88323b7b85a8b))
+
+## v2.4.2 — 2026-10-24
+
+### Fixes
+
+- update lichess game urls to /game/ ([#806](https://github.com/Lichess4545/heltour/pull/806)) ([6804f6d](https://github.com/Lichess4545/heltour/commit/6804f6d50694e1e1a1d56e046ec5ecff46f1ea06))
+
+### Tooling
+
+- **deploy**: deploy production 2.4.1 ([d8ebf21](https://github.com/Lichess4545/heltour/commit/d8ebf21af1cfe7c8517e2bfca7626dc760a3d82d))
+
 ## v2.4.1 — 2026-10-10
 
 ### Fixes
