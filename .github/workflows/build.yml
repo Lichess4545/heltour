@@ -46,7 +46,16 @@ jobs:
           cache: poetry
 
       - name: Install packages
-        run: poetry install --no-interaction --no-root --only main
+        run: poetry install --no-interaction --no-root
+
+      - name: Check formatting
+        run: poetry run ruff format --check
+
+      - name: Lint
+        run: poetry run ruff check
+
+      - name: Type check
+        run: poetry run mypy
 
       - name: Run tests
         run: poetry run python manage.py test --settings=heltour.test_settings

@@ -40,15 +40,29 @@ django-environ = "^0.12.0"
 gunicorn = "^23.0.0"
 django-celery-beat = "^2.9.0"
 django-celery-results = "^2.6.0"
+djangorestframework = "==3.17.*"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+djangorestframework-stubs = "==3.14.4"
+mypy = "==1.6.1"
+ruff = "==0.17.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
-plugins = ["mypy_django_plugin.main"]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+files = ["heltour/api_v2"]
+strict = true
+follow_imports = "silent"
 
 [tool.django-stubs]
-django_settings_module = "heltour.settings"
+django_settings_module = "heltour.test_settings"
+
+[tool.ruff]
+target-version = "py311"
+include = ["heltour/api_v2/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "RUF"]

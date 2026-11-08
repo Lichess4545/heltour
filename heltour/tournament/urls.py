@@ -193,6 +193,7 @@ urlpatterns = [
         name="player_icalendar",
     ),
     path("api/", include((api_urlpatterns, "tournament"), "api")),
+    path("api/v2/", include("heltour.api_v2.urls")),
     path("auth/slack/", auth.SlackAuth.as_view(), name="slack_auth"),
     path("auth/lichess/", views.OAuthCallbackView.as_view(), name="lichess_auth"),
     path(

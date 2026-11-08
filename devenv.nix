@@ -22,12 +22,15 @@ in
     manylinux.enable = pkgs.stdenv.isLinux;
     poetry = {
       enable = true;
-      install = {
-        enable = true;
-        onlyGroups = [ "main" ];
-      };
+      install.enable = true;
       activate.enable = true;
     };
+  };
+
+  tasks."heltour:ruff" = {
+    exec = ''${pkgs.patchelf}/bin/patchelf --set-interpreter ${pkgs.stdenv.cc.bintools.dynamicLinker} "$DEVENV_ROOT/.venv/bin/ruff"'';
+    after = [ "devenv:python:poetry" ];
+    before = [ "devenv:enterShell" ];
   };
 
   services.postgres = {
