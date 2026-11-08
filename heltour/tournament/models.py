@@ -18,7 +18,7 @@ from django.utils.crypto import get_random_string
 from django_comments.models import Comment
 
 from heltour import settings
-from heltour.tournament import signals
+from heltour.tournament import email_addresses, signals
 
 logger = logging.getLogger(__name__)
 
@@ -869,6 +869,7 @@ class Player(_BaseModel):
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
+    normalized_email = models.CharField(max_length=255, blank=True, editable=False)
     is_active = models.BooleanField(default=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
     timezone_offset = models.DurationField(blank=True, null=True)
@@ -890,6 +891,7 @@ class Player(_BaseModel):
 
     class Meta:
         ordering = ['lichess_username']
+        indexes = [models.Index(fields=['normalized_email'])]
         permissions = (
             ('change_player_details', 'Can change player details'),
             ('invite_to_slack', 'Can invite to slack'),
@@ -902,6 +904,10 @@ class Player(_BaseModel):
         self.initial_account_status = self.account_status
 
     def save(self, *args, **kwargs):
+        self.normalized_email = email_addresses.normalized(self.email)
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'email' in update_fields:
+            kwargs['update_fields'] = {*update_fields, 'normalized_email'}
         account_status_changed = self.pk and self.account_status != self.initial_account_status
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:

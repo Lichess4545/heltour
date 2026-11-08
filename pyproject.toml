@@ -41,6 +41,7 @@ gunicorn = "^23.0.0"
 django-celery-beat = "^2.9.0"
 django-celery-results = "^2.6.0"
 djangorestframework = "==3.17.*"
+email-validator = "==2.3.*"
 
 [tool.poetry.group.dev.dependencies]
 djangorestframework-stubs = "==3.14.4"

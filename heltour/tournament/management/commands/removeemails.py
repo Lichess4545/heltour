@@ -1,7 +1,9 @@
 import random
 import string
+from django.contrib.auth.models import User
 from django.core.management import BaseCommand
 from django.utils import timezone
+from django_comments.models import Comment
 from heltour.tournament.models import *
 
 from heltour.tournament.models import Player, Registration
@@ -17,7 +19,9 @@ class Command(BaseCommand):
             return
 
         print("Removing all emails")
-        Player.objects.all().update(email='')
+        Player.objects.all().update(email='', normalized_email='')
         Registration.objects.all().update(email='')
+        User.objects.all().update(email='')
+        Comment.objects.all().update(user_email='')
 
 

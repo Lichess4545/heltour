@@ -82,6 +82,29 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         self.assertTrue(slack_invite.called)
         self.assertEqual(slack_invite.call_args.args[0], "a@test.com")
 
+    @patch("django.contrib.admin.ModelAdmin.message_user", new_callable=PropertyMock)
+    @patch("heltour.tournament.workflows.send_mail")
+    @patch("heltour.tournament.slackapi.invite_user")
+    def test_approve_reg_keeps_the_typed_email_and_its_normalized_copy(
+        self, slack_invite, send_mail, model_admin
+    ):
+        approve_request = self.rf.post("admin:approve_registration")
+        approve_request.user = self.superuser
+        self.reg.email = "New.Player@Example.COM"
+        self.arw.approve_reg(
+            approve_request,
+            modeladmin=model_admin,
+            send_confirm_email=False,
+            invite_to_slack=True,
+            season=self.season,
+            retroactive_byes=0,
+            late_join_points=0,
+        )
+        player = Player.objects.get(lichess_username="newplayer")
+        self.assertEqual(player.email, "New.Player@Example.COM")
+        self.assertEqual(player.normalized_email, "New.Player@example.com")
+        self.assertEqual(slack_invite.call_args.args[0], "New.Player@Example.COM")
+
 
 class UpdateBoardOrderWorkflowTestCase(TestCase):
     @classmethod

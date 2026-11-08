@@ -1187,3 +1187,44 @@ class PlayerTestCase(TestCase):
         self.p1.update_profile(user_meta=self.profile_new)
         self.assertFalse(self.p1.potentially_provisional())
 
+
+
+class PlayerEmailTestCase(TestCase):
+    def test_email_is_kept_as_entered(self):
+        player = Player.objects.create(lichess_username="p", email="Alice.Smith@Example.COM")
+        player.refresh_from_db()
+        self.assertEqual(player.email, "Alice.Smith@Example.COM")
+        self.assertEqual(player.normalized_email, "Alice.Smith@example.com")
+
+    def test_normalized_email_follows_a_changed_email(self):
+        player = Player.objects.create(lichess_username="p", email="old@example.com")
+        player.email = "New@Example.com"
+        player.save()
+        player.refresh_from_db()
+        self.assertEqual(player.normalized_email, "New@example.com")
+
+    def test_normalized_email_follows_an_email_saved_with_update_fields(self):
+        Player.objects.create(lichess_username="p", email="old@example.com")
+        Player.objects.update_or_create(lichess_username="p",
+                                        defaults={"email": "New@Example.com"})
+        self.assertEqual(Player.objects.get(lichess_username="p").normalized_email,
+                         "New@example.com")
+
+    def test_normalized_email_is_blank_when_the_email_is_not_an_address(self):
+        player = Player.objects.create(lichess_username="p", email="not an email")
+        self.assertEqual(player.normalized_email, "")
+
+    def test_normalized_email_is_blank_when_the_email_has_a_comment(self):
+        player = Player.objects.create(lichess_username="p", email="alice(comment)@example.com")
+        self.assertEqual(player.normalized_email, "")
+
+    def test_normalized_email_keeps_a_plus_tag_as_entered(self):
+        player = Player.objects.create(lichess_username="p", email="alice+league@example.com")
+        self.assertEqual(player.normalized_email, "alice+league@example.com")
+
+    def test_normalized_email_is_blank_when_the_email_is_blank(self):
+        player = Player.objects.create(lichess_username="p", email="old@example.com")
+        player.email = ""
+        player.save()
+        player.refresh_from_db()
+        self.assertEqual(player.normalized_email, "")
