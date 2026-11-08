@@ -10,6 +10,8 @@ from heltour.api_v2.serializers import (
     ActiveQuerySerializer,
     LeaguesSerializer,
     LeagueWithRoundsSerializer,
+    RoundsSerializer,
+    RoundWithPairingsSerializer,
 )
 
 Found = TypeVar("Found")
@@ -25,6 +27,19 @@ class LeagueView(APIView):
     def get(self, request: Request, tag: str) -> Response:
         league = found(selectors.league_with_rounds(tag))
         return Response(LeagueWithRoundsSerializer(league).data)
+
+
+class RoundsView(APIView):
+    def get(self, request: Request, tag: str) -> Response:
+        league = found(selectors.league(tag))
+        rounds = selectors.rounds_of(league, active_filter(request))
+        return Response(RoundsSerializer(rounds).data)
+
+
+class RoundView(APIView):
+    def get(self, request: Request, tag: str, round_id: int) -> Response:
+        round_ = found(selectors.round_with_pairings(tag, round_id))
+        return Response(RoundWithPairingsSerializer(round_).data)
 
 
 def active_filter(request: Request) -> bool | None:
