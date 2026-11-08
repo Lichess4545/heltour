@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import TypeVar
 
-from django.db.models import BooleanField, ExpressionWrapper, Model, QuerySet
+from django.db.models import BooleanField, ExpressionWrapper, Model, Q, QuerySet
 
 from heltour.tournament.api import ACTIVE_ROUND
 from heltour.tournament.models import (
     League,
     LonePlayerPairing,
+    Player,
     Round,
     TeamPlayerPairing,
 )
@@ -83,6 +84,19 @@ def lone_pairings_of(round_: Round) -> QuerySet[LonePlayerPairing]:
         .select_related("white", "black", "round__season__league")
         .order_by("pairing_order")
     )
+
+
+def player_with_email(normalized_email: str) -> Player | None:
+    players = uncached(
+        Player.objects.filter(
+            Q(normalized_email=normalized_email)
+            | Q(oauth_token__normalized_account_email=normalized_email)
+        )
+    )
+    first_two = list(players[:2])
+    if len(first_two) > 1:
+        raise Player.MultipleObjectsReturned
+    return first_two[0] if first_two else None
 
 
 def uncached(rows: QuerySet[Row]) -> QuerySet[Row]:

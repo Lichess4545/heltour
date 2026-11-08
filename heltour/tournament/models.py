@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import reversion
 from ckeditor_uploader.fields import RichTextUploadingField
 from django import forms as django_forms
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, Permission, User
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
@@ -839,6 +839,17 @@ class OauthToken(_BaseModel):
 
     account_username = models.CharField(max_length=255)
     account_email = models.CharField(max_length=255, blank=True)
+    normalized_account_email = models.CharField(max_length=255, blank=True, editable=False)
+
+    class Meta:
+        indexes = [models.Index(fields=['normalized_account_email'])]
+
+    def save(self, *args, **kwargs):
+        self.normalized_account_email = email_addresses.normalized(self.account_email)
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'account_email' in update_fields:
+            kwargs['update_fields'] = {*update_fields, 'normalized_account_email'}
+        super().save(*args, **kwargs)
 
     def is_expired(self):
         return self.expires < timezone.now()
@@ -897,6 +908,7 @@ class Player(_BaseModel):
             ('invite_to_slack', 'Can invite to slack'),
             ('link_slack', 'Can manually link slack accounts'),
             ('dox', 'Can see player emails'),
+            ('find_player_by_email', 'Can find a player by email'),
         )
 
     def __init__(self, *args, **kwargs):
@@ -2564,6 +2576,15 @@ class NavItem(_BaseModel):
 class ApiKey(_BaseModel):
     name = models.CharField(max_length=255, unique=True)
     secret_token = models.CharField(max_length=255, unique=True, default=create_api_token)
+    groups = models.ManyToManyField(
+        Group, blank=True, related_name='api_keys',
+        help_text='The key gets every permission of these groups.')
+
+    def has_perm(self, perm: str) -> bool:
+        app_label, codename = perm.split('.')
+        return Permission.objects.filter(
+            group__api_keys=self, content_type__app_label=app_label, codename=codename
+        ).nocache().exists()
 
     def __str__(self):
         return self.name

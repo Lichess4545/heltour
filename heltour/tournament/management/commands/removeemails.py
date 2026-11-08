@@ -6,7 +6,7 @@ from django.utils import timezone
 from django_comments.models import Comment
 from heltour.tournament.models import *
 
-from heltour.tournament.models import Player, Registration
+from heltour.tournament.models import OauthToken, Player, Registration
 
 class Command(BaseCommand):
     help = "Removes ALL emails from the database."
@@ -21,6 +21,7 @@ class Command(BaseCommand):
         print("Removing all emails")
         Player.objects.all().update(email='', normalized_email='')
         Registration.objects.all().update(email='')
+        OauthToken.objects.all().update(account_email='', normalized_account_email='')
         User.objects.all().update(email='')
         Comment.objects.all().update(user_email='')
 

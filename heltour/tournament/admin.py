@@ -2550,6 +2550,7 @@ class NavItemAdmin(_BaseAdmin):
 class ApiKeyAdmin(_BaseAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    filter_horizontal = ('groups',)
 
 
 # -------------------------------------------------------------------------------

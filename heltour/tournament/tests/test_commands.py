@@ -1,14 +1,16 @@
 import contextlib
 import io
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 from django_comments.models import Comment
 
-from heltour.tournament.models import Player, Registration
+from heltour.tournament.models import OauthToken, Player, Registration
 from heltour.tournament.tests.testutils import create_reg, createCommonLeagueData, get_season
 
 
@@ -24,7 +26,17 @@ class RemoveEmailsTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        cls.player = Player.objects.create(lichess_username="alice", email="alice@example.com")
+        cls.player = Player.objects.create(
+            lichess_username="alice",
+            email="alice@example.com",
+            oauth_token=OauthToken.objects.create(
+                access_token="1234",
+                token_type="bearer",
+                expires=timezone.now() + timedelta(days=1),
+                account_username="alice",
+                account_email="alice@example.com",
+            ),
+        )
         registration = create_reg(get_season("team"), "alice")
         Registration.objects.filter(pk=registration.pk).update(email="alice@example.com")
         User.objects.create(username="alice", email="alice@example.com")
@@ -45,6 +57,8 @@ class RemoveEmailsTestCase(TestCase):
             *Player.objects.values_list("email", flat=True),
             *Player.objects.values_list("normalized_email", flat=True),
             *Registration.objects.values_list("email", flat=True),
+            *OauthToken.objects.values_list("account_email", flat=True),
+            *OauthToken.objects.values_list("normalized_account_email", flat=True),
             *User.objects.values_list("email", flat=True),
             *Comment.objects.values_list("user_email", flat=True),
         } - {""}

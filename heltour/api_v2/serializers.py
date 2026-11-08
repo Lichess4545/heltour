@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
 from heltour.api_v2.selectors import LeagueWithRounds, RoundWithPairings
+from heltour.tournament import email_addresses
 from heltour.tournament.api import export_time_control
 from heltour.tournament.models import (
     League,
@@ -38,6 +39,16 @@ class EpochMillisecondsField(serializers.Field[datetime, datetime, int, Any]):
 
 class ActiveQuerySerializer(serializers.Serializer[None]):
     active = serializers.BooleanField(allow_null=True, default=None)
+
+
+class EmailSerializer(serializers.Serializer[None]):
+    email = serializers.CharField()
+
+    def validate_email(self, email: str) -> str:
+        normalized = email_addresses.normalized(email)
+        if not normalized:
+            raise serializers.ValidationError("Enter a valid email address.")
+        return normalized
 
 
 class LeagueSerializer(WithoutNullsSerializer[League]):
