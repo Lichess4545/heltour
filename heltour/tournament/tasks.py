@@ -25,6 +25,7 @@ from heltour.celery import app
 from heltour.tournament import (
     alternates_manager,
     lichessapi,
+    oauth,
     pairinggen,
     signals,
     slackapi,
@@ -36,6 +37,7 @@ from heltour.tournament.models import (
     BroadcastRound,
     LeagueChannel,
     LonePlayerPairing,
+    OauthToken,
     Player,
     PlayerBye,
     PlayerPairing,
@@ -1018,6 +1020,20 @@ def notify_slack_link(lichess_username):
 @receiver(signals.slack_account_linked, dispatch_uid='heltour.tournament.tasks')
 def do_notify_slack_link(lichess_username, **kwargs):
     notify_slack_link.apply_async(args=[lichess_username], countdown=1)
+
+
+@app.task()
+def store_account_email(oauth_token_id: int) -> None:
+    oauth_token = OauthToken.objects.get(pk=oauth_token_id)
+    email = oauth.get_account_email(oauth_token)
+    if email is not None:
+        oauth_token.account_email = email
+        oauth_token.save(update_fields=['account_email'])
+
+
+@receiver(signals.do_store_account_email, dispatch_uid='heltour.tournament.tasks')
+def do_store_account_email(oauth_token_id: int, **kwargs) -> None:
+    store_account_email.apply_async(args=[oauth_token_id])
 
 
 @app.task()

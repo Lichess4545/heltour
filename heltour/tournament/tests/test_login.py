@@ -45,13 +45,14 @@ class LoginTestCase(TestCase):
        return_value={'league': league_tag('team'), 'token': None})
 @patch('django.utils.timezone.now',
        return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
+@patch('heltour.tournament.tasks.store_account_email.apply_async')
 class LoginWithCodeTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
 
     @responses.activate
-    def test_new_user(self, *args):
+    def test_new_user(self, store_account_email, *args):
         responses.add(responses.POST, 'https://lichess.org/api/token',
                       json={'access_token': '1234',
                             'refresh_token': '4567',
@@ -79,8 +80,8 @@ class LoginWithCodeTestCase(TestCase):
         self.assertEqual('bearer', player.oauth_token.token_type)
         self.assertEqual('email:read challenge:read challenge:write', player.oauth_token.scope)
         self.assertEqual('testuser', player.oauth_token.account_username)
-# TODO fixme: unclear why below assert should work, emails is not set ...
-#        self.assertEqual('testuser@example.com', player.oauth_token.account_email)
+        self.assertEqual('', player.oauth_token.account_email)
+        store_account_email.assert_called_once_with(args=[player.oauth_token.pk])
 
         user = User.objects.get(username='testuser')
         self.assertFalse(user.has_usable_password())

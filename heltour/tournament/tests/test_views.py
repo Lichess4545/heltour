@@ -10,6 +10,7 @@ from django.templatetags.static import static
 from unittest.mock import patch
 from heltour.tournament.models import (
     League,
+    OauthToken,
     Player,
     Registration,
     Round,
@@ -315,6 +316,44 @@ class RegisterTestCase(TestCase):
             Registration.objects.filter(player__lichess_username="Player1").first().email,
             "player1@example.com",
         )
+
+    def _suggested_email(self):
+        self.client.login(username="Player1", password="test")
+        season = get_season("team")
+        season.registration_open = True
+        season.save()
+        response = self.client.get(season_url("team", "register"))
+        return response.context["form"]["email"].value()
+
+    def _give_account_email(self, account_email):
+        self.player.oauth_token = OauthToken.objects.create(
+            access_token="1234",
+            token_type="bearer",
+            expires=timezone.now() + timedelta(days=1),
+            account_username="Player1",
+            account_email=account_email,
+        )
+        self.player.save()
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_suggests_the_lichess_account_email_without_a_player_email(
+        self, get_user_meta
+    ):
+        self._give_account_email("account@example.com")
+        self.assertEqual(self._suggested_email(), "account@example.com")
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_suggests_the_player_email_over_the_lichess_account_email(
+        self, get_user_meta
+    ):
+        self._give_account_email("account@example.com")
+        self.player.email = "typed@example.com"
+        self.player.save()
+        self.assertEqual(self._suggested_email(), "typed@example.com")
+
+    @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
+    def test_register_suggests_no_email_without_either(self, get_user_meta):
+        self.assertEqual(self._suggested_email(), "")
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_missing_profile(self, get_user_meta):

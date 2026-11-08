@@ -804,7 +804,7 @@ class RegisterView(LoginRequiredMixin, LeagueView):
                     player=player,
                     rules_url=doc_url,
                 )
-                form.fields['email'].initial = player.email
+                form.fields['email'].initial = _email_to_suggest(player)
                 rating_provisional = player.provisional_for(reg_season.league)
                 form.fields['has_played_20_games'].initial = not rating_provisional
 
@@ -819,6 +819,14 @@ class RegisterView(LoginRequiredMixin, LeagueView):
 
     def view_post(self):
         return self.view(post=True)
+
+
+def _email_to_suggest(player):
+    if player.email:
+        return player.email
+    if player.oauth_token is not None:
+        return player.oauth_token.account_email
+    return ''
 
 
 class RegistrationSuccessView(SeasonView):

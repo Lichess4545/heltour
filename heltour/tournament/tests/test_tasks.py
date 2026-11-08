@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import ANY, call, patch
 
+import responses
 from django.test import TestCase
 from django.utils import timezone
 
@@ -30,6 +31,7 @@ from heltour.tournament.tasks import (
     create_team_channel,
     fetch_players_to_update,
     start_games,
+    store_account_email,
     update_broadcast,
     update_broadcast_round,
     update_player_ratings,
@@ -680,3 +682,37 @@ class TestBroadcasts(TestCase):
         self.assertEqual(
             Broadcast.objects.get(season=sl, board_range_start=3).lichess_id, "bcslug"
         )
+
+
+class TestStoreAccountEmail(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.oauth_token = OauthToken.objects.create(
+            access_token="1234",
+            token_type="bearer",
+            expires=timezone.now() + timedelta(days=1),
+            account_username="testuser",
+        )
+
+    @responses.activate
+    def test_stores_the_email_lichess_has_for_the_account(self):
+        responses.add(
+            responses.GET,
+            "https://lichess.org/api/account/email",
+            json={"email": "TestUser@Example.COM"},
+            match=[responses.matchers.header_matcher({"Authorization": "Bearer 1234"})],
+        )
+        store_account_email(self.oauth_token.pk)
+        self.oauth_token.refresh_from_db()
+        self.assertEqual(self.oauth_token.account_email, "TestUser@Example.COM")
+        self.assertEqual(self.oauth_token.normalized_account_email, "TestUser@example.com")
+
+    @responses.activate
+    def test_keeps_the_email_blank_when_lichess_refuses(self):
+        responses.add(
+            responses.GET, "https://lichess.org/api/account/email", status=403
+        )
+        with Shush():
+            store_account_email(self.oauth_token.pk)
+        self.oauth_token.refresh_from_db()
+        self.assertEqual(self.oauth_token.account_email, "")

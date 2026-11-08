@@ -11,6 +11,7 @@ do_update_broadcast_round = Signal()
 do_create_broadcast_round = Signal()
 do_update_broadcast = Signal()
 do_create_broadcast = Signal()
+do_store_account_email = Signal()
 
 # Signals that send notifications
 pairing_forfeit_changed = Signal()

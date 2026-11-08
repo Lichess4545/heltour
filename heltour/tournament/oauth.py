@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 
 from heltour import settings
-from heltour.tournament import lichessapi
+from heltour.tournament import lichessapi, signals
 from heltour.tournament.models import (
     LoginToken,
     OauthToken,
@@ -66,14 +66,13 @@ def login_with_code(request, code, encoded_state):
         return HttpResponse(f'Received {status} from token endpoint', 401)
     username = _get_account_username(oauth_token)
     oauth_token.account_username = username
-    # TODO: This slows down login. Figure out what to do with this.
-    # oauth_token.account_email = _get_account_email(oauth_token)
     player = Player.get_or_create(username)
 
     # At this point all http requests are successful, so we can start persisting everything
     oauth_token.save()
     player.oauth_token = oauth_token
     player.save()
+    signals.do_store_account_email.send(sender=login_with_code, oauth_token_id=oauth_token.pk)
 
     # We are using get_or_create here instead of django's create_user
     # to minimize the occurrence of race conditions
@@ -129,11 +128,12 @@ def _get_account_username(oauth_token):
     return response.json()['username']
 
 
-def _get_account_email(oauth_token):
+def get_account_email(oauth_token):
     response = requests.get(settings.LICHESS_OAUTH_EMAIL_URL,
                             headers=_get_auth_headers(oauth_token.access_token))
     if response.status_code != 200:
-        return HttpResponse(f'Received {response.status_code} from email endpoint', 401)
+        logger.error(f'Received {response.status_code} from email endpoint')
+        return None
     return response.json()['email']
 
 
