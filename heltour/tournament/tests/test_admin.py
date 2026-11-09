@@ -326,6 +326,7 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         self.assertTemplateUsed(response, "tournament/admin/team_spam.html")
 
+    @override_settings(SLACK_API_TOKEN="fake-token")
     @patch("heltour.tournament.slackapi.SlackClient.channel_message")
     @patch("django.contrib.admin.ModelAdmin.message_user")
     def test_team_spam_view(self, message, slack_message):
