@@ -1,4 +1,5 @@
 from collections import namedtuple
+from functools import cache
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -33,80 +34,82 @@ def make_chat_client(backend: str) -> ChatClient:
     raise ChatBackendError(f"Unknown CHAT_BACKEND: {backend!r}")
 
 
-chat = make_chat_client(settings.USE_CHATBACKEND)
-notifier = Notifier(chat)
+@cache
+def notifier() -> Notifier:
+    chat = make_chat_client(settings.USE_CHATBACKEND)
+    return Notifier(chat)
 
 
 def bold(text: str) -> str:
-    return notifier.bold(text)
+    return notifier().bold(text)
 
 
 def channellink(
     channel: str, channelprefix: str = "#", channelid: str = "", topic: str = ""
 ) -> str:
-    return notifier.channellink(channel, channelprefix, channelid, topic)
+    return notifier().channellink(channel, channelprefix, channelid, topic)
 
 
 def chatbackend() -> str:
-    return notifier.chatbackend()
+    return notifier().chatbackend()
 
 
 def chatbackend_render() -> bool:
-    return notifier.chatbackend_render()
+    return notifier().chatbackend_render()
 
 
 def chatbackend_url() -> str:
-    return notifier.chatbackend_url()
+    return notifier().chatbackend_url()
 
 
 def dm_link(*, usernames: list[str], userids: list[str], add_bot: bool) -> str:
-    return notifier.dm_link(usernames, userids, add_bot)
+    return notifier().dm_link(usernames, userids, add_bot)
 
 
 def inlinecode(text: str) -> str:
-    return notifier.inlinecode(text)
+    return notifier().inlinecode(text)
 
 
 def italic(text: str) -> str:
-    return notifier.italic(text)
+    return notifier().italic(text)
 
 
 def link(*, text: str, url: str) -> str:
-    return notifier.link(text, url)
+    return notifier().link(text, url)
 
 
 def ping_mods() -> str:
-    return notifier.ping_mods()
+    return notifier().ping_mods()
 
 
 def userlink_ping(user: str) -> str:
-    return notifier.userlink_ping(user)
+    return notifier().userlink_ping(user)
 
 
 def userlink_silent(user: str) -> str:
-    return notifier.userlink_silent(user)
+    return notifier().userlink_silent(user)
 
 
 def channel_message(
     *, channel: str, text: str, topic: str = "(no topic)"
 ) -> None:
-    notifier.channel_message(channel, text, topic)
+    notifier().channel_message(channel, text, topic)
 
 
 def send_control_message(text: str) -> None:
-    notifier.send_control_message(text)
+    notifier().send_control_message(text)
 
 
 def direct_user_message(
     *, username: str, text: str, userid: str
 ) -> None:
-    notifier.direct_user_message(username, text, userid)
+    notifier().direct_user_message(username, text, userid)
 
 
 def multiple_user_message(
     *, usernames: list[str], text: str, userids: list[str]
 ) -> None:
-    notifier.multiple_user_message(usernames, text, userids)
+    notifier().multiple_user_message(usernames, text, userids)
 
 
 def cb_create_team_channel(
@@ -118,7 +121,7 @@ def cb_create_team_channel(
     intro_message: str,
 ) -> None:
     try:
-        notifier.cb_create_team_channel(
+        notifier().cb_create_team_channel(
             team, channel_name, user_ids, topic, intro_message
         )
     except ChatClient.ChatBackendError:
@@ -127,21 +130,21 @@ def cb_create_team_channel(
 
 def get_user(user_id: str) -> namedtuple:
     try:
-        return notifier.get_user(user_id)
+        return notifier().get_user(user_id)
     except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
 def get_user_list() -> list[namedtuple]:
     try:
-        return notifier.get_user_list()
+        return notifier().get_user_list()
     except ChatClient.ChatBackendError:
         raise ChatBackendError
 
 
 def invite_user(email: str) -> None:
     try:
-        return notifier.invite_user(email)
+        return notifier().invite_user(email)
     except ChatClient.InvitationFailedError:
         raise InvitationFailedError()
 

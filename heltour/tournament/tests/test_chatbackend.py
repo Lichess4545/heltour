@@ -28,7 +28,7 @@ from heltour.tournament.slackapi import SlackGroup, SlackUser
 from heltour.tournament.tests.testutils import Shush, createCommonLeagueData, get_team
 
 
-@override_settings(USE_CHATBACKEND="slack")
+@override_settings(USE_CHATBACKEND="slack", SLACK_API_TOKEN="pretend-token")
 class SlackFormatTestCase(SimpleTestCase):
     def test_bold(self):
         self.assertEqual(bold("some text"), "*some text*")
@@ -94,7 +94,10 @@ class SlackFormatTestCase(SimpleTestCase):
     def test_userlink_silent(self):
         self.assertEqual(userlink_silent("lakinwecker"), "<@lakinwecker>")
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_webhook", return_value="someurl")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_webhook",
+        return_value="someurl",
+    )
     @patch("requests.post")
     def test_channel_message(self, post, webhook):
         post.return_value.text = "ok"
@@ -108,7 +111,10 @@ class SlackFormatTestCase(SimpleTestCase):
             },
         )
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_webhook", return_value="someurl")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_webhook",
+        return_value="someurl",
+    )
     @patch("requests.post")
     def test_control_message(self, post, webhook):
         post.return_value.text = "ok"
@@ -116,7 +122,10 @@ class SlackFormatTestCase(SimpleTestCase):
             send_control_message(text="testing control messages")
         post.assert_called_with("someurl", json={"text": "testing control messages"})
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_webhook", return_value="someurl")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_webhook",
+        return_value="someurl",
+    )
     @patch("requests.post")
     def test_direct_user_message(self, post, webhook):
         with Shush():
@@ -131,7 +140,10 @@ class SlackFormatTestCase(SimpleTestCase):
             },
         )
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_webhook", return_value="someurl")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_webhook",
+        return_value="someurl",
+    )
     @patch("requests.post")
     def test_multiple_user_message(self, post, webhook):
         with Shush():
@@ -148,7 +160,10 @@ class SlackFormatTestCase(SimpleTestCase):
             },
         )
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_token", return_value="faketoken")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_token",
+        return_value="faketoken",
+    )
     @patch("requests.get")
     def test_get_user(self, get, token):
         get.return_value.json.return_value = {
@@ -182,7 +197,10 @@ class SlackFormatTestCase(SimpleTestCase):
             ),
         )
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_token", return_value="faketoken")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_token",
+        return_value="faketoken",
+    )
     @patch("requests.get")
     def test_get_user_list(self, get, token):
         get.return_value.json.return_value = {
@@ -238,7 +256,10 @@ class SlackFormatTestCase(SimpleTestCase):
             ],
         )
 
-    @patch("heltour.tournament.slackapi.SlackClient._get_slack_token", return_value="faketoken")
+    @patch(
+        "heltour.tournament.slackapi.SlackClient._get_slack_token",
+        return_value="faketoken",
+    )
     @patch("requests.get")
     def test_inivite_user(self, get, token):
         get.return_value.json.return_value = {
@@ -252,13 +273,13 @@ class SlackFormatTestCase(SimpleTestCase):
         )
 
 
+@override_settings(USE_CHATBACKEND="slack", SLACK_API_TOKEN="pretend-token")
 class TeamChannelCreation(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
         cls.t = get_team("Team 1")
 
-    @override_settings(USE_CHATBACKEND="slack")
     @patch(
         "heltour.tournament.slackapi.SlackClient._create_group",
         return_value=SlackGroup("id1", "channelname"),
@@ -288,7 +309,7 @@ class TeamChannelCreation(TestCase):
         )
         create_group.assert_called_once_with("channelname")
         invite_to_group.assert_has_calls(
-            [call("id1", ["1", "2"]), call("id1", settings.SLACK_LISTENING_BOT_ID)],
+            [call("id1", ["1", "2"]), call("id1", [settings.SLACK_LISTENING_BOT_ID])],
             any_order=True,
         )
         set_group_topic.assert_called_once_with("id1", "channel topic")
