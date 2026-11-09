@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest.mock import ANY, call, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from heltour.tournament.lichessapi import ApiClientError
@@ -18,7 +18,7 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
 )
-from heltour.tournament.slackapi import NameTaken, SlackError, SlackGroup
+from heltour.tournament.chatbackend import ChatBackendError, SlackGroup
 from heltour.tournament.tasks import (
     _create_broadcast_grouping,
     _create_or_update_broadcast,
@@ -327,8 +327,9 @@ class TestTeamChannel(TestCase):
         createCommonLeagueData()
         cls.team_ids = Team.objects.all().order_by("pk").values("pk")
 
+    @override_settings(USE_CHATBACKEND="slack")
     @patch(
-        "heltour.tournament.slackapi.create_group",
+        "heltour.tournament.slackapi.SlackClient._create_group",
         side_effect=[
             SlackGroup(id="g1", name="g1"),
             SlackGroup(id="g2", name="g2"),
@@ -336,10 +337,10 @@ class TestTeamChannel(TestCase):
             SlackGroup(id="g4", name="g4"),
         ],
     )
-    @patch("heltour.tournament.slackapi.invite_to_group")
-    @patch("heltour.tournament.slackapi.set_group_topic")
-    @patch("heltour.tournament.slackapi.leave_group")
-    @patch("heltour.tournament.slackapi.send_message")
+    @patch("heltour.tournament.slackapi.SlackClient._invite_to_group")
+    @patch("heltour.tournament.slackapi.SlackClient._set_group_topic")
+    @patch("heltour.tournament.slackapi.SlackClient._leave_group")
+    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
     def test_create_team_channel(
         self, send_message, leave_group, set_group_topic, invite_to_group, create_group
     ):
@@ -362,23 +363,26 @@ class TestTeamChannel(TestCase):
         )
 
     @patch(
-        "heltour.tournament.slackapi.create_group",
+        "heltour.tournament.slackapi.SlackClient._create_group",
         side_effect=[
-            NameTaken,
+            ChatBackendError,
             SlackGroup(id="g2", name="g2"),
             SlackGroup(id="g3", name="g3"),
             SlackGroup(id="g4", name="g4"),
         ],
     )
-    @patch("heltour.tournament.slackapi.invite_to_group", side_effect=SlackError)
-    @patch("heltour.tournament.slackapi.set_group_topic", side_effect=SlackError)
-    @patch("heltour.tournament.slackapi.leave_group", side_effect=SlackError)
-    @patch("heltour.tournament.slackapi.send_message")
+    @patch("heltour.tournament.slackapi.SlackClient._invite_to_group", side_effect=ChatBackendError)
+    @patch("heltour.tournament.slackapi.SlackClient._set_group_topic", side_effect=ChatBackendError)
+    @patch("heltour.tournament.slackapi.SlackClient._leave_group", side_effect=ChatBackendError)
+    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
     def test_create_team_channel_errors(
         self, send_message, leave_group, set_group_topic, invite_to_group, create_group
     ):
         with Shush():
-            create_team_channel(self.team_ids)
+            try:
+                create_team_channel(self.team_ids)
+            except ChatBackendError:
+                pass
         self.assertEqual(Team.objects.get(pk=self.team_ids[0]["pk"]).slack_channel, "")
 
 

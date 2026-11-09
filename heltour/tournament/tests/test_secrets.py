@@ -10,31 +10,40 @@ from heltour.tournament import slackapi, spreadsheet
 class SlackSecretsTestCase(SimpleTestCase):
     @override_settings(SLACK_API_TOKEN="xoxb-token")
     def test_uses_the_api_token(self):
-        self.assertEqual(slackapi._get_slack_token(), "xoxb-token")
+        sc = slackapi.SlackClient(api_token="invalid")
+        self.assertEqual(sc._get_slack_token(), "xoxb-token")
 
     @override_settings(SLACK_API_TOKEN="")
     def test_refuses_a_missing_api_token(self):
+
+        sc = slackapi.SlackClient(api_token="invalid")
         with self.assertRaisesMessage(ImproperlyConfigured, "SLACK_API_TOKEN"):
-            slackapi._get_slack_token()
+            sc._get_slack_token()
 
     @override_settings(SLACK_CHANNEL_BUILDER_TOKEN="xoxp-token")
     def test_uses_the_channel_builder_token(self):
-        self.assertEqual(slackapi._get_slack_channel_builder_token(), "xoxp-token")
+
+        sc = slackapi.SlackClient(api_token="invalid")
+        self.assertEqual(sc._get_slack_channel_builder_token(), "xoxp-token")
 
     @override_settings(SLACK_CHANNEL_BUILDER_TOKEN="")
     def test_refuses_a_missing_channel_builder_token(self):
+
+        sc = slackapi.SlackClient(api_token="invalid")
         with self.assertRaisesMessage(ImproperlyConfigured, "SLACK_CHANNEL_BUILDER_TOKEN"):
-            slackapi._get_slack_channel_builder_token()
+            sc._get_slack_channel_builder_token()
 
     @override_settings(SLACK_WEBHOOK_URL="https://hooks.slack.com/services/x")
     def test_uses_the_webhook_url(self):
-        self.assertEqual(slackapi._get_slack_webhook(), "https://hooks.slack.com/services/x")
+        sc = slackapi.SlackClient(api_token="invalid")
+        self.assertEqual(sc._get_slack_webhook(), "https://hooks.slack.com/services/x")
 
     @override_settings(SLACK_WEBHOOK_URL="")
     @patch("heltour.tournament.slackapi.requests.post")
     def test_skips_messages_without_a_webhook_url(self, post):
+        sc = slackapi.SlackClient(api_token="invalid")
         with self.assertLogs("heltour.tournament.slackapi", level="ERROR"):
-            slackapi.send_message("#general", "hello")
+            sc.channel_message(channel="#general", text="hello")
         post.assert_not_called()
 
 

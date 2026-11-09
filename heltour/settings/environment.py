@@ -56,8 +56,12 @@ LICHESS_TOPLEVEL = env.str("LICHESS_TOPLEVEL", default="org")
 LICHESS_OAUTH_CLIENTID = env.str("LICHESS_OAUTH_CLIENTID", default="heltour")
 LICHESS_OAUTH_REDIRECT_SCHEME = env.str("LICHESS_OAUTH_REDIRECT_SCHEME", default="https://")
 
+USE_CHATBACKEND = env.str("USE_CHATBACKEND", default="slack")
 SLACK_ANNOUNCE_CHANNEL = env.str("SLACK_ANNOUNCE_CHANNEL", default="C2UP34BCZ")
 SLACK_TEAM_ID = env.str("SLACK_TEAM_ID", default="T0CSGMP0R")
+SLACK_LISTENING_BOT = env.str("SLACK_LISTENING_BOT", default="chesster")
+SLACK_LISTENING_BOT_ID = env.str("SLACK_LISTENING_BOT_ID", default="U020MSB1FV0")
+SLACK_URL = env.str("SLACK_URL", default="https://lichess4545.slack.com")
 CHESSTER_USER_ID = env.str("CHESSTER_USER_ID", default="U020MSB1FV0")
 
 JAVAFO_COMMAND = env.str("JAVAFO_COMMAND", default="java -jar ./thirdparty/javafo.jar")

@@ -53,7 +53,7 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
 
     @patch("django.contrib.admin.ModelAdmin.message_user", new_callable=PropertyMock)
     @patch("heltour.tournament.workflows.send_mail")
-    @patch("heltour.tournament.slackapi.invite_user")
+    @patch("heltour.tournament.slackapi.SlackClient.invite_user")
     def test_approve_reg(self, slack_invite, send_mail, model_admin):
         approve_request = self.rf.post("admin:approve_registration")
         approve_request.user = self.superuser
