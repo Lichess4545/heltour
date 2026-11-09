@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from heltour.api_v2.tests.testutils import ApiV2TestCase
+from heltour.api_v2.tests.testutils import ApiV2TestCase, ShushedApiV2TestCase
 from heltour.tournament.models import (
     LonePlayerPairing,
     PlayerPairing,
@@ -19,7 +19,7 @@ from heltour.tournament.tests.testutils import (
 )
 
 
-class RoundsTestCase(ApiV2TestCase):
+class RoundsFixture(ApiV2TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         super().setUpTestData()
@@ -27,6 +27,8 @@ class RoundsTestCase(ApiV2TestCase):
         Season.objects.filter(pk=get_season("team").pk).update(is_active=True)
         Round.objects.filter(pk=get_round("team", 1).pk).update(publish_pairings=True)
 
+
+class RoundsTestCase(RoundsFixture):
     def _numbers(self, **query: str) -> list[int]:
         rounds = self.get_json("/api/v2/leagues/teamleague/rounds/", **query)
         return [round_["number"] for round_ in rounds["rounds"]]
@@ -55,11 +57,13 @@ class RoundsTestCase(ApiV2TestCase):
     def test_when_active_is_false_only_inactive_rounds_are_listed(self) -> None:
         self.assertEqual(self._numbers(active="false"), [3, 2])
 
+
+class RoundsErrorTestCase(ShushedApiV2TestCase, RoundsFixture):
     def test_when_the_tag_is_unknown_the_rounds_are_not_found(self) -> None:
         self.assertEqual(self.status_of("/api/v2/leagues/unknown/rounds/"), 404)
 
 
-class RoundTestCase(ApiV2TestCase):
+class RoundFixture(ApiV2TestCase):
     match: TeamPairing
 
     @classmethod
@@ -77,6 +81,8 @@ class RoundTestCase(ApiV2TestCase):
         round_id = get_round(league_type, 1).pk
         return f"/api/v2/leagues/{tag or f'{league_type}league'}/rounds/{round_id}/"
 
+
+class RoundTestCase(RoundFixture):
     def _pairings(self, league_type: str) -> list[Any]:
         pairings: list[Any] = self.get_json(self._round_path(league_type))["pairings"]
         return pairings
@@ -214,14 +220,6 @@ class RoundTestCase(ApiV2TestCase):
         self.assertFalse(get_round("lone", 1).publish_pairings)
         self.assertEqual(len(self._pairings("lone")), 1)
 
-    def test_when_the_round_is_in_another_league_it_is_not_found(self) -> None:
-        path = self._round_path("lone", tag="teamleague")
-        self.assertEqual(self.status_of(path), 404)
-
-    def test_when_the_round_is_unknown_it_is_not_found(self) -> None:
-        path = "/api/v2/leagues/teamleague/rounds/999999/"
-        self.assertEqual(self.status_of(path), 404)
-
     def test_when_boards_are_added_the_query_count_stays_the_same(self) -> None:
         path = self._round_path("team")
         self._board(1)
@@ -240,3 +238,13 @@ class RoundTestCase(ApiV2TestCase):
         self._lone_pairing("Player5", "Player6")
         with self.assertNumQueries(4):
             self.assertEqual(len(self.get_json(path)["pairings"]), 3)
+
+
+class RoundErrorTestCase(ShushedApiV2TestCase, RoundFixture):
+    def test_when_the_round_is_in_another_league_it_is_not_found(self) -> None:
+        path = self._round_path("lone", tag="teamleague")
+        self.assertEqual(self.status_of(path), 404)
+
+    def test_when_the_round_is_unknown_it_is_not_found(self) -> None:
+        path = "/api/v2/leagues/teamleague/rounds/999999/"
+        self.assertEqual(self.status_of(path), 404)
