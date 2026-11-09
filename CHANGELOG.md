@@ -4,6 +4,19 @@ Rendered by [git-cliff](https://git-cliff.org) from the conventional commits
 behind each tag. `release` rewrites this file in full on every release, so an
 edit made here is lost — edit the commit messages instead.
 
+## v2.7.0 — 2026-11-09
+
+### Features
+
+- add v2 leagues API endpoints ([#822](https://github.com/Lichess4545/heltour/pull/822)) ([305f9eb](https://github.com/Lichess4545/heltour/commit/305f9ebacef9cca954fd06b6272caad55323e3f1))
+- add v2 rounds API endpoints with pairings ([#823](https://github.com/Lichess4545/heltour/pull/823)) ([9b7e3b1](https://github.com/Lichess4545/heltour/commit/9b7e3b14667036103810d496776745ee8f8be80f))
+- not-Zulip v2 ([#825](https://github.com/Lichess4545/heltour/pull/825)) ([d28dcc5](https://github.com/Lichess4545/heltour/commit/d28dcc591710981c02ce6c96ebfe54dda6e72115))
+
+### Tooling
+
+- **deploy**: deploy production 2.6.1 ([54986b2](https://github.com/Lichess4545/heltour/commit/54986b289ee0b298eed503b6c30dbee8aae2ccaa))
+- **deps**: add Django REST Framework and a ruff and mypy checked api_v2 app ([#821](https://github.com/Lichess4545/heltour/pull/821)) ([0dc730e](https://github.com/Lichess4545/heltour/commit/0dc730ea597c91e1bc4da813fca810e0dc032081))
+
 ## v2.6.1 — 2026-11-02
 
 ### Fixes
@@ -87,8 +100,13 @@ edit made here is lost — edit the commit messages instead.
 
 ### Features
 
-- make the get_roster api public ([#773](https://github.com/Lichess4545/heltour/pull/773)) ([f864f67](https://github.com/Lichess4545/heltour/commit/f864f6770962d2a150c36a8c471363bbb1fa9f70))
 - when registering, try to guesstimate whether forcing a profile update makes sense ([#772](https://github.com/Lichess4545/heltour/pull/772)) ([34ea3c7](https://github.com/Lichess4545/heltour/commit/34ea3c78d53b20216796ac3d0f38b36432a58f13))
+
+## v2.2.0 — 2026-10-09
+
+### Features
+
+- make the get_roster api public ([#773](https://github.com/Lichess4545/heltour/pull/773)) ([f864f67](https://github.com/Lichess4545/heltour/commit/f864f6770962d2a150c36a8c471363bbb1fa9f70))
 
 ### Documentation
 
