@@ -36,7 +36,7 @@ class SlackClient(ChatClient):
             raise ImproperlyConfigured("SLACK_CHANNEL_BUILDER_TOKEN is not set")
         return settings.SLACK_CHANNEL_BUILDER_TOKEN
 
-    def _create_group(self, group_name):
+    def _create_group(self, group_name: str):
         url = "https://slack.com/api/conversations.create"
         r = requests.post(
             url,
@@ -51,7 +51,7 @@ class SlackClient(ChatClient):
         g = json["channel"]
         return SlackGroup(g["id"], g["name"])
 
-    def _invite_to_group(self, group_id, user_ids):
+    def _invite_to_group(self, group_id: str, user_ids: list[str]):
         url = "https://slack.com/api/conversations.invite"
         r = requests.post(
             url,
@@ -62,7 +62,7 @@ class SlackClient(ChatClient):
         if not json["ok"]:
             raise self.ChatBackendError(json["error"])
 
-    def _leave_group(self, group_id):
+    def _leave_group(self, group_id: str):
         url = "https://slack.com/api/conversations.leave"
         r = requests.get(
             url,
@@ -73,7 +73,7 @@ class SlackClient(ChatClient):
         if not json["ok"]:
             raise self.ChatBackendError(json["error"])
 
-    def _set_group_topic(self, group_id, topic):
+    def _set_group_topic(self, group_id: str, topic: str):
         url = "https://slack.com/api/conversations.setTopic"
         r = requests.post(
             url,
@@ -199,7 +199,7 @@ class SlackClient(ChatClient):
             logger.exception("Could not invite %s to channel" % ",".join(user_ids))
             sleep(settings.SLEEP_UNIT)
         try:
-            self._invite_to_group(group.id, settings.SLACK_LISTENING_BOT_ID)
+            self._invite_to_group(group.id, [settings.SLACK_LISTENING_BOT_ID])
             sleep(settings.SLEEP_UNIT)
         except self.ChatBackendError:
             logger.exception(
