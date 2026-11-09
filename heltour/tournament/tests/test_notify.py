@@ -617,21 +617,31 @@ class OtherNotifications(TestCase):
         send_pairing_notification(
             type_="round_started",
             pairing=self.tpp1,
-            im_msg="im msg",
-            mp_msg="mp msg",
-            li_subject="li_subject",
-            li_msg="li_msg",
+            im_msg="im msg for {league}, {season}, {round}: <@{white}> vs <@{black}>",
+            mp_msg="mp msg for {league}, {season}, {round}: <@{white}> vs <@{black}>",
+            li_subject="{league}, {season}, {round}",
+            li_msg="li_msg for {league}, {season}, {round}: @{white} vs @{black}",
         )
         mmu.assert_called_once_with(
             league=self.l,
             usernames=[self.p1_lower, self.p3_lower],
-            text="mp msg",
+            text="mp msg for Team League, Test Season, 1: <@player1> vs <@player3>",
             userids=["", ""],
         )
         lm.assert_has_calls(
             [
-                call(self.l, self.p1_lower, "li_subject", "li_msg"),
-                call(self.l, self.p3_lower, "li_subject", "li_msg"),
+                call(
+                    self.l,
+                    self.p1_lower,
+                    "Team League, Test Season, 1",
+                    "li_msg for Team League, Test Season, 1: @player1 vs @player3",
+                ),
+                call(
+                    self.l,
+                    self.p3_lower,
+                    "Team League, Test Season, 1",
+                    "li_msg for Team League, Test Season, 1: @player1 vs @player3",
+                ),
             ],
             any_order=True,
         )

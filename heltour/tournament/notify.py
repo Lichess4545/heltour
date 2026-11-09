@@ -659,9 +659,9 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
     send_to_black = player is None or player == pairing.black
 
     common_params = {
-        "white": userlink_silent(white),
+        "white": white,
         'white_tz': pairing.white.timezone_str,
-        "black": userlink_silent(black),
+        "black": black,
         'black_tz': pairing.black.timezone_str,
         'round': round_.number,
         'season': season.name,
@@ -673,15 +673,15 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
         'scheduling_channel_link': scheduling.channel_link() if scheduling is not None else '#scheduling'
     }
     white_params = {
-        "self": userlink_silent(white),
-        "opponent": userlink_silent(black),
+        "self": white,
+        "opponent": black,
         'color': 'white',
         'slack_url': dm_link(usernames=[black], userids=[black_id], add_bot=use_mpim),
     }
     white_params.update(common_params)
     black_params = {
-        "self": userlink_silent(black),
-        "opponent": userlink_silent(white),
+        "self": black,
+        "opponent": white,
         'color': 'black',
         "slack_url": dm_link(usernames=[white], userids=[white_id], add_bot=use_mpim),
     }
