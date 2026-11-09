@@ -3,6 +3,7 @@ from typing import Any
 from django.test import TestCase
 
 from heltour.tournament.models import ApiKey
+from heltour.tournament.tests.testutils import Shush
 
 
 class ApiV2TestCase(TestCase):
@@ -22,3 +23,10 @@ class ApiV2TestCase(TestCase):
         response = self.client.get(path, query, headers=self.authorization())
         self.assertEqual(response.status_code, 200)
         return response.json()
+
+
+class ShushedApiV2TestCase(ApiV2TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.enterClassContext(Shush())

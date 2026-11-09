@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
-from heltour.api_v2.tests.testutils import ApiV2TestCase
+from heltour.api_v2.tests.testutils import ApiV2TestCase, ShushedApiV2TestCase
 from heltour.tournament.models import League, Round, Season
 
 
-class LeaguesTestCase(ApiV2TestCase):
+class LeaguesFixture(ApiV2TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         super().setUpTestData()
@@ -41,6 +41,8 @@ class LeaguesTestCase(ApiV2TestCase):
             is_active=False,
         )
 
+
+class LeaguesTestCase(LeaguesFixture):
     def _tags(self, **query: str) -> list[str]:
         leagues = self.get_json("/api/v2/leagues/", **query)["leagues"]
         return [league["tag"] for league in leagues]
@@ -95,11 +97,13 @@ class LeaguesTestCase(ApiV2TestCase):
     def test_when_active_is_false_only_inactive_leagues_are_listed(self) -> None:
         self.assertEqual(self._tags(active="false"), ["inactive"])
 
+
+class LeaguesErrorTestCase(ShushedApiV2TestCase, LeaguesFixture):
     def test_when_active_is_not_a_boolean_the_request_is_bad(self) -> None:
         self.assertEqual(self.status_of("/api/v2/leagues/", active="maybe"), 400)
 
 
-class LeagueTestCase(ApiV2TestCase):
+class LeagueFixture(ApiV2TestCase):
     league: League
     older: Season
     newer: Season
@@ -134,6 +138,8 @@ class LeagueTestCase(ApiV2TestCase):
             publish_pairings=True, is_completed=True
         )
 
+
+class LeagueTestCase(LeagueFixture):
     def _round(self, season: Season, number: int) -> Round:
         return Round.objects.get(season=season, number=number)
 
@@ -199,5 +205,7 @@ class LeagueTestCase(ApiV2TestCase):
         self.assertTrue(all("startsAt" not in round_ for round_ in rounds))
         self.assertTrue(all("endsAt" not in round_ for round_ in rounds))
 
+
+class LeagueErrorTestCase(ShushedApiV2TestCase, LeagueFixture):
     def test_when_the_tag_is_unknown_the_league_is_not_found(self) -> None:
         self.assertEqual(self.status_of("/api/v2/leagues/unknown/"), 404)
