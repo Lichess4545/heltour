@@ -100,7 +100,7 @@ class RegistrationForm(forms.ModelForm):
             forms.TypedChoiceField(
                 required=True,
                 label=_(gdpr.AGREED_TO_TOS_LABEL),
-                help_text=_(gdpr.AGREED_TO_TOS_HELP_TEXT),
+                help_text=_(gdpr.agreed_to_tos_help_text()),
                 choices=YES_NO_OPTIONS,
                 widget=forms.RadioSelect,
                 coerce=lambda x: x == 'True'

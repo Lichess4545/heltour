@@ -432,14 +432,17 @@ def alternate_assigned(season, alt_assignment, **kwargs):
     _send_notification('captains', league, message)
 
 
-_pairing_text_tz = (
-    f'{userlink_silent("{white}")} ({italic("white pieces")}, {{white_tz}}) vs '
-    f'{userlink_silent("{black}")} ({italic("black pieces")}, {{black_tz}})\n'
-)
-_pairing_text = (
-    f'{userlink_silent("{white}")} ({italic("white pieces")}) vs '
-    f'{userlink_silent("{black}")} ({italic("black pieces")})\n'
-)
+def _pairing_text_tz() -> str:
+    return(
+        f'{userlink_silent("{white}")} ({italic("white pieces")}, {{white_tz}}) vs '
+        f'{userlink_silent("{black}")} ({italic("black pieces")}, {{black_tz}})\n'
+    )
+
+def _pairing_text() -> str:
+    return(
+        f'{userlink_silent("{white}")} ({italic("white pieces")}) vs '
+        f'{userlink_silent("{black}")} ({italic("black pieces")})\n'
+    )
 
 
 def _notify_alternate_and_opponent(league, aa):
@@ -543,12 +546,12 @@ def _notify_alternate_and_opponent(league, aa):
 
     # Send configured notifications
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}, as soon as possible.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + 'Message your opponent here as soon as possible.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
@@ -722,13 +725,13 @@ def send_pairing_notification(type_, pairing, im_msg, mp_msg, li_subject, li_msg
 @receiver(signals.notify_players_round_start, dispatch_uid='heltour.tournament.notify')
 def notify_players_round_start(round_, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}' \
              + ', within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + 'Message your opponent here within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
@@ -764,13 +767,13 @@ def notify_players_round_start(round_, **kwargs):
 @receiver(signals.notify_players_late_pairing, dispatch_uid='heltour.tournament.notify')
 def notify_players_late_pairing(round_, pairing, **kwargs):
     im_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + f'Send a direct message to your opponent, {userlink_silent("{opponent}")}, ' \
              + 'within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
     mp_msg = 'You have been paired for Round {round} in {season}.\n' \
-             + _pairing_text_tz \
+             + _pairing_text_tz() \
              + 'Message your opponent here within {contact_period}.\n' \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.'
 
@@ -831,11 +834,11 @@ def notify_players_game_scheduled(round_, pairing, **kwargs):
 @receiver(signals.notify_players_game_time, dispatch_uid='heltour.tournament.notify')
 def notify_players_game_time(pairing, **kwargs):
     im_msg = 'Your game is about to start.\n' \
-             + _pairing_text \
+             + _pairing_text() \
              + f'Send a {link(url="https://lichess.org/?user={opponent}#friend", text="lichess challenge")} for a rated {{time_control}} game as {{color}}.'
 
     mp_msg = 'Your game is about to start.\n' \
-             + _pairing_text \
+             + _pairing_text() \
              + 'Send a lichess challenge for a rated {time_control} game.'
 
     li_subject = 'Round {round} - {league}'
@@ -864,7 +867,7 @@ def notify_players_game_started(*, pairing, do_clockstart, clockstart_in, gameid
 @receiver(signals.before_game_time, dispatch_uid='heltour.tournament.notify')
 def before_game_time(player, pairing, offset, **kwargs):
     im_msg = 'Reminder: Your game will start in {offset}.\n' \
-             + _pairing_text
+             + _pairing_text()
 
     mp_msg = 'Reminder: Your game will start in {offset}.'
 
@@ -880,7 +883,7 @@ def before_game_time(player, pairing, offset, **kwargs):
 @receiver(signals.notify_players_unscheduled, dispatch_uid='heltour.tournament.notify')
 def notify_players_unscheduled(round_, **kwargs):
     im_msg = 'Reminder: Your game is currently unscheduled.\n' \
-             + _pairing_text \
+             + _pairing_text() \
              + 'When you have agreed on a time, post it in {scheduling_channel_link}.\n' \
              + 'If you have any issues, please contact a mod.'
 
