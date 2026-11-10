@@ -1,6 +1,3 @@
-from __future__ import annotations
-# ^ for annotating unions with | syntax, can be removed once we upgrade to python 3.10+
-
 import json
 import re
 import sys
@@ -9,10 +6,8 @@ import time
 import traceback
 import urllib.parse
 from datetime import datetime, timedelta
-from typing import Dict, List
 
 import reversion
-
 from django.core.cache import cache
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
@@ -42,7 +37,7 @@ from heltour.tournament.chatbackend import (
     link,
     ping_mods,
     send_control_message,
-    userlink_silent
+    userlink_silent,
 )
 from heltour.tournament.models import (
     Alternate,
@@ -73,7 +68,7 @@ from heltour.tournament.workflows import RoundTransitionWorkflow
 # see https://lichess.org/api#tag/Broadcasts/operation/broadcastRoundUpdate for game ids
 MAX_GAMES_LICHESS_BROADCAST: int = 100
 
-UsernamesQuerySet = ValuesQuerySet[Player, Dict[str, str]]
+UsernamesQuerySet = ValuesQuerySet[Player, dict[str, str]]
 
 
 def to_usernames(users: UsernamesQuerySet) -> list[str]:

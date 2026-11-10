@@ -1,5 +1,3 @@
-from __future__ import annotations
-# ^ needed here until we use python 3.10 for typing str|None
 import time
 from datetime import timedelta
 
