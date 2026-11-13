@@ -139,6 +139,8 @@ class UnderscoreFunctions(TestCase):
         self.assertEqual(_offset_str(timedelta(hours=3, minutes=5)), "185 minutes")
 
 
+@patch("heltour.tournament.notify.link", return_value="linktext")
+@patch("heltour.tournament.notify.userlink_silent", return_value="@silent")
 @patch("heltour.tournament.notify._send_notification", autospec=True)
 class RegistrationsTestCase(TestCase):
     @classmethod
@@ -162,17 +164,13 @@ class RegistrationsTestCase(TestCase):
         ):
             cls.reg = create_reg(season=cls.s, name=cls.player_str)
 
-        url_review = abs_url(reverse("admin:review_registration", args=[cls.reg.pk]))
-        url_regs = abs_url(reverse("admin:tournament_registration_changelist"))
-        cls.message_str = (
-            f"<@{cls.player_str}> (0) has <"
-            f"{url_review}?_changelist_filters=status__exact%3Dpending"
-            f"%26season__id__exact%3D{cls.s.pk}|registered>"
-            f" for {cls.l.name}. "
-            f"<{url_regs}?status__exact=pending&season__id__exact={cls.s.pk}|1 pending>"
-        )
+        cls.url_review = abs_url(reverse("admin:review_registration", args=[cls.reg.pk]))
+        cls.url_regs = abs_url(reverse("admin:tournament_registration_changelist"))
+        cls.message_str = f"@silent (0) has linktext for {cls.l.name}. linktext"
+        cls.pending_url = f"{cls.url_regs}?status__exact=pending&season__id__exact={cls.s.pk}"
+        cls.registered_url = f"{cls.url_review}?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D{cls.s.pk}"
 
-    def test_registration_saved_preseason(self, sn):
+    def test_registration_saved_preseason(self, sn, ul_s, link):
         self.s.start_date = timezone.now() + timedelta(hours=5)
         registration_saved(instance=self.reg, created=True)
         sn.assert_not_called()
@@ -180,29 +178,67 @@ class RegistrationsTestCase(TestCase):
         setting.notify_for_pre_season_registrations = True
         setting.save()
         registration_saved(instance=self.reg, created=True)
+        ul_s.assert_has_calls([call(self.player_str), call(self.player_str)])
+        link.assert_has_calls(
+            [
+                call(
+                    text="registered",
+                    url=self.registered_url,
+                ),
+                call(
+                    text="1 pending",
+                    url=self.pending_url,
+                ),
+                call(
+                    text="registered",
+                    url=self.registered_url,
+                ),
+                call(
+                    text="1 pending",
+                    url=self.pending_url,
+                ),
+            ]
+        )
         sn.assert_called_once_with(
             "mod",
             self.l,
             self.message_str,
         )
 
-    def test_registration_saved(self, sn):
+    def test_registration_saved(self, sn, ul_s, link):
         registration_saved(instance=self.reg, created=True)
+        ul_s.assert_has_calls([call(self.player_str)])
+        link.assert_has_calls(
+            [
+                call(
+                    text="registered",
+                    url=self.registered_url,
+                ),
+                call(
+                    text="1 pending",
+                    url=self.pending_url,
+                ),
+            ]
+        )
         sn.assert_called_once_with(
             "mod",
             self.l,
             self.message_str,
         )
 
-    def test_notify_mods_pending_regs(self, sn):
+    def test_notify_mods_pending_regs(self, sn, ul_s, link):
         r = get_round(league_type="lone", round_number=1)
         notify_mods_pending_regs(round_=r)
         url = abs_url(reverse("admin:tournament_registration_changelist"))
+
+        link.called_once_with(
+            f"<{url}?status__exact=pending&season__id__exact="
+            f"{r.season.pk}|1 pending registrations>"
+        )
         sn.assert_called_once_with(
             "mod",
             self.l,
-            f"<{url}?status__exact=pending&season__id__exact="
-            f"{r.season.pk}|1 pending registrations>",
+            "linktext"
         )
 
 

@@ -24,16 +24,20 @@ from heltour.tournament.chatbackend import (
     userlink_ping,
     userlink_silent,
 )
-from heltour.tournament.slackapi import SlackGroup, SlackUser
+from heltour.tournament.slackapi import SlackClient, SlackGroup, SlackUser
 from heltour.tournament.tests.testutils import Shush, createCommonLeagueData, get_team
 
 
-@override_settings(USE_CHATBACKEND="slack", SLACK_API_TOKEN="pretend-token")
+#@override_settings(USE_CHATBACKEND="slack", SLACK_API_TOKEN="pretend-token")
+@patch(
+    "heltour.tournament.chatbackend.notifier",
+    return_value=SlackClient(api_token="pretend_token"),
+)
 class SlackFormatTestCase(SimpleTestCase):
-    def test_bold(self):
+    def test_bold(self, sc):
         self.assertEqual(bold("some text"), "*some text*")
 
-    def test_channellink(self):
+    def test_channellink(self, sc):
         self.assertEqual(
             channellink(
                 channelprefix="#",
@@ -49,16 +53,16 @@ class SlackFormatTestCase(SimpleTestCase):
         )
         self.assertEqual(channellink(channel="testchannel"), "#testchannel")
 
-    def test_chatbackend_str(self):
+    def test_chatbackend_str(self, sc):
         self.assertEqual(chatbackend(), "Slack")
 
-    def test_chatbackend_render(self):
+    def test_chatbackend_render(self, sc):
         self.assertTrue(chatbackend_render())
 
-    def test_chatbackend_url(self):
+    def test_chatbackend_url(self, sc):
         self.assertEqual(chatbackend_url(), "https://lichess4545.slack.com")
 
-    def test_dm_link(self):
+    def test_dm_link(self, sc):
         self.assertEqual(
             dm_link(
                 usernames=["glbert", "lakinwecker"],
@@ -76,22 +80,22 @@ class SlackFormatTestCase(SimpleTestCase):
             "https://lichess4545.slack.com/messages/@glbert,@lakinwecker,@chesster/",
         )
 
-    def test_inlinecode(self):
+    def test_inlinecode(self, sc):
         self.assertEqual(inlinecode("some text"), "`some text`")
 
-    def test_link(self):
+    def test_link(self, sc):
         self.assertEqual(
             link(text="Lichess4545", url="https://lichess4545.com"),
             "<https://lichess4545.com|Lichess4545>",
         )
 
-    def test_ping_mods(self):
+    def test_ping_mods(self, sc):
         self.assertEqual(ping_mods(), "@chesster summon mods")
 
-    def test_userlink_ping(self):
+    def test_userlink_ping(self, sc):
         self.assertEqual(userlink_ping("Tranzoo"), "<@Tranzoo>")
 
-    def test_userlink_silent(self):
+    def test_userlink_silent(self, sc):
         self.assertEqual(userlink_silent("lakinwecker"), "<@lakinwecker>")
 
     @patch(
@@ -99,7 +103,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="someurl",
     )
     @patch("requests.post")
-    def test_channel_message(self, post, webhook):
+    def test_channel_message(self, post, webhook, sc):
         post.return_value.text = "ok"
         with Shush():
             channel_message(channel="testchannel", text="testing")
@@ -116,7 +120,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="someurl",
     )
     @patch("requests.post")
-    def test_control_message(self, post, webhook):
+    def test_control_message(self, post, webhook, sc):
         post.return_value.text = "ok"
         with Shush():
             send_control_message(text="testing control messages")
@@ -127,7 +131,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="someurl",
     )
     @patch("requests.post")
-    def test_direct_user_message(self, post, webhook):
+    def test_direct_user_message(self, post, webhook, sc):
         with Shush():
             direct_user_message(
                 username="lakinwecker", userid="0001", text="testing direct messages"
@@ -145,7 +149,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="someurl",
     )
     @patch("requests.post")
-    def test_multiple_user_message(self, post, webhook):
+    def test_multiple_user_message(self, post, webhook, sc):
         with Shush():
             multiple_user_message(
                 usernames=["lakinwecker", "chesster"],
@@ -165,7 +169,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="faketoken",
     )
     @patch("requests.get")
-    def test_get_user(self, get, token):
+    def test_get_user(self, get, token, sc):
         get.return_value.json.return_value = {
             "ok": True,
             "user": {
@@ -202,7 +206,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="faketoken",
     )
     @patch("requests.get")
-    def test_get_user_list(self, get, token):
+    def test_get_user_list(self, get, token, sc):
         get.return_value.json.return_value = {
             "ok": True,
             "members": [
@@ -261,7 +265,7 @@ class SlackFormatTestCase(SimpleTestCase):
         return_value="faketoken",
     )
     @patch("requests.get")
-    def test_inivite_user(self, get, token):
+    def test_inivite_user(self, get, token, sc):
         get.return_value.json.return_value = {
             "ok": True,
         }
@@ -274,6 +278,10 @@ class SlackFormatTestCase(SimpleTestCase):
 
 
 @override_settings(USE_CHATBACKEND="slack", SLACK_API_TOKEN="pretend-token")
+@patch(
+    "heltour.tournament.chatbackend.notifier",
+    return_value=SlackClient(api_token="pretend-token"),
+)
 class TeamChannelCreation(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -299,6 +307,7 @@ class TeamChannelCreation(TestCase):
         set_group_topic,
         invite_to_group,
         create_group,
+        sc,
     ):
         cb_create_team_channel(
             team=self.t,
