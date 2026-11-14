@@ -88,17 +88,13 @@ class UnderscoreFunctions(TestCase):
         atm = "another test message"
         result = _send_notification(notification_type="mod", league=self.l, text=tm)
         self.assertEqual(result, None)
-        sm.assert_called_once_with(
-            ANY, "#test_mods", tm, "(no topic)"
-        )
+        sm.assert_called_once_with(ANY, "#test_mods", tm, "(no topic)")
         sm.reset_mock()
         result_c = _send_notification(
             notification_type="captains", league=self.l, text=atm
         )
         self.assertEqual(result_c, None)
-        sm.assert_called_once_with(
-            ANY, "#test_captains", atm, "(no topic)"
-        )
+        sm.assert_called_once_with(ANY, "#test_captains", atm, "(no topic)")
 
     def test_message_user(self, sm):
         tm = "hello, how are you"
@@ -164,10 +160,14 @@ class RegistrationsTestCase(TestCase):
         ):
             cls.reg = create_reg(season=cls.s, name=cls.player_str)
 
-        cls.url_review = abs_url(reverse("admin:review_registration", args=[cls.reg.pk]))
+        cls.url_review = abs_url(
+            reverse("admin:review_registration", args=[cls.reg.pk])
+        )
         cls.url_regs = abs_url(reverse("admin:tournament_registration_changelist"))
         cls.message_str = f"@silent (0) has linktext for {cls.l.name}. linktext"
-        cls.pending_url = f"{cls.url_regs}?status__exact=pending&season__id__exact={cls.s.pk}"
+        cls.pending_url = (
+            f"{cls.url_regs}?status__exact=pending&season__id__exact={cls.s.pk}"
+        )
         cls.registered_url = f"{cls.url_review}?_changelist_filters=status__exact%3Dpending%26season__id__exact%3D{cls.s.pk}"
 
     def test_registration_saved_preseason(self, sn, ul_s, link):
@@ -231,18 +231,17 @@ class RegistrationsTestCase(TestCase):
         notify_mods_pending_regs(round_=r)
         url = abs_url(reverse("admin:tournament_registration_changelist"))
 
-        link.called_once_with(
+        link.assert_called_once_with(
             f"<{url}?status__exact=pending&season__id__exact="
             f"{r.season.pk}|1 pending registrations>"
         )
-        sn.assert_called_once_with(
-            "mod",
-            self.l,
-            "linktext"
-        )
+        sn.assert_called_once_with("mod", self.l, "linktext")
 
 
-@patch("heltour.tournament.notify.userlink_silent", return_value="@silent")
+@patch("heltour.tournament.notify.link", return_value="link", autospec=True)
+@patch(
+    "heltour.tournament.notify.userlink_silent", return_value="@silent", autospec=True
+)
 @patch("heltour.tournament.notify._send_notification", autospec=True)
 class ModNotifications(TestCase):
     @classmethod
@@ -256,45 +255,56 @@ class ModNotifications(TestCase):
         cls.p_lower = cls.p.lichess_username.lower()
         cls.p3_lower = cls.p3.lichess_username.lower()
         cls.p4_lower = cls.p4.lichess_username.lower()
-        cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
-        cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
-        cls.pp = LonePlayerPairing.objects.create(
-            white=cls.p, black=cls.p2, result="1F-0X", pairing_order=1, round=cls.r
-        )
+        with (
+            patch("heltour.tournament.notify.userlink_silent"),
+            patch("heltour.tournament.notify.link"),
+        ):
+            cls.reg = PlayerLateRegistration.objects.create(round=cls.r, player=cls.p)
+            cls.withdrawal = PlayerWithdrawal.objects.create(round=cls.r, player=cls.p)
+            cls.pp = LonePlayerPairing.objects.create(
+                white=cls.p, black=cls.p2, result="1F-0X", pairing_order=1, round=cls.r
+            )
         cls.pp2 = LonePlayerPairing.objects.create(
             white=cls.p3, black=cls.p4, pairing_order=2, round=cls.r
         )
 
-    def test_latereg_saved(self, sn, ul_s):
+    def test_latereg_saved(self, sn, ul_s, link):
         latereg_saved(instance=self.reg, created=True)
         url = abs_url(reverse("admin:manage_players", args=[self.r.season.pk]))
-        ul_s.called_once_with(self.p.lichess_username.lower())
+        ul_s.assert_called_once_with(self.p.lichess_username.lower())
+        link.assert_called_once_with(text="added", url=url)
         sn.assert_called_once_with(
             "mod",
             self.reg.round.season.league,
-            f"@silent <{url}|added> for round {self.r.number}",
+            f"@silent link for round {self.r.number}",
         )
 
-    def test_withdrawal(self, sn, ul_s):
+    def test_withdrawal(self, sn, ul_s, link):
         withdrawal_saved(instance=self.withdrawal, created=True)
         url = abs_url(reverse("admin:manage_players", args=[self.r.season.pk]))
-        ul_s.called_once_with(self.p.lichess_username.lower())
+        ul_s.assert_called_once_with(self.p.lichess_username.lower())
+        link.assert_called_once_with(text="withdrawn", url=url)
         sn.assert_called_once_with(
             "mod",
             self.withdrawal.round.season.league,
-            f"@silent <{url}|withdrawn> for round {self.r.number}",
+            f"@silent link for round {self.r.number}",
         )
 
-    def test_pairing_forfeit_changed(self, sn, ul_s):
+    def test_pairing_forfeit_changed(self, sn, ul_s, link):
         pairing_forfeit_changed(instance=self.pp)
-        ul_s.has_calls([call(self.p.lichess_username.lower()), call(self.p.lichess_username.lower())])
+        ul_s.assert_has_calls(
+            [
+                call(self.p.lichess_username.lower()),
+                call(self.p2.lichess_username.lower()),
+            ]
+        )
         sn.assert_called_with(
             "mod",
             self.pp.round.season.league,
             "@silent vs @silent 1F-0X",
         )
 
-    def test_player_account_status_changed(self, sn, ul_s):
+    def test_player_account_status_changed(self, sn, ul_s, link):
         player_account_status_changed(
             instance=self.p, old_value="normal", new_value="closed"
         )
@@ -304,50 +314,60 @@ class ModNotifications(TestCase):
                 args=[self.r.season.league.tag, self.p.lichess_username],
             )
         )
-        ul_s.called_once_with(self.p.lichess_username.lower())
+        link.assert_has_calls(
+            [
+                call(
+                    url=f"https://lichess.org/@/{self.p.lichess_username}",
+                    text="lichess",
+                ),
+                call(url=url, text="Player profile"),
+            ],
+        )
+        ul_s.assert_called_once_with(self.p.lichess_username.lower())
         sn.assert_called_once_with(
-            "mod",
-            self.r.season.league,
-            "@silent marked as closed on "
-            f"<https://lichess.org/@/{self.p.lichess_username}|lichess>. "
-            f"<{url}|Player profile>",
+            "mod", self.r.season.league, "@silent marked as closed on link. link"
         )
         sn.reset_mock()
         ul_s.reset_mock()
+        link.reset_mock()
         player_account_status_changed(
             instance=self.p, old_value="closed", new_value="normal"
         )
-        ul_s.called_once_with(self.p_lower)
+        ul_s.assert_called_once_with(self.p_lower)
+        link.assert_has_calls(
+            [
+                call(
+                    url=f"https://lichess.org/@/{self.p.lichess_username}",
+                    text="lichess",
+                ),
+                call(url=url, text="Player profile"),
+            ]
+        )
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            "@silent "
-            f"<https://lichess.org/@/{self.p.lichess_username}|lichess> account"
-            " status changed from closed to normal. "
-            f"<{url}|Player profile>",
+            "@silent link account status changed from closed to normal. link",
         )
 
-    def test_notify_mods_unscheduled(self, sn, ul_s):
+    def test_notify_mods_unscheduled(self, sn, ul_s, link):
         notify_mods_unscheduled(round_=self.r)
-        ul_s.has_calls([call(self.p3_lower), call(self.p4_lower)])
+        ul_s.assert_has_calls([call(self.p3_lower), call(self.p4_lower)])
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"{self.r} - The following games are "
-            "unscheduled: @silent vs @silent",
+            f"{self.r} - The following games are unscheduled: @silent vs @silent",
         )
 
-    def test_notify_mods_missing_result(self, sn, ul_s):
+    def test_notify_mods_missing_result(self, sn, ul_s, link):
         notify_mods_no_result(round_=self.r)
-        ul_s.has_calls([call(self.p3_lower), call(self.p4_lower)])
+        ul_s.assert_has_calls([call(self.p3_lower), call(self.p4_lower)])
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"{self.r} - The following games are "
-            f"missing results: @silent vs @silent",
+            f"{self.r} - The following games are missing results: @silent vs @silent",
         )
 
-    def test_notify_mods_pairings_published(self, sn, ul_s):
+    def test_notify_mods_pairings_published(self, sn, ul_s, link):
         notify_mods_pairings_published(round_=self.r)
         sn.assert_called_once_with(
             "mod",
@@ -355,7 +375,7 @@ class ModNotifications(TestCase):
             f"{self.r} pairings published.",
         )
 
-    def test_notify_mods_round_start_done(self, sn, ul_s):
+    def test_notify_mods_round_start_done(self, sn, ul_s, link):
         notify_mods_round_start_done(round_=self.r)
         sn.assert_called_once_with(
             "mod",
@@ -363,16 +383,17 @@ class ModNotifications(TestCase):
             f"{self.r} notifications sent.",
         )
 
-    def test_pairings_generated(self, sn, ul_s):
+    def test_pairings_generated(self, sn, ul_s, link):
         pairings_generated(round_=self.r)
         url = abs_url(reverse("admin:review_pairings", args=[self.r.pk]))
+        link.assert_called_once_with(text="Review", url=url)
         sn.assert_called_once_with(
             "mod",
             self.r.season.league,
-            f"Pairings generated for round {self.r.number}. <{url}|Review>",
+            f"Pairings generated for round {self.r.number}. link",
         )
 
-    def test_starting_round_transition(self, sn, ul_s):
+    def test_starting_round_transition(self, sn, ul_s, link):
         starting_round_transition(
             season=self.r.season, msg_list=[("blah", None), ("bosh", None)]
         )
@@ -792,7 +813,6 @@ class OtherNotifications(TestCase):
             "",
             "",
         )
-
 
 
 class PairingNotificationsTestCase(TestCase):
