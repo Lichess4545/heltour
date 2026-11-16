@@ -68,7 +68,6 @@ from heltour.tournament.tests.testutils import (
 )
 
 
-@patch("heltour.tournament.slackapi.SlackClient.channel_message", autospec=True)
 class UnderscoreFunctions(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -83,60 +82,65 @@ class UnderscoreFunctions(TestCase):
             league=cls.l, type="captains", slack_channel="#test_captains"
         )
 
+    @patch("heltour.tournament.notify.channel_message", autospec=True)
     def test_send_notification(self, sm):
         tm = "test message"
         atm = "another test message"
         result = _send_notification(notification_type="mod", league=self.l, text=tm)
         self.assertEqual(result, None)
-        sm.assert_called_once_with(ANY, "#test_mods", tm, "(no topic)")
+        sm.assert_called_once_with(channel="#test_mods", text=tm)
         sm.reset_mock()
         result_c = _send_notification(
             notification_type="captains", league=self.l, text=atm
         )
         self.assertEqual(result_c, None)
-        sm.assert_called_once_with(ANY, "#test_captains", atm, "(no topic)")
+        sm.assert_called_once_with(channel="#test_captains", text=atm)
 
+    @patch("heltour.tournament.notify.direct_user_message", autospec=True)
     def test_message_user(self, sm):
         tm = "hello, how are you"
         atm = "you want to play against @random_user?"
         result = _message_user(league=self.l, username="glbert", text=tm)
         self.assertEqual(result, None)
-        sm.assert_called_once_with(ANY, "@glbert", text=tm)
+        sm.assert_called_once_with(username="glbert", text=tm, userid=0)
         sm.reset_mock()
         result = _message_user(league=self.l, username="blah_$_blah", text=atm)
-        sm.assert_called_once_with(ANY, "@blah_$_blah", text=atm)
+        sm.assert_called_once_with(username="blah_$_blah", text=atm, userid=0)
 
+    @patch("heltour.tournament.notify.multiple_user_message", autospec=True)
     def test_message_multiple_users(self, sm):
         tm = "you people should schedule your games! #scheduling"
+        users = ["glbert", "test_user", "lakinwecker", "chesster"]
         result = _message_multiple_users(
             league=self.l,
-            usernames=["glbert", "test_user", "lakinwecker", "chesster"],
+            usernames= users,
             text=tm,
         )
         self.assertEqual(result, None)
-        sm.assert_called_once_with(ANY, "@glbert+@test_user+@lakinwecker+@chesster", tm)
+        sm.assert_called_once_with(usernames=users, text=tm, userids=[0])
 
     @patch("heltour.tournament.lichessapi.send_mail")
-    def test_lichess_message(self, lichessapi_sm, slack_sm):
+    def test_lichess_message(self, lichessapi_sm):
         tm = "your game is starting soon."
         result = _lichess_message(
             league=self.l, username="Lichess4545", subject="test", text=tm
         )
         self.assertEqual(result, None)
-        slack_sm.assert_not_called()
         lichessapi_sm.assert_called_once_with(
             "Lichess4545", "test", "your game is starting soon."
         )
 
-    def test_offset_str(self, sm):
+    def test_offset_str(self):
         self.assertEqual(_offset_str(None), "?")
         self.assertEqual(_offset_str(timedelta(hours=1)), "1 hour")
         self.assertEqual(_offset_str(timedelta(hours=3)), "3 hours")
         self.assertEqual(_offset_str(timedelta(hours=3, minutes=5)), "185 minutes")
 
 
-@patch("heltour.tournament.notify.link", return_value="linktext")
-@patch("heltour.tournament.notify.userlink_silent", return_value="@silent")
+@patch("heltour.tournament.notify.link", return_value="linktext", autospec=True)
+@patch(
+    "heltour.tournament.notify.userlink_silent", return_value="@silent", autospec=True
+)
 @patch("heltour.tournament.notify._send_notification", autospec=True)
 class RegistrationsTestCase(TestCase):
     @classmethod
@@ -232,8 +236,8 @@ class RegistrationsTestCase(TestCase):
         url = abs_url(reverse("admin:tournament_registration_changelist"))
 
         link.assert_called_once_with(
-            f"<{url}?status__exact=pending&season__id__exact="
-            f"{r.season.pk}|1 pending registrations>"
+            url=f"{url}?status__exact=pending&season__id__exact={r.season.pk}",
+            text="1 pending registrations",
         )
         sn.assert_called_once_with("mod", self.l, "linktext")
 
@@ -458,26 +462,37 @@ class OtherNotifications(TestCase):
         cls.alt = Alternate.objects.create(season_player=spb, board_number=1)
         cls.im_msg = (
             "You have been paired for Round {round} in {season}.\n"
-            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
-            "Send a direct message to your opponent, <@{opponent}>, within {contact_period}.\n"
-            "When you have agreed on a time, post it in {scheduling_channel_link}."
+            "silent_ul (*italic*, {white_tz}) vs silent_ul (*italic*, {black_tz})\n"
+            "Send a direct message to your opponent, silent_ul, within {contact_period}."
+            "\nWhen you have agreed on a time, post it in {scheduling_channel_link}."
         )
         cls.mp_msg = (
             "You have been paired for Round {round} in {season}.\n"
-            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "silent_ul (*italic*, {white_tz}) vs silent_ul (*italic*, {black_tz})\n"
             "Message your opponent here within {contact_period}.\n"
             "When you have agreed on a time, post it in {scheduling_channel_link}."
         )
         cls.li_subject = "Round {round} - {league}"
         cls.li_msg = (
             "You have been paired for Round {round} in {season}.\n"
-            "@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})\n"
-            "Message your opponent on Slack within {contact_period}.\n"
+            "@{white} (white pieces, {white_tz}) vs @{black} (black pieces, {black_tz})"
+            "\nMessage your opponent on Slack within {contact_period}.\n"
             "{slack_url}\n"
             "When you have agreed on a time, post it in {scheduling_channel}."
         )
 
-    def test_alternate_search_started(self, sn, mu):
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch(
+        "heltour.tournament.notify.userlink_ping",
+        autspec=True,
+        return_value="ping_ul",
+    )
+    @patch("heltour.tournament.notify.link", autospec=True, return_value="link")
+    def test_alternate_search_started(self, link, ul_p, ul_s, sn, mu):
         alternate_search_started(
             season=self.r.season, team=self.team1, board_number=1, round_=self.r
         )
@@ -492,17 +507,17 @@ class OtherNotifications(TestCase):
                 call(
                     self.l,
                     self.p1_lower,
-                    f"<@{self.p1_lower}>: I am searching for an "
+                    "silent_ul: I am searching for an "
                     f"alternate to replace you for round {self.r.number}, since "
                     "you have been marked as unavailable. To stop the search and"
-                    f" set yourself available again, <{url}|click here>.",
+                    f" set yourself available again, link.",
                     "",
                 ),
                 call(
                     self.l,
                     self.p3_lower,
-                    f"<@{self.p3_lower}>: Your opponent, "
-                    f"<@{self.p1_lower}>, has been marked as "
+                    "silent_ul: Your opponent, "
+                    "silent_ul, has been marked as "
                     "unavailable. I am searching for an alternate for you to "
                     "play, please be patient.",
                     "",
@@ -513,12 +528,22 @@ class OtherNotifications(TestCase):
         sn.assert_called_once_with(
             "captains",
             self.l,
-            f"{self.cap_ping}I have started searching for an alternate for "
-            f'<@{self.p1_lower}> on board 1 of "{self.team1.name}" in '
+            "ping_ul, ping_ul: I have started searching for an alternate for "
+            f'silent_ul on board 1 of "{self.team1.name}" in '
             f"round {self.r.number}.",
         )
 
-    def test_alternate_search_reminder(self, sn, mu):
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch(
+        "heltour.tournament.notify.userlink_ping",
+        autspec=True,
+        return_value="ping_ul",
+    )
+    def test_alternate_search_reminder(self, ul_p, ul_s, sn, mu):
         alternate_search_reminder(
             season=self.r.season, team=self.team1, board_number=1, round_=self.r
         )
@@ -526,7 +551,7 @@ class OtherNotifications(TestCase):
         sn.assert_called_once_with(
             "captains",
             self.l,
-            f"{self.cap_ping}I am still searching for an alternate for <@{self.p1_lower}>"
+            "ping_ul, ping_ul: I am still searching for an alternate for silent_ul"
             f' on board 1 of "{self.team1.name}" in round {self.r.number}.',
         )
 
@@ -559,8 +584,14 @@ class OtherNotifications(TestCase):
             f' "{self.team1.name}" in round {self.r.number}.',
         )
 
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch("heltour.tournament.notify.italic", autospec=True, return_value="*italic*")
     @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
-    def test_notify_alternate_and_opponent(self, spn, sn, mu):
+    def test_notify_alternate_and_opponent(self, spn, italic, ul_s, sn, mu):
         aa = AlternateAssignment.objects.create(
             player=self.p2,
             replaced_player=self.p1,
@@ -575,18 +606,18 @@ class OtherNotifications(TestCase):
                 call(
                     self.l,
                     self.p2_lower,
-                    f"<@{self.p2_lower}>: You are playing on board 1 of "
-                    f'"{self.team1.name}". The team captain is <@{self.p1_lower}>.\nPlease '
-                    f"contact your opponent, <@{self.p3_lower}>, as"
+                    "silent_ul: You are playing on board 1 of "
+                    f'"{self.team1.name}". The team captain is silent_ul.\nPlease '
+                    "contact your opponent, silent_ul, as"
                     " soon as possible.",
                     "",
                 ),
                 call(
                     self.l,
                     self.p3_lower,
-                    f"<@{self.p3_lower}>: Your opponent, <@{self.p1_lower}>, "
-                    "has been replaced by an alternate. Please contact your new opponent, "
-                    f"<@{self.p2_lower}>, as soon as possible.",
+                    "silent_ul: Your opponent, silent_ul, "
+                    "has been replaced by an alternate. Please contact your new "
+                    "opponent, silent_ul, as soon as possible.",
                     "",
                 ),
             ],
@@ -598,11 +629,11 @@ class OtherNotifications(TestCase):
                 board_number=aa.board_number
             ),
             "You have been paired for Round {round} in {season}.\n"
-            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
-            "Send a direct message to your opponent, <@{opponent}>, as soon as possible.\n"
+            "silent_ul (*italic*, {white_tz}) vs silent_ul (*italic*, {black_tz})\n"
+            "Send a direct message to your opponent, silent_ul, as soon as possible.\n"
             "When you have agreed on a time, post it in {scheduling_channel_link}.",
             "You have been paired for Round {round} in {season}.\n"
-            "<@{white}> (_white pieces_, {white_tz}) vs <@{black}> (_black pieces_, {black_tz})\n"
+            "silent_ul (*italic*, {white_tz}) vs silent_ul (*italic*, {black_tz})\n"
             "Message your opponent here as soon as possible.\n"
             "When you have agreed on a time, post it in {scheduling_channel_link}.",
             "Round {round} - {league}",
@@ -674,9 +705,15 @@ class OtherNotifications(TestCase):
             userid="",
         )
 
+    @patch("heltour.tournament.notify.dm_link", autospec=True, return_value="dmlink")
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
     @patch("heltour.tournament.notify._lichess_message", autospec=True)
     @patch("heltour.tournament.notify._message_multiple_users", autospec=True)
-    def test_send_pairing_notification(self, mmu, lm, sn, mu):
+    def test_send_pairing_notification(self, mmu, lm, s_ul, dml, sn, mu):
         send_pairing_notification(
             type_="round_started",
             pairing=self.tpp1,
@@ -709,10 +746,15 @@ class OtherNotifications(TestCase):
             any_order=True,
         )
 
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch("heltour.tournament.notify.italic", autospec=True, return_value="*italic*")
     @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
-    def test_notify_players_round_start(self, spn, sn, mu):
+    def test_notify_players_round_start(self, spn, ital, s_ul, sn, mu):
         notify_players_round_start(self.r)
-
         spn.assert_has_calls(
             [
                 call(
@@ -734,8 +776,14 @@ class OtherNotifications(TestCase):
             ]
         )
 
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch("heltour.tournament.notify.italic", autospec=True, return_value="*italic*")
     @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
-    def test_notify_players_late_pairing(self, spn, sn, mu):
+    def test_notify_players_late_pairing(self, spn, italic, ul_s, sn, mu):
         notify_players_late_pairing(round_=self.r, pairing=self.tpp1)
         spn.assert_called_once_with(
             "round_started",
@@ -746,18 +794,25 @@ class OtherNotifications(TestCase):
             self.li_msg,
         )
 
+    @patch("heltour.tournament.notify.link", autospec=True, return_value="link")
+    @patch(
+        "heltour.tournament.notify.userlink_silent",
+        autspec=True,
+        return_value="silent_ul",
+    )
+    @patch("heltour.tournament.notify.italic", autospec=True, return_value="*italic*")
     @patch("heltour.tournament.notify.send_pairing_notification", autospec=True)
-    def test_notify_players_game_time(self, spn, sn, mu):
+    def test_notify_players_game_time(self, spn, italic, ul_s, link, sn, mu):
         notify_players_game_time(pairing=self.tpp1)
         spn.assert_called_once_with(
             "game_time",
             self.tpp1,
             "Your game is about to start.\n"
-            "<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n"
-            "Send a <https://lichess.org/?user={opponent}#friend|lichess challenge> "
+            "silent_ul (*italic*) vs silent_ul (*italic*)\n"
+            "Send a link "
             "for a rated {time_control} game as {color}.",
             "Your game is about to start.\n"
-            "<@{white}> (_white pieces_) vs <@{black}> (_black pieces_)\n"
+            "silent_ul (*italic*) vs silent_ul (*italic*)\n"
             "Send a lichess challenge for a rated {time_control} game.",
             "Round {round} - {league}",
             "Your game is about to start.\n"
