@@ -14,8 +14,8 @@ from django.utils import timezone
 from heltour.tournament.models import (
     THEME_OPTIONS,
     League,
-    OauthToken,
     LonePlayerPairing,
+    OauthToken,
     Player,
     Registration,
     Round,
