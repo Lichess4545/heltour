@@ -1,22 +1,19 @@
-from django.db.models.signals import post_save
-from django.test import TestCase, SimpleTestCase
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from unittest.mock import patch
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
+from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
 from heltour.tournament.models import (
-    add_system_comment,
     Alternate,
     AlternateAssignment,
     AlternateBucket,
     AlternatesManagerSetting,
-    format_score,
-    get_fide_dp,
-    get_gameid_from_gamelink,
     League,
     LonePlayerPairing,
     ModRequest,
-    normalize_gamelink,
     OauthToken,
     Player,
     PlayerBye,
@@ -32,6 +29,11 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
     TeamScore,
+    add_system_comment,
+    format_score,
+    get_fide_dp,
+    get_gameid_from_gamelink,
+    normalize_gamelink,
 )
 from heltour.tournament.notify import (
     latereg_saved,
@@ -40,14 +42,14 @@ from heltour.tournament.notify import (
 )
 from heltour.tournament.tests.testutils import (
     DisconnectSignal,
-    createCommonLeagueData,
+    Shush,
     create_reg,
+    createCommonLeagueData,
     get_league,
     get_player,
     get_round,
     get_season,
     set_rating,
-    Shush,
 )
 
 
