@@ -809,7 +809,7 @@ class PlayerLateRegistrationTestCase(TestCase):
         cls.r1 = get_round("lone", 1)
         cls.r2 = get_round("lone", 2)
         cls.p, _ = Player.objects.get_or_create(lichess_username="lateplayer")
-        with Shush(), DisconnectSignal(
+        with DisconnectSignal(
             signal=post_save,
             receiver=latereg_saved,
             sender=PlayerLateRegistration,
@@ -832,7 +832,7 @@ class PlayerLateRegistrationTestCase(TestCase):
         self.assertEqual(pb.type, "half-point-bye")
 
     def test_lateregistration_team(self):
-        with Shush(), DisconnectSignal(
+        with DisconnectSignal(
             signal=post_save,
             receiver=latereg_saved,
             sender=PlayerLateRegistration,
@@ -1053,7 +1053,7 @@ class ModRequestTestCase(TestCase):
 
     @patch("heltour.tournament.signals.mod_request_approved.send")
     def test_withdraw(self, approved_send):
-        with Shush(), DisconnectSignal(
+        with DisconnectSignal(
             signal=post_save,
             receiver=mod_request_created,
             sender=ModRequest,
@@ -1067,7 +1067,7 @@ class ModRequestTestCase(TestCase):
                 type="withdraw",
                 status="pending",
             )
-        with Shush(), DisconnectSignal(
+        with DisconnectSignal(
             signal=post_save,
             receiver=mod_request_created,
             sender=ModRequest,
@@ -1077,7 +1077,7 @@ class ModRequestTestCase(TestCase):
         self.assertEqual(mr.status, "approved")
         self.assertEqual(mr.status_changed_by, "System")
         self.assertTrue(approved_send.called)
-        with Shush(), DisconnectSignal(
+        with DisconnectSignal(
             signal=post_save,
             receiver=mod_request_created,
             sender=ModRequest,
