@@ -1,6 +1,7 @@
 from unittest.mock import PropertyMock, patch
 
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
 from django.test import TestCase
 from django.test.client import RequestFactory
 
@@ -8,10 +9,14 @@ from heltour.tournament.models import (
     AlternatesManagerSetting,
     Player,
     PlayerAvailability,
+    PlayerLateRegistration,
+    Registration,
     SeasonPlayer,
     TeamMember,
 )
+from heltour.tournament.notify import latereg_saved, registration_saved
 from heltour.tournament.tests.testutils import (
+    DisconnectSignal,
     Shush,
     create_reg,
     createCommonLeagueData,
@@ -40,7 +45,12 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         cls.season = get_season("lone")
         # creating a reg writes to the log,
         # disable that temporarily for nicer test output
-        with Shush():
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
             cls.reg = create_reg(cls.season, "newplayer")
             cls.reg.weeks_unavailable = "6,7"
         cls.arw = ApproveRegistrationWorkflow(cls.reg, 4)
@@ -53,23 +63,35 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
 
     @patch("django.contrib.admin.ModelAdmin.message_user", new_callable=PropertyMock)
     @patch("heltour.tournament.workflows.send_mail")
-    @patch("heltour.tournament.slackapi.SlackClient.invite_user")
-    def test_approve_reg(self, slack_invite, send_mail, model_admin):
+    @patch("heltour.tournament.workflows.invite_user")
+    def test_approve_reg(self, cb_invite, send_mail, model_admin):
         approve_request = self.rf.post("admin:approve_registration")
         approve_request.user = self.superuser
         self.assertEqual(self.reg.status, "pending")
         self.assertEqual(
             SeasonPlayer.objects.filter(player__lichess_username="newplayer").count(), 0
         )
-        self.arw.approve_reg(
-            approve_request,
-            modeladmin=model_admin,
-            send_confirm_email=True,
-            invite_to_slack=True,
-            season=self.season,
-            retroactive_byes=0,
-            late_join_points=0,
-        )
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=latereg_saved,
+            sender=PlayerLateRegistration,
+            dispatch_uid="heltour.tournament.notify",
+        ), patch(
+            "heltour.tournament.workflows.chatbackend_url"
+        ), patch(
+            "heltour.tournament.workflows.chatbackend"
+        ), patch(
+            "heltour.tournament.workflows.chatbackend_render"
+        ):
+            self.arw.approve_reg(
+                approve_request,
+                modeladmin=model_admin,
+                send_confirm_email=True,
+                invite_to_slack=True,
+                season=self.season,
+                retroactive_byes=0,
+                late_join_points=0,
+            )
         self.assertEqual(self.reg.status, "approved")
         self.assertEqual(
             SeasonPlayer.objects.filter(player__lichess_username="newplayer").count(), 1
@@ -79,8 +101,8 @@ class ApproveRegistrationWorkflowTestCase(TestCase):
         self.assertEqual(
             send_mail.call_args.args[0], "Registration Confirmation - Lone League"
         )
-        self.assertTrue(slack_invite.called)
-        self.assertEqual(slack_invite.call_args.args[0], "a@test.com")
+        self.assertTrue(cb_invite.called)
+        self.assertEqual(cb_invite.call_args.args[0], "a@test.com")
 
 
 class UpdateBoardOrderWorkflowTestCase(TestCase):
