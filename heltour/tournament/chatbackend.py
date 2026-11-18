@@ -1,5 +1,3 @@
-import traceback
-
 from collections import namedtuple
 from functools import cache
 
@@ -26,7 +24,6 @@ SlackGroup = namedtuple("SlackGroup", ["id", "name"])
 
 
 def make_chat_client(backend: str) -> ChatClient:
-    traceback.print_stack()
     if backend == "slack":
         from heltour.tournament.slackapi import SlackClient
 
