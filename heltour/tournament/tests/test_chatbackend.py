@@ -1,4 +1,4 @@
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -333,25 +333,58 @@ class TeamChannelCreation(TestCase):
 
 
 ## Zulip Tests
+class FakeZulipClient(ZulipClient):
+    def __init__(self):
+        self.client = Mock()
+        self.max_topic_length=100
+        self.max_message_length=1000
+        self.max_stream_name_length=100
+        self.max_stream_description_length=1000
+        self.client.send_message.return_value = {
+            "result": "success"
+        }
+        self.client.get_user_by_id.return_value={
+            "result": "success",
+            "user": {
+                "user_id": 2,
+                "timezone": "MST",
+                "email": "no@fakeimail",
+                "full_name": "glbert",
+                "profile_data": {
+                    settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "blind_gilbert"}
+                }
+            },
+        }
+        self.client.get_members.return_value={
+            "result": "success",
+            "members": [
+                {
+                    "user_id": 1,
+                    "timezone": "UTC",
+                    "delivery_email": "lakinwecker@example.com",
+                    "full_name": "lakinwecker",
+                    "profile_data": {
+                        settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "lakin"}
+                    }
+                },
+                {
+                    "user_id": 2,
+                    "timezone": "MST",
+                    "delivery_email": "no@fakeimail",
+                    "full_name": "glbert",
+                    "profile_data": {
+                        settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "glbert"}
+                    }
+                },
+            ],
+        }
+
+
 @patch(
     "heltour.tournament.chatbackend.notifier",
-    return_value=ZulipClient(zulip_env="data/zuliprc_bot"),
+    return_value=FakeZulipClient(),
 )
 class ZulipFormatTestCase(SimpleTestCase):
- #   @classmethod
- #   @patch("zulip.Client")
- #   def setUp(cls, client):
- #       client.return_value.register.return_value = {
- #           "result": "success",
- #           "max_topic_length": 100,
- #           "max_message_length": 1000,
- #           "max_stream_name_length": 100,
- #           "max_stream_description_length": 1000,
- #       }
- #       # reload chatbackend so that the patched zulip client is created
- #       import heltour.tournament.chatbackend
- #       importlib.reload(heltour.tournament.chatbackend)
-
     def test_bold(self, nf):
         self.assertEqual(bold("some text"), "**some text**")
 
@@ -419,99 +452,64 @@ class ZulipFormatTestCase(SimpleTestCase):
     def test_userlink_silent(self, nf):
         self.assertEqual(userlink_silent("glbert"), "@_**glbert**")
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.send_message",
-        return_value={"result": "success"},
-        autospec=True,
-    )
-    def test_channel_message(self, sm, nf):
+    def test_channel_message(self, nf):
         with Shush():
             channel_message(channel="testchannel", text="testing")
-        sm.assert_called_with(
-            ANY,
+        nf().client.send_message.assert_called_once_with(
             {
                 "type": "channel",
                 "to": "testchannel",
                 "content": "testing",
                 "topic": "(no topic)",
-            },
+            }
         )
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.send_message",
-        return_value={"result": "success"},
-        autospec=True,
-    )
-    def test_control_message(self, sm, nf):
+    def test_control_message(self, nf):
         with Shush():
             send_control_message(text="testing control messages")
-        sm.assert_called_with(
-            ANY,
+        nf().client.send_message.assert_called_with(
             {
                 "type": "channel",
                 "to": "msg-forward",
                 "content": "testing control messages",
                 "topic": "control",
-            },
+            }
         )
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.send_message",
-        return_value={"result": "success"},
-        autospec=True,
-    )
-    def test_direct_user_message(self, sm, nf):
+    def test_direct_user_message(self, nf):
         with Shush():
             direct_user_message(
                 username="lakinwecker", userid="0001", text="testing direct messages"
             )
-        sm.assert_called_with(
-            ANY,
+        nf().client.send_message.assert_called_with(
             {
                 "type": "direct",
                 "to": [1],
                 "content": "testing direct messages",
-            },
+            }
         )
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.send_message",
-        autospec=True,
-        return_value={"result": "success"},
-    )
-    def test_multiple_user_message(self, sm, nf):
+    def test_multiple_user_message(self, nf):
+        nf().client.reset_mock()
         with Shush():
             multiple_user_message(
                 usernames=["lakinwecker", "glbert"],
                 userids=["0001", "0002"],
                 text="testing direct messages to multiple users",
             )
-        sm.assert_called_once_with(
-            ANY,
+        nf().client.send_message.assert_called_once_with(
             {
                 "type": "direct",
                 "to": [1, 2, settings.ZULIP_LISTENING_BOT],
                 "content": "testing direct messages to multiple users",
-            },
+            }
         )
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.get_user_by_id",
-        return_value={
-            "result": "success",
-            "user": {
-                "user_id": 2,
-                "timezone": "MST",
-                "email": "no@fakeimail",
-                "full_name": "glbert",
-                "profile_data": {settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "blind_gilbert"}}
-            },
-        },
-        autospec=True,
-    )
-    def test_get_user(self, gubi, nf):
+    def test_get_user(self, nf):
         result = get_user(user_id="0002")
-        gubi.assert_called_once_with(ANY, 2, include_custom_profile_fields=True)
+        nf().client.get_user_by_id.assert_called_once_with(
+            2, include_custom_profile_fields=True
+        )
         self.assertEqual(
             result,
             SlackUser(
@@ -525,32 +523,12 @@ class ZulipFormatTestCase(SimpleTestCase):
             ),
         )
 
-    @patch(
-        "heltour.tournament.zulipapi.Client.get_users",
-        return_value={
-            "result": "success",
-            "members": [
-                {
-                    "user_id": 1,
-                    "timezone": "UTC",
-                    "delivery_email": "lakinwecker@example.com",
-                    "full_name": "lakinwecker",
-                    "profile_data": {settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "lakin"}}
-                },
-                {
-                    "user_id": 2,
-                    "timezone": "MST",
-                    "delivery_email": "no@fakeimail",
-                    "full_name": "glbert",
-                    "profile_data": {settings.ZULIP_LICHESS_CUSTOM_FIELD_ID: {"value": "glbert"}}
-                },
-            ],
-        },
-        autospec=True,
-    )
-    def test_get_user_list(self, gu, nf):
+
+    def test_get_user_list(self, nf):
         result = get_user_list()
-        gu.assert_called_once_with(ANY, request={"include_custom_profile_fields": True})
+        nf().client.get_members.assert_called_once_with(
+            {"include_custom_profile_fields": True}
+        )
         self.assertEqual(
             result,
             [
