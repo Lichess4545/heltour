@@ -43,6 +43,7 @@ django-celery-results = "^2.6.0"
 djangorestframework = "==3.17.*"
 email-validator = "==2.3.*"
 email-normalize = "==3.2.*"
+zulip = "^0.9.1"
 
 [tool.poetry.group.dev.dependencies]
 djangorestframework-stubs = "==3.14.4"

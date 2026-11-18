@@ -2310,6 +2310,24 @@ docs = ["Sphinx (>=6.0)", "sphinx-rtd-theme (>=1.1.0)"]
 optional = ["python-socks", "wsaccel"]
 test = ["websockets"]
 
+[[package]]
+name = "zulip"
+version = "0.9.1"
+description = "Bindings for the Zulip message API"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "zulip-0.9.1-py3-none-any.whl", hash = "sha256:37682bad54714a53f9286586a534c2e13217b2bbddf0b4e71c60ef67d43b9043"},
+    {file = "zulip-0.9.1.tar.gz", hash = "sha256:abeba4147625107f690bb633143fdf36cd665fe037b3871011fd4b1e3dc081e8"},
+]
+
+[package.dependencies]
+click = "*"
+distro = "*"
+requests = {version = ">=0.12.1", extras = ["security"]}
+typing_extensions = ">=4.5.0"
+
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
