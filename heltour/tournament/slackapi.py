@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 SlackUser = namedtuple(
     "SlackUser",
-    ["id", "name_deprecated", "real_name", "display_name", "email", "tz_offset"],
+    ["id", "name_deprecated", "real_name", "display_name", "email", "tz_offset", "lichess_username"],
 )
 SlackGroup = namedtuple("SlackGroup", ["id", "name"])
 
@@ -230,7 +230,7 @@ class SlackClient(ChatClient):
                 f"Failed to sent intro message to channel {channel_name} ({group.id})"
             )
 
-    def get_user(self, user_id: str) -> namedtuple:
+    def get_user(self, user_id: str) -> SlackUser:
         url = "https://slack.com/api/users.info"
         r = requests.get(
             url, params={"user": user_id, "token": self._get_slack_token()}
@@ -246,9 +246,10 @@ class SlackClient(ChatClient):
             m["profile"].get("display_name"),
             m["profile"].get("email", ""),
             m.get("tz_offset"),
+            "",
         )
 
-    def get_user_list(self) -> list[namedtuple]:
+    def get_user_list(self) -> list[SlackUser]:
         url = "https://slack.com/api/users.list"
         r = requests.get(url, params={"token": self._get_slack_token()})
         json = r.json()
@@ -262,9 +263,14 @@ class SlackClient(ChatClient):
                 m["profile"].get("display_name"),
                 m["profile"].get("email", ""),
                 m.get("tz_offset"),
+                "",
             )
             for m in json["members"]
         ]
+
+    def set_user(self, user_id: str, lichess_username: str) -> None:
+        # not used on slack
+        pass
 
     def invite_user(self, email: str) -> None:
         url = "https://slack.com/api/users.admin.invite"

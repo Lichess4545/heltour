@@ -2426,8 +2426,29 @@ class SeasonPlayerAdmin(_BaseAdmin):
         return redirect("admin:tournament_seasonplayer_changelist")
 
     def link_players(self, request, queryset):
+
+        def set_player_slackid(sp: SeasonPlayer, slack_id: str) -> None:
+            sp.player.slack_user_id = slack_id
+            sp.player.save()
+            chatbackend.set_user(
+                user_id=slack_id,
+                lichess_username=sp.player.lichess_username,
+            )
+            lichesslink = f"{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}"
+            text = (
+                f"We linked your {chatbackend.chatbackend()} account to the lichess account "
+                f"{chatbackend.link(url=lichesslink, text=sp.player.lichess_username)}. "
+                "If that is not your lichess account, please contact a moderator."
+            )
+            chatbackend.direct_user_message(
+                username=slack_id,
+                text=text,
+                userid=slack_id,
+            )
+
         slack_users = chatbackend.get_user_list()
         by_email = {u.email: u.id for u in slack_users}
+        by_lichess_username = {u.lichess_username: u.id for u in slack_users}
         linked = 0
 
         for sp in queryset.filter(
@@ -2435,18 +2456,18 @@ class SeasonPlayerAdmin(_BaseAdmin):
         ).select_related("player").nocache():
             uid = by_email.get(sp.player.email)
             if uid:
-                sp.player.slack_user_id = uid
-                sp.player.save()
+                set_player_slackid(sp=sp, slack_id=uid)
                 linked += 1
-                lichesslink = f"{settings.LICHESS_DOMAIN}@/{sp.player.lichess_username}"
-                text = (
-                    f"We linked your {chatbackend.chatbackend()} account to the lichess account "
-                    f"{chatbackend.link(url=lichesslink, text=sp.player.lichess_username)}. "
-                    "If that is not your lichess account, please contact a moderator."
-                )
-                chatbackend.direct_user_message(username=uid, text=text, userid=uid)
-        self.message_user(request, f"Linked {linked} players.")
-
+            else:
+                uid = by_lichess_username.get(sp.player.lichess_username)
+                if uid:
+                    set_player_slackid(sp=sp, slack_id=uid)
+                    linked += 1
+        count = queryset.count()
+        self.message_user(
+            request,
+            f"Linked {linked} of {count} players, {count - linked} unknown."
+        )
         return redirect("admin:tournament_seasonplayer_changelist")
 
     def bulk_email(self, request, queryset):
