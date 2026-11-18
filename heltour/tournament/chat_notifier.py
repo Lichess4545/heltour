@@ -85,5 +85,8 @@ class Notifier:
     def get_user_list(self) -> list[namedtuple]:
         return self.chat.get_user_list()
 
+    def set_user(self, user_id: str, lichess_username: str) -> None:
+        return self.chat.set_user(user_id, lichess_username)
+
     def invite_user(self, email: str) -> None:
         return self.chat.invite_user(email)
