@@ -22,6 +22,7 @@ from heltour.tournament.chatbackend import (
     multiple_user_message,
     ping_mods,
     send_control_message,
+    set_user,
     userlink_ping,
     userlink_silent,
 )
@@ -553,6 +554,16 @@ class ZulipFormatTestCase(SimpleTestCase):
             ],
         )
 
+    def test_set_user(self, nf):
+        nf().client.update_user_by_id.return_value = {"result": "success"}
+        set_user(user_id="2", lichess_username="glbert")
+        nf().client.update_user_by_id.assert_called_once_with(
+            2,
+            profile_data=[
+                {"id": settings.ZULIP_LICHESS_CUSTOM_FIELD_ID, "value": "glbert"}
+            ],
+        )
+
     @patch("heltour.tournament.zulipapi.Client")
     def test_invite_user(self, client, nf):
         client.return_value.register.return_value = {
@@ -579,3 +590,41 @@ class ZulipFormatTestCase(SimpleTestCase):
                 "notify_referrer_on_join": "false",
             },
         )
+
+
+@patch(
+    "heltour.tournament.chatbackend.notifier",
+    return_value=FakeZulipClient(),
+)
+class ZulipTeamChannelTest(TestCase):
+    def test_cb_create_team_channel(self, nf):
+        nf().client.add_subscriptions.return_value = {"result": "success"}
+        nf().client.get_stream_id.return_value = {"result": "success", "stream_id": "1337"}
+        createCommonLeagueData()
+        t1 = get_team("Team 1")
+        with Shush():
+            cb_create_team_channel(
+                team=t1,
+                channel_name="S0_Team1",
+                user_ids=["1", "2"],
+                topic="Welcome!",
+                intro_message="Welcome to the new season, Team1",
+            )
+        nf().client.add_subscriptions.assert_called_once_with(
+            streams=[
+                {
+                    'name': 'S0_Team1',
+                    'description': 'Welcome!',
+                }
+            ],
+            principals=[1, 2, settings.ZULIP_LISTENING_BOT, settings.ZULIP_HELTOUR_BOT],
+            invite_only=True,
+            history_public_to_subscribers=False,
+            can_add_subscribers_group={'direct_members': [1, 2, settings.ZULIP_LISTENING_BOT, settings.ZULIP_HELTOUR_BOT], 'direct_subgroups': []},
+            can_remove_subscribers_group={'direct_members': [], 'direct_subgroups': []},
+            can_administer_channel_group={'direct_members': [], 'direct_subgroups': [settings.ZULIP_CAPTAINS_GROUP]},
+        )
+        nf().client.get_stream_id.assert_called_once_with("S0_Team1")
+        nf().client.send_message.assert_called_once_with({'type': 'channel', 'to': 'S0_Team1', 'content': 'Welcome to the new season, Team1', 'topic': 'Welcome!'})
+        self.assertEqual("1337", get_team("Team 1").slack_channel)
+
