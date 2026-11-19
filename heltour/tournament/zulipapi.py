@@ -194,16 +194,16 @@ class ZulipClient(ChatClient):
                 {
                     "name": channel_name,
                     "description": topic,
-                    "invite_only": invite_only,
-                    "history_public_to_subscribers": history_public,
+#                    "invite_only": invite_only,
+#                    "history_public_to_subscribers": history_public,
                 }
             ]
         else:
             stream = [
                 {
                     "name": channel_name,
-                    "invite_only": invite_only,
-                    "history_public_to_subscribers": history_public,
+#                    "invite_only": invite_only,
+#                    "history_public_to_subscribers": history_public,
                 }
             ]
         r = self.client.add_subscriptions(
@@ -368,7 +368,7 @@ class ZulipClient(ChatClient):
             team.slack_channel = channel.id
             team.save()
         self.channel_message(
-            channel=channel.id, text=intro_message, topic="Welcome!"
+            channel=channel_name, text=intro_message, topic="Welcome!"
         )
         sleep(settings.SLEEP_UNIT)
 
