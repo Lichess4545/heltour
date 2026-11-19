@@ -17,7 +17,7 @@ class Command(BaseCommand):
             return
 
         print("Removing all emails")
-        Player.objects.all().update(email='')
+        Player.objects.all().update(email='', normalized_email='')
         Registration.objects.all().update(email='')
 
 
