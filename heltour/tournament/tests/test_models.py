@@ -1211,3 +1211,16 @@ class PlayerEmailTestCase(TestCase):
         player.save()
         self.assertEqual(player.normalized_email, "")
 
+
+class OauthTokenEmailTestCase(TestCase):
+    def test_normalized_account_email_follows_an_account_email_saved_with_update_fields(self):
+        token = OauthToken.objects.create(
+            access_token="1234",
+            token_type="bearer",
+            expires=timezone.now() + timedelta(days=1),
+            account_username="p",
+        )
+        token.account_email = "New@Example.com"
+        token.save(update_fields=["account_email"])
+        token.refresh_from_db()
+        self.assertEqual(token.normalized_account_email, "new@example.com")

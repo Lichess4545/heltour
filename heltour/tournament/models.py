@@ -840,6 +840,17 @@ class OauthToken(_BaseModel):
 
     account_username = models.CharField(max_length=255)
     account_email = models.CharField(max_length=255, blank=True)
+    normalized_account_email = models.CharField(max_length=255, blank=True, editable=False)
+
+    class Meta:
+        indexes = [models.Index(fields=['normalized_account_email'])]
+
+    def save(self, *args, **kwargs):
+        self.normalized_account_email = email_addresses.normalized(self.account_email)
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'account_email' in update_fields:
+            kwargs['update_fields'] = {*update_fields, 'normalized_account_email'}
+        super().save(*args, **kwargs)
 
     def is_expired(self):
         return self.expires < timezone.now()

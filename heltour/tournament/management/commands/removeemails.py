@@ -20,7 +20,7 @@ class Command(BaseCommand):
         print("Removing all emails")
         Player.objects.all().update(email='', normalized_email='')
         Registration.objects.all().update(email='')
-        OauthToken.objects.all().update(account_email='')
+        OauthToken.objects.all().update(account_email='', normalized_account_email='')
         User.objects.all().update(email='')
         Comment.objects.all().update(user_email='')
 
