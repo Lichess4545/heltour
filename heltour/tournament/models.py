@@ -18,7 +18,7 @@ from django.utils.crypto import get_random_string
 from django_comments.models import Comment
 
 from heltour import settings
-from heltour.tournament import signals
+from heltour.tournament import email_addresses, signals
 from heltour.tournament.chatbackend import channellink
 
 logger = logging.getLogger(__name__)
@@ -905,6 +905,10 @@ class Player(_BaseModel):
         self.initial_account_status = self.account_status
 
     def save(self, *args, **kwargs):
+        self.normalized_email = email_addresses.normalized(self.email)
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'email' in update_fields:
+            kwargs['update_fields'] = {*update_fields, 'normalized_email'}
         account_status_changed = self.pk and self.account_status != self.initial_account_status
         super(Player, self).save(*args, **kwargs)
         if account_status_changed:
