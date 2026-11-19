@@ -870,6 +870,7 @@ class Player(_BaseModel):
     rating = models.PositiveIntegerField(blank=True, null=True)
     games_played = models.PositiveIntegerField(blank=True, null=True)
     email = models.CharField(max_length=255, blank=True)
+    normalized_email = models.CharField(max_length=255, blank=True, editable=False)
     is_active = models.BooleanField(default=True)
     slack_user_id = models.CharField(max_length=255, blank=True)
     timezone_offset = models.DurationField(blank=True, null=True)
@@ -891,6 +892,7 @@ class Player(_BaseModel):
 
     class Meta:
         ordering = ['lichess_username']
+        indexes = [models.Index(fields=['normalized_email'])]
         permissions = (
             ('change_player_details', 'Can change player details'),
             ('invite_to_slack', 'Can invite to slack'),
