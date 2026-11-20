@@ -13,4 +13,9 @@ urlpatterns = [
         views.RoundView.as_view(),
         name="round",
     ),
+    path(
+        "players/by-email/",
+        views.PlayerByEmailView.as_view(),
+        name="player_by_email",
+    ),
 ]

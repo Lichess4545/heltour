@@ -1,20 +1,32 @@
 from typing import TypeVar
 
-from rest_framework.exceptions import NotFound
+from rest_framework import status
+from rest_framework.exceptions import APIException, NotFound
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from heltour.api_v2 import selectors
+from heltour.api_v2.permissions import CanFindPlayersByEmail
 from heltour.api_v2.serializers import (
     ActiveQuerySerializer,
+    EmailSerializer,
     LeaguesSerializer,
     LeagueWithRoundsSerializer,
     RoundsSerializer,
     RoundWithPairingsSerializer,
+    UserSerializer,
 )
+from heltour.tournament.models import Player
 
 Found = TypeVar("Found")
+
+
+class Ambiguous(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "More than one record matches."
+    default_code = "ambiguous"
 
 
 class LeaguesView(APIView):
@@ -40,6 +52,20 @@ class RoundView(APIView):
     def get(self, request: Request, tag: str, round_id: int) -> Response:
         round_ = found(selectors.round_with_pairings(tag, round_id))
         return Response(RoundWithPairingsSerializer(round_).data)
+
+
+class PlayerByEmailView(APIView):
+    permission_classes = (IsAuthenticated, CanFindPlayersByEmail)
+
+    def post(self, request: Request) -> Response:
+        body = EmailSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        email: str = body.validated_data["email"]
+        try:
+            player = found(selectors.player_with_email(email))
+        except Player.MultipleObjectsReturned as ambiguous:
+            raise Ambiguous from ambiguous
+        return Response(UserSerializer(player).data)
 
 
 def active_filter(request: Request) -> bool | None:
