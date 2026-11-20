@@ -23,7 +23,7 @@ class ChatClient:
     def chatbackend(self) -> str:
         raise NotImplementedError
 
-    def chatbackend_render(self) -> str:
+    def chatbackend_render(self) -> bool:
         raise NotImplementedError
 
     def chatbackend_url(self) -> str:
@@ -82,6 +82,9 @@ class ChatClient:
         raise NotImplementedError
 
     def get_user_list(self) -> list[namedtuple]:
+        raise NotImplementedError
+
+    def set_user(self, user_id: str, lichess_username: str) -> None:
         raise NotImplementedError
 
     def invite_user(self, email: str) -> None:

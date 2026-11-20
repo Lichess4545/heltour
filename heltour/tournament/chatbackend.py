@@ -1,5 +1,6 @@
 from collections import namedtuple
 from functools import cache
+from time import perf_counter
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -30,6 +31,12 @@ def make_chat_client(backend: str) -> ChatClient:
         if not settings.SLACK_API_TOKEN:
             raise ImproperlyConfigured("SLACK_API_TOKEN is not set")
         return SlackClient(api_token=settings.SLACK_API_TOKEN)
+    elif backend == "zulip":
+        from heltour.tournament.zulipapi import ZulipClient
+
+        if not settings.ZULIP_CONFIG:
+            raise ImproperlyConfigured("ZULIP_CONFIG is not set")
+        return ZulipClient(zulip_env=settings.ZULIP_CONFIG)
 
     raise ChatBackendError(f"Unknown CHAT_BACKEND: {backend!r}")
 
@@ -112,6 +119,16 @@ def multiple_user_message(
     notifier().multiple_user_message(usernames, text, userids)
 
 
+def test_multiple_user_message(number: int=5):
+    start = perf_counter()
+    for n in range(0, number):
+        print(f"sending message {n}\n")
+        multiple_user_message(usernames=["glbert", "glbert-testuser1"], text=f"This is message #{n}.", userids=["402697", "876594"])
+    end = perf_counter()
+    print(f"Exec time: {end-start}")
+
+    
+
 def cb_create_team_channel(
     *,
     team,
@@ -124,28 +141,35 @@ def cb_create_team_channel(
         notifier().cb_create_team_channel(
             team, channel_name, user_ids, topic, intro_message
         )
-    except ChatClient.ChatBackendError:
-        raise ChatBackendError
+    except ChatClient.ChatBackendError as exc:
+        raise ChatBackendError from exc
 
 
 def get_user(user_id: str) -> namedtuple:
     try:
         return notifier().get_user(user_id)
-    except ChatClient.ChatBackendError:
-        raise ChatBackendError
+    except ChatClient.ChatBackendError as exc:
+        raise ChatBackendError from exc
 
 
 def get_user_list() -> list[namedtuple]:
     try:
         return notifier().get_user_list()
-    except ChatClient.ChatBackendError:
-        raise ChatBackendError
+    except ChatClient.ChatBackendError as exc:
+        raise ChatBackendError from exc
+
+
+def set_user(user_id: str, lichess_username: str) -> None:
+    try:
+        return notifier().set_user(user_id, lichess_username)
+    except ChatClient.ChatBackendError as exc:
+        raise ChatBackendError from exc
 
 
 def invite_user(email: str) -> None:
     try:
         return notifier().invite_user(email)
-    except ChatClient.InvitationFailedError:
-        raise InvitationFailedError()
+    except ChatClient.InvitationFailedError as exc:
+        raise InvitationFailedError from exc
 
 

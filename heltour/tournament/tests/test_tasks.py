@@ -70,8 +70,10 @@ class TestHelpers(TestCase):
             active_player_usernames(), self.playernames
         )  # no duplicate names
 
+    @patch("heltour.tournament.notify.link")
+    @patch("heltour.tournament.notify.userlink_silent")
     @patch("django.utils.timezone.now")
-    def test_fetch_players(self, now):
+    def test_fetch_players(self, now, ul_s, link):
         now.return_value = self.now
         create_reg(season=self.s, name="lakinwecker")
         # reg is not included as it was updated recently.
@@ -190,6 +192,9 @@ class TestUpdateTVState(TestCase):
         addwatch.assert_not_called()
 
 
+@patch("heltour.tournament.notify.send_pairing_notification")
+@patch("heltour.tournament.tasks.userlink_silent")
+@patch("heltour.tournament.tasks.link")
 @patch("heltour.tournament.lichessapi.add_watch", return_value=None)
 class TestAutostartGames(TestCase):
     @classmethod
@@ -327,63 +332,57 @@ class TestTeamChannel(TestCase):
         createCommonLeagueData()
         cls.team_ids = Team.objects.all().order_by("pk").values("pk")
 
-    @override_settings(USE_CHATBACKEND="slack")
-    @patch(
-        "heltour.tournament.slackapi.SlackClient._create_group",
-        side_effect=[
-            SlackGroup(id="g1", name="g1"),
-            SlackGroup(id="g2", name="g2"),
-            SlackGroup(id="g3", name="g3"),
-            SlackGroup(id="g4", name="g4"),
-        ],
-    )
-    @patch("heltour.tournament.slackapi.SlackClient._invite_to_group")
-    @patch("heltour.tournament.slackapi.SlackClient._set_group_topic")
-    @patch("heltour.tournament.slackapi.SlackClient._leave_group")
-    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
+    @patch("heltour.tournament.tasks.cb_create_team_channel")
+    @patch("heltour.tournament.tasks.ping_mods", return_value="@mods")
+    @patch("heltour.tournament.tasks.inlinecode", return_value="`@mods_inline`")
+    @patch("heltour.tournament.tasks.channellink", return_value="clink")
+    @patch("heltour.tournament.tasks.link", return_value="link")
     def test_create_team_channel(
-        self, send_message, leave_group, set_group_topic, invite_to_group, create_group
+        self, link, clink, inline, pm, cb_ctc
     ):
         with Shush():
             create_team_channel(self.team_ids)
-        self.assertTrue(create_group.called)
-        self.assertEqual(create_group.call_count, 4)
-        self.assertTrue(invite_to_group.called)
-        self.assertEqual(
-            invite_to_group.call_count, 8
-        )  # 4 teams, 1 call for team members, 1 for chesster
-        self.assertTrue(set_group_topic.called)
-        self.assertEqual(set_group_topic.call_count, 4)
-        self.assertTrue(leave_group.called)
-        self.assertEqual(leave_group.call_count, 4)
-        self.assertTrue(send_message.called)
-        self.assertTrue(send_message.call_count, 4)
-        self.assertEqual(
-            Team.objects.get(pk=self.team_ids[0]["pk"]).slack_channel, "g1"
+        topic = "Team Pairings: link | Team Calendar: link"
+        intro = (
+            "\nWelcome! This is your private team channel. "
+            "Feel free to chat, study, discuss strategy, or whatever you like!\n"
+            "You need to pick a team captain and a team name by ?.\n"
+            "Once you've chosen (or if you need help with anything), "
+            "contact one of the moderators using the command\n"
+            "`@mods_inline` in clink (do not contact them directly.)\n"
+            "\nHere are some useful links for your team:\n- link\n- link"
         )
-
-    @patch(
-        "heltour.tournament.slackapi.SlackClient._create_group",
-        side_effect=[
-            ChatBackendError,
-            SlackGroup(id="g2", name="g2"),
-            SlackGroup(id="g3", name="g3"),
-            SlackGroup(id="g4", name="g4"),
-        ],
-    )
-    @patch("heltour.tournament.slackapi.SlackClient._invite_to_group", side_effect=ChatBackendError)
-    @patch("heltour.tournament.slackapi.SlackClient._set_group_topic", side_effect=ChatBackendError)
-    @patch("heltour.tournament.slackapi.SlackClient._leave_group", side_effect=ChatBackendError)
-    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
-    def test_create_team_channel_errors(
-        self, send_message, leave_group, set_group_topic, invite_to_group, create_group
-    ):
-        with Shush():
-            try:
-                create_team_channel(self.team_ids)
-            except ChatBackendError:
-                pass
-        self.assertEqual(Team.objects.get(pk=self.team_ids[0]["pk"]).slack_channel, "")
+        calls=[
+            call(
+                team=Team.objects.get(pk=self.team_ids[0]["pk"]),
+                channel_name="team-1-steamseason",
+                user_ids=["", ""],
+                topic=topic,
+                intro_message=intro,
+            ),
+            call(
+                team=Team.objects.get(pk=self.team_ids[1]["pk"]),
+                channel_name="team-2-steamseason",
+                user_ids=["", ""],
+                topic=topic,
+                intro_message=intro,
+            ),
+            call(
+                team=Team.objects.get(pk=self.team_ids[2]["pk"]),
+                channel_name="team-3-steamseason",
+                user_ids=["", ""],
+                topic=topic,
+                intro_message=intro,
+            ),
+            call(
+                team=Team.objects.get(pk=self.team_ids[3]["pk"]),
+                channel_name="team-4-steamseason",
+                user_ids=["", ""],
+                topic=topic,
+                intro_message=intro,
+            ),
+        ]
+        cb_ctc.assert_has_calls(calls=calls, any_order=True)
 
 
 @patch("heltour.tournament.tasks.MAX_GAMES_LICHESS_BROADCAST", 2)

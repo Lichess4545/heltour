@@ -1,21 +1,19 @@
-from django.test import TestCase, SimpleTestCase
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from unittest.mock import patch
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
+from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
 from heltour.tournament.models import (
-    add_system_comment,
     Alternate,
     AlternateAssignment,
     AlternateBucket,
     AlternatesManagerSetting,
-    format_score,
-    get_fide_dp,
-    get_gameid_from_gamelink,
     League,
     LonePlayerPairing,
     ModRequest,
-    normalize_gamelink,
     OauthToken,
     Player,
     PlayerBye,
@@ -31,16 +29,27 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
     TeamScore,
+    add_system_comment,
+    format_score,
+    get_fide_dp,
+    get_gameid_from_gamelink,
+    normalize_gamelink,
+)
+from heltour.tournament.notify import (
+    latereg_saved,
+    mod_request_created,
+    registration_saved,
 )
 from heltour.tournament.tests.testutils import (
-    createCommonLeagueData,
+    DisconnectSignal,
+    Shush,
     create_reg,
+    createCommonLeagueData,
     get_league,
     get_player,
     get_round,
     get_season,
     set_rating,
-    Shush,
 )
 
 
@@ -347,7 +356,12 @@ class SeasonTestCase(TestCase):
     def test_export_players_detailed(self):
         Season.objects.filter(name="Test Season").update(start_date=timezone.now())
         p, _ = Player.objects.get_or_create(lichess_username="Player1")
-        with Shush():
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
             reg = Registration.objects.create(
                 season=get_season("team"),
                 status="approved",
@@ -752,11 +766,21 @@ class RegistrationTestCase(TestCase):
         cls.season = get_season("team")
 
     def test_registration_previous(self):
-        reg = create_reg(self.season, "Player1")
-
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
+            reg = create_reg(self.season, "Player1")
         self.assertEqual([], list(reg.previous_registrations()))
-
-        reg2 = create_reg(self.season, "Player1")
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
+            reg2 = create_reg(self.season, "Player1")
         self.assertEqual([], list(reg.previous_registrations()))
         self.assertEqual([reg], list(reg2.previous_registrations()))
 
@@ -767,7 +791,13 @@ class RegistrationTestCase(TestCase):
 
         player = Player.objects.create(lichess_username="testuser")
         sp = SeasonPlayer.objects.create(season=self.season, player=player)
-        reg = create_reg(season2, "testuser")
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
+            reg = create_reg(season2, "testuser")
 
         self.assertEqual([sp], list(reg.other_seasons()))
 
@@ -779,9 +809,15 @@ class PlayerLateRegistrationTestCase(TestCase):
         cls.r1 = get_round("lone", 1)
         cls.r2 = get_round("lone", 2)
         cls.p, _ = Player.objects.get_or_create(lichess_username="lateplayer")
-        cls.lr = PlayerLateRegistration.objects.create(
-            player=cls.p, round=cls.r2, retroactive_byes=3
-        )
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=latereg_saved,
+            sender=PlayerLateRegistration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
+            cls.lr = PlayerLateRegistration.objects.create(
+                player=cls.p, round=cls.r2, retroactive_byes=3
+            )
 
     @patch("heltour.tournament.models.Player.rating_for", return_value=100)
     def test_lateregistration_perform(self, rating_for):
@@ -796,9 +832,15 @@ class PlayerLateRegistrationTestCase(TestCase):
         self.assertEqual(pb.type, "half-point-bye")
 
     def test_lateregistration_team(self):
-        lr = PlayerLateRegistration.objects.create(
-            player=self.p, round=get_round("team", 1)
-        )
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=latereg_saved,
+            sender=PlayerLateRegistration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
+            lr = PlayerLateRegistration.objects.create(
+                player=self.p, round=get_round("team", 1)
+            )
         with self.assertRaises(ValidationError):
             lr.clean()
 
@@ -856,7 +898,12 @@ class AlternateTestCase(TestCase):
 
         time1 = timezone.now()
         # creating a reg writes to the log, disable that temporarily for nicer test output
-        with Shush():
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
             self.sp.registration = create_reg(self.sp.season, "Player1")
         time2 = timezone.now()
 
@@ -1006,19 +1053,37 @@ class ModRequestTestCase(TestCase):
 
     @patch("heltour.tournament.signals.mod_request_approved.send")
     def test_withdraw(self, approved_send):
-        mr = ModRequest.objects.create(
-            season=self.s,
-            round=self.r,
-            pairing=self.tp,
-            requester=self.p1,
-            type="withdraw",
-            status="pending",
-        )
-        mr.approve()
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=mod_request_created,
+            sender=ModRequest,
+            dispatch_uid="heltour.tournament.automod",
+        ):
+            mr = ModRequest.objects.create(
+                season=self.s,
+                round=self.r,
+                pairing=self.tp,
+                requester=self.p1,
+                type="withdraw",
+                status="pending",
+            )
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=mod_request_created,
+            sender=ModRequest,
+            dispatch_uid="heltour.tournament.automod",
+        ):
+            mr.approve()
         self.assertEqual(mr.status, "approved")
         self.assertEqual(mr.status_changed_by, "System")
         self.assertTrue(approved_send.called)
-        mr.reject()
+        with DisconnectSignal(
+            signal=post_save,
+            receiver=mod_request_created,
+            sender=ModRequest,
+            dispatch_uid="heltour.tournament.automod",
+        ):
+            mr.reject()
         self.assertEqual(mr.status, "rejected")
 
 
