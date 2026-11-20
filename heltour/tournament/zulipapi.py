@@ -33,6 +33,42 @@ class ZulipClient(ChatClient):
                     "max lengths of topics/message/stream_name/stream_description"
                 )
                 raise ZulipError("Realm settings missing") from e
+            try:
+                self.lichess_custom_field_id = next(
+                    x["id"]
+                    for x in register["custom_profile_fields"]
+                    if x["name"] == "lichess account"
+                )
+            except KeyError as e:
+                logger.error(
+                    "ERROR: Registration response does not contain zulip settings for "
+                    "custom profile fields."
+                )
+                raise ZulipError("Custom profile fields settings missing") from e
+            except IndexError as e:
+                logger.error(
+                    "ERROR: Custom profile field 'lichess account' does not exist."
+                )
+                raise ZulipError(
+                    "Custom profile field 'lichess account' missing"
+                ) from e
+            try:
+                self.captains_group_id = next(
+                    x["id"]
+                    for x in register["realm_user_groups"]
+                    if "aptain" in x["name"] # should be improved once the name is fixed
+                )
+            except KeyError as e:
+                logger.error(
+                    "ERROR: Registration response does not contain zulip settings for "
+                    "user groups."
+                )
+                raise ZulipError("User group settings missing") from e
+            except IndexError as e:
+                logger.error(
+                    "ERROR: User group 'Captains' [or similar] does not exist."
+                )
+                raise ZulipError("User Group 'Captains' missing") from e
 
     def _message(
         self,
@@ -89,7 +125,9 @@ class ZulipClient(ChatClient):
                 f"Could not send message to {channel}>{topic}, error:\n{r['msg']}"
             )
             if r["code"] == "RATE_LIMIT_HIT" and tries < settings.ZULIP_RETRIES:
-                sleep(settings.SLEEP_UNIT * r["retry-after"] * 1.05) # add 5 percent, just to be sure.
+                sleep(
+                    settings.SLEEP_UNIT * r["retry-after"] * 1.05
+                )  # add 5 percent, just to be sure.
                 self._message(
                     channel=channel,
                     channel_type=channel_type,
@@ -109,9 +147,7 @@ class ZulipClient(ChatClient):
         else:
             logger.info(f"Zulip [{channel} > {topic}]: {text}")
 
-    def _send_message(
-        self, channel: str, text: str, topic: str = "(no topic)"
-    ) -> None:
+    def _send_message(self, channel: str, text: str, topic: str = "(no topic)") -> None:
         if ">" in channel:
             channel_split = channel.partition(">")
             self._message(
@@ -194,16 +230,12 @@ class ZulipClient(ChatClient):
                 {
                     "name": channel_name,
                     "description": topic,
-#                    "invite_only": invite_only,
-#                    "history_public_to_subscribers": history_public,
                 }
             ]
         else:
             stream = [
                 {
                     "name": channel_name,
-#                    "invite_only": invite_only,
-#                    "history_public_to_subscribers": history_public,
                 }
             ]
         r = self.client.add_subscriptions(
@@ -236,7 +268,9 @@ class ZulipClient(ChatClient):
                     ),
                 )
             if r["code"] == "RATE_LIMIT_HIT" and tries < settings.ZULIP_RETRIES:
-                sleep(settings.SLEEP_UNIT * r["retry-after"] * 1.05) # add 5 percent to be sure
+                sleep(
+                    settings.SLEEP_UNIT * r["retry-after"] * 1.05
+                )  # add 5 percent to be sure
                 self._create_channel(
                     channel_name=channel_name,
                     user_ids=user_ids,
@@ -264,7 +298,7 @@ class ZulipClient(ChatClient):
 
     def _get_lichess_username_from_profile(self, profile: dict[str, str]) -> str:
         try:
-            return profile["profile_data"][settings.ZULIP_LICHESS_CUSTOM_FIELD_ID]["value"]
+            return profile["profile_data"][self.lichess_custom_field_id]["value"]
         except KeyError:
             return ""
 
@@ -361,15 +395,13 @@ class ZulipClient(ChatClient):
             invite_only=True,
             history_public=False,
             can_add_subscribers_ids=user_ids_ext,
-            can_admin_channel_groups=[settings.ZULIP_CAPTAINS_GROUP],
+            can_admin_channel_groups=[self.captains_group_id],
         )
         with reversion.create_revision():
             reversion.set_comment("Creating zulip channel")
             team.slack_channel = channel.id
             team.save()
-        self.channel_message(
-            channel=channel_name, text=intro_message, topic="Welcome!"
-        )
+        self.channel_message(channel=channel_name, text=intro_message, topic="Welcome!")
         sleep(settings.SLEEP_UNIT)
 
     def get_user(self, user_id: str) -> SlackUser:
@@ -437,7 +469,7 @@ class ZulipClient(ChatClient):
             int(user_id),
             profile_data=[
                 {
-                    "id": settings.ZULIP_LICHESS_CUSTOM_FIELD_ID,
+                    "id": self.lichess_custom_field_id,
                     "value": lichess_username,
                 }
             ],
