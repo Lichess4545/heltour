@@ -70,8 +70,6 @@ ZULIP_URL=env.str("ZULIP_URL", default="https://lichess4545-test.zulipchat.com")
 ZULIP_LISTENING_BOT=env.int("ZULIP_LISTENING_BOT", default=222105)
 ZULIP_HELTOUR_BOT=env.int("ZULIP_HELTOUR_BOT", default=875701)
 ZULIP_CONFIG_NOBOT=env.str("ZULIP_CONFIG_NOBOT", default="data/zuliprc")
-ZULIP_LICHESS_CUSTOM_FIELD_ID=env.str("ZULIP_LICHESS_CUSTOM_FIELD_ID", default="8707")
-ZULIP_CAPTAINS_GROUP=env.int("ZULIP_CAPTAINS_GROUP", default=1796731)
 ZULIP_RETRIES=env.int("ZULIP_RETRIES", default=1)
 
 JAVAFO_COMMAND = env.str("JAVAFO_COMMAND", default="java -jar ./thirdparty/javafo.jar")
