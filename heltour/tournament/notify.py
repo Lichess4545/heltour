@@ -51,7 +51,14 @@ def _message_user(league, username, text, userid=0):
             logger.error(sys.exc_info())
 
 
-def _message_multiple_users(league, usernames, text, userids=0):
+def _message_multiple_users(
+    league,
+    usernames: list[str],
+    text: str,
+    userids: list[str]|None=None,
+):
+    if userids is None:
+        userids = [0]
     if league.enable_notifications:
         try:
             multiple_user_message(usernames=usernames, text=text, userids=userids)

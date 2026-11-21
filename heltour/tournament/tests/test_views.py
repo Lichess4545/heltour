@@ -1,30 +1,40 @@
 import re
-import sass
-from django.contrib.staticfiles import finders
 from datetime import timedelta
-from django.test import TestCase
-from django.utils import timezone
+from unittest.mock import patch
+
+import sass
 from django.contrib.auth.models import User
+from django.contrib.staticfiles import finders
+from django.db.models.signals import post_save
 from django.http.response import Http404
 from django.templatetags.static import static
-from unittest.mock import patch
+from django.test import TestCase
+from django.utils import timezone
+
 from heltour.tournament.models import (
+    THEME_OPTIONS,
     League,
     OauthToken,
+    LonePlayerPairing,
     Player,
     Registration,
     Round,
     Season,
+    SeasonPrizeWinner,
     Team,
     TeamPairing,
     TeamPlayerPairing,
-    LonePlayerPairing,
-    SeasonPrizeWinner,
-    THEME_OPTIONS,
+)
+from heltour.tournament.notify import registration_saved
+from heltour.tournament.templatetags.tournament_extras import (
+    highlightclass,
+    resultclass,
 )
 from heltour.tournament.tests.testutils import (
-    createCommonLeagueData,
+    DisconnectSignal,
+    Shush,
     create_reg,
+    createCommonLeagueData,
     get_league,
     get_player,
     get_season,
@@ -33,10 +43,8 @@ from heltour.tournament.tests.testutils import (
     reverse,
     season_tag,
     season_url,
-    Shush,
 )
-from heltour.tournament.views import _get_league, _get_season, _get_player_highlights
-from heltour.tournament.templatetags.tournament_extras import highlightclass, resultclass
+from heltour.tournament.views import _get_league, _get_player_highlights, _get_season
 
 
 class HelperWoLeagueTestCase(TestCase):
@@ -67,26 +75,28 @@ class DarkModeTestCase(TestCase):
         self.assertEqual(response.redirect_chain, [("/", 302)])
 
 
+@patch("heltour.tournament.views.chatbackend_render")
+@patch("heltour.tournament.views.chatbackend")
 class TemplatesRedirectTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
 
-    def test_helper_get_league(self):
+    def test_helper_get_league(self, *args):
         self.assertEqual(_get_league(None), get_league("team"))
 
-    def test_home_template(self):
+    def test_home_template(self, *args):
         response = self.client.get(reverse("home"))
         self.assertTemplateUsed(response, "tournament/home.html")
 
-    def test_league_home_template(self):
+    def test_league_home_template(self, *args):
         response = self.client.get(league_url("team", "league_home"))
         self.assertTemplateUsed(response, "tournament/team_league_home.html")
 
         response = self.client.get(league_url("lone", "league_home"))
         self.assertTemplateUsed(response, "tournament/lone_league_home.html")
 
-    def test_season_landing_template(self):
+    def test_season_landing_template(self, *args):
         response = self.client.get(season_url("team", "season_landing"))
         self.assertTemplateUsed(response, "tournament/team_season_landing.html")
 
@@ -107,7 +117,7 @@ class TemplatesRedirectTestCase(TestCase):
             response, "tournament/lone_completed_season_landing.html"
         )
 
-    def test_rosters_template(self):
+    def test_rosters_template(self, *args):
         response = self.client.get(season_url("team", "rosters"))
         self.assertTemplateUsed(response, "tournament/team_rosters.html")
 
@@ -116,14 +126,14 @@ class TemplatesRedirectTestCase(TestCase):
             response = self.client.get(season_url("lone", "rosters"))
         self.assertEqual(404, response.status_code)
 
-    def test_standings_template(self):
+    def test_standings_template(self, *args):
         response = self.client.get(season_url("team", "standings"))
         self.assertTemplateUsed(response, "tournament/team_standings.html")
 
         response = self.client.get(season_url("lone", "standings"))
         self.assertTemplateUsed(response, "tournament/lone_standings.html")
 
-    def test_crosstable_template(self):
+    def test_crosstable_template(self, *args):
         response = self.client.get(season_url("team", "crosstable"))
         self.assertTemplateUsed(response, "tournament/team_crosstable.html")
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
@@ -131,7 +141,7 @@ class TemplatesRedirectTestCase(TestCase):
             response = self.client.get(season_url("lone", "crosstable"))
         self.assertEqual(404, response.status_code)
 
-    def test_wallchart_template(self):
+    def test_wallchart_template(self, *args):
         # triggering a 404 writes to the log, disable that temporarily for nicer test output
         with Shush():
             response = self.client.get(season_url("team", "wallchart"))
@@ -140,7 +150,7 @@ class TemplatesRedirectTestCase(TestCase):
         response = self.client.get(season_url("lone", "wallchart"))
         self.assertTemplateUsed(response, "tournament/lone_wallchart.html")
 
-    def test_pairings_template(self):
+    def test_pairings_template(self, *args):
         team1 = Team.objects.get(number=1)
         team2 = Team.objects.get(number=2)
         Round.objects.filter(season__league__name="Team League", number=1).update(
@@ -183,13 +193,13 @@ class TemplatesRedirectTestCase(TestCase):
             [[("confirmed", "confirmed"), (None, None)]], self.pairing_icons(response)
         )
 
-    def pairing_icons(self, response):
+    def pairing_icons(self, response, *args):
         return [
             [(white_img, black_img) for _, white_img, _, black_img, _ in pairings]
             for pairings in response.context["pairing_lists"]
         ]
 
-    def test_stats_template(self):
+    def test_stats_template(self, *args):
         response = self.client.get(season_url("team", "stats"))
         self.assertTemplateUsed(response, "tournament/team_stats.html")
 
@@ -197,6 +207,12 @@ class TemplatesRedirectTestCase(TestCase):
         self.assertTemplateUsed(response, "tournament/lone_stats.html")
 
 
+@patch("heltour.tournament.forms.chatbackend_render")
+@patch("heltour.tournament.forms.chatbackend")
+@patch("heltour.gdpr.chatbackend_render")
+@patch("heltour.gdpr.chatbackend")
+@patch("heltour.tournament.views.chatbackend_render")
+@patch("heltour.tournament.views.chatbackend")
 class RegisterTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -204,14 +220,14 @@ class RegisterTestCase(TestCase):
         cls.user = User.objects.create_user("Player1", password="test")
         cls.player = get_player("Player1")
 
-    def test_require_login(self):
+    def test_require_login(self, *args):
         response = self.client.get(season_url("team", "register"))
         self.assertRedirects(
             response, league_url("team", "login"), fetch_redirect_response=False
         )
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_template(self, get_user_meta):
+    def test_template(self, get_user_meta, *args):
         self.client.login(username="Player1", password="test")
         response = self.client.get(season_url("team", "register"))
         self.assertTemplateUsed(response, "tournament/registration_closed.html")
@@ -227,7 +243,7 @@ class RegisterTestCase(TestCase):
         response = self.client.get(season_url("team", "registration_success"))
         self.assertTemplateUsed(response, "tournament/registration_success.html")
 
-    def test_register_text(self):
+    def test_register_text(self, *args):
         self.client.login(username="Player1", password="test")
 
         for league_type in ["team", "lone"]:
@@ -243,7 +259,12 @@ class RegisterTestCase(TestCase):
             self.assertContains(response, "Register")
             self.assertNotContains(response, "Change Registration")
 
-            with Shush():
+            with Shush(), DisconnectSignal(
+                signal=post_save,
+                receiver=registration_saved,
+                sender=Registration,
+                dispatch_uid="heltour.tournament.notify",
+            ):
                 registration = create_reg(season, self.user.username)
                 registration.classical_rating = 1600
                 registration.save()
@@ -266,7 +287,7 @@ class RegisterTestCase(TestCase):
             self.assertNotContains(response, "Change Registration")
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_register_post(self, get_user_meta):
+    def test_register_post(self, get_user_meta, *args):
         self.client.login(username="Player1", password="test")
         Season.objects.filter(league__name="Team League", name="Test Season").update(
             registration_open=True,
@@ -296,7 +317,12 @@ class RegisterTestCase(TestCase):
         self.assertEqual(
             Registration.objects.filter(player__lichess_username="Player1").count(), 0
         )
-        with Shush():
+        with Shush(), DisconnectSignal(
+            signal=post_save,
+            receiver=registration_saved,
+            sender=Registration,
+            dispatch_uid="heltour.tournament.notify",
+        ):
             response = self.client.post(
                 season_url("team", "register"),
                 data={
@@ -337,14 +363,14 @@ class RegisterTestCase(TestCase):
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_suggests_the_lichess_account_email_without_a_player_email(
-        self, get_user_meta
+        self, get_user_meta, *args
     ):
         self._give_account_email("account@example.com")
         self.assertEqual(self._suggested_email(), "account@example.com")
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_suggests_the_player_email_over_the_lichess_account_email(
-        self, get_user_meta
+        self, get_user_meta, *args
     ):
         self._give_account_email("account@example.com")
         self.player.email = "typed@example.com"
@@ -352,7 +378,7 @@ class RegisterTestCase(TestCase):
         self.assertEqual(self._suggested_email(), "typed@example.com")
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_register_missing_profile(self, get_user_meta):
+    def test_register_missing_profile(self, get_user_meta, *args):
         self.client.login(username="Player1", password="test")
         season = get_season("team")
         season.registration_open = True
@@ -362,7 +388,7 @@ class RegisterTestCase(TestCase):
         get_user_meta.assert_called_with("Player1", priority=100)
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_register_old_profile(self, get_user_meta):
+    def test_register_old_profile(self, get_user_meta, *args):
         self.player.profile = {
             "perfs": {
                 "classical": {
@@ -383,7 +409,7 @@ class RegisterTestCase(TestCase):
         get_user_meta.assert_called_with("Player1", priority=100)
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_register_lowrd_profile(self, get_user_meta):
+    def test_register_lowrd_profile(self, get_user_meta, *args):
         self.player.profile = {
             "perfs": {
                 "classical": {
@@ -404,7 +430,7 @@ class RegisterTestCase(TestCase):
         get_user_meta.assert_not_called()
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
-    def test_register_new_profile(self, get_user_meta):
+    def test_register_new_profile(self, get_user_meta, *args):
         self.player.profile = {
             "perfs": {
                 "classical": {
@@ -425,6 +451,8 @@ class RegisterTestCase(TestCase):
         get_user_meta.assert_not_called()
 
 
+@patch("heltour.tournament.views.chatbackend_render")
+@patch("heltour.tournament.views.chatbackend")
 @patch("heltour.tournament.lichessapi.watch_games", return_value=None)
 class TvTestCase(TestCase):
     @classmethod
@@ -524,14 +552,16 @@ class TvTestCase(TestCase):
         self.assertContains(response, '"white_rating": 1621')
         self.assertContains(response, '"black_rating": 1684')
 
-
+@patch("heltour.tournament.views.dm_link")
+@patch("heltour.tournament.views.chatbackend_render")
+@patch("heltour.tournament.views.chatbackend")
 class PlayerProfileCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
         Season.objects.all().update(is_active=True)
 
-    def test_profile_view_lw(self):
+    def test_profile_view_lw(self, *args):
         self.client.login(username="Player1", password="test")
         # should probably rather do this as well as some other tests in this file
         # using RequestFactoy instead. using client is the lazy alternative.
@@ -547,7 +577,7 @@ class PlayerProfileCase(TestCase):
         )
         self.assertEqual(response.context["has_other_seasons"], False)
 
-    def test_profile_view_team(self):
+    def test_profile_view_team(self, *args):
         self.client.login(username="Player2")
         response = self.client.get(
             reverse(

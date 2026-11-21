@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from heltour.tournament import signals
 from heltour.tournament.alternates_manager import do_alternate_search
 from heltour.tournament.models import (
     Alternate,
@@ -11,7 +12,9 @@ from heltour.tournament.models import (
     PlayerAvailability,
     SeasonPlayer,
 )
+from heltour.tournament.notify import alternate_search_started
 from heltour.tournament.tests.testutils import (
+    DisconnectSignal,
     Shush,
     createCommonLeagueData,
     get_league,
@@ -49,7 +52,9 @@ class AlternatesManagerTestCase(TestCase):
             round=self.r,
             is_available=False,
         )
-        with Shush():
+        with Shush(), patch(
+            "heltour.tournament.notify.userlink_silent"
+        ), patch("heltour.tournament.notify.link"):
             do_alternate_search(
                 season=self.s, round_=self.r, board_number=1, setting=self.setting
             )
