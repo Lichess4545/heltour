@@ -363,14 +363,14 @@ class RegisterTestCase(TestCase):
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_suggests_the_lichess_account_email_without_a_player_email(
-        self, get_user_meta
+        self, get_user_meta, *args
     ):
         self._give_account_email("account@example.com")
         self.assertEqual(self._suggested_email(), "account@example.com")
 
     @patch("heltour.tournament.lichessapi.get_user_meta", return_value={})
     def test_register_suggests_the_player_email_over_the_lichess_account_email(
-        self, get_user_meta
+        self, get_user_meta, *args
     ):
         self._give_account_email("account@example.com")
         self.player.email = "typed@example.com"
