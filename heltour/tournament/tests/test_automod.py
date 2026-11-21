@@ -31,7 +31,7 @@ class NoShowTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         createCommonLeagueData()
-        cls.rd = get_round("team", round_number=1)
+        cls.rd = get_round("lone", round_number=1)
         cls.player1 = get_player("Player1")
         cls.player2 = get_player("Player2")
         cls.pairing = LonePlayerPairing.objects.create(
