@@ -766,7 +766,7 @@ class Round(_BaseModel):
     def is_team_league(self):
         return self.season.league.is_team_league()
 
-    def get_broadcast_round(self, board_range_start: int = 1) -> BroadcastRound|None:
+    def get_broadcast_round(self, board_range_start: int = 1) -> BroadcastRound | None:
         bc = Broadcast.objects.filter(
             season=self.season, board_range_start=board_range_start
         ).first() # if the QuerySet is empty, first will return None
