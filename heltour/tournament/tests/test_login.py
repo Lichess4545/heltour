@@ -39,6 +39,9 @@ class LoginTestCase(TestCase):
         oauth._encode_state.assert_called_with({'league': 'teamleague', 'token': None})
 
 
+@patch("heltour.tournament.views.dm_link")
+@patch("heltour.tournament.views.chatbackend_render")
+@patch("heltour.tournament.views.chatbackend")
 @patch('heltour.tournament.lichessapi.get_user_meta',
        return_value={'perfs': {'classical': {'rating': 2121, 'games': 10}}})
 @patch('heltour.tournament.oauth._decode_state',

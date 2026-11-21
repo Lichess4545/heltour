@@ -326,10 +326,9 @@ class SeasonAdminTestCase(TestCase):
         self.assertFalse(message.called)
         self.assertTemplateUsed(response, "tournament/admin/team_spam.html")
 
-    @override_settings(SLACK_API_TOKEN="fake-token")
-    @patch("heltour.tournament.slackapi.SlackClient.channel_message")
+    @patch("heltour.tournament.chatbackend.channel_message")
     @patch("django.contrib.admin.ModelAdmin.message_user")
-    def test_team_spam_view(self, message, slack_message):
+    def test_team_spam_view(self, message, cb_message):
         self.client.force_login(user=self.superuser)
         path = reverse("admin:team_spam", args=[self.s.pk])
         # no confirm_send, no messages
@@ -338,35 +337,33 @@ class SeasonAdminTestCase(TestCase):
             data={"text": "message sent to teams", "confirm_send": False},
             follow=True,
         )
-        self.assertFalse(message.called)
-        self.assertFalse(slack_message.called)
+        message.assert_not_called()
+        cb_message.assert_not_called()
         self.assertTemplateUsed(response, "tournament/admin/team_spam.html")
-        # teams have no slack channels
+        # teams have no channels
         response = self.client.post(
             path,
             data={"text": "message sent to teams", "confirm_send": True},
             follow=True,
         )
-        self.assertTrue(message.called)
-        self.assertEqual(
-            message.call_args.args[1], "Spam sent to 4 teams."
+        message.assert_called_with(
+            ANY, "Spam sent to 4 teams.", ANY
         )  # bug that should be fixed, spam was not sent to 4 teams.
-        self.assertFalse(slack_message.called)
+        cb_message.assert_not_called()
         self.assertTemplateUsed(response, "admin/change_list.html")
-        # create slack channels
+        # create channels
         Team.objects.all().update(slack_channel="channel")
         response = self.client.post(
             path,
             data={"text": "message sent to teams", "confirm_send": True},
             follow=True,
         )
-        self.assertTrue(message.called)
-        self.assertEqual(
-            message.call_args.args[1], "Spam sent to 4 teams."
+        message.assert_called_with(
+            ANY, "Spam sent to 4 teams.", ANY
         )  # correct now.
-        self.assertEqual(slack_message.call_count, 4)
-        slack_message.assert_called_with(
-            "channel", "message sent to teams", "(no topic)"
+        self.assertEqual(cb_message.call_count, 4)
+        cb_message.assert_called_with(
+            channel="channel", text="message sent to teams"
         )
         self.assertTemplateUsed(response, "admin/change_list.html")
 
