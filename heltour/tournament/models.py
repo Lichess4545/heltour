@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict, namedtuple
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import reversion
 from ckeditor_uploader.fields import RichTextUploadingField
@@ -947,9 +947,9 @@ class Player(_BaseModel):
         # thus, the profile was last updated *after* this seenAt.
         seenAt = (self.profile or {}) .get('seenAt')
         if seenAt is not None:
-            return datetime.fromtimestamp(seenAt / 1000, tz=timezone.utc)
+            return datetime.fromtimestamp(seenAt / 1000, tz=UTC)
         # give an early default time otherwise:
-        return datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
+        return datetime(year=2015, month=1, day=1, tzinfo=UTC)
 
     def max_rd_guess(self) -> float:
         ABSOLUTE_MAX_RD: int = 500 # max rd on lichess
