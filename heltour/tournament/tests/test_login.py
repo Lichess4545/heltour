@@ -44,7 +44,7 @@ class LoginTestCase(TestCase):
 @patch('heltour.tournament.oauth._decode_state',
        return_value={'league': league_tag('team'), 'token': None})
 @patch('django.utils.timezone.now',
-       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
+       return_value=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.UTC))
 @patch('heltour.tournament.tasks.store_account_email.apply_async')
 class LoginWithCodeTestCase(TestCase):
     @classmethod
@@ -75,7 +75,7 @@ class LoginWithCodeTestCase(TestCase):
 
         self.assertEqual('1234', player.oauth_token.access_token)
         self.assertEqual('4567', player.oauth_token.refresh_token)
-        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=datetime.timezone.utc),
+        self.assertEqual(datetime.datetime(2019, 1, 1, 11, 30, 0, tzinfo=datetime.UTC),
                          player.oauth_token.expires)
         self.assertEqual('bearer', player.oauth_token.token_type)
         self.assertEqual('email:read challenge:read challenge:write', player.oauth_token.scope)
@@ -127,7 +127,7 @@ class LoginWithCodeTestCase(TestCase):
 
         response = self.client.get(reverse('lichess_auth'), self.auth_params, follow=True)
 
-        LoginToken.objects.create(secret_token='999', slack_user_id='U1234', expires=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.timezone.utc))
+        LoginToken.objects.create(secret_token='999', slack_user_id='U1234', expires=datetime.datetime(2019, 1, 1, 10, 30, 0, tzinfo=datetime.UTC))
 
         response = self.client.get(reverse('lichess_auth'), self.auth_params, follow=True)
 

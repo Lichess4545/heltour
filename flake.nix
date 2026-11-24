@@ -16,7 +16,7 @@
         };
         inherit (pkgs) lib;
 
-        python = pkgs.python311;
+        python = pkgs.python312;
         jre = pkgs.jre_minimal.override { jdk = pkgs.jdk21_headless; };
         version = (lib.importTOML ./pyproject.toml).tool.poetry.version;
         mediaRoot = "/var/lib/heltour/media";

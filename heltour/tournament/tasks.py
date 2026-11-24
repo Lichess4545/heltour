@@ -8,7 +8,7 @@ import textwrap
 import time
 import traceback
 import urllib.parse
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Dict, List
 
 import reversion
@@ -542,7 +542,7 @@ def start_games():
         tokens = ','.join(token_dict[leaguename])
         do_clockstart = league.get_leaguesetting().start_clocks
         clockstart_in = league.get_leaguesetting().start_clock_time
-        clockstart = round((datetime.utcnow().timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
+        clockstart = round((datetime.now(UTC).timestamp()+clockstart_in*60)*1000) # now + 6 minutes in milliseconds
         _start_league_games(tokens=tokens, clock=clock, increment=increment, do_clockstart=do_clockstart, clockstart=clockstart, clockstart_in=clockstart_in, variant=variant, rated=rated, leaguename=leaguename, league_games=league_games)
     logger.info('[FINISHED] Done trying to start games.')
     # send the signal to update broadcasts of all active rounds.
