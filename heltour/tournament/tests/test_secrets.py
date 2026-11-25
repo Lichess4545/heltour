@@ -4,7 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, override_settings
 
 from heltour.api_worker import views as api_worker_views
-from heltour.tournament import slackapi, spreadsheet
+from heltour.tournament import slackapi
 
 
 class SlackSecretsTestCase(SimpleTestCase):
@@ -55,19 +55,3 @@ class LichessSecretsTestCase(SimpleTestCase):
     @override_settings(LICHESS_API_TOKEN="")
     def test_calls_anonymously_without_an_api_token(self):
         self.assertIsNone(api_worker_views._get_lichess_api_token())
-
-
-class GoogleSecretsTestCase(SimpleTestCase):
-    @override_settings(GOOGLE_SERVICE_ACCOUNT_KEY='{"type": "service_account"}')
-    @patch("heltour.tournament.spreadsheet.gspread.authorize")
-    @patch("heltour.tournament.spreadsheet.ServiceAccountCredentials.from_json_keyfile_dict")
-    def test_parses_the_service_account_key(self, from_json_keyfile_dict, authorize):
-        spreadsheet._open_doc("https://docs.google.com/spreadsheets/d/x")
-        from_json_keyfile_dict.assert_called_once_with(
-            {"type": "service_account"}, ["https://spreadsheets.google.com/feeds"]
-        )
-
-    @override_settings(GOOGLE_SERVICE_ACCOUNT_KEY="")
-    def test_refuses_a_missing_service_account_key(self):
-        with self.assertRaisesMessage(ImproperlyConfigured, "GOOGLE_SERVICE_ACCOUNT_KEY"):
-            spreadsheet._open_doc("https://docs.google.com/spreadsheets/d/x")

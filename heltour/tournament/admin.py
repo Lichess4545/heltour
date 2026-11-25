@@ -42,7 +42,6 @@ from heltour.tournament import (
     pairinggen,
     signals,
     simulation,
-    spreadsheet,
     teamgen,
 )
 from heltour.tournament.models import (
@@ -284,7 +283,7 @@ FieldListFilter.register(lambda f: f.remote_field, LeagueRestrictedListFilter, t
 # -------------------------------------------------------------------------------
 @admin.register(League)
 class LeagueAdmin(_BaseAdmin):
-    actions = ['import_season', 'export_forfeit_data']
+    actions = ['export_forfeit_data']
     league_id_field = 'id'
 
     def has_add_permission(self, request):
@@ -302,67 +301,14 @@ class LeagueAdmin(_BaseAdmin):
     def get_urls(self):
         urls = super(LeagueAdmin, self).get_urls()
         my_urls = [
-            path('<int:object_id>/import_season/',
-                self.admin_site.admin_view(self.import_season_view),
-                name='import_season'),
             path('<int:object_id>/export_forfeit_data/',
                 self.admin_site.admin_view(self.export_forfeit_data_view),
                 name='export_forfeit_data'),
         ]
         return my_urls + urls
 
-    def import_season(self, request, queryset):
-        return redirect('admin:import_season', object_id=queryset[0].pk)
-
     def export_forfeit_data(self, request, queryset):
         return redirect('admin:export_forfeit_data', object_id=queryset[0].pk)
-
-    def import_season_view(self, request, object_id):
-        league = get_object_or_404(League, pk=object_id)
-        if not request.user.has_perm('tournament.change_league', league):
-            raise PermissionDenied
-
-        if request.method == 'POST':
-            form = forms.ImportSeasonForm(request.POST)
-            if form.is_valid():
-                try:
-                    if league.competitor_type == 'team':
-                        spreadsheet.import_team_season(league, form.cleaned_data['spreadsheet_url'],
-                                                       form.cleaned_data['season_name'],
-                                                       form.cleaned_data['season_tag'],
-                                                       form.cleaned_data['rosters_only'],
-                                                       form.cleaned_data['exclude_live_pairings'])
-                        self.message_user(request, "Season imported.")
-                    elif league.competitor_type == 'individual':
-                        spreadsheet.import_lonewolf_season(league,
-                                                           form.cleaned_data['spreadsheet_url'],
-                                                           form.cleaned_data['season_name'],
-                                                           form.cleaned_data['season_tag'],
-                                                           form.cleaned_data['rosters_only'],
-                                                           form.cleaned_data[
-                                                               'exclude_live_pairings'])
-                        self.message_user(request, "Season imported.")
-                    else:
-                        self.message_user(request,
-                                          "League competitor type not supported for spreadsheet import")
-                except spreadsheet.SpreadsheetNotFound:
-                    self.message_user(request,
-                                      "Spreadsheet not found. The service account may not have edit permissions.",
-                                      messages.ERROR)
-                return redirect('admin:tournament_league_changelist')
-        else:
-            form = forms.ImportSeasonForm()
-
-        context = {
-            'has_permission': True,
-            'opts': self.model._meta,
-            'site_url': '/',
-            'original': league,
-            'title': 'Import season',
-            'form': form
-        }
-
-        return render(request, 'tournament/admin/import_season.html', context)
 
     def export_forfeit_data_view(self, request, object_id):
         league = get_object_or_404(League, pk=object_id)
