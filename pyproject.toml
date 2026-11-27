@@ -43,19 +43,20 @@ email-normalize = "==3.2.*"
 
 [tool.poetry.group.dev.dependencies]
 djangorestframework-stubs = "==3.14.4"
-mypy = "==2.4.1"
+ty = "^0.0.112"
 ruff = "==0.17.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.mypy]
-plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
-files = ["heltour/api_v2"]
-strict = true
-follow_imports = "silent"
-untyped_calls_exclude = ["heltour.tournament"]
+[tool.ty]
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+exclude = ["heltour/tournament"]
+include = ["heltour/api_v2"]
 
 [tool.django-stubs]
 django_settings_module = "heltour.test_settings"

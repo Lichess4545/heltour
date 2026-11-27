@@ -401,7 +401,7 @@ def _update_pairing_game_links(worksheet, pairings, pairing_rows, game_link_col)
             '%s%d:%s%d' % (game_link_col_letter, 1, game_link_col_letter, pairing_rows[-1] + 1))
         for i in range(len(pairings)):
             input_value = range_game_links[pairing_rows[i]].input_value
-            match = re.match('=HYPERLINK\("(.*)","(.*)"\)', input_value)
+            match = re.match(r'=HYPERLINK\("(.*)","(.*)"\)', input_value)
             if match is not None:
                 pairings[i].game_link = match.group(1)
                 pairings[i].save()
@@ -429,7 +429,7 @@ def import_lonewolf_season(league, url, name, tag, rosters_only=False, exclude_l
         round_count = None
         for row in sheet_readme:
             for cell in row:
-                match = re.search('(\d+) round', cell)
+                match = re.search(r'(\d+) round', cell)
                 if match is not None:
                     round_count = int(match.group(1))
 

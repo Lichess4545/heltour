@@ -55,7 +55,7 @@ jobs:
         run: poetry run ruff check
 
       - name: Type check
-        run: poetry run mypy
+        run: poetry run ty check
 
       - name: Run tests
         run: poetry run python manage.py test --settings=heltour.test_settings

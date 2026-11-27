@@ -100,5 +100,5 @@ def player_with_email(normalized_email: str) -> Player | None:
 
 
 def uncached[Row: Model](rows: QuerySet[Row]) -> QuerySet[Row]:
-    uncached_rows: QuerySet[Row] = rows.nocache()  # type: ignore[attr-defined]
+    uncached_rows: QuerySet[Row] = rows.nocache()  # type: ignore[attr-defined] #ty: ignore[unresolved-attribute]
     return uncached_rows
