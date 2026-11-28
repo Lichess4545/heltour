@@ -99,6 +99,6 @@ def player_with_email(normalized_email: str) -> Player | None:
     return first_two[0] if first_two else None
 
 
-def uncached(rows: QuerySet[Row]) -> QuerySet[Row]:
-    uncached_rows: QuerySet[Row] = rows.nocache()  # type: ignore[attr-defined]
+def uncached[Row: Model](rows: QuerySet[Row]) -> QuerySet[Row]:
+    uncached_rows: QuerySet[Row] = rows.nocache()  # type: ignore[attr-defined] # ty: ignore[missing-attribute]
     return uncached_rows

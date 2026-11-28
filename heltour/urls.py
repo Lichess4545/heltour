@@ -13,20 +13,21 @@ Including another URLconf
     1. Import the include() function: from django.urls import url, include
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from django.conf.urls.static import static
-from heltour import settings
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('impersonate/', include('impersonate.urls')),
-    path('', include('heltour.%s.urls' % settings.HELTOUR_APP)),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path("admin/", admin.site.urls),
+    path("impersonate/", include("impersonate.urls")),
+    path("", include(f"heltour.{settings.HELTOUR_APP}.urls")),
+    *static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
+]
 
 if settings.DEBUG:
     import debug_toolbar
 
     urlpatterns += [
-        path('__debug__/', include(debug_toolbar.urls)),
+        path("__debug__/", include(debug_toolbar.urls)),
     ]

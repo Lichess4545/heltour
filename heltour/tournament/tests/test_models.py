@@ -1,21 +1,18 @@
-from django.test import TestCase, SimpleTestCase
-from django.utils import timezone
-from django.core.exceptions import ValidationError
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
-from datetime import datetime, timedelta
+
+from django.core.exceptions import ValidationError
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
 from heltour.tournament.models import (
-    add_system_comment,
     Alternate,
     AlternateAssignment,
     AlternateBucket,
     AlternatesManagerSetting,
-    format_score,
-    get_fide_dp,
-    get_gameid_from_gamelink,
     League,
     LonePlayerPairing,
     ModRequest,
-    normalize_gamelink,
     OauthToken,
     Player,
     PlayerBye,
@@ -31,16 +28,21 @@ from heltour.tournament.models import (
     TeamPairing,
     TeamPlayerPairing,
     TeamScore,
+    add_system_comment,
+    format_score,
+    get_fide_dp,
+    get_gameid_from_gamelink,
+    normalize_gamelink,
 )
 from heltour.tournament.tests.testutils import (
-    createCommonLeagueData,
+    Shush,
     create_reg,
+    createCommonLeagueData,
     get_league,
     get_player,
     get_round,
     get_season,
     set_rating,
-    Shush,
 )
 
 
@@ -1162,8 +1164,8 @@ class PlayerTestCase(TestCase):
         self.assertEqual(self.p1.profile.get("perfs").get("classical").get("rd"), 247)
 
     def test_profile_update_after(self):
-        newtime = datetime.fromtimestamp(1589845490.097, tz=timezone.utc)
-        defaulttime = datetime(year=2015, month=1, day=1, tzinfo=timezone.utc)
+        newtime = datetime.fromtimestamp(1589845490.097, tz=UTC)
+        defaulttime = datetime(year=2015, month=1, day=1, tzinfo=UTC)
         self.assertEqual(self.p1.profile_update_after(), defaulttime)
         self.p1.update_profile(user_meta=self.profile_old)
         self.assertEqual(self.p1.profile_update_after(), newtime)

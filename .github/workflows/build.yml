@@ -42,7 +42,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: poetry
 
       - name: Install packages
@@ -55,7 +55,7 @@ jobs:
         run: poetry run ruff check
 
       - name: Type check
-        run: poetry run mypy
+        run: poetry run ty check
 
       - name: Run tests
         run: poetry run python manage.py test --settings=heltour.test_settings

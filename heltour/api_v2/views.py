@@ -75,7 +75,7 @@ def active_filter(request: Request) -> bool | None:
     return active
 
 
-def found(value: Found | None) -> Found:
+def found[Found](value: Found | None) -> Found:
     if value is None:
         raise NotFound
     return value

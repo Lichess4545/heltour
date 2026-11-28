@@ -18,7 +18,7 @@ in
 {
   languages.python = {
     enable = true;
-    package = pkgs.python311;
+    package = pkgs.python312;
     manylinux.enable = pkgs.stdenv.isLinux;
     poetry = {
       enable = true;
